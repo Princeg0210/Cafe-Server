@@ -47,7 +47,7 @@ class RecipeCreate(BaseModel):
     menu_item_id: int
     name: str = Field(..., example="Truffle Pizza Recipe")
     instructions: Optional[str] = Field(None, example="Bake at 450C for 90 seconds")
-    items: List[RecipeItemCreate] = Field(..., min_items=1)
+    items: List[RecipeItemCreate] = Field(..., min_length=1)
 
 
 class RecipeResponse(BaseModel):

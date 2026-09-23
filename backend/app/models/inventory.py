@@ -3,6 +3,7 @@ from decimal import Decimal
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
+from app.utils.helpers import utc_now
 
 
 class Recipe(Base):
@@ -52,6 +53,6 @@ class InventoryTransaction(Base):
     transaction_type: Mapped[str] = mapped_column(String(30), nullable=False)  # PURCHASE, SALE_CONSUMPTION, ADJUSTMENT, WASTE, RETURN, TRANSFER, INITIAL_STOCK
     quantity_change: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False)
     reference_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     inventory_item = relationship("InventoryItem", back_populates="transactions")

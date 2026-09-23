@@ -3,6 +3,7 @@ from decimal import Decimal
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
+from app.utils.helpers import utc_now
 
 
 class Supplier(Base):
@@ -24,7 +25,7 @@ class PurchaseOrder(Base):
     supplier_id: Mapped[int] = mapped_column(Integer, ForeignKey("suppliers.id", ondelete="CASCADE"), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="DRAFT", nullable=False)  # DRAFT, ORDERED, RECEIVED, CANCELLED
     total_cost: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"), nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     supplier = relationship("Supplier", back_populates="purchase_orders")
     items = relationship("PurchaseOrderItem", back_populates="purchase_order", cascade="all, delete-orphan")

@@ -2,6 +2,7 @@ import datetime
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
+from app.utils.helpers import utc_now
 
 
 class Kitchen(Base):
@@ -35,7 +36,7 @@ class KitchenOrder(Base):
     order_id: Mapped[int] = mapped_column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
     kitchen_id: Mapped[int] = mapped_column(Integer, ForeignKey("kitchens.id", ondelete="CASCADE"), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="SENT", nullable=False)  # SENT, PREPARING, READY, SERVED
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     order = relationship("Order", back_populates="kitchen_orders")
     kitchen = relationship("Kitchen", back_populates="kitchen_orders")
@@ -64,7 +65,7 @@ class PrintJob(Base):
     ticket_content: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="PENDING", nullable=False)  # PENDING, PRINTING, PRINTED, FAILED, RETRYING, CANCELLED
     retry_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     kitchen_order = relationship("KitchenOrder", back_populates="print_jobs")
     printer = relationship("KitchenPrinter", back_populates="print_jobs")

@@ -3,6 +3,7 @@ from decimal import Decimal
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
+from app.utils.helpers import utc_now
 
 
 class MenuCategory(Base):
@@ -27,7 +28,7 @@ class MenuItem(Base):
     tax_rate: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("5.00"), nullable=False)
     is_available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     category = relationship("MenuCategory", back_populates="items")
     capacity_rule = relationship("ItemCapacityRule", back_populates="menu_item", uselist=False)

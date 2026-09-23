@@ -3,6 +3,7 @@ from decimal import Decimal
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
+from app.utils.helpers import utc_now
 
 
 class Order(Base):
@@ -12,7 +13,7 @@ class Order(Base):
     dining_session_id: Mapped[int] = mapped_column(Integer, ForeignKey("dining_sessions.id", ondelete="CASCADE"), nullable=False)
     order_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(20), default="CREATED", nullable=False)  # CREATED, CONFIRMED, PREPARING, READY, SERVED, BILLED, CLOSED
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     dining_session = relationship("DiningSession", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
@@ -43,6 +44,6 @@ class OrderStatusHistory(Base):
     old_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     new_status: Mapped[str] = mapped_column(String(20), nullable=False)
     changed_by_user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    timestamp: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    timestamp: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     order = relationship("Order", back_populates="status_history")

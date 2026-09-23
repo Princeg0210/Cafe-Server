@@ -9,6 +9,9 @@ from app.models.billing import Bill, Payment
 from app.schemas.billing import PaymentCreate
 
 
+from app.utils.helpers import utc_now
+
+
 class BillingService:
     @staticmethod
     async def get_or_calculate_bill(db: AsyncSession, dining_session_id: int) -> Bill:
@@ -80,6 +83,13 @@ class BillingService:
             if already_paid:
                 return already_paid
 
+        # Validate payment amount against bill total
+        if Decimal(str(payment_data.amount_paid)) < Decimal(str(bill.total_amount)):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"INSUFFICIENT_PAYMENT: Payment amount ({payment_data.amount_paid}) is less than total bill amount ({bill.total_amount}).",
+            )
+
         # Create payment record
         payment = Payment(
             bill_id=bill.id,
@@ -100,7 +110,7 @@ class BillingService:
 
         if dining_session:
             dining_session.status = "CLOSED"
-            dining_session.closed_at = datetime.datetime.utcnow()
+            dining_session.closed_at = utc_now()
 
             table_query = select(Table).where(Table.id == dining_session.table_id)
             table_res = await db.execute(table_query)
@@ -108,6 +118,17 @@ class BillingService:
             if table:
                 table.status = "Available"
 
-        await db.commit()
-        await db.refresh(payment)
-        return payment
+        from sqlalchemy.exc import IntegrityError
+        try:
+            await db.commit()
+            await db.refresh(payment)
+            return payment
+        except IntegrityError:
+            await db.rollback()
+            if payment_data.idempotency_key:
+                idem_query = select(Payment).where(Payment.idempotency_key == payment_data.idempotency_key)
+                idem_res = await db.execute(idem_query)
+                existing_payment = idem_res.scalar_one_or_none()
+                if existing_payment:
+                    return existing_payment
+            raise

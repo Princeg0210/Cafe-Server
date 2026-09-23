@@ -2,6 +2,7 @@ import datetime
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
+from app.utils.helpers import utc_now
 
 
 class RolePermission(Base):
@@ -40,6 +41,6 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     role_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("roles.id", ondelete="SET NULL"), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     role = relationship("Role", back_populates="users")

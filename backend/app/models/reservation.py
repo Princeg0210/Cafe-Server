@@ -2,6 +2,7 @@ import datetime
 from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
+from app.utils.helpers import utc_now
 
 
 class Reservation(Base):
@@ -14,7 +15,7 @@ class Reservation(Base):
     reservation_date: Mapped[datetime.date] = mapped_column(Date, nullable=False, index=True)
     time_slot: Mapped[str] = mapped_column(String(20), nullable=False, index=True)  # e.g., "19:00-20:00"
     status: Mapped[str] = mapped_column(String(20), default="CONFIRMED", nullable=False)  # CONFIRMED, CANCELLED, COMPLETED
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     branch = relationship("Branch", back_populates="reservations")
     customer = relationship("Customer", back_populates="reservations")

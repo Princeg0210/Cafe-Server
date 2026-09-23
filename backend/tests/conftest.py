@@ -33,12 +33,20 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         await conn.run_sync(Base.metadata.drop_all)
 
 
+from app.api.deps import get_db, get_current_user
+from app.models.user import User, Role
+
+
 @pytest_asyncio.fixture(scope="function")
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_db():
         yield db_session
 
+    async def override_get_current_user():
+        return User(id=1, username="test_cashier", email="cashier@example.com", is_active=True, role=Role(id=1, name="Admin"))
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac

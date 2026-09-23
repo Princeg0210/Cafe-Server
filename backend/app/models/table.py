@@ -2,6 +2,7 @@ import datetime
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
+from app.utils.helpers import utc_now
 
 
 class Table(Base):
@@ -37,7 +38,7 @@ class DiningSession(Base):
     customer_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
     session_token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(20), default="OPENED", nullable=False)  # OPENED, ACTIVE, CHECKOUT, PAID, CLOSED
-    opened_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    opened_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     closed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
 
     table = relationship("Table", back_populates="dining_sessions")

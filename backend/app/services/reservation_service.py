@@ -12,11 +12,15 @@ class ReservationService:
     async def check_capacity(
         db: AsyncSession, branch_id: int, reservation_date: datetime.date, time_slot: str, new_guests: int
     ) -> bool:
-        # Fetch capacity rule for branch & time_slot
-        rule_query = select(ReservationCapacityRule).where(
-            ReservationCapacityRule.branch_id == branch_id,
-            ReservationCapacityRule.time_slot == time_slot,
-            ReservationCapacityRule.is_active == True,
+        # Fetch capacity rule for branch & time_slot with pessimistic lock
+        rule_query = (
+            select(ReservationCapacityRule)
+            .where(
+                ReservationCapacityRule.branch_id == branch_id,
+                ReservationCapacityRule.time_slot == time_slot,
+                ReservationCapacityRule.is_active == True,
+            )
+            .with_for_update()
         )
         rule_result = await db.execute(rule_query)
         rule = rule_result.scalar_one_or_none()

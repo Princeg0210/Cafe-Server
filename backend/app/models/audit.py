@@ -2,6 +2,7 @@ import datetime
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
+from app.utils.helpers import utc_now
 
 
 class AuditLog(Base):
@@ -15,4 +16,4 @@ class AuditLog(Base):
     old_value: Mapped[str | None] = mapped_column(Text, nullable=True)
     new_value: Mapped[str | None] = mapped_column(Text, nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
-    timestamp: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+    timestamp: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)

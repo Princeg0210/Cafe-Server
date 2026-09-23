@@ -61,6 +61,14 @@ def require_permission(required_permission: str) -> Callable:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Permission denied: Required permission '{required_permission}'.",
             )
+        # Fetch role details
+        role_query = select(Role).where(Role.id == current_user.role_id)
+        role_res = await db.execute(role_query)
+        role = role_res.scalar_one_or_none()
+
+        if role and role.name.lower() in ["admin", "owner"]:
+            return current_user
+
         # Fetch role permissions
         query = (
             select(Permission.code)
