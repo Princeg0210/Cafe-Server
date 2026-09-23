@@ -9,6 +9,8 @@ import Navbar from "@/components/Navbar";
 import CartDrawer, { CartItem } from "@/components/CartDrawer";
 import SignatureBrewsShowcase from "@/components/SignatureBrewsShowcase";
 import LocationBrewStation from "@/components/LocationBrewStation";
+import TanStorySection from "@/components/TanStorySection";
+import TanFooter from "@/components/TanFooter";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   starters: <Utensils className="w-5 h-5 text-[#c88a48]" />,
@@ -67,7 +69,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans pb-28 relative">
+    <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans relative">
       
       {/* Tan Coffee Style Navbar */}
       <Navbar cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} />
@@ -118,7 +120,7 @@ export default function Home() {
 
       {/* Tan Coffee Style Category Navigation Pills */}
       <div className="sticky top-16 z-30 bg-[#f7f3ee]/95 backdrop-blur-md border-b border-[#e8ded2] py-3 shadow-2xs">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto flex items-center gap-2.5 no-scrollbar">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 overflow-x-auto flex items-center gap-2.5 no-scrollbar">
           <button
             onClick={() => setActiveCategoryFilter("all")}
             className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-condensed font-bold uppercase tracking-wider transition-all ${
@@ -146,7 +148,7 @@ export default function Home() {
       </div>
 
       {/* Main Container */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 mt-10">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 mt-10">
 
         {/* Feature 1: Specialty Beverage Highlights */}
         <SignatureBrewsShowcase onAddToCart={addToCart} />
@@ -253,19 +255,15 @@ export default function Home() {
           ))}
         </motion.div>
 
+        {/* Tan Coffee Screenshot 1 & 2 Exact Story & Photo Gallery Section */}
+        <TanStorySection />
+
         {/* Feature 2: Brew Station & Location Finder */}
         <LocationBrewStation />
       </main>
 
-      {/* Tan Coffee Style Minimal Footer */}
-      <footer className="mt-20 pt-10 pb-20 border-t border-[#e8ded2] max-w-3xl mx-auto text-center px-6">
-        <Flame className="w-6 h-6 text-[#c88a48] mx-auto mb-3 opacity-90" />
-        <h4 className="font-condensed font-extrabold text-3xl mb-2 text-[#24150e] uppercase tracking-wider">Grazie!</h4>
-        <p className="font-sans text-gray-500 leading-relaxed max-w-md mx-auto text-xs">
-          Thank you for visiting us in Old City Udaipur. <br/>
-          <span className="italic">Your order will be prepared fresh for you.</span>
-        </p>
-      </footer>
+      {/* Tan Coffee Screenshot 2 Exact Copper Brown Footer */}
+      <TanFooter />
 
       {/* Floating Action Button (Cart Trigger) */}
       <AnimatePresence>

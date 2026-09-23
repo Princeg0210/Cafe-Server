@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Flame, Heart, Sparkles, UtensilsCrossed, ShieldCheck } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import CartDrawer, { CartItem } from "@/components/CartDrawer";
+import TanFooter from "@/components/TanFooter";
 import Image from "next/image";
 
 export default function AboutPage() {
@@ -26,7 +27,7 @@ export default function AboutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans pb-24">
+    <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans">
       <Navbar cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} />
 
       {/* Hero Section */}
@@ -57,7 +58,7 @@ export default function AboutPage() {
       </section>
 
       {/* Main Story Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-16 space-y-16">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-16 space-y-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -108,16 +109,9 @@ export default function AboutPage() {
             </motion.div>
           ))}
         </div>
-
-        {/* Closing Note */}
-        <div className="text-center py-8">
-          <Heart className="w-6 h-6 text-[#b91c1c] mx-auto mb-3" />
-          <p className="font-sans italic text-base text-gray-600">
-            Grazie for coming to the old city to find us. <br/>
-            We wish you a happy, healthy evening!
-          </p>
-        </div>
       </main>
+
+      <TanFooter />
 
       <CartDrawer
         isOpen={isCartOpen}

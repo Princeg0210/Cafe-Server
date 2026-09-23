@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import CartDrawer, { CartItem } from "@/components/CartDrawer";
+import TanFooter from "@/components/TanFooter";
 
 export default function ContactPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -32,10 +33,10 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans pb-24">
+    <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans">
       <Navbar cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-12 space-y-12">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-12 pb-16 space-y-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -175,6 +176,8 @@ export default function ContactPage() {
           </motion.div>
         </div>
       </main>
+
+      <TanFooter />
 
       <CartDrawer
         isOpen={isCartOpen}

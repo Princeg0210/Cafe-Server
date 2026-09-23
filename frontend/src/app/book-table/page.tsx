@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Calendar as CalendarIcon, Clock, Users, Sparkles, CheckCircle2, MapPin } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import CartDrawer, { CartItem } from "@/components/CartDrawer";
+import TanFooter from "@/components/TanFooter";
 
 export default function BookTablePage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -39,10 +40,10 @@ export default function BookTablePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans pb-24">
+    <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans">
       <Navbar cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 pt-12">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 pt-12 pb-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -214,6 +215,8 @@ export default function BookTablePage() {
           </motion.form>
         )}
       </main>
+
+      <TanFooter />
 
       <CartDrawer
         isOpen={isCartOpen}
