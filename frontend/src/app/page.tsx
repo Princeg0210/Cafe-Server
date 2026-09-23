@@ -11,6 +11,7 @@ import SignatureBrewsShowcase from "@/components/SignatureBrewsShowcase";
 import LocationBrewStation from "@/components/LocationBrewStation";
 import TanStorySection from "@/components/TanStorySection";
 import TanFooter from "@/components/TanFooter";
+import PizzaSliceZoomIntro from "@/components/PizzaSliceZoomIntro";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   starters: <Utensils className="w-5 h-5 text-[#c88a48]" />,
@@ -71,6 +72,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans relative">
       
+      {/* Site Load Artisanal 4-Slice Pizza Zoom Intro */}
+      <PizzaSliceZoomIntro autoPlay={true} />
+
       {/* Tan Coffee Style Navbar */}
       <Navbar cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} />
 

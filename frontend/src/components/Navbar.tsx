@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Flame, ShoppingBag, Calendar, Info, MapPin, Coffee } from "lucide-react";
+import { Flame, ShoppingBag, Calendar, Info, MapPin, Coffee, QrCode } from "lucide-react";
 
 interface NavbarProps {
-  cartCount: number;
-  onOpenCart: () => void;
+  cartCount?: number;
+  onOpenCart?: () => void;
 }
 
 export default function Navbar({ cartCount, onOpenCart }: NavbarProps) {
@@ -60,13 +60,13 @@ export default function Navbar({ cartCount, onOpenCart }: NavbarProps) {
 
         {/* Running Bill / Cart Trigger Button */}
         <button
-          onClick={onOpenCart}
+          onClick={() => onOpenCart && onOpenCart()}
           className="flex items-center gap-2.5 bg-[#24150e] hover:bg-[#b91c1c] text-white px-4 py-2 rounded-full text-xs font-semibold uppercase tracking-wider transition-all shadow-md active:scale-95"
           aria-label="Open Running Bill Cart"
         >
           <ShoppingBag className="w-4 h-4 text-[#c88a48]" />
           <span>Bill</span>
-          {cartCount > 0 && (
+          {(cartCount ?? 0) > 0 && (
             <span className="bg-[#b91c1c] text-white text-[11px] px-2 py-0.5 rounded-full font-bold">
               {cartCount}
             </span>
