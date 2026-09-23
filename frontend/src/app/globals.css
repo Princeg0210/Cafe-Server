@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair);
+  
+  --color-cafe-dark: #1a1514;
+  --color-cafe-cream: #fdfaf6;
+  --color-cafe-gold: #c6a87c;
+  --color-cafe-red: #8b261b;
+  --color-cafe-border: #e6dfd3;
+}
+
+:root {
+  --background: var(--color-cafe-cream);
+  --foreground: var(--color-cafe-dark);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: var(--color-cafe-dark);
+    --foreground: var(--color-cafe-cream);
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans), sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif), serif;
+}
