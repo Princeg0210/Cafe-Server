@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Coffee, Pizza, Wine, Utensils, Info, Plus, Sparkles, MapPin, ShieldCheck, ArrowRight } from "lucide-react";
+import { Flame, Coffee, Pizza, Wine, Utensils, Info, Plus } from "lucide-react";
 import { menuData, MenuItem } from "@/data/menu";
 import Image from "next/image";
-import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import CartDrawer, { CartItem } from "@/components/CartDrawer";
+import SignatureBrewsShowcase from "@/components/SignatureBrewsShowcase";
+import LocationBrewStation from "@/components/LocationBrewStation";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   starters: <Utensils className="w-5 h-5 text-[#c88a48]" />,
@@ -144,8 +145,13 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Main Menu Showcase */}
+      {/* Main Container */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 mt-10">
+
+        {/* Feature 1: Specialty Beverage Highlights */}
+        <SignatureBrewsShowcase onAddToCart={addToCart} />
+
+        {/* Main Menu List */}
         <motion.div
           variants={container}
           initial="hidden"
@@ -247,50 +253,8 @@ export default function Home() {
           ))}
         </motion.div>
 
-        {/* Tan Coffee Style Feature Highlights Section */}
-        <section className="mt-20 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-3xl p-8 border border-[#e8ded2] shadow-sm flex flex-col justify-between space-y-6">
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#24150e] text-[#c88a48] flex items-center justify-center">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <h4 className="text-3xl font-condensed font-extrabold text-[#24150e] uppercase">
-                Our Craft & Heritage
-              </h4>
-              <p className="text-xs md:text-sm text-gray-600 leading-relaxed font-sans">
-                Hand-stretched Neapolitan dough fermented for 48 hours, coupled with ethically sourced 100% Arabica mountain coffee beans roasted in-house.
-              </p>
-            </div>
-            <Link
-              href="/about"
-              className="inline-flex items-center gap-2 text-xs font-condensed font-bold text-[#c88a48] uppercase tracking-widest hover:underline"
-            >
-              <span>Discover Our Story</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-
-          <div className="bg-[#24150e] text-white rounded-3xl p-8 border border-black/20 shadow-md flex flex-col justify-between space-y-6">
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 text-[#c88a48] flex items-center justify-center">
-                <MapPin className="w-6 h-6" />
-              </div>
-              <h4 className="text-3xl font-condensed font-extrabold text-white uppercase">
-                Old City Brew Station
-              </h4>
-              <p className="text-xs md:text-sm text-gray-300 leading-relaxed font-sans">
-                Located near Gangaur Ghat in historic Udaipur. Enjoy rooftop sunset views over Lake Pichola with fresh woodfired pizza.
-              </p>
-            </div>
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 text-xs font-condensed font-bold text-[#c88a48] uppercase tracking-widest hover:underline"
-            >
-              <span>Get Location & Directions</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </section>
+        {/* Feature 2: Brew Station & Location Finder */}
+        <LocationBrewStation />
       </main>
 
       {/* Tan Coffee Style Minimal Footer */}
