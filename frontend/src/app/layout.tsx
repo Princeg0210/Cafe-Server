@@ -1,20 +1,22 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Poppins, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
+const barlow = Barlow_Condensed({
+  variable: "--font-barlow",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
-  title: "Jaadoo Udaipur - Italian Kitchen Magic",
-  description: "Digital Menu for Jaadoo Udaipur",
+  title: "Jaadoo Udaipur | Specialty Italian Kitchen & Coffee Magic",
+  description: "Authentic Wood-fired Pizza, Artisanal Coffee & Himalayan Tisanes in Old City, Udaipur.",
 };
 
 export default function RootLayout({
@@ -24,9 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${inter.variable} ${playfair.variable} antialiased`}
-      >
+      <body className={`${poppins.variable} ${barlow.variable} antialiased selection:bg-amber-200/50`}>
         {children}
       </body>
     </html>

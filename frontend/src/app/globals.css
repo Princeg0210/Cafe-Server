@@ -1,14 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-inter);
-  --font-serif: var(--font-playfair);
+  --font-sans: var(--font-poppins);
+  --font-condensed: var(--font-barlow);
+  --font-serif: var(--font-barlow);
   
-  --color-cafe-dark: #1a1514;
-  --color-cafe-cream: #fdfaf6;
-  --color-cafe-gold: #c6a87c;
-  --color-cafe-red: #8b261b;
-  --color-cafe-border: #e6dfd3;
+  --color-cafe-dark: #24150e;
+  --color-cafe-cream: #f7f3ee;
+  --color-cafe-gold: #c88a48;
+  --color-cafe-red: #b91c1c;
+  --color-cafe-border: #e8ded2;
 }
 
 :root {
@@ -16,19 +17,25 @@
   --foreground: var(--color-cafe-dark);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: var(--color-cafe-dark);
-    --foreground: var(--color-cafe-cream);
-  }
-}
-
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-sans), sans-serif;
+  letter-spacing: -0.01em;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-serif), serif;
+  font-family: var(--font-condensed), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }

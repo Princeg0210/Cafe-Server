@@ -2,19 +2,20 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Coffee, Pizza, Wine, Utensils, Info, Plus } from "lucide-react";
+import { Flame, Coffee, Pizza, Wine, Utensils, Info, Plus, Sparkles, MapPin, ShieldCheck, ArrowRight } from "lucide-react";
 import { menuData, MenuItem } from "@/data/menu";
 import Image from "next/image";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import CartDrawer, { CartItem } from "@/components/CartDrawer";
 
 const categoryIcons: Record<string, React.ReactNode> = {
-  starters: <Utensils className="w-5 h-5 text-cafe-gold" />,
-  primo: <Utensils className="w-5 h-5 text-cafe-gold" />,
-  pizza: <Pizza className="w-5 h-5 text-cafe-gold" />,
-  cakes: <Coffee className="w-5 h-5 text-cafe-gold" />,
-  beverages: <Wine className="w-5 h-5 text-cafe-gold" />,
-  "hot-drinks": <Coffee className="w-5 h-5 text-cafe-gold" />,
+  starters: <Utensils className="w-5 h-5 text-[#c88a48]" />,
+  primo: <Utensils className="w-5 h-5 text-[#c88a48]" />,
+  pizza: <Pizza className="w-5 h-5 text-[#c88a48]" />,
+  cakes: <Coffee className="w-5 h-5 text-[#c88a48]" />,
+  beverages: <Wine className="w-5 h-5 text-[#c88a48]" />,
+  "hot-drinks": <Coffee className="w-5 h-5 text-[#c88a48]" />,
 };
 
 export default function Home() {
@@ -65,57 +66,64 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fcfaf8] text-cafe-dark selection:bg-cafe-gold/30 font-sans pb-24 relative">
+    <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans pb-28 relative">
       
-      {/* Universal Navigation Header */}
+      {/* Tan Coffee Style Navbar */}
       <Navbar cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} />
 
-      {/* Hero Section */}
-      <header className="relative h-[40vh] md:h-[48vh] flex items-center justify-center overflow-hidden shadow-lg mx-3 md:mx-6 mt-4 rounded-3xl">
+      {/* Tan Coffee Style Hero Header */}
+      <header className="relative h-[42vh] md:h-[50vh] flex items-center justify-center overflow-hidden mx-3 md:mx-6 mt-4 rounded-3xl shadow-xl">
         <div className="absolute inset-0 z-0">
           <Image
             src="/hero-bg.jpg"
-            alt="Authentic Italian Wood-fired Pizza"
+            alt="Tan Coffee Style Italian Woodfired Pizza"
             fill
             className="object-cover object-center"
             priority
           />
-          <div className="absolute inset-0 bg-black/30 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
+          <div className="absolute inset-0 bg-[#24150e]/50 bg-gradient-to-t from-[#24150e] via-[#24150e]/30 to-black/40" />
         </div>
         
-        <div className="relative z-10 text-center px-6 max-w-3xl mx-auto">
+        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
+            className="inline-flex items-center gap-2 bg-[#24150e]/80 text-[#c88a48] border border-[#c88a48]/50 px-4 py-1.5 rounded-full text-xs font-semibold tracking-widest uppercase mb-4 shadow-lg backdrop-blur-md"
           >
-            <h1 className="text-5xl md:text-7xl font-serif font-bold text-white tracking-widest uppercase drop-shadow-xl">
-              JAADOO UDAIPUR
-            </h1>
+            <Flame className="w-4 h-4 text-amber-500 fill-amber-500" />
+            <span>100% ARTISANAL WOODFIRED & ARABICA BREWING NOW</span>
           </motion.div>
-          
-          <motion.div
+
+          <motion.h1 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="mt-5 inline-block backdrop-blur-md bg-black/40 border border-cafe-gold/60 rounded-full py-2 px-6 shadow-2xl"
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="text-5xl sm:text-7xl md:text-8xl font-condensed font-extrabold text-white tracking-wider uppercase drop-shadow-2xl leading-none"
           >
-            <span className="text-sm md:text-base font-serif italic text-white tracking-wide">
-              Italian Kitchen Magic · Table QR Menu
-            </span>
-          </motion.div>
+            JAADOO <span className="text-[#c88a48]">UDAIPUR</span>
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="mt-3 text-sm md:text-lg font-sans text-gray-200 tracking-wide max-w-xl mx-auto"
+          >
+            Woodfired Neapolitan Pizza · Speciality Arabica Roasts · Mountain Tisanes
+          </motion.p>
         </div>
       </header>
 
-      {/* Category Filter Pills */}
-      <div className="sticky top-16 z-30 bg-[#fcfaf8]/95 backdrop-blur-md border-b border-gray-200/80 py-3 shadow-2xs">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 overflow-x-auto flex items-center gap-2.5 no-scrollbar">
+      {/* Tan Coffee Style Category Navigation Pills */}
+      <div className="sticky top-16 z-30 bg-[#f7f3ee]/95 backdrop-blur-md border-b border-[#e8ded2] py-3 shadow-2xs">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 overflow-x-auto flex items-center gap-2.5 no-scrollbar">
           <button
             onClick={() => setActiveCategoryFilter("all")}
-            className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+            className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-condensed font-bold uppercase tracking-wider transition-all ${
               activeCategoryFilter === "all"
-                ? "bg-cafe-dark text-white shadow-2xs"
-                : "bg-white border border-gray-200 text-gray-700 hover:border-cafe-gold"
+                ? "bg-[#24150e] text-white shadow-xs"
+                : "bg-white border border-[#e8ded2] text-gray-700 hover:border-[#c88a48]"
             }`}
           >
             All Menu Categories
@@ -124,10 +132,10 @@ export default function Home() {
             <button
               key={c.id}
               onClick={() => setActiveCategoryFilter(c.id)}
-              className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+              className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-condensed font-bold uppercase tracking-wider transition-all ${
                 activeCategoryFilter === c.id
-                  ? "bg-cafe-dark text-white shadow-2xs"
-                  : "bg-white border border-gray-200 text-gray-700 hover:border-cafe-gold"
+                  ? "bg-[#24150e] text-white shadow-xs"
+                  : "bg-white border border-[#e8ded2] text-gray-700 hover:border-[#c88a48]"
               }`}
             >
               {c.name}
@@ -136,8 +144,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Main Menu List */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 mt-10">
+      {/* Main Menu Showcase */}
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 mt-10">
         <motion.div
           variants={container}
           initial="hidden"
@@ -149,64 +157,64 @@ export default function Home() {
               
               {/* Category Header */}
               <div className="flex items-center gap-3 mb-6">
-                <div className="bg-white p-2 rounded-full border border-gray-200 shadow-2xs">
-                  {categoryIcons[category.id] || <Utensils className="w-5 h-5 text-cafe-gold" />}
+                <div className="bg-white p-2.5 rounded-full border border-[#e8ded2] shadow-2xs">
+                  {categoryIcons[category.id] || <Utensils className="w-5 h-5 text-[#c88a48]" />}
                 </div>
-                <h3 className="text-2xl md:text-3xl font-serif font-bold tracking-wider text-cafe-dark uppercase">
+                <h3 className="text-3xl md:text-4xl font-condensed font-extrabold tracking-wider text-[#24150e] uppercase">
                   {category.name}
                 </h3>
-                <div className="h-px bg-gray-200 flex-1 ml-3" />
+                <div className="h-px bg-[#e8ded2] flex-1 ml-3" />
               </div>
 
               {category.id === "pizza" && (
-                <div className="mb-6 bg-amber-50/80 border border-amber-100 rounded-xl p-3.5 flex gap-3 items-center">
-                  <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                  <p className="text-xs md:text-sm text-amber-900 italic font-serif">
-                    Check the board for daily specials! Or customise your own pizza. All jaadoo pizza are vegetarian.
+                <div className="mb-6 bg-amber-100/60 border border-amber-200/80 rounded-2xl p-4 flex gap-3 items-center">
+                  <Info className="w-5 h-5 text-[#c88a48] flex-shrink-0" />
+                  <p className="text-xs md:text-sm text-[#24150e] font-sans">
+                    Check the daily specials board! Customize your pizza base. All Jaadoo pizzas are 100% vegetarian.
                   </p>
                 </div>
               )}
 
-              {/* Menu Items Grid */}
+              {/* Menu Item Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                 {category.items.map((item) => (
                   <motion.div 
                     key={item.id}
                     whileHover={{ scale: 1.025, y: -3 }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                    className="group bg-white rounded-2xl p-4 md:p-5 border border-gray-100 shadow-2xs hover:shadow-xl hover:border-cafe-gold/60 hover:bg-gradient-to-br hover:from-white hover:to-amber-50/30 transition-all duration-300 flex flex-col justify-between cursor-pointer relative overflow-hidden z-0 hover:z-20"
+                    className="group bg-white rounded-2xl p-4 md:p-5 border border-[#e8ded2] shadow-2xs hover:shadow-xl hover:border-[#c88a48] transition-all duration-300 flex flex-col justify-between cursor-pointer relative overflow-hidden z-0 hover:z-20"
                     onClick={() => addToCart(item)}
                   >
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cafe-gold via-cafe-red to-cafe-gold opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#c88a48] via-[#b91c1c] to-[#c88a48] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                     <div className="flex justify-between items-start gap-4">
                       <div className="flex-1 pr-2">
-                        <h4 className="text-lg md:text-xl font-bold font-serif text-gray-800 leading-tight group-hover:text-cafe-red transition-colors">
+                        <h4 className="text-xl md:text-2xl font-condensed font-bold text-[#24150e] uppercase leading-tight group-hover:text-[#b91c1c] transition-colors tracking-wide">
                           {item.name}
                         </h4>
                         
                         {item.description && (
-                          <p className="text-xs md:text-sm text-gray-500 italic mt-1 font-serif leading-snug">
+                          <p className="text-xs md:text-sm text-gray-500 italic mt-1 font-sans leading-snug">
                             {item.description}
                           </p>
                         )}
                       </div>
 
                       <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                        <span className="text-base md:text-lg font-semibold text-cafe-dark bg-gray-50 group-hover:bg-amber-100/70 group-hover:text-cafe-red px-3 py-1 rounded-lg border border-gray-100 transition-colors">
+                        <span className="text-base md:text-lg font-condensed font-bold text-[#24150e] bg-[#f7f3ee] group-hover:bg-amber-100/70 group-hover:text-[#b91c1c] px-3.5 py-1 rounded-xl border border-[#e8ded2] transition-colors">
                           ₹{item.price}
                         </span>
                         <button 
-                          className="w-8 h-8 rounded-full bg-cafe-cream border border-gray-200 flex items-center justify-center text-gray-500 group-hover:bg-cafe-gold group-hover:text-white group-hover:border-cafe-gold group-hover:scale-110 shadow-2xs transition-all"
+                          className="w-8 h-8 rounded-full bg-[#24150e] text-white flex items-center justify-center group-hover:bg-[#b91c1c] group-hover:scale-110 shadow-2xs transition-all"
                           aria-label="Add to cart"
                         >
-                          <Plus className="w-4 h-4" />
+                          <Plus className="w-4 h-4 text-[#c88a48]" />
                         </button>
                       </div>
                     </div>
 
                     {/* Reveal Details & Tags on Hover */}
-                    <div className="max-h-0 opacity-0 group-hover:max-h-36 group-hover:opacity-100 group-hover:mt-3 transition-all duration-300 ease-out overflow-hidden border-t border-transparent group-hover:border-amber-200/60 group-hover:pt-2">
+                    <div className="max-h-0 opacity-0 group-hover:max-h-36 group-hover:opacity-100 group-hover:mt-3 transition-all duration-300 ease-out overflow-hidden border-t border-transparent group-hover:border-amber-200/60 group-hover:pt-2.5">
                       {item.details && (
                         <p className="text-xs text-gray-600 leading-relaxed font-sans mb-2">
                           ✨ {item.details}
@@ -215,19 +223,19 @@ export default function Home() {
                       
                       <div className="flex flex-wrap items-center gap-1.5 pt-1">
                         {item.prepTime && (
-                          <span className="text-[10px] font-medium bg-amber-100/80 text-amber-900 px-2 py-0.5 rounded-md border border-amber-200/60">
+                          <span className="text-[10px] font-semibold uppercase bg-amber-100/80 text-amber-950 px-2 py-0.5 rounded-md border border-amber-200/60 font-sans">
                             ⏱️ {item.prepTime}
                           </span>
                         )}
                         {item.tags?.map((tag, idx) => (
                           <span 
                             key={idx} 
-                            className="text-[10px] font-medium bg-gray-100 group-hover:bg-white text-gray-700 px-2 py-0.5 rounded-md border border-gray-200/60"
+                            className="text-[10px] font-semibold uppercase bg-gray-100 group-hover:bg-white text-gray-700 px-2 py-0.5 rounded-md border border-gray-200/60 font-sans"
                           >
                             {tag}
                           </span>
                         ))}
-                        <span className="ml-auto text-[10px] font-bold text-cafe-gold tracking-wide uppercase group-hover:underline">
+                        <span className="ml-auto text-[10px] font-condensed font-extrabold text-[#c88a48] tracking-widest uppercase group-hover:underline">
                           + Tap to Add
                         </span>
                       </div>
@@ -238,15 +246,60 @@ export default function Home() {
             </motion.section>
           ))}
         </motion.div>
+
+        {/* Tan Coffee Style Feature Highlights Section */}
+        <section className="mt-20 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-3xl p-8 border border-[#e8ded2] shadow-sm flex flex-col justify-between space-y-6">
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-[#24150e] text-[#c88a48] flex items-center justify-center">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <h4 className="text-3xl font-condensed font-extrabold text-[#24150e] uppercase">
+                Our Craft & Heritage
+              </h4>
+              <p className="text-xs md:text-sm text-gray-600 leading-relaxed font-sans">
+                Hand-stretched Neapolitan dough fermented for 48 hours, coupled with ethically sourced 100% Arabica mountain coffee beans roasted in-house.
+              </p>
+            </div>
+            <Link
+              href="/about"
+              className="inline-flex items-center gap-2 text-xs font-condensed font-bold text-[#c88a48] uppercase tracking-widest hover:underline"
+            >
+              <span>Discover Our Story</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="bg-[#24150e] text-white rounded-3xl p-8 border border-black/20 shadow-md flex flex-col justify-between space-y-6">
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-white/10 text-[#c88a48] flex items-center justify-center">
+                <MapPin className="w-6 h-6" />
+              </div>
+              <h4 className="text-3xl font-condensed font-extrabold text-white uppercase">
+                Old City Brew Station
+              </h4>
+              <p className="text-xs md:text-sm text-gray-300 leading-relaxed font-sans">
+                Located near Gangaur Ghat in historic Udaipur. Enjoy rooftop sunset views over Lake Pichola with fresh woodfired pizza.
+              </p>
+            </div>
+            <Link
+              href="/contact"
+              className="inline-flex items-center gap-2 text-xs font-condensed font-bold text-[#c88a48] uppercase tracking-widest hover:underline"
+            >
+              <span>Get Location & Directions</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </section>
       </main>
 
-      {/* Minimal Footer */}
-      <footer className="mt-20 pt-10 pb-20 border-t border-gray-200/60 max-w-2xl mx-auto text-center px-6">
-        <Flame className="w-6 h-6 text-cafe-gold mx-auto mb-4 opacity-80" />
-        <h4 className="font-serif text-2xl mb-2 text-gray-800 tracking-wide">Grazie!</h4>
-        <p className="font-serif text-gray-500 leading-relaxed max-w-md mx-auto text-sm">
-          Thank you for coming to the old city to find us. <br/>
-          <span className="italic">Your order will be prepared fresh.</span>
+      {/* Tan Coffee Style Minimal Footer */}
+      <footer className="mt-20 pt-10 pb-20 border-t border-[#e8ded2] max-w-3xl mx-auto text-center px-6">
+        <Flame className="w-6 h-6 text-[#c88a48] mx-auto mb-3 opacity-90" />
+        <h4 className="font-condensed font-extrabold text-3xl mb-2 text-[#24150e] uppercase tracking-wider">Grazie!</h4>
+        <p className="font-sans text-gray-500 leading-relaxed max-w-md mx-auto text-xs">
+          Thank you for visiting us in Old City Udaipur. <br/>
+          <span className="italic">Your order will be prepared fresh for you.</span>
         </p>
       </footer>
 
@@ -261,15 +314,15 @@ export default function Home() {
           >
             <button
               onClick={() => setIsCartOpen(true)}
-              className="w-full bg-[#1a1514] text-white py-3.5 px-6 rounded-full shadow-2xl flex items-center justify-between hover:bg-cafe-red transition-all border border-white/10 backdrop-blur-lg active:scale-98"
+              className="w-full bg-[#24150e] text-white py-3.5 px-6 rounded-full shadow-2xl flex items-center justify-between hover:bg-[#b91c1c] transition-all border border-white/10 backdrop-blur-lg active:scale-98"
             >
               <div className="flex items-center gap-3">
-                <div className="bg-cafe-red text-white text-xs px-2.5 py-1 rounded-full font-bold">
+                <div className="bg-[#b91c1c] text-white text-xs px-2.5 py-1 rounded-full font-bold font-sans">
                   {cartCount}
                 </div>
-                <span className="font-medium tracking-wide text-sm">View Running Bill</span>
+                <span className="font-condensed font-bold uppercase tracking-wider text-sm">View Running Bill</span>
               </div>
-              <span className="font-bold font-serif text-base text-cafe-gold">
+              <span className="font-condensed font-extrabold text-lg tracking-wide text-[#c88a48]">
                 ₹{cartTotal}
               </span>
             </button>
