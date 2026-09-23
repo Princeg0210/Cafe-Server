@@ -70,7 +70,7 @@ export default function BookTablePage() {
             <CheckCircle2 className="w-20 h-20 text-emerald-600 mx-auto animate-pulse" />
             <h2 className="font-condensed text-4xl font-extrabold text-[#24150e] uppercase tracking-wide">Table Reserved!</h2>
             <p className="text-gray-600 font-sans text-base">
-              Grazie <span className="font-bold text-[#24150e]">{name}</span>! We look forward to welcoming you on{" "}
+              Thank you <span className="font-bold text-[#24150e]">{name}</span>! We look forward to welcoming you on{" "}
               <span className="font-semibold text-[#b91c1c]">{date}</span> at{" "}
               <span className="font-semibold text-[#b91c1c]">{time}</span>.
             </p>

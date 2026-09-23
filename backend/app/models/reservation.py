@@ -14,7 +14,8 @@ class Reservation(Base):
     guest_count: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
     reservation_date: Mapped[datetime.date] = mapped_column(Date, nullable=False, index=True)
     time_slot: Mapped[str] = mapped_column(String(20), nullable=False, index=True)  # e.g., "19:00-20:00"
-    status: Mapped[str] = mapped_column(String(20), default="CONFIRMED", nullable=False)  # CONFIRMED, CANCELLED, COMPLETED
+    status: Mapped[str] = mapped_column(String(20), default="CONFIRMED", nullable=False)  # PENDING, CONFIRMED, ARRIVED, SEATED, COMPLETED, CANCELLED, NO_SHOW
+    celery_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     branch = relationship("Branch", back_populates="reservations")

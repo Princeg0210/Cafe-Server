@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { Poppins, Barlow_Condensed } from "next/font/google";
+import { Plus_Jakarta_Sans, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 
-const poppins = Poppins({
-  variable: "--font-poppins",
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-sans",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const barlow = Barlow_Condensed({
-  variable: "--font-barlow",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-serif",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -26,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${poppins.variable} ${barlow.variable} antialiased selection:bg-amber-200/50`}>
+      <body className={`${plusJakarta.variable} ${cormorant.variable} antialiased selection:bg-[#B85B43]/20`}>
         {children}
       </body>
     </html>

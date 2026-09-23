@@ -11,90 +11,98 @@ export interface MenuItem {
 export interface MenuCategory {
   id: string;
   name: string;
+  subtitle?: string;
   items: MenuItem[];
 }
 
 export const menuData: MenuCategory[] = [
   {
     id: 'starters',
-    name: 'STARTERS',
+    name: 'STARTERS & SMALL PLATES',
+    subtitle: 'Freshly Baked Breads & Artisanal Starters',
     items: [
       { 
         id: 's1', 
-        name: 'FOCACCIA WITH GARLIC DIP', 
+        name: 'ROSEMARY & GARLIC FOCACCIA', 
+        description: 'House-baked rosemary focaccia with sea salt & roasted garlic oil dip', 
         price: 300,
         details: 'House-made rosemary & sea salt focaccia served warm with creamy roasted garlic olive oil dip.',
-        tags: ['Freshly Baked', 'Chef Special'],
+        tags: ['Freshly Baked', '48h Fermentation'],
         prepTime: '10 mins'
       },
       { 
         id: 's2', 
-        name: 'CHEESE & MUSHROOM TARTS (2 PCS)', 
-        description: 'with lettuce garnish', 
+        name: 'CHEESE & WILD MUSHROOM TARTS', 
+        description: 'Artisanal cheese & wild mushroom tartlets with fresh lettuce garnish', 
         price: 400,
         details: 'Flaky artisanal pastry crusts filled with melted wild mushrooms, fontina cheese, and fresh micro-greens.',
-        tags: ['Artisanal', 'Vegetarian'],
+        tags: ['Handcrafted', 'Vegetarian'],
         prepTime: '12 mins'
       },
     ],
   },
   {
     id: 'primo',
-    name: 'PRIMO',
+    name: 'OVEN-BAKED PASTA',
+    subtitle: 'Traditional Hand-Rolled Italian Pasta',
     items: [
       { 
         id: 'p1', 
-        name: 'CANNELLONI (CHEESE & TOMATO)', 
+        name: 'TOMATO & RICOTTA CANNELLONI', 
+        description: 'Ricotta & mozzarella stuffed pasta rolls baked in San Marzano passata', 
         price: 500,
-        details: 'Hand-rolled pasta tubes stuffed with ricotta & mozzarella, baked in San Marzano tomato reduction.',
-        tags: ['Signature', 'Hot Food'],
+        details: 'Hand-rolled pasta tubes stuffed with fresh ricotta & mozzarella, slow-baked in San Marzano tomato reduction.',
+        tags: ['House Special', 'Oven Baked'],
         prepTime: '18 mins'
       },
     ],
   },
   {
     id: 'pizza',
-    name: 'PIZZA',
+    name: 'WOOD-FIRED NEAPOLITAN PIZZAS',
+    subtitle: 'Artisanal Wood-Fired Crusts • 48h Slow Fermentation • 100% Vegetarian',
     items: [
-      { id: 'pz1', name: 'MARINARA', description: 'tomato sauce w/garlic, basil, oregano, capers', price: 400, details: 'Classic Neapolitan base with intense roasted garlic, wild oregano & extra virgin olive oil.', tags: ['Woodfired', 'Vegan Option'], prepTime: '15 mins' },
-      { id: 'pz2', name: 'MARGHERITA', description: 'tomato sauce, mozzarella, fresh basil', price: 500, details: 'Traditional wood-fired crust layered with creamy mozzarella Fior di Latte & fresh basil leaves.', tags: ['Best Seller', 'Woodfired'], prepTime: '15 mins' },
-      { id: 'pz3', name: 'OLIVE CAPERS', description: 'tomato sauce w/garlic, basil, oregano, capers', price: 600, details: 'Tangy brine-infused pizza topped with Mediterranean black olives, salted capers & fresh herb oil.', tags: ['Woodfired', 'Spicy Tang'], prepTime: '15 mins' },
-      { id: 'pz4', name: 'ZUCCHINI MUSHROOMS', price: 600, details: 'Thinly sliced tender zucchini ribbons with earthy portobello mushrooms and garlic butter.', tags: ['Vegetarian', 'Woodfired'], prepTime: '15 mins' },
-      { id: 'pz5', name: 'QUATRO STAGIONE', description: 'zucchini, mushroom, olives, red & yellow capsicum', price: 700, details: 'Four seasons represented with distinct sections of fresh garden vegetables & melted mozzarella.', tags: ['House Classic', 'Woodfired'], prepTime: '15 mins' },
-      { id: 'pz6', name: 'SOPHIA LOREN', description: 'sundried tomatoes, pesto, capers, rocket, feta + mozzarella', price: 800, details: 'Gourmet creation featuring fragrant basil pesto, sharp Greek feta, peppery wild rocket & sun-ripened tomatoes.', tags: ['Gourmet', 'Chef Choice'], prepTime: '15 mins' },
-      { id: 'pz7', name: 'MARIA CALLAS', description: 'feta cream base, artichoke hearts, pesto, cherry tomatoes', price: 800, details: 'Rich creamy feta emulsion topped with tender artichoke hearts & sweet blistered cherry tomatoes.', tags: ['Premium', 'Cream Base'], prepTime: '15 mins' },
-      { id: 'pz8', name: 'ITALA', description: 'mozzarella cheese base, broccoli cream, cherry tomatoes, capers', price: 800, details: 'Unique velvety broccoli cream base, double mozzarella, tart capers & juicy sweet tomatoes.', tags: ['Specialty', 'Woodfired'], prepTime: '15 mins' },
-      { id: 'pz9', name: 'RESIDENCY', description: 'feta cream base w fried green tomatoes, capers, rocket and pesto', price: 700, details: 'Crispy fried green tomato slices over rich feta cream, drizzled with homemade pine nut pesto.', tags: ['Jaadoo Favorite', 'Crispy'], prepTime: '15 mins' },
+      { id: 'pz1', name: 'MARINARA CLASSICA', description: 'San Marzano tomato sauce, roasted garlic, wild oregano, extra virgin olive oil', price: 400, details: 'Classic Neapolitan base with intense roasted garlic, wild oregano & extra virgin olive oil.', tags: ['Dairy-Free', 'Tipo 00 Flour'], prepTime: '15 mins' },
+      { id: 'pz2', name: 'MARGHERITA BUFALA', description: 'San Marzano passata, Fior di Latte mozzarella, fresh basil leaves', price: 500, details: 'Traditional wood-fired crust layered with creamy mozzarella Fior di Latte & fresh basil leaves.', tags: ['Neapolitan Classic', 'Best Seller'], prepTime: '15 mins' },
+      { id: 'pz3', name: 'OLIVE & CAPERS', description: 'San Marzano tomato base, Mediterranean olives, Sicilian capers, herb oil', price: 600, details: 'Tangy brine-infused pizza topped with Mediterranean black olives, salted capers & fresh herb oil.', tags: ['Wood-Fired', 'Herbal Note'], prepTime: '15 mins' },
+      { id: 'pz4', name: 'ZUCCHINI & PORTABELLO', description: 'Shaved tender zucchini ribbons, earthy portobello mushrooms, garlic butter crust', price: 600, details: 'Thinly sliced tender zucchini ribbons with earthy portobello mushrooms and garlic butter.', tags: ['Vegetarian', 'Artisanal Crust'], prepTime: '15 mins' },
+      { id: 'pz5', name: 'QUATTRO STAGIONI (FOUR SEASONS)', description: 'Artichokes, portobello mushrooms, black olives, sweet bell peppers', price: 700, details: 'Four seasons represented with distinct sections of fresh garden vegetables & melted mozzarella.', tags: ['Seasonal', 'House Classic'], prepTime: '15 mins' },
+      { id: 'pz6', name: 'SOPHIA LOREN GOURMET', description: 'Sundried tomatoes, pine nut pesto, wild rocket, Greek feta & mozzarella', price: 800, details: 'Gourmet creation featuring fragrant basil pesto, sharp Greek feta, peppery wild rocket & sun-ripened tomatoes.', tags: ['Gourmet Special', 'Chef Choice'], prepTime: '15 mins' },
+      { id: 'pz7', name: 'MARIA CALLAS ARTICHOKE', description: 'Velvety feta cream base, artichoke hearts, sweet cherry tomatoes, pine pesto', price: 800, details: 'Rich creamy feta emulsion topped with tender artichoke hearts & sweet blistered cherry tomatoes.', tags: ['Cream Base', 'Specialty'], prepTime: '15 mins' },
+      { id: 'pz8', name: 'ITALA BROCCOLI CREAM', description: 'Broccoli cream base, double mozzarella, salted capers, cherry tomatoes', price: 800, details: 'Unique velvety broccoli cream base, double mozzarella, tart capers & juicy sweet tomatoes.', tags: ['Trattoria Signature', 'Creamy'], prepTime: '15 mins' },
+      { id: 'pz9', name: 'RESIDENCY UDAIPUR', description: 'Feta cream, crispy green tomato fritters, pine nut pesto & wild rocket', price: 700, details: 'Crispy fried green tomato slices over rich feta cream, drizzled with homemade pine nut pesto.', tags: ['Local Special', 'Crispy Fritters'], prepTime: '15 mins' },
     ],
   },
   {
     id: 'cakes',
-    name: 'CAKES',
+    name: 'TRATTORIA DESSERTS',
+    subtitle: 'Artisanal House Pastries & Gelato',
     items: [
-      { id: 'c1', name: 'CLASSIC TIRAMISU', description: 'contains free-range eggs', price: 250, details: 'Layers of espresso-soaked ladyfingers and whipped mascarpone cream dusted with dark cocoa powder.', tags: ['House Dessert', 'Contains Eggs'], prepTime: 'Ready' },
-      { id: 'c2', name: 'COCONUT ICE CREAM', description: 'WITH BITTER ORANGE SAUCE', price: 200, details: 'House-churned organic coconut cream ice cream topped with warm bitter orange reduction glaze.', tags: ['Refreshing', 'Citrus Glaze'], prepTime: 'Ready' },
+      { id: 'c1', name: 'CLASSIC TIRAMISU', description: 'Espresso-soaked ladyfingers, whipped mascarpone cream & dark cocoa', price: 250, details: 'Layers of espresso-soaked ladyfingers and whipped mascarpone cream dusted with dark cocoa powder.', tags: ['House Made', 'Arabica Coffee'], prepTime: 'Ready' },
+      { id: 'c2', name: 'COCONUT GELATO WITH BITTER ORANGE', description: 'Organic coconut cream gelato topped with bitter orange glaze', price: 200, details: 'House-churned organic coconut cream ice cream topped with warm bitter orange reduction glaze.', tags: ['Refreshing', 'Citrus Glaze'], prepTime: 'Ready' },
     ],
   },
   {
     id: 'beverages',
-    name: 'BEVERAGES',
+    name: 'COLD DRINKS & KOMBUCHA',
+    subtitle: 'House Refreshers & Botanical Ferments',
     items: [
-      { id: 'b1', name: 'FRESH LIME SODA', price: 100, details: 'Freshly squeezed Key lime juice with sparkling soda water & fresh mint leaves.', tags: ['Chilled', 'Custom Sweet/Salt'], prepTime: '5 mins' },
-      { id: 'b2', name: 'LEMON GINGER SODA', price: 150, details: 'House ginger reduction brewed with fresh lemon juice and chilled soda.', tags: ['Digestive', 'House Brew'], prepTime: '5 mins' },
-      { id: 'b3', name: 'COKE', price: 100, details: 'Chilled glass bottle served with ice and fresh lemon slice.', tags: ['Chilled'], prepTime: 'Instant' },
-      { id: 'b4', name: 'HIMALAYAN MINERAL WATER', price: 50, details: 'Pure natural spring mineral water bottled at source in the high Himalayas.', tags: ['Himalayan Pure'], prepTime: 'Instant' },
-      { id: 'b5', name: 'ICE TEA', description: 'Lemon & Peach flavour', price: 150, details: 'Slow-brewed black tea infused with natural peach nectar and fresh lemon zest.', tags: ['Fruity Brew', 'Chilled'], prepTime: '5 mins' },
-      { id: 'b6', name: 'KOMBUCHA', description: 'with raw fruits: Lemongrass + mint, Kokom, Pineapple + rosemary, or Pomegranate', price: 250, details: 'Artisanal probiotic fermented tea infused with raw mountain botanical extracts.', tags: ['Probiotic', 'Artisanal'], prepTime: 'Instant' },
+      { id: 'b1', name: 'FRESH MINT LIMONATA', description: 'Key lime juice, sparkling soda water, fresh garden mint', price: 100, details: 'Freshly squeezed Key lime juice with sparkling soda water & fresh mint leaves.', tags: ['Chilled', 'Fresh Mint'], prepTime: '5 mins' },
+      { id: 'b2', name: 'SPARKLING LEMON GINGER', description: 'House ginger reduction, fresh lemon juice, chilled soda water', price: 150, details: 'House ginger reduction brewed with fresh lemon juice and chilled soda.', tags: ['Digestive', 'House Brew'], prepTime: '5 mins' },
+      { id: 'b3', name: 'PEACH & LEMON ICED TEA', description: 'Slow-brewed black tea infused with peach nectar & lemon zest', price: 150, details: 'Slow-brewed black tea infused with natural peach nectar and fresh lemon zest.', tags: ['Cold Brewed'], prepTime: '5 mins' },
+      { id: 'b4', name: 'ARTISANAL KOMBUCHA', description: 'Botanical ferments: Lemongrass + Mint / Kokum / Pineapple + Rosemary / Pomegranate', price: 250, details: 'Artisanal probiotic fermented tea infused with raw mountain botanical extracts.', tags: ['Probiotic', 'Artisanal'], prepTime: 'Instant' },
+      { id: 'b5', name: 'HIMALAYAN NATURAL SPRING WATER', description: 'Pure high-altitude spring water bottled at origin', price: 50, details: 'Pure natural spring mineral water bottled at source in the high Himalayas.', tags: ['Natural Spring'], prepTime: 'Instant' },
     ],
   },
   {
     id: 'hot-drinks',
-    name: 'HOT DRINKS',
+    name: 'COFFEE & MOUNTAIN TISANES',
+    subtitle: '100% Mountain Arabica Roasts & Himalayan Herbal Infusions',
     items: [
-      { id: 'h1', name: 'ESPRESSO', price: 150, details: 'Double shot of 100% Arabica mountain bean roast with thick caramel crema.', tags: ['100% Arabica', 'Double Shot'], prepTime: '3 mins' },
-      { id: 'h2', name: 'RHODODENDRON MINT & THYME TISANE', price: 150, details: 'Wild Himalayan red rhododendron petals blended with garden mint and soothing thyme.', tags: ['Wild Harvested', 'Caffeine-Free'], prepTime: '5 mins' },
-      { id: 'h3', name: 'HIMALAYAN ROSEHIP & MINT TISANE', price: 150, details: 'Vitamin C rich rosehip husks brewed with fragrant mountain spear mint.', tags: ['Antioxidant Rich', 'Herbal'], prepTime: '5 mins' },
-      { id: 'h4', name: 'HIMALAYAN MIXED HERBS', price: 150, details: 'Traditional high-altitude botanical infusion of tulsi, lemongrass, ginger & black pepper.', tags: ['Immunity Booster', 'Authentic'], prepTime: '5 mins' },
+      { id: 'h1', name: 'DOUBLE ARABICA ESPRESSO', description: 'Double shot 100% mountain Arabica roast with rich caramel crema', price: 150, details: 'Double shot of 100% Arabica mountain bean roast with thick caramel crema.', tags: ['100% Arabica', 'Espresso Extract'], prepTime: '3 mins' },
+      { id: 'h2', name: 'HIMALAYAN RHODODENDRON & THYME TISANE', description: 'Wild red rhododendron petals, garden mint & thyme', price: 150, details: 'Wild Himalayan red rhododendron petals blended with garden mint and soothing thyme.', tags: ['Mountain Herbs', 'Caffeine-Free'], prepTime: '5 mins' },
+      { id: 'h3', name: 'ROSEHIP & SPEARMINT TISANE', description: 'Vitamin C rich rosehip husks brewed with fragrant spearmint', price: 150, details: 'Vitamin C rich rosehip husks brewed with fragrant mountain spear mint.', tags: ['Antioxidant Rich', 'Organic'], prepTime: '5 mins' },
+      { id: 'h4', name: 'HIMALAYAN MIXED HERB INFUSION', description: 'High-altitude botanical blend of tulsi, lemongrass, ginger & black pepper', price: 150, details: 'Traditional high-altitude botanical infusion of tulsi, lemongrass, ginger & black pepper.', tags: ['Traditional', 'Immunity Tonic'], prepTime: '5 mins' },
     ],
   },
 ];

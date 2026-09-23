@@ -7,42 +7,46 @@ import { motion } from "framer-motion";
 export default function TanStorySection() {
   return (
     <section className="my-20 space-y-16">
-      {/* Tan Coffee Screenshot 1 Style Story Block */}
-      <div className="bg-white rounded-3xl p-6 md:p-10 border border-[#e8ded2] shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-center">
+      {/* Editorial Story Block */}
+      <div className="bg-[#FBF9F5] rounded-3xl p-6 md:p-10 border border-[#E4DCD0] shadow-xs grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-center">
         {/* Left Side: Photo */}
-        <div className="lg:col-span-6 relative h-[320px] sm:h-[400px] md:h-[440px] rounded-2xl md:rounded-3xl overflow-hidden shadow-md">
+        <div className="lg:col-span-6 relative h-[320px] sm:h-[400px] md:h-[440px] rounded-2xl md:rounded-3xl overflow-hidden border border-[#E4DCD0] shadow-xs">
           <Image
             src="/story-food.jpg"
-            alt="Jaadoo Italian Kitchen Gourmet Panini & Pizza"
+            alt="Jaadoo Trattoria Artisanal Panini & Pizza"
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
         </div>
 
-        {/* Right Side: Headline & Story */}
+        {/* Right Side: Editorial Headline & Story */}
         <div className="lg:col-span-6 space-y-5">
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-condensed font-extrabold text-[#24150e] uppercase tracking-wide leading-none">
-            IF IT'S MAGIC, IT'S JAADOO
+          <div className="inline-flex items-center gap-2 bg-[#4A5842]/10 text-[#4A5842] px-3.5 py-1 rounded-full text-xs font-sans font-semibold uppercase tracking-widest border border-[#4A5842]/20">
+            <span>OUR STORY & HERITAGE</span>
+          </div>
+
+          <h2 className="text-4xl sm:text-5xl md:text-5xl font-serif font-bold text-[#261C18] leading-tight">
+            If It’s Magic, It’s Jaadoo
           </h2>
 
-          <div className="space-y-4 text-xs sm:text-sm text-gray-700 font-sans leading-relaxed">
+          <div className="space-y-4 text-xs sm:text-sm text-stone-700 font-sans leading-relaxed">
             <p>
-              In 2023, two friends—<strong className="text-[#24150e]">Shivank Verma</strong> and <strong className="text-[#24150e]">Nishant Mitthal</strong>—looked around the food scene in Delhi & Rajasthan and saw the same story on repeat: overpriced global chains with impersonal vibes, and local joints that missed the mark on quality or ambience.
+              In 2023, two friends—<strong className="text-[#261C18]">Shivank Verma</strong> and <strong className="text-[#261C18]">Nishant Mitthal</strong>—looked around the food scene in Delhi & Rajasthan and saw predictable global chains on repeat. They set out to build something refreshingly different in Old City Udaipur.
             </p>
 
             <p>
-              And so, <strong className="text-[#24150e]">Jaadoo Udaipur</strong> was born—a cafe that doesn't just serve food—but curates conversations, sparks creativity, and celebrates modern India and its evolving culinary culture.
+              <strong className="text-[#261C18]">Jaadoo Trattoria</strong> honors the ritual of 48-hour natural dough fermentation using Italian Tipo 00 flour, San Marzano tomato passata, and fresh mozzarella Fior di Latte, paired with wild-harvested Himalayan tisanes.
             </p>
 
-            <p>
-              In a market crowded with predictable cafe chains, <strong className="text-[#24150e]">Jaadoo</strong> is brewing & baking something refreshingly different in Old City Udaipur.
+            <p className="font-serif italic text-stone-600 text-sm">
+              “A mindful pause between the aroma of wood-fired baking and views of Lake Pichola.”
             </p>
           </div>
 
           <div className="pt-2">
             <Link
               href="/about"
-              className="inline-block bg-[#b86638] hover:bg-[#a05429] text-white px-8 py-3.5 rounded-xl font-condensed font-bold text-sm uppercase tracking-wider transition-colors shadow-md active:scale-95"
+              className="inline-block bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] px-7 py-3 rounded-full font-sans font-semibold text-xs uppercase tracking-widest transition-all shadow-xs active:scale-95 border border-[#E4DCD0]/30"
             >
               DISCOVER OUR STORY
             </Link>
@@ -50,29 +54,29 @@ export default function TanStorySection() {
         </div>
       </div>
 
-      {/* Tan Coffee Screenshot 2 Top: 3-Column Outlets / Postcard Photo Gallery */}
+      {/* Postcard Editorial Gallery */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           {
             img: "/gallery-1.jpg",
             tagline: "POSTCARD FROM UDAIPUR",
-            sub: "Found a new corner · Worth staying in",
+            sub: "A peaceful corner in the historic Old City",
           },
           {
             img: "/gallery-2.jpg",
-            tagline: "JAADOO KITCHEN",
-            sub: "Artisanal Woodfired & Espresso Station",
+            tagline: "WOOD-FIRED OVEN",
+            sub: "48-hour slow natural sourdough fermentation",
           },
           {
             img: "/gallery-3.jpg",
-            tagline: "OLD CITY SUNSET",
-            sub: "Lakeside views & fresh tiramisu",
+            tagline: "LAKESIDE SUNSET",
+            sub: "Artisanal tiramisu & Lake Pichola views",
           },
         ].map((item, idx) => (
           <motion.div
             key={idx}
-            whileHover={{ y: -5 }}
-            className="relative h-64 md:h-72 rounded-2xl md:rounded-3xl overflow-hidden shadow-md group cursor-pointer border border-[#e8ded2]"
+            whileHover={{ y: -4 }}
+            className="relative h-64 md:h-72 rounded-2xl md:rounded-3xl overflow-hidden shadow-xs group cursor-pointer border border-[#E4DCD0]"
           >
             <Image
               src={item.img}
@@ -80,13 +84,13 @@ export default function TanStorySection() {
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#261C18]/90 via-[#261C18]/30 to-transparent" />
             
-            <div className="absolute bottom-6 left-6 right-6 text-white text-center">
-              <h3 className="font-condensed font-extrabold text-2xl sm:text-3xl uppercase tracking-wider drop-shadow-md">
+            <div className="absolute bottom-6 left-6 right-6 text-[#FBF9F5] text-center">
+              <h3 className="font-sans font-bold text-lg uppercase tracking-wider text-[#FBF9F5]">
                 {item.tagline}
               </h3>
-              <p className="text-xs font-serif italic text-amber-200 opacity-90 mt-1">
+              <p className="text-xs font-serif italic text-[#B85B43] mt-1">
                 {item.sub}
               </p>
             </div>

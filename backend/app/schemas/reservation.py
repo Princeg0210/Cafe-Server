@@ -30,6 +30,17 @@ class ReservationCreate(BaseModel):
     time_slot: str = Field(..., example="19:00-20:00")
 
 
+class ReservationUpdate(BaseModel):
+    guest_count: Optional[int] = Field(None, ge=1, le=20)
+    reservation_date: Optional[date] = None
+    time_slot: Optional[str] = None
+    status: Optional[str] = None
+
+
+class ReservationStatusUpdate(BaseModel):
+    status: str = Field(..., example="ARRIVED")
+
+
 class ReservationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -40,6 +51,7 @@ class ReservationResponse(BaseModel):
     reservation_date: date
     time_slot: str
     status: str
+    celery_task_id: Optional[str] = None
     created_at: datetime
     customer: Optional[CustomerResponse] = None
 

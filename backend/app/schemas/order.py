@@ -24,7 +24,9 @@ class OrderItemResponse(BaseModel):
 
 class OrderCreate(BaseModel):
     qr_token: str = Field(..., example="qr-tbl-1-sec-token-123456")
+    session_token: Optional[str] = Field(None, example="sess_tok_123456")
     items: List[OrderItemCreate] = Field(..., min_length=1)
+
 
 
 class OrderResponse(BaseModel):

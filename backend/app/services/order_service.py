@@ -4,7 +4,8 @@ from typing import Dict, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
-from app.models.table import TableQR, DiningSession
+from app.models.table import Table, TableQR, DiningSession
+from app.services.table_service import TableService
 from app.models.menu import MenuItem
 from app.models.order import Order, OrderItem, OrderStatusHistory
 from app.models.kitchen import Kitchen, MenuItemKitchenMapping, KitchenOrder, PrintJob
@@ -17,33 +18,35 @@ class OrderService:
     @staticmethod
     async def place_order(db: AsyncSession, data: OrderCreate) -> Order:
         try:
-            # Step 1: Validate QR Token and get active DiningSession
-            qr_query = select(TableQR).where(TableQR.qr_token == data.qr_token, TableQR.is_active == True)
-            qr_res = await db.execute(qr_query)
-            table_qr = qr_res.scalar_one_or_none()
+            # Step 1: Validate QR Token and get DiningSession
+            val = await TableService.validate_qr_token(db, data.qr_token)
 
-            if not table_qr:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="INVALID_QR_TOKEN: Scanned table QR code is invalid or inactive.",
-                )
+            if data.session_token:
+                sess_query = select(DiningSession).where(DiningSession.session_token == data.session_token)
+                sess_res = await db.execute(sess_query)
+                dining_session = sess_res.scalar_one_or_none()
+                if not dining_session or dining_session.status == "CLOSED":
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="CLOSED_DINING_SESSION: Cannot place order for a closed dining session.",
+                    )
+            else:
+                dining_session = await TableService.get_or_create_dining_session(db, val.table_id)
+                if dining_session.status == "CLOSED":
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="CLOSED_DINING_SESSION: Cannot place order for a closed dining session.",
+                    )
 
-            session_query = select(DiningSession).where(
-                DiningSession.table_id == table_qr.table_id,
-                DiningSession.status.in_(["OPENED", "ACTIVE"]),
-            )
-            session_res = await db.execute(session_query)
-            dining_session = session_res.scalar_one_or_none()
 
-            if not dining_session:
-                # Auto-open a dining session for QR ordering
-                dining_session = DiningSession(
-                    table_id=table_qr.table_id,
-                    session_token=f"sess-{uuid.uuid4().hex[:12]}",
-                    status="ACTIVE",
-                )
-                db.add(dining_session)
-                await db.flush()
+            # Mark session ACTIVE and table Occupied on first order
+            if dining_session.status == "OPENED":
+                dining_session.status = "ACTIVE"
+            
+            table = await db.get(Table, dining_session.table_id)
+            if table and table.status == "Available":
+                table.status = "Occupied"
+
 
             # Generate unique order number
             order_number = f"ORD-{uuid.uuid4().hex[:8].upper()}"
