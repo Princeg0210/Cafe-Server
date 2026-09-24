@@ -1,8 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Grenze+Gotisch:wght@500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: var(--font-sans), system-ui, sans-serif;
   --font-serif: var(--font-serif), Georgia, serif;
+  --font-gothic: var(--font-gothic), "Grenze Gotisch", "Dela Gothic One", serif;
   
   --color-ivory: #FBF9F5;
   --color-paper: #F6F3EC;
@@ -33,6 +35,10 @@ h1, h2, h3, h4, h5, h6 {
 .font-serif-italics {
   font-family: var(--font-serif);
   font-style: italic;
+}
+
+.font-gothic {
+  font-family: var(--font-gothic), "Grenze Gotisch", "Dela Gothic One", serif;
 }
 
 /* Subtle paper texture effect */

@@ -344,7 +344,7 @@ export default function POSDashboard() {
               </div>
               <h2 className="text-sm font-serif italic text-stone-300">Operational Ticket Volume</h2>
               <div className="flex items-baseline gap-4 mt-1">
-                <span className="text-5xl sm:text-7xl font-serif font-black tracking-tight text-[#FBF9F5]">
+                <span className="text-5xl sm:text-7xl font-gothic font-bold tracking-tight text-[#FBF9F5]">
                   {summary ? String(summary.total_kots).padStart(2, "0") : String(kots.length).padStart(2, "0")}
                 </span>
                 <span className="font-serif italic font-normal text-lg sm:text-2xl text-[#B85B43]">
@@ -359,7 +359,7 @@ export default function POSDashboard() {
                   <Users className="w-3.5 h-3.5 text-[#B85B43]" />
                   Tables Served
                 </div>
-                <div className="text-2xl font-serif font-bold text-[#FBF9F5]">
+                <div className="text-2xl font-gothic font-bold text-[#FBF9F5]">
                   {summary?.tables_served || 0}
                 </div>
               </div>
@@ -369,7 +369,7 @@ export default function POSDashboard() {
                   <UtensilsCrossed className="w-3.5 h-3.5 text-[#4A5842]" />
                   Total Items
                 </div>
-                <div className="text-2xl font-serif font-bold text-[#FBF9F5]">
+                <div className="text-2xl font-gothic font-bold text-[#FBF9F5]">
                   {summary?.total_items || 0}
                 </div>
               </div>
@@ -379,7 +379,7 @@ export default function POSDashboard() {
                   <Receipt className="w-3.5 h-3.5 text-amber-400" />
                   Avg KOT Value
                 </div>
-                <div className="text-2xl font-serif font-bold text-amber-300">
+                <div className="text-2xl font-gothic font-bold text-amber-300">
                   ₹{summary?.avg_kot_value ? Math.round(summary.avg_kot_value) : 0}
                 </div>
               </div>
@@ -406,7 +406,7 @@ export default function POSDashboard() {
                 <h3 className="text-2xl font-serif font-bold text-[#261C18] flex items-center gap-2.5">
                   <span>NEW KOTS</span>
                   <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#E4DCD0]/60 text-[#261C18] font-sans font-medium">
-                    {filteredKots.length} Tickets
+                    <span className="font-gothic font-bold">{filteredKots.length}</span> Tickets
                   </span>
                 </h3>
                 <p className="text-xs font-serif italic text-stone-500 mt-0.5">Live real-time thermal ticket flow</p>
@@ -454,20 +454,20 @@ export default function POSDashboard() {
                     {/* Header Strip */}
                     <div className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 border-b border-[#E4DCD0] bg-[#F6F3EC]/80">
                       <div className="flex items-center gap-3">
-                        <span className="font-serif font-black text-xl text-[#B85B43] tracking-wide">
+                        <span className="font-gothic font-black text-2xl text-[#B85B43] tracking-wide">
                           #{kot.kot_number.replace("KOT-", "")}
                         </span>
                         <div className="h-4 w-px bg-[#E4DCD0]" />
                         <span className="font-serif font-bold text-base text-[#261C18]">
-                          TABLE {kot.table_number}
+                          TABLE <span className="font-gothic font-bold text-lg">{kot.table_number}</span>
                         </span>
                         <span className="text-[11px] font-sans text-stone-500">
-                          (Session #{kot.dining_session_id})
+                          (Session #<span className="font-gothic font-bold">{kot.dining_session_id}</span>)
                         </span>
                       </div>
 
                       <div className="flex items-center gap-4">
-                        <span className="font-serif font-bold text-lg text-[#261C18]">
+                        <span className="font-gothic font-bold text-xl text-[#261C18]">
                           ₹{kot.total_amount}
                         </span>
                         <span className="flex items-center gap-1 text-xs text-stone-600 bg-[#E4DCD0]/60 px-2.5 py-0.5 rounded-full font-mono">
@@ -483,8 +483,8 @@ export default function POSDashboard() {
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#4A5842]/15 border border-[#4A5842]/30 text-[#4A5842]">
                           <Check className="w-3.5 h-3.5" /> Order received
                         </span>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#261C18]/10 border border-[#261C18]/20 text-[#261C18] font-mono">
-                          <Check className="w-3.5 h-3.5" /> {kot.kot_number} generated
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#261C18]/10 border border-[#261C18]/20 text-[#261C18]">
+                          <Check className="w-3.5 h-3.5" /> <span className="font-gothic font-bold">{kot.kot_number}</span> generated
                         </span>
 
                         {isPrintingFailed && (
@@ -526,7 +526,7 @@ export default function POSDashboard() {
                       {kot.items.map((item, idx) => (
                         <div key={idx} className="flex items-start justify-between gap-4 text-sm">
                           <div className="flex items-start gap-3">
-                            <span className="font-serif font-bold text-[#B85B43] bg-[#B85B43]/10 px-2 py-0.5 rounded-md text-xs min-w-[28px] text-center border border-[#B85B43]/20">
+                            <span className="font-gothic font-bold text-[#B85B43] bg-[#B85B43]/10 px-2 py-0.5 rounded-md text-xs min-w-[28px] text-center border border-[#B85B43]/20">
                               {item.quantity}×
                             </span>
                             <div>
@@ -538,7 +538,7 @@ export default function POSDashboard() {
                               )}
                             </div>
                           </div>
-                          <span className="font-serif text-stone-600 text-sm font-semibold">
+                          <span className="font-gothic text-stone-700 text-sm font-bold">
                             ₹{item.subtotal}
                           </span>
                         </div>
@@ -547,7 +547,7 @@ export default function POSDashboard() {
 
                     {/* Footer Operations */}
                     <div className="px-5 py-3 bg-[#F6F3EC]/70 border-t border-[#E4DCD0] flex items-center justify-between text-xs text-stone-500">
-                      <span className="font-mono text-[11px]">Order: {kot.order_number}</span>
+                      <span className="text-[11px] font-sans">Order: <span className="font-gothic font-bold text-[#261C18]">{kot.order_number}</span></span>
                       <button
                         onClick={() => handleCloseSession(kot.dining_session_id, kot.table_number)}
                         disabled={isClosing}
@@ -598,7 +598,7 @@ export default function POSDashboard() {
                       className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#E4DCD0]/70 hover:border-[#B85B43]/40 transition-colors shadow-2xs"
                     >
                       <span className="text-sm font-sans font-medium text-[#261C18]">{item.name}</span>
-                      <span className="font-serif font-bold text-base text-[#B85B43] bg-[#B85B43]/10 px-3 py-0.5 rounded-lg border border-[#B85B43]/20">
+                      <span className="font-gothic font-bold text-lg text-[#B85B43] bg-[#B85B43]/10 px-3 py-0.5 rounded-lg border border-[#B85B43]/20">
                         {item.quantity}
                       </span>
                     </div>
@@ -626,13 +626,13 @@ export default function POSDashboard() {
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <div className="p-4 rounded-2xl bg-white border border-[#E4DCD0]/70 shadow-2xs">
                   <div className="text-xs font-serif italic text-stone-500">Avg Items / KOT</div>
-                  <div className="text-2xl font-serif font-bold text-[#261C18] mt-1">
+                  <div className="text-2xl font-gothic font-bold text-[#261C18] mt-1">
                     {summary?.avg_items_per_kot || "0.00"}
                   </div>
                 </div>
                 <div className="p-4 rounded-2xl bg-white border border-[#E4DCD0]/70 shadow-2xs">
                   <div className="text-xs font-serif italic text-stone-500">KOTs / Hour</div>
-                  <div className="text-2xl font-serif font-bold text-[#4A5842] mt-1">
+                  <div className="text-2xl font-gothic font-bold text-[#4A5842] mt-1">
                     {summary?.kots_per_hour || "0.0"}
                   </div>
                 </div>
@@ -647,7 +647,7 @@ export default function POSDashboard() {
                   {summary.category_summary.map((cat, idx) => (
                     <div key={idx} className="flex items-center justify-between text-xs py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
                       <span className="text-[#261C18] font-sans font-medium">{cat.category}</span>
-                      <span className="font-serif font-bold text-[#B85B43]">{cat.quantity}</span>
+                      <span className="font-gothic font-bold text-sm text-[#B85B43]">{cat.quantity}</span>
                     </div>
                   ))}
                 </div>
@@ -666,33 +666,33 @@ export default function POSDashboard() {
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
                       <span className="text-[#261C18] font-sans">KOTs</span>
-                      <span className="font-serif font-bold text-[#261C18]">
+                      <span className="font-gothic font-bold text-[#261C18]">
                         {summary.comparison.today?.kots || 0}
-                        <span className="text-stone-300 font-normal mx-2">|</span>
+                        <span className="text-stone-300 font-sans font-normal mx-2">|</span>
                         <span className="text-stone-400 font-normal">{summary.comparison.yesterday?.kots || 0}</span>
                       </span>
                     </div>
                     <div className="flex justify-between py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
                       <span className="text-[#261C18] font-sans">Pizzas</span>
-                      <span className="font-serif font-bold text-[#261C18]">
+                      <span className="font-gothic font-bold text-[#261C18]">
                         {summary.comparison.today?.pizzas || 0}
-                        <span className="text-stone-300 font-normal mx-2">|</span>
+                        <span className="text-stone-300 font-sans font-normal mx-2">|</span>
                         <span className="text-stone-400 font-normal">{summary.comparison.yesterday?.pizzas || 0}</span>
                       </span>
                     </div>
                     <div className="flex justify-between py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
                       <span className="text-[#261C18] font-sans">Pasta</span>
-                      <span className="font-serif font-bold text-[#261C18]">
+                      <span className="font-gothic font-bold text-[#261C18]">
                         {summary.comparison.today?.pasta || 0}
-                        <span className="text-stone-300 font-normal mx-2">|</span>
+                        <span className="text-stone-300 font-sans font-normal mx-2">|</span>
                         <span className="text-stone-400 font-normal">{summary.comparison.yesterday?.pasta || 0}</span>
                       </span>
                     </div>
                     <div className="flex justify-between py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
                       <span className="text-[#261C18] font-sans">Beverages</span>
-                      <span className="font-serif font-bold text-[#261C18]">
+                      <span className="font-gothic font-bold text-[#261C18]">
                         {summary.comparison.today?.beverages || 0}
-                        <span className="text-stone-300 font-normal mx-2">|</span>
+                        <span className="text-stone-300 font-sans font-normal mx-2">|</span>
                         <span className="text-stone-400 font-normal">{summary.comparison.yesterday?.beverages || 0}</span>
                       </span>
                     </div>
