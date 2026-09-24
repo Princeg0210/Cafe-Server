@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Utensils, ArrowRight, Calendar } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import CartDrawer, { CartItem } from "@/components/CartDrawer";
 import SignatureBrewsShowcase from "@/components/SignatureBrewsShowcase";
 import MorphingCardsShowcase from "@/components/MorphingCardsShowcase";
 import LocationBrewStation from "@/components/LocationBrewStation";
@@ -16,24 +14,6 @@ import TanFooter from "@/components/TanFooter";
 import TextZoomSplash from "@/components/TextZoomSplash";
 
 export default function Home() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-
-  const handleUpdateQuantity = (id: string, delta: number) => {
-    setCartItems((prev) =>
-      prev
-        .map((item) => (item.id === id ? { ...item, quantity: item.quantity + delta } : item))
-        .filter((item) => item.quantity > 0)
-    );
-  };
-
-  const handleRemoveItem = (id: string) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans relative">
       
@@ -41,7 +21,7 @@ export default function Home() {
       <TextZoomSplash autoPlay={true} />
 
       {/* Editorial Navbar */}
-      <Navbar cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} />
+      <Navbar />
 
       {/* Contemporary Editorial Landing Hero Banner */}
       <header className="relative min-h-[55vh] md:min-h-[64vh] flex items-center justify-center overflow-hidden mx-3 md:mx-6 mt-4 rounded-3xl shadow-xs border border-[#E4DCD0]">
@@ -135,10 +115,10 @@ export default function Home() {
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         >
-          <SignatureBrewsShowcase onAddToCart={() => {}} />
+          <SignatureBrewsShowcase />
         </motion.div>
 
-        {/* Feature 2: Interactive 3D Morphing Cards Showcase (Matching User Reference Image) */}
+        {/* Feature 2: Interactive 3D Morphing Cards Showcase */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -181,44 +161,6 @@ export default function Home() {
 
       {/* Editorial Footer */}
       <TanFooter />
-
-      {/* Floating Running Bill Action Button */}
-      <AnimatePresence>
-        {cartCount > 0 && (
-          <motion.div 
-            initial={{ y: 80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm z-40"
-          >
-            <button
-              onClick={() => setIsCartOpen(true)}
-              className="w-full bg-[#261C18] text-[#FBF9F5] py-3.5 px-6 rounded-full shadow-2xl flex items-center justify-between hover:bg-[#B85B43] transition-all border border-[#E4DCD0]/20 backdrop-blur-lg active:scale-98"
-            >
-              <div className="flex items-center gap-3">
-                <div className="bg-[#B85B43] text-[#FBF9F5] text-xs px-2.5 py-0.5 rounded-full font-bold font-sans">
-                  {cartCount}
-                </div>
-                <span className="font-sans font-semibold uppercase tracking-wider text-xs">View Running Bill</span>
-              </div>
-              <span className="font-serif font-bold text-lg tracking-wide text-[#FBF9F5]">
-                ₹{cartTotal}
-              </span>
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Slide-over Cart Drawer */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        items={cartItems}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-        onClearCart={() => setCartItems([])}
-      />
-
     </div>
   );
 }

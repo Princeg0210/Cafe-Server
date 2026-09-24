@@ -1,11 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles, Plus } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { MenuItem } from "@/data/menu";
 
 interface SignatureBrewsShowcaseProps {
-  onAddToCart: (item: MenuItem) => void;
+  onAddToCart?: (item: MenuItem) => void;
 }
 
 const signatureBrews: MenuItem[] = [
@@ -88,25 +88,15 @@ export default function SignatureBrewsShowcase({ onAddToCart }: SignatureBrewsSh
               </p>
             </div>
 
-            <div>
-              <div className="flex flex-wrap gap-1.5 mb-5">
-                {brew.tags?.map((t, idx) => (
-                  <span
-                    key={idx}
-                    className="text-[10px] font-medium uppercase bg-[#F6F3EC] text-[#261C18]/80 px-2 py-0.5 rounded border border-[#E4DCD0]"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-
-              <button
-                onClick={() => onAddToCart(brew)}
-                className="w-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] py-2.5 px-4 rounded-xl font-sans font-semibold text-xs uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 border border-[#E4DCD0]/30"
-              >
-                <Plus className="w-3.5 h-3.5 text-[#B85B43]" />
-                <span>Add to Bill (₹{brew.price})</span>
-              </button>
+            <div className="flex flex-wrap gap-1.5 mt-auto">
+              {brew.tags?.map((t, idx) => (
+                <span
+                  key={idx}
+                  className="text-[10px] font-medium uppercase bg-[#F6F3EC] text-[#261C18]/80 px-2 py-0.5 rounded border border-[#E4DCD0]"
+                >
+                  {t}
+                </span>
+              ))}
             </div>
           </motion.div>
         ))}
