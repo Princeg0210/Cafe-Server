@@ -318,12 +318,26 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans selection:bg-[#B85B43]/20">
-      {/* Main Page Navbar with Bill Trigger */}
-      <Navbar onOpenCart={fetchBill} />
+      {/* Main Page Navbar with Scanned Table & Bill Trigger */}
+      <Navbar tableNumber={tableNumber} onOpenCart={fetchBill} />
 
       {/* Dual Hub Navigation View */}
       {activeTab === "HUB" ? (
         <div className="max-w-xl mx-auto px-4 py-8 sm:py-12 space-y-6">
+          
+          {/* Scanned Table Confirmation Badge */}
+          <div className="text-center pt-2 pb-1">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#261C18] text-[#FBF9F5] border border-[#B85B43]/40 shadow-xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-mono font-bold text-xs sm:text-sm tracking-widest uppercase">
+                {tableNumber} SCANNED
+              </span>
+            </div>
+            <p className="text-xs text-[#5C4E48] font-sans mt-2">
+              Your dining session is active. Orders placed will be prepared and served directly to this table.
+            </p>
+          </div>
+
           {/* EXACTLY TWO Primary Actions matching user screenshot */}
           <div className="grid grid-cols-1 gap-6">
             {/* ACTION 1: ORDER MENU */}
@@ -383,13 +397,18 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         /* MENU VIEW matching user's exact menu screenshot */
         <div className="max-w-6xl mx-auto px-4 py-8 pb-32">
           {/* Back to Hub Navigation */}
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#E4DCD0]">
+          <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#E4DCD0] flex-wrap gap-2">
             <button
               onClick={() => setActiveTab("HUB")}
               className="px-5 py-2 rounded-full bg-[#FBF9F5] hover:bg-[#E4DCD0]/50 border border-[#E4DCD0] text-[#261C18] text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition"
             >
               ← BACK TO TABLE HUB
             </button>
+
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#261C18] text-[#FBF9F5] text-xs font-mono font-bold shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>{tableNumber}</span>
+            </div>
 
             <button
               onClick={fetchBill}
@@ -457,11 +476,11 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
             </motion.div>
           )}
 
-          {/* Header Banner - Compact */}
+          {/* Header Banner - Compact with Table Badge */}
           <section className="bg-[#261C18] text-[#FBF9F5] py-7 px-4 text-center border-b border-[#E4DCD0]/20 rounded-3xl mb-6 shadow-md">
             <div className="max-w-4xl mx-auto">
-              <span className="text-[10px] font-sans font-semibold tracking-[0.2em] text-[#4A5842] uppercase bg-[#4A5842]/20 px-3 py-1 rounded-full border border-[#4A5842]/30">
-                LA CARTA • TABLE ORDERING
+              <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-emerald-400 uppercase bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-500/30">
+                ● {tableNumber} ORDERING
               </span>
               <h1 className="text-2xl sm:text-4xl font-serif font-bold mt-2 text-[#FBF9F5]">
                 Jaadoo Trattoria Menu
