@@ -99,19 +99,38 @@ class OrderService:
             kitchen_item_routes: Dict[int, List[dict]] = {}
 
             for item_data in data.items:
-                # Fetch menu item
-                menu_query = select(MenuItem).where(
-                    MenuItem.id == item_data.menu_item_id,
-                    MenuItem.is_active == True,
-                    MenuItem.is_available == True,
-                )
-                menu_res = await db.execute(menu_query)
-                menu_item = menu_res.scalar_one_or_none()
+                menu_item = None
+
+                # 1. Match by name first if provided (guarantees exact item and correct price!)
+                if item_data.name and item_data.name.strip():
+                    raw_name = item_data.name.strip()
+                    alias_target = {
+                        "rosehip & spearmint tisane": "himalayan rosehip & mint tisane",
+                        "himalayan mineral water natural spring": "himalayan mineral water",
+                    }.get(raw_name.lower(), raw_name.lower())
+
+                    name_query = select(MenuItem).where(
+                        func.lower(func.trim(MenuItem.name)) == alias_target,
+                        MenuItem.is_active == True,
+                        MenuItem.is_available == True,
+                    )
+                    name_res = await db.execute(name_query)
+                    menu_item = name_res.scalar_one_or_none()
+
+                # 2. Fallback to menu_item_id lookup if not matched by name
+                if not menu_item and item_data.menu_item_id:
+                    menu_query = select(MenuItem).where(
+                        MenuItem.id == item_data.menu_item_id,
+                        MenuItem.is_active == True,
+                        MenuItem.is_available == True,
+                    )
+                    menu_res = await db.execute(menu_query)
+                    menu_item = menu_res.scalar_one_or_none()
 
                 if not menu_item:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"MENU_ITEM_NOT_FOUND: Menu item #{item_data.menu_item_id} is unavailable.",
+                        detail=f"MENU_ITEM_NOT_FOUND: Menu item #{item_data.menu_item_id or item_data.name} is unavailable.",
                     )
 
                 # Step 2: Validate Production Capacity Limit (PIZZA_SOLD_OUT check)

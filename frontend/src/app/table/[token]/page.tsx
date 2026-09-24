@@ -22,7 +22,7 @@ import {
   Clock,
   Sparkles,
 } from "lucide-react";
-import { menuData } from "@/data/menu";
+import { menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   starters: <Utensils className="w-4 h-4 text-[#B85B43]" />,
@@ -338,10 +338,11 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
       qr_token: validatedQrToken,
       session_token: sessionToken,
       items: Object.values(cart).map((c) => {
-        let numericId = typeof c.item.id === "number" ? c.item.id : parseInt(String(c.item.id).replace(/\D/g, ""), 10);
-        if (isNaN(numericId) || numericId <= 0) numericId = 1;
+        const idStr = String(c.item.id);
+        const mappedId = MENU_ITEM_ID_MAP[idStr] || (typeof c.item.id === "number" ? c.item.id : parseInt(idStr, 10));
         return {
-          menu_item_id: numericId,
+          menu_item_id: mappedId && !isNaN(mappedId) && mappedId > 0 ? mappedId : undefined,
+          name: c.item.name,
           quantity: c.qty,
         };
       }),

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ShoppingBag, Plus, Minus, Trash2, CheckCircle2, MessageSquare, Utensils, CreditCard } from "lucide-react";
-import { MenuItem } from "@/data/menu";
+import { MenuItem, MENU_ITEM_ID_MAP } from "@/data/menu";
 import PaymentModal from "./PaymentModal";
 
 export interface CartItem extends MenuItem {
@@ -19,14 +19,6 @@ interface CartDrawerProps {
   onClearCart: () => void;
 }
 
-const MENU_ITEM_ID_MAP: Record<string, number> = {
-  s1: 1, s2: 2,
-  p1: 3,
-  pz1: 4, pz2: 5, pz3: 6, pz4: 7, pz5: 8, pz6: 9, pz7: 10, pz8: 11, pz9: 12,
-  c1: 13, c2: 14, d1: 13, d2: 14,
-  b1: 15, b2: 16, b3: 17, b4: 18, b5: 19, b6: 24,
-  h1: 20, h2: 21, h3: 22, h4: 23,
-};
 
 export default function CartDrawer({
   isOpen,
@@ -50,7 +42,8 @@ export default function CartDrawer({
       const payload = {
         qr_token: "tbl-04",
         items: items.map((it) => ({
-          menu_item_id: MENU_ITEM_ID_MAP[it.id] || (parseInt(it.id) || 1),
+          menu_item_id: MENU_ITEM_ID_MAP[it.id] || (parseInt(it.id) || undefined),
+          name: it.name,
           quantity: it.quantity,
           special_instructions: specialInstructions || undefined,
         })),

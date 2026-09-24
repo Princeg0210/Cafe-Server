@@ -360,3 +360,72 @@ async def test_pos_payment_idempotency_and_session_closure(db_session, setup_bra
         await OrderService.place_order(db_session, order_data_closed)
     assert exc_info_closed.value.status_code == 400
     assert "CLOSED_DINING_SESSION" in exc_info_closed.value.detail
+
+
+@pytest.mark.asyncio
+async def test_himalayan_rosehip_mint_tisane_order_matches_exact_item_and_price(db_session, setup_branch):
+    """Verify ordering Himalayan Rosehip & Mint Tisane resolves exact item and price 150 (not Cannelloni 500)."""
+    cat_pasta = MenuCategory(name="Pasta Specialty", display_order=10)
+    cat_hot = MenuCategory(name="Hot Drinks Specialty", display_order=11)
+    db_session.add_all([cat_pasta, cat_hot])
+    await db_session.flush()
+
+    cannelloni = MenuItem(
+        category_id=cat_pasta.id,
+        name="CANNELLONI (CHEESE & TOMATO)",
+        price=Decimal("500.00"),
+        is_active=True,
+        is_available=True,
+    )
+    rosehip = MenuItem(
+        category_id=cat_hot.id,
+        name="HIMALAYAN ROSEHIP & MINT TISANE",
+        price=Decimal("150.00"),
+        is_active=True,
+        is_available=True,
+    )
+    db_session.add_all([cannelloni, rosehip])
+    await db_session.commit()
+
+    table = Table(branch_id=1, table_number="T-RH-01", capacity=2, status="Available")
+    db_session.add(table)
+    await db_session.flush()
+    qr = TableQR(table_id=table.id, qr_token="qr-rosehip-test-token")
+    db_session.add(qr)
+    await db_session.commit()
+
+    session = await TableService.get_or_create_dining_session(db_session, table.id)
+
+    # 1. Order placed with name and mapped id
+    order_data = OrderCreate(
+        qr_token=qr.qr_token,
+        session_token=session.session_token,
+        items=[
+            OrderItemCreate(
+                name="HIMALAYAN ROSEHIP & MINT TISANE",
+                menu_item_id=rosehip.id,
+                quantity=2,
+            )
+        ]
+    )
+    order = await OrderService.place_order(db_session, order_data)
+    assert order.items[0].menu_item_id == rosehip.id
+    assert order.items[0].unit_price == Decimal("150.00")
+    assert order.items[0].subtotal == Decimal("300.00")
+
+    # 2. Even if menu_item_id was passed as Cannelloni id by mistake, name takes precedence
+    order_data_name_override = OrderCreate(
+        qr_token=qr.qr_token,
+        session_token=session.session_token,
+        items=[
+            OrderItemCreate(
+                name="HIMALAYAN ROSEHIP & MINT TISANE",
+                menu_item_id=cannelloni.id,  # Wrong ID!
+                quantity=1,
+            )
+        ]
+    )
+    order2 = await OrderService.place_order(db_session, order_data_name_override)
+    assert order2.items[0].menu_item_id == rosehip.id
+    assert order2.items[0].unit_price == Decimal("150.00")
+    assert order2.items[0].subtotal == Decimal("150.00")

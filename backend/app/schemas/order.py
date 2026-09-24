@@ -5,7 +5,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class OrderItemCreate(BaseModel):
-    menu_item_id: int = Field(..., example=1)
+    menu_item_id: Optional[int] = Field(None, example=1)
+    name: Optional[str] = Field(None, example="HIMALAYAN ROSEHIP & MINT TISANE")
     quantity: int = Field(..., ge=1, example=2)
     special_instructions: Optional[str] = Field(None, example="Extra crispy crust, no onions")
 

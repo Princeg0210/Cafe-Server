@@ -44,6 +44,34 @@ export const ITEM_MEDIA_MAP: Record<string, { image_url: string; badge: string }
   h4: { image_url: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=400&q=80", badge: "IMMUNITY TONIC" },
 };
 
+export const MENU_ITEM_ID_MAP: Record<string, number> = {
+  s1: 1,  // FOCACCIA WITH GARLIC DIP
+  s2: 2,  // CHEESE & MUSHROOM TARTS (2 PCS)
+  p1: 3,  // CANNELLONI (CHEESE & TOMATO)
+  pz1: 4, // MARINARA CLASSICA
+  pz2: 5, // MARGHERITA BUFALA
+  pz3: 6, // OLIVE & CAPERS
+  pz4: 7, // ZUCCHINI & PORTABELLO
+  pz5: 8, // QUATTRO STAGIONI (FOUR SEASONS)
+  pz6: 9, // SOPHIA LOREN GOURMET
+  pz7: 10, // MARIA CALLAS ARTICHOKE
+  pz8: 11, // ITALA BROCCOLI CREAM
+  pz9: 12, // RESIDENCY UDAIPUR
+  c1: 13, // CLASSIC TIRAMISU
+  c2: 14, // COCONUT ICE CREAM WITH BITTER ORANGE SAUCE
+  b1: 15, // FRESH LIME SODA
+  b2: 16, // LEMON GINGER SODA
+  b6: 24, // COKE
+  b5: 19, // HIMALAYAN MINERAL WATER
+  b3: 17, // ICE TEA
+  b4: 18, // KOMBUCHA
+  h1: 20, // ESPRESSO
+  h2: 21, // RHODODENDRON MINT & THYME TISANE
+  h3: 22, // HIMALAYAN ROSEHIP & MINT TISANE
+  h4: 23, // HIMALAYAN MIXED HERBS
+};
+
+
 export const menuData: MenuCategory[] = [
   {
     id: 'starters',
