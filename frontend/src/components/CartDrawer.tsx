@@ -168,8 +168,8 @@ export default function CartDrawer({
                             key={item.id}
                             className="bg-[#F6F3EC] rounded-2xl p-4 border border-[#E4DCD0] flex items-center justify-between gap-4"
                           >
-                            <div className="flex-1">
-                              <h4 className="font-serif font-bold text-base text-[#261C18]">{item.name}</h4>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-serif font-bold text-base text-[#261C18] break-words whitespace-normal">{item.name}</h4>
                               <p className="text-xs font-serif font-bold text-[#B85B43] mt-0.5">₹{item.price}</p>
                             </div>
 

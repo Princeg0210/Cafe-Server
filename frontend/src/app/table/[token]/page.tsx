@@ -712,11 +712,11 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                             {badge}
                           </span>
                         )}
-                        <h3 className="text-sm font-serif font-bold text-[#261C18] uppercase tracking-wide leading-snug group-hover:text-[#B85B43] transition-colors break-words">
+                        <h3 className="text-sm font-serif font-bold text-[#261C18] uppercase tracking-wide leading-snug group-hover:text-[#B85B43] transition-colors break-words whitespace-normal">
                           {item.name}
                         </h3>
                         {item.description && (
-                          <p className="text-xs font-serif italic text-stone-500 mt-0.5 leading-relaxed break-words">
+                          <p className="text-xs font-serif italic text-stone-500 mt-0.5 leading-relaxed break-words whitespace-normal">
                             {item.description}
                           </p>
                         )}
@@ -836,8 +836,8 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                       key={item.id}
                       className="p-3 rounded-xl bg-white border border-[#E4DCD0] flex items-center justify-between gap-3 shadow-2xs"
                     >
-                      <div>
-                        <h4 className="font-serif font-bold text-sm text-[#261C18]">{item.name}</h4>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-serif font-bold text-sm text-[#261C18] break-words whitespace-normal">{item.name}</h4>
                         <span className="text-xs text-[#B85B43] font-mono font-bold">
                           ₹{item.price} × {qty}
                         </span>
@@ -932,11 +932,11 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                   {billData?.items && billData.items.length > 0 ? (
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                       {billData.items.map((it, idx) => (
-                        <div key={idx} className="flex justify-between text-stone-600 text-[11px]">
-                          <span>
+                        <div key={idx} className="flex justify-between items-start text-stone-600 text-[11px] gap-2">
+                          <span className="flex-1 min-w-0 break-words whitespace-normal">
                             {it.quantity}× {it.name}
                           </span>
-                          <span className="font-bold text-[#261C18]">₹{it.total}</span>
+                          <span className="font-bold text-[#261C18] shrink-0">₹{it.total}</span>
                         </div>
                       ))}
                     </div>

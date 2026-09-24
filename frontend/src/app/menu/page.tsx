@@ -187,13 +187,13 @@ export default function MenuPage() {
                         )}
 
                         {/* Dish Title */}
-                        <h3 className="text-xs sm:text-sm font-serif font-bold text-[#261C18] uppercase tracking-wide leading-snug break-words group-hover:text-[#B85B43] transition-colors">
+                        <h3 className="text-xs sm:text-sm font-serif font-bold text-[#261C18] uppercase tracking-wide leading-snug break-words whitespace-normal group-hover:text-[#B85B43] transition-colors">
                           {item.name}
                         </h3>
                         
                         {/* Italic Description */}
                         {item.description && (
-                          <p className="text-[11px] sm:text-xs font-serif italic text-stone-500 mt-0.5 leading-relaxed break-words">
+                          <p className="text-[11px] sm:text-xs font-serif italic text-stone-500 mt-0.5 leading-relaxed break-words whitespace-normal">
                             {item.description}
                           </p>
                         )}
