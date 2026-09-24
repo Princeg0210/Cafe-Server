@@ -53,7 +53,7 @@ class POSService:
                 selectinload(KOT.print_jobs),
             )
             .where(KOT.business_date == target_date)
-            .order_by(KOT.created_at.desc())
+            .order_by(KOT.sequence_number.asc())
             .limit(limit)
         )
         res = await db.execute(stmt)

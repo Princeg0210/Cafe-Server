@@ -1,7 +1,10 @@
 import uuid
+import datetime
+import asyncio
 from decimal import Decimal
 from typing import Dict, List
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.models.table import Table, TableQR, DiningSession
@@ -57,8 +60,20 @@ class OrderService:
                 table.status = "Occupied"
 
 
-            # Generate unique order number
-            order_number = f"ORD-{uuid.uuid4().hex[:8].upper()}"
+            # Generate daily sequential order number (1 to n)
+            today_date = datetime.date.today()
+            date_prefix = today_date.strftime("%Y%m%d")
+            daily_orders_stmt = select(Order.order_number).where(
+                Order.order_number.like(f"ORD-{date_prefix}-%")
+            )
+            res_orders = await db.execute(daily_orders_stmt)
+            existing_numbers = set(res_orders.scalars().all())
+
+            order_seq = len(existing_numbers) + 1
+            order_number = f"ORD-{date_prefix}-{order_seq:03d}"
+            while order_number in existing_numbers:
+                order_seq += 1
+                order_number = f"ORD-{date_prefix}-{order_seq:03d}"
 
             order = Order(
                 dining_session_id=dining_session.id,
@@ -147,11 +162,7 @@ class OrderService:
                 )
 
             # Generate Daily KOT Sequence with Concurrency-Safe Retry Loop
-            import datetime
-            import asyncio
-            from sqlalchemy import func
-            from sqlalchemy.exc import IntegrityError
-            today = datetime.date.today()
+            today = today_date
 
             created_kitchen_orders = []
             created_print_jobs = []
