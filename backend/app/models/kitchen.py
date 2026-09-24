@@ -60,7 +60,8 @@ class PrintJob(Base):
     __tablename__ = "print_jobs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    kitchen_order_id: Mapped[int] = mapped_column(Integer, ForeignKey("kitchen_orders.id", ondelete="CASCADE"), nullable=False)
+    kitchen_order_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("kitchen_orders.id", ondelete="CASCADE"), nullable=True)
+    kot_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("kots.id", ondelete="CASCADE"), nullable=True)
     printer_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("kitchen_printers.id", ondelete="SET NULL"), nullable=True)
     ticket_content: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="PENDING", nullable=False)  # PENDING, PRINTING, PRINTED, FAILED, RETRYING, CANCELLED
@@ -68,4 +69,5 @@ class PrintJob(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     kitchen_order = relationship("KitchenOrder", back_populates="print_jobs")
+    kot = relationship("KOT", back_populates="print_jobs")
     printer = relationship("KitchenPrinter", back_populates="print_jobs")

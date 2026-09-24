@@ -71,29 +71,35 @@ async def _verify_and_execute_print_job(print_job_id: int, db: AsyncSession = No
 
 async def _do_print_job(db, print_job_id: int):
     from app.models.kitchen import PrintJob, KitchenPrinter
+    from app.models.kot import KOT
     from sqlalchemy.orm import joinedload
     from sqlalchemy import select
     import socket
 
     res = await db.execute(
         select(PrintJob)
-        .options(joinedload(PrintJob.kitchen_order))
+        .options(joinedload(PrintJob.kitchen_order), joinedload(PrintJob.kot))
         .where(PrintJob.id == print_job_id)
     )
     job = res.scalar_one_or_none()
     if not job or job.status not in ("PENDING", "RETRYING", "FAILED"):
         return f"Print job #{print_job_id} not eligible for printing."
 
+    kitchen_id = job.kitchen_order.kitchen_id if job.kitchen_order else 1
     printer_res = await db.execute(
-        select(KitchenPrinter).where(KitchenPrinter.kitchen_id == job.kitchen_order.kitchen_id)
+        select(KitchenPrinter).where(KitchenPrinter.kitchen_id == kitchen_id)
     )
     printer = printer_res.scalar_one_or_none()
     
     if not printer or not printer.is_online:
         job.status = "FAILED"
         job.retry_count += 1
+        if job.kot_id:
+            kot = await db.get(KOT, job.kot_id)
+            if kot:
+                kot.printed_status = "FAILED"
         await db.commit()
-        return f"No online printer found for kitchen {job.kitchen_order.kitchen_id}"
+        return f"No online printer found for kitchen {kitchen_id}"
         
     job.status = "PRINTING"
     job.printer_id = printer.id
@@ -115,9 +121,17 @@ async def _do_print_job(db, print_job_id: int):
         
     if success:
         job.status = "PRINTED"
+        if job.kot_id:
+            kot = await db.get(KOT, job.kot_id)
+            if kot:
+                kot.printed_status = "PRINTED"
     else:
         job.retry_count += 1
         job.status = "FAILED"
+        if job.kot_id:
+            kot = await db.get(KOT, job.kot_id)
+            if kot:
+                kot.printed_status = "FAILED"
         
     await db.commit()
     return f"Print job #{print_job_id} completed with success={success}"

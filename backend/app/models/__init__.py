@@ -8,6 +8,7 @@ from app.models.reservation import Reservation, ReservationCapacityRule
 from app.models.menu import MenuCategory, MenuItem
 from app.models.capacity import ItemCapacityRule
 from app.models.order import Order, OrderItem, OrderStatusHistory
+from app.models.kot import KOT
 from app.models.kitchen import Kitchen, MenuItemKitchenMapping, KitchenOrder, KitchenPrinter, PrintJob
 from app.models.billing import Bill, Payment
 from app.models.inventory import Recipe, RecipeItem, InventoryItem, InventoryTransaction
@@ -36,6 +37,7 @@ __all__ = [
     "Order",
     "OrderItem",
     "OrderStatusHistory",
+    "KOT",
     "Kitchen",
     "MenuItemKitchenMapping",
     "KitchenOrder",

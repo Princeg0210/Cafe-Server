@@ -44,5 +44,6 @@ class DiningSession(Base):
     table = relationship("Table", back_populates="dining_sessions")
     customer = relationship("Customer", back_populates="dining_sessions")
     orders = relationship("Order", back_populates="dining_session")
+    kots = relationship("KOT", back_populates="dining_session")
     bills = relationship("Bill", back_populates="dining_session")
     feedback = relationship("Feedback", back_populates="dining_session")

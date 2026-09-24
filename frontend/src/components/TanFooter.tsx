@@ -59,6 +59,11 @@ export default function TanFooter() {
                 Book a Table
               </Link>
             </li>
+            <li className="pt-1">
+              <Link href="/pos" className="hover:text-[#B85B43] transition-colors font-medium text-stone-400 text-[11px] font-mono">
+                Staff POS Terminal →
+              </Link>
+            </li>
           </ul>
         </div>
 

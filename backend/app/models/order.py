@@ -19,6 +19,7 @@ class Order(Base):
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     status_history = relationship("OrderStatusHistory", back_populates="order", cascade="all, delete-orphan")
     kitchen_orders = relationship("KitchenOrder", back_populates="order")
+    kot = relationship("KOT", back_populates="order", uselist=False)
 
 
 class OrderItem(Base):

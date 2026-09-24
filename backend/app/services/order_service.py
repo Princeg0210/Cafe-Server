@@ -9,6 +9,7 @@ from app.services.table_service import TableService
 from app.models.menu import MenuItem
 from app.models.order import Order, OrderItem, OrderStatusHistory
 from app.models.kitchen import Kitchen, MenuItemKitchenMapping, KitchenOrder, PrintJob
+from app.models.kot import KOT
 from app.schemas.order import OrderCreate
 from app.services.capacity_service import CapacityService
 from app.services.inventory_service import InventoryService
@@ -74,6 +75,11 @@ class OrderService:
             )
             db.add(status_log)
 
+            # Track items and totals for KOT
+            total_order_amount = Decimal("0.00")
+            total_order_items = 0
+            all_kot_items: List[dict] = []
+
             # Dictionary to route items to kitchens (kitchen_id -> list of (item_name, qty, instructions))
             kitchen_item_routes: Dict[int, List[dict]] = {}
 
@@ -101,6 +107,14 @@ class OrderService:
 
                 unit_price = Decimal(str(menu_item.price))
                 subtotal = unit_price * Decimal(str(item_data.quantity))
+
+                total_order_amount += subtotal
+                total_order_items += item_data.quantity
+                all_kot_items.append({
+                    "name": menu_item.name,
+                    "qty": item_data.quantity,
+                    "instructions": item_data.special_instructions,
+                })
 
                 order_item = OrderItem(
                     order_id=order.id,
@@ -132,10 +146,71 @@ class OrderService:
                     }
                 )
 
+            # Generate Daily KOT Sequence (e.g., KOT-001, KOT-002, ...)
+            import datetime
+            from sqlalchemy import func
+            today = datetime.date.today()
+
+            max_seq_res = await db.execute(
+                select(func.coalesce(func.max(KOT.sequence_number), 0)).where(
+                    KOT.business_date == today
+                )
+            )
+            next_seq = (max_seq_res.scalar() or 0) + 1
+            kot_number = f"KOT-{next_seq:03d}"
+
+            kot = KOT(
+                kot_number=kot_number,
+                sequence_number=next_seq,
+                business_date=today,
+                table_id=dining_session.table_id,
+                dining_session_id=dining_session.id,
+                order_id=order.id,
+                total_amount=total_order_amount,
+                items_count=total_order_items,
+                status="GENERATED",
+                printed_status="PENDING",
+            )
+            db.add(kot)
+            await db.flush()
+
+            # Formulate Thermal Printer Ticket
+            table_display = table.table_number if table else str(val.table_id)
+            kot_lines = [
+                "================================",
+                "          JAADOO CAFE           ",
+                "================================",
+                f"{kot.kot_number}        TABLE: {table_display}",
+                f"Date: {today.strftime('%d %b %Y')}",
+                f"Time: {order.created_at.strftime('%I:%M %p')}",
+                "--------------------------------",
+            ]
+            for r_item in all_kot_items:
+                line = f"{r_item['qty']} x {r_item['name']}"
+                if r_item["instructions"]:
+                    line += f" ({r_item['instructions']})"
+                kot_lines.append(line)
+            kot_lines.extend([
+                "--------------------------------",
+                f"Total Items: {total_order_items}",
+                f"Total: Rs. {total_order_amount}",
+                "================================",
+            ])
+
             created_kitchen_orders = []
             created_print_jobs = []
 
-            # Step 4: Create Kitchen Orders & Print Jobs for dual kitchen routing
+            # Step 4: Create Thermal PrintJob for KOT
+            kot_print_job = PrintJob(
+                kot_id=kot.id,
+                ticket_content="\n".join(kot_lines),
+                status="PENDING",
+            )
+            db.add(kot_print_job)
+            await db.flush()
+            created_print_jobs.append(kot_print_job)
+
+            # Step 5: Maintain kitchen orders for backward compatibility & routing
             for kitchen_id, routed_items in kitchen_item_routes.items():
                 k_order = KitchenOrder(
                     order_id=order.id,
@@ -153,21 +228,32 @@ class OrderService:
                         line += f" ({r_item['instructions']})"
                     ticket_lines.append(line)
 
-                print_job = PrintJob(
+                k_print_job = PrintJob(
                     kitchen_order_id=k_order.id,
                     ticket_content="\n".join(ticket_lines),
                     status="PENDING",
                 )
-                db.add(print_job)
+                db.add(k_print_job)
                 await db.flush()
-                created_print_jobs.append(print_job)
+                created_print_jobs.append(k_print_job)
 
             await db.commit()
             await db.refresh(order)
 
-            # Broadcast WebSocket event and Trigger Print Jobs
+            # Broadcast WebSocket events to POS and Kitchen
             from app.api.websocket import ws_manager
             from app.workers.celery_app import celery_app
+
+            await ws_manager.broadcast("pos", {
+                "event": "KOT_CREATED",
+                "kot_id": kot.id,
+                "kot_number": kot.kot_number,
+                "table_number": table_display,
+                "total_amount": float(total_order_amount),
+                "items_count": total_order_items,
+                "printed_status": kot.printed_status,
+                "created_at": kot.created_at.isoformat(),
+            })
 
             for k_order in created_kitchen_orders:
                 await ws_manager.broadcast("kitchen", {
@@ -176,11 +262,11 @@ class OrderService:
                     "kitchen_order_id": k_order.id
                 })
             
+            # Fire thermal print execution (Never cancels order on failure)
             for print_job in created_print_jobs:
                 try:
                     celery_app.send_task("execute_print_job", args=[print_job.id], ignore_result=True)
-                except Exception as e:
-                    # Async task queuing failure must never block or roll back order placement
+                except Exception:
                     pass
 
             # Reload relationship items with selectinload for async session
