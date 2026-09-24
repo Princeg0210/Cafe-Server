@@ -57,3 +57,12 @@ async def close_session(
     current_user: User = Depends(require_permission("pos:access")),
 ):
     return await POSService.close_dining_session(db, session_id=id)
+
+
+@router.post("/tables/{table_id}/settle")
+async def settle_table(
+    table_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
+):
+    return await POSService.settle_table_by_id(db, table_id=table_id)

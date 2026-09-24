@@ -306,14 +306,59 @@ class POSService:
         if sess.table:
             sess.table.status = "Available"
 
+        # Also complete all KOT tickets for this session
+        kot_stmt = select(KOT).where(KOT.dining_session_id == session_id)
+        kot_res = await db.execute(kot_stmt)
+        for kot in kot_res.scalars().all():
+            kot.status = "COMPLETED"
+
+        # Also mark all orders for this session as BILLED
+        ord_stmt = select(Order).where(Order.dining_session_id == session_id)
+        ord_res = await db.execute(ord_stmt)
+        for ord_item in ord_res.scalars().all():
+            ord_item.status = "BILLED"
+
+        # Complete any seated reservations for this table
+        from app.models.reservation import Reservation
+        res_stmt = select(Reservation).where(
+            Reservation.table_id == sess.table_id,
+            Reservation.status.in_(["ARRIVED", "SEATED"]),
+        )
+        res_res = await db.execute(res_stmt)
+        for r in res_res.scalars().all():
+            r.status = "COMPLETED"
+
         await db.commit()
 
         from app.api.websocket import ws_manager
-        await ws_manager.broadcast("tables", {
+        close_event = {
             "event": "SESSION_CLOSED",
             "session_id": sess.id,
             "table_id": sess.table_id,
             "table_number": sess.table.table_number if sess.table else None,
-        })
+        }
+        await ws_manager.broadcast("tables", close_event)
+        await ws_manager.broadcast("pos", close_event)
 
-        return {"message": f"Dining session #{session_id} closed successfully. Table is now Available."}
+        return {"message": f"Dining session #{session_id} settled and closed successfully. Table is now Available."}
+
+    @staticmethod
+    async def settle_table_by_id(db: AsyncSession, table_id: int) -> dict:
+        session_stmt = (
+            select(DiningSession)
+            .where(
+                DiningSession.table_id == table_id,
+                DiningSession.status.in_(["OPENED", "ACTIVE", "CHECKOUT"]),
+            )
+            .order_by(DiningSession.opened_at.desc())
+        )
+        res = await db.execute(session_stmt)
+        sess = res.scalar_one_or_none()
+        if not sess:
+            table = await db.get(Table, table_id)
+            if table:
+                table.status = "Available"
+                await db.commit()
+            return {"message": f"Table #{table_id} is already Available (no active dining session)."}
+
+        return await POSService.close_dining_session(db, session_id=sess.id)

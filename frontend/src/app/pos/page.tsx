@@ -380,6 +380,12 @@ export default function POSDashboard() {
               playChime();
               setTimeout(() => setLastNotification(null), 6000);
               fetchData();
+            } else if (data.event === "SESSION_CLOSED") {
+              const cleanTable = data.table_number ? data.table_number.replace(/^table\s*/i, "").trim() : "";
+              setLastNotification(`Table ${cleanTable || data.table_id} settled & marked Available.`);
+              setTimeout(() => setLastNotification(null), 6000);
+              fetchData();
+              fetchReservations();
             }
           } catch {}
         };
@@ -419,24 +425,46 @@ export default function POSDashboard() {
     }
   };
 
-  const handleCloseSession = async (sessionId: number, tableNumber: string) => {
-    if (!posToken) return;
+  const handleCloseSession = async (sessionId: number, tableNumber: string, tableId?: number) => {
+    if (!posToken) {
+      alert("Staff session expired. Please sign in again.");
+      return;
+    }
     if (!confirm(`Settle bill & close dining session for Table ${tableNumber}? This will mark the table as Available for new customers.`)) {
       return;
     }
     setClosingSessionIds((prev) => ({ ...prev, [sessionId]: true }));
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/pos/sessions/${sessionId}/close`, {
+      let res = await fetch(`${apiBase}/api/v1/pos/sessions/${sessionId}/close`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${posToken}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${posToken}`,
+        },
       });
+
+      // Fallback to settle by table_id if session not found by ID
+      if (!res.ok && tableId) {
+        res = await fetch(`${apiBase}/api/v1/pos/tables/${tableId}/settle`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${posToken}`,
+          },
+        });
+      }
+
       if (res.ok) {
-        alert(`Table ${tableNumber} session closed successfully.`);
-        await fetchData();
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || `Table ${tableNumber} settled & session closed successfully. Table is now Available.`);
+        await Promise.all([fetchData(), fetchReservations()]);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Cannot settle table: ${err.detail || "Server returned " + res.status}`);
       }
     } catch {
-      alert("Error closing session.");
+      alert("Network error: Could not reach café backend server. Please check your connection.");
     } finally {
       setClosingSessionIds((prev) => ({ ...prev, [sessionId]: false }));
     }
@@ -894,14 +922,20 @@ export default function POSDashboard() {
                                 </button>
                               )}
 
-                              <button
-                                onClick={() => handleCloseSession(kot.dining_session_id, cleanTableNumber)}
-                                disabled={closingSessionIds[kot.dining_session_id]}
-                                className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-sans font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>{closingSessionIds[kot.dining_session_id] ? "Closing..." : "Settle Table"}</span>
-                              </button>
+                              {kot.status === "COMPLETED" ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                                  <Check className="w-3.5 h-3.5" /> Table Settled
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => handleCloseSession(kot.dining_session_id, cleanTableNumber, kot.table_id)}
+                                  disabled={closingSessionIds[kot.dining_session_id]}
+                                  className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-sans font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>{closingSessionIds[kot.dining_session_id] ? "Closing..." : "Settle Table"}</span>
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
