@@ -153,7 +153,7 @@ export default function BookTablePage() {
 
   return (
     <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans">
-      <Navbar cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} />
+      <Navbar />
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 pt-12 pb-16">
         <motion.div
@@ -488,14 +488,6 @@ export default function BookTablePage() {
 
       <TanFooter />
 
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        items={cartItems}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-        onClearCart={() => setCartItems([])}
-      />
     </div>
   );
 }

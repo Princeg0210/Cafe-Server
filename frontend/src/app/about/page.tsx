@@ -9,26 +9,9 @@ import TanFooter from "@/components/TanFooter";
 import Image from "next/image";
 
 export default function AboutPage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-
-  const handleUpdateQuantity = (id: string, delta: number) => {
-    setCartItems((prev) =>
-      prev
-        .map((item) => (item.id === id ? { ...item, quantity: item.quantity + delta } : item))
-        .filter((item) => item.quantity > 0)
-    );
-  };
-
-  const handleRemoveItem = (id: string) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
   return (
     <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans">
-      <Navbar cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} />
+      <Navbar />
 
       {/* Hero Section */}
       <section className="relative h-[45vh] flex items-center justify-center overflow-hidden mx-3 md:mx-6 mt-4 rounded-3xl shadow-lg">
@@ -113,14 +96,6 @@ export default function AboutPage() {
 
       <TanFooter />
 
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        items={cartItems}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-        onClearCart={() => setCartItems([])}
-      />
     </div>
   );
 }

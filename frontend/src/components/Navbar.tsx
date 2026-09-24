@@ -60,7 +60,7 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
           })}
         </nav>
 
-        {/* Right Actions: Table Number Badge + Bill Button */}
+        {/* Right Actions: Table Number Badge + Bill Button (if onOpenCart is provided) */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {tableNumber && (
             <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[#4A5842]/10 border border-[#4A5842]/30 text-[#4A5842] text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase shadow-2xs">
@@ -70,19 +70,21 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
           )}
 
           {/* Running Bill / Cart Button */}
-          <button
-            onClick={() => onOpenCart && onOpenCart()}
-            className="flex items-center gap-1.5 sm:gap-2 bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-semibold tracking-wider sm:tracking-widest uppercase transition-all border border-[#E4DCD0]/30 shadow-xs active:scale-95 shrink-0"
-            aria-label="Open Running Bill Cart"
-          >
-            <ShoppingBag className="w-3.5 h-3.5 text-[#B85B43]" />
-            <span>Bill</span>
-            {(cartCount ?? 0) > 0 && (
-              <span className="bg-[#B85B43] text-[#FBF9F5] text-[10px] px-2 py-0.5 rounded-full font-bold">
-                {cartCount}
-              </span>
-            )}
-          </button>
+          {onOpenCart && (
+            <button
+              onClick={() => onOpenCart()}
+              className="flex items-center gap-1.5 sm:gap-2 bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-semibold tracking-wider sm:tracking-widest uppercase transition-all border border-[#E4DCD0]/30 shadow-xs active:scale-95 shrink-0"
+              aria-label="Open Running Bill Cart"
+            >
+              <ShoppingBag className="w-3.5 h-3.5 text-[#B85B43]" />
+              <span>Bill</span>
+              {(cartCount ?? 0) > 0 && (
+                <span className="bg-[#B85B43] text-[#FBF9F5] text-[10px] px-2 py-0.5 rounded-full font-bold">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </div>
 

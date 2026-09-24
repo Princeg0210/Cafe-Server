@@ -34,7 +34,7 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-[#f7f3ee] text-[#24150e] font-sans">
-      <Navbar cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} />
+      <Navbar />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-12 pb-16 space-y-12">
         <motion.div
@@ -179,14 +179,6 @@ export default function ContactPage() {
 
       <TanFooter />
 
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        items={cartItems}
-        onUpdateQuantity={handleUpdateQuantity}
-        onRemoveItem={handleRemoveItem}
-        onClearCart={() => setCartItems([])}
-      />
     </div>
   );
 }
