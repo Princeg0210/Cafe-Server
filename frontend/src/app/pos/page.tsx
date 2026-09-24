@@ -182,7 +182,7 @@ export default function POSDashboard() {
   };
 
   // Auth Verification
-  const verifyToken = async (tok: string) => {
+  const verifyToken = async (tok: string): Promise<boolean> => {
     const apiBase = getApiBase();
     try {
       const res = await fetch(`${apiBase}/api/v1/auth/me`, {
@@ -194,13 +194,15 @@ export default function POSDashboard() {
         setPosToken(tok);
         fetchData(tok);
         fetchReservations(tok);
+        return true;
       } else {
         localStorage.removeItem("jaadoo_pos_token");
         setPosToken(null);
         setStaffUser(null);
+        return false;
       }
     } catch {
-      // Keep state if offline
+      return false;
     } finally {
       setIsAuthChecking(false);
     }
@@ -224,7 +226,10 @@ export default function POSDashboard() {
       const res = await fetch(`${apiBase}/api/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: loginUsername, password: loginPassword }),
+        body: JSON.stringify({
+          username: loginUsername.trim(),
+          password: loginPassword.trim(),
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -236,7 +241,10 @@ export default function POSDashboard() {
       const tok = data.access_token;
       localStorage.setItem("jaadoo_pos_token", tok);
       setPosToken(tok);
-      await verifyToken(tok);
+      const verified = await verifyToken(tok);
+      if (!verified) {
+        setLoginError("Authentication succeeded but staff session verification failed. Please try again.");
+      }
     } catch {
       setLoginError("Network connection error. Café backend is unreachable.");
     } finally {
@@ -248,6 +256,7 @@ export default function POSDashboard() {
     localStorage.removeItem("jaadoo_pos_token");
     setPosToken(null);
     setStaffUser(null);
+    setLoginPassword("");
   };
 
   const fetchData = async (overrideToken?: string) => {

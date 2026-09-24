@@ -45,7 +45,7 @@ async def get_current_user(
     user_id = int(user_id_str)
     query = (
         select(User)
-        .options(selectinload(User.role))
+        .options(selectinload(User.role).selectinload(Role.permissions))
         .where(User.id == user_id, User.is_active == True)
     )
     result = await db.execute(query)

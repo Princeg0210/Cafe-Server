@@ -11,7 +11,8 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/login", response_model=Token)
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
-    query = select(User).where(User.username == data.username)
+    uname = (data.username or "").strip()
+    query = select(User).where(User.username.ilike(uname))
     result = await db.execute(query)
     user = result.scalar_one_or_none()
 
