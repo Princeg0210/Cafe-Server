@@ -7,7 +7,11 @@ from app.models.kitchen import KitchenOrder, PrintJob
 class KitchenService:
     @staticmethod
     async def update_kitchen_order_status(db: AsyncSession, kitchen_order_id: int, new_status: str) -> KitchenOrder:
-        query = select(KitchenOrder).where(KitchenOrder.id == kitchen_order_id)
+        from sqlalchemy.orm import selectinload
+        query = select(KitchenOrder).options(
+            selectinload(KitchenOrder.kitchen),
+            selectinload(KitchenOrder.print_jobs)
+        ).where(KitchenOrder.id == kitchen_order_id)
         result = await db.execute(query)
         k_order = result.scalar_one_or_none()
 
@@ -19,7 +23,23 @@ class KitchenService:
 
         k_order.status = new_status
         await db.commit()
-        await db.refresh(k_order)
+        
+        # Reload to populate relationships for response
+        query = select(KitchenOrder).options(
+            selectinload(KitchenOrder.kitchen),
+            selectinload(KitchenOrder.print_jobs)
+        ).where(KitchenOrder.id == kitchen_order_id)
+        result = await db.execute(query)
+        k_order = result.scalar_one()
+
+        from app.api.websocket import ws_manager
+        await ws_manager.broadcast("kitchen", {
+            "event": "KITCHEN_ORDER_UPDATED",
+            "kitchen_id": k_order.kitchen_id,
+            "kitchen_order_id": k_order.id,
+            "status": new_status
+        })
+
         return k_order
 
     @staticmethod

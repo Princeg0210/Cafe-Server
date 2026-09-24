@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     APP_NAME: str = "Jaadoo Udaipur Cafe API"
     SECRET_KEY: str = "super-secret-key-minimum-32-characters-long-jaadoo-udaipur"
 
+    # Configurable Billing & Taxation Settings
+    DEFAULT_TAX_RATE: str = "0.05"
+
     # PostgreSQL Database
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"

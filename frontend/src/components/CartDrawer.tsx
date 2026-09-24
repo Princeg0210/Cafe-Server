@@ -19,6 +19,15 @@ interface CartDrawerProps {
   onClearCart: () => void;
 }
 
+const MENU_ITEM_ID_MAP: Record<string, number> = {
+  s1: 1, s2: 2,
+  p1: 3,
+  pz1: 4, pz2: 5, pz3: 6, pz4: 7, pz5: 8, pz6: 9, pz7: 10, pz8: 11, pz9: 12,
+  c1: 13, c2: 14, d1: 13, d2: 14,
+  b1: 15, b2: 16, b3: 17, b4: 18, b5: 19,
+  h1: 20, h2: 21, h3: 22, h4: 23,
+};
+
 export default function CartDrawer({
   isOpen,
   onClose,
@@ -35,22 +44,45 @@ export default function CartDrawer({
   const tax = Math.round(subtotal * 0.05); // 5% GST
   const grandTotal = subtotal + tax;
 
-  const handleSubmitOrder = () => {
-    setIsSubmitted(true);
-    setTimeout(() => {
-      setIsSubmitted(false);
-      onClearCart();
-      onClose();
-    }, 2500);
+  const sendOrderToBackend = async () => {
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const payload = {
+        qr_token: "tbl-04",
+        items: items.map((it) => ({
+          menu_item_id: MENU_ITEM_ID_MAP[it.id] || (parseInt(it.id) || 1),
+          quantity: it.quantity,
+          special_instructions: specialInstructions || undefined,
+        })),
+      };
+      await fetch(`${apiBase}/api/v1/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {
+      console.warn("Could not sync order to backend:", e);
+    }
   };
 
-  const handleOnlinePaymentSuccess = () => {
+  const handleSubmitOrder = async () => {
+    await sendOrderToBackend();
     setIsSubmitted(true);
     setTimeout(() => {
       setIsSubmitted(false);
       onClearCart();
       onClose();
-    }, 2500);
+    }, 4500);
+  };
+
+  const handleOnlinePaymentSuccess = async () => {
+    await sendOrderToBackend();
+    setIsSubmitted(true);
+    setTimeout(() => {
+      setIsSubmitted(false);
+      onClearCart();
+      onClose();
+    }, 4500);
   };
 
   return (
@@ -100,16 +132,31 @@ export default function CartDrawer({
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                   {isSubmitted ? (
                     <motion.div
-                      initial={{ scale: 0.9, opacity: 0 }}
+                      initial={{ scale: 0.95, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="h-full flex flex-col items-center justify-center text-center p-8"
+                      className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3"
                     >
-                      <CheckCircle2 className="w-16 h-16 text-[#4A5842] mb-4 animate-bounce" />
-                      <h4 className="font-serif text-3xl font-bold text-[#261C18] mb-2">Order Dispatched!</h4>
-                      <p className="text-sm text-stone-600 font-sans italic mb-4">
-                        Sent to Kitchen 1 (Wood-Fired Hot Food) & Kitchen 2 (Bar & Beverage Station).
-                      </p>
-                      <span className="text-xs font-semibold bg-[#4A5842]/10 text-[#4A5842] px-3.5 py-1.5 rounded-full border border-[#4A5842]/20 uppercase tracking-wider">
+                      <div className="w-14 h-14 rounded-full bg-[#4A5842]/20 border border-[#4A5842]/40 text-[#4A5842] flex items-center justify-center">
+                        <CheckCircle2 className="w-8 h-8 text-[#4A5842] animate-bounce" />
+                      </div>
+                      <h4 className="font-serif text-2xl font-bold text-[#261C18]">Order Dispatched!</h4>
+                      <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#B85B43] bg-[#B85B43]/10 px-3 py-0.5 rounded-full border border-[#B85B43]/20">
+                        Kitchen 1 (Oven) & Kitchen 2 (Bar)
+                      </span>
+
+                      <div className="bg-[#F6F3EC] border-2 border-[#E2D4C3] rounded-2xl p-5 text-center my-3 shadow-xs">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-[#DECFC0] text-xs font-sans font-bold uppercase tracking-wider text-[#B85B43] mb-2.5 shadow-2xs">
+                          <span>🤝 A Warm Note From Our Team</span>
+                        </div>
+                        <p className="font-serif text-sm sm:text-base text-[#261C18] leading-relaxed font-semibold">
+                          “Please feel free to settle your bill at our reception counter whenever you wrap up. We invite you to pay at the counter not just for the bill, but because we genuinely love to meet, smile with, and thank the wonderful people who grace Jaadoo Café with their presence!”
+                        </p>
+                        <p className="text-xs font-sans font-medium text-[#4A5842] mt-2.5">
+                          🌿 You are never just a table number to us — you are our guest. Savor every bite!
+                        </p>
+                      </div>
+
+                      <span className="text-xs font-semibold bg-[#261C18] text-[#FBF9F5] px-4 py-1.5 rounded-full uppercase tracking-wider shadow-xs">
                         Linked to Table #4
                       </span>
                     </motion.div>

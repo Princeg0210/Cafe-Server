@@ -22,10 +22,18 @@ class OrderService:
             val = await TableService.validate_qr_token(db, data.qr_token)
 
             if data.session_token:
-                sess_query = select(DiningSession).where(DiningSession.session_token == data.session_token)
+                sess_query = select(DiningSession).where(
+                    DiningSession.session_token == data.session_token,
+                    DiningSession.table_id == val.table_id,
+                )
                 sess_res = await db.execute(sess_query)
                 dining_session = sess_res.scalar_one_or_none()
-                if not dining_session or dining_session.status == "CLOSED":
+                if not dining_session:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="INVALID_DINING_SESSION: Dining session invalid or table mismatch.",
+                    )
+                if dining_session.status == "CLOSED":
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="CLOSED_DINING_SESSION: Cannot place order for a closed dining session.",
@@ -124,6 +132,9 @@ class OrderService:
                     }
                 )
 
+            created_kitchen_orders = []
+            created_print_jobs = []
+
             # Step 4: Create Kitchen Orders & Print Jobs for dual kitchen routing
             for kitchen_id, routed_items in kitchen_item_routes.items():
                 k_order = KitchenOrder(
@@ -133,6 +144,7 @@ class OrderService:
                 )
                 db.add(k_order)
                 await db.flush()
+                created_kitchen_orders.append(k_order)
 
                 ticket_lines = [f"=== KITCHEN TICKET #{k_order.id} ===", f"Order #: {order_number}"]
                 for r_item in routed_items:
@@ -147,9 +159,29 @@ class OrderService:
                     status="PENDING",
                 )
                 db.add(print_job)
+                await db.flush()
+                created_print_jobs.append(print_job)
 
             await db.commit()
             await db.refresh(order)
+
+            # Broadcast WebSocket event and Trigger Print Jobs
+            from app.api.websocket import ws_manager
+            from app.workers.celery_app import celery_app
+
+            for k_order in created_kitchen_orders:
+                await ws_manager.broadcast("kitchen", {
+                    "event": "KITCHEN_ORDER_CREATED",
+                    "kitchen_id": k_order.kitchen_id,
+                    "kitchen_order_id": k_order.id
+                })
+            
+            for print_job in created_print_jobs:
+                try:
+                    celery_app.send_task("execute_print_job", args=[print_job.id], ignore_result=True)
+                except Exception as e:
+                    # Async task queuing failure must never block or roll back order placement
+                    pass
 
             # Reload relationship items with selectinload for async session
             from sqlalchemy.orm import selectinload

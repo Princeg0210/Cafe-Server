@@ -9,6 +9,7 @@ from app.models.billing import Bill, Payment
 from app.schemas.billing import PaymentCreate
 
 
+from app.core.config import settings
 from app.utils.helpers import utc_now
 
 
@@ -29,8 +30,9 @@ class BillingService:
         subtotal_res = await db.execute(subtotal_query)
         calc_subtotal = Decimal(str(subtotal_res.scalar() or "0.00"))
 
-        # Calculate 5% tax
-        calc_tax = (calc_subtotal * Decimal("0.05")).quantize(Decimal("0.01"))
+        # Calculate dynamic configurable tax
+        tax_rate = Decimal(str(getattr(settings, "DEFAULT_TAX_RATE", "0.05")))
+        calc_tax = (calc_subtotal * tax_rate).quantize(Decimal("0.01"))
         calc_total = calc_subtotal + calc_tax
 
         if not bill:

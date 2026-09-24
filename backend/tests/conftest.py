@@ -1,3 +1,4 @@
+import os
 import asyncio
 import pytest
 import pytest_asyncio
@@ -8,9 +9,13 @@ from app.main import app
 from app.api.deps import get_db
 from httpx import AsyncClient, ASGITransport
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+TEST_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    "sqlite+aiosqlite:///cafe_test.db"
+)
 
-engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+connect_args = {"check_same_thread": False} if "sqlite" in TEST_DATABASE_URL else {}
+engine = create_async_engine(TEST_DATABASE_URL, echo=False, connect_args=connect_args)
 TestingSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
@@ -51,3 +56,10 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
+
+from unittest.mock import patch
+
+@pytest.fixture(autouse=True)
+def mock_celery_send_task():
+    with patch("app.workers.celery_app.celery_app.send_task") as mock:
+        yield mock

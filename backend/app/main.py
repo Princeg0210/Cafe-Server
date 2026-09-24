@@ -83,3 +83,31 @@ async def health_check_redis():
 # Include API and WebSockets routers
 app.include_router(api_v1_router, prefix="/api")
 app.include_router(ws_router)
+
+
+@app.on_event("startup")
+async def on_startup():
+    import app.models
+    from app.core.database import Base, engine
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database schema initialized successfully.")
+
+        async with AsyncSessionLocal() as db:
+            from app.models.branch import Branch
+            from app.models.kitchen import Kitchen
+            from sqlalchemy import select
+            res = await db.execute(select(Branch))
+            if not res.scalar_one_or_none():
+                branch = Branch(name="Jaadoo Udaipur", address="Chandpole, Udaipur", phone="+919876543210")
+                db.add(branch)
+                await db.flush()
+                k1 = Kitchen(branch_id=branch.id, name="Hot Food Kitchen")
+                k2 = Kitchen(branch_id=branch.id, name="Bar & Beverage")
+                db.add_all([k1, k2])
+                await db.commit()
+                logger.info("Default branch and kitchens seeded.")
+    except Exception as e:
+        logger.warning(f"Database schema auto-init warning: {e}")
+

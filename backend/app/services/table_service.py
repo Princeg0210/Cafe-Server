@@ -6,6 +6,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
+from app.core.config import settings
 from app.models.table import Table, TableQR, DiningSession
 from app.models.order import Order
 from app.schemas.table import (
@@ -111,6 +112,38 @@ class TableService:
         qr = qr_res.scalar_one_or_none()
 
         if not qr:
+            # Direct table routing fallback for URLs like /table/1, /table/tbl-05, /table/T-01
+            low = qr_token.lower()
+            if not low.startswith("qr_sec_") and not low.startswith("qr-") and (
+                low.startswith(("t-", "tbl-", "tbl_", "table-", "table_", "table", "t")) or qr_token.isdigit() or "/" in qr_token
+            ):
+                from sqlalchemy import or_
+                clean_digits = "".join(c for c in qr_token.split("/")[-1] if c.isdigit())
+                if clean_digits:
+                    num_val = int(clean_digits)
+                    tbl_stmt = select(Table).where(
+                        or_(
+                            Table.id == num_val,
+                            Table.table_number == qr_token,
+                            Table.table_number == qr_token.upper(),
+                            Table.table_number == clean_digits,
+                            Table.table_number == f"T-{clean_digits.zfill(2)}",
+                            Table.table_number == f"Table {num_val}",
+                        )
+                    )
+                    tbl_res = await db.execute(tbl_stmt)
+                    table_match = tbl_res.scalars().first()
+
+                    if table_match:
+                        existing_qr_stmt = select(TableQR).where(TableQR.table_id == table_match.id)
+                        existing_qr_res = await db.execute(existing_qr_stmt)
+                        qr = existing_qr_res.scalar_one_or_none()
+                        if not qr:
+                            qr = TableQR(table_id=table_match.id, qr_token=qr_token, is_active=True)
+                            db.add(qr)
+                            await db.flush()
+
+        if not qr:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="INVALID_QR_TOKEN: QR token is invalid, expired, or rotated.",
@@ -166,8 +199,8 @@ class TableService:
                     )
                 )
 
-        # Configurable tax rate
-        tax_rate = 0.05
+        # Dynamic configurable tax rate
+        tax_rate = float(getattr(settings, "DEFAULT_TAX_RATE", "0.05"))
         tax_amount = round(subtotal * tax_rate, 2)
         grand_total = round(subtotal + tax_amount, 2)
 

@@ -68,27 +68,27 @@ export default function MenuPage() {
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans relative">
       <Navbar cartCount={cartCount} onOpenCart={() => setIsCartOpen(true)} />
 
-      {/* Header Banner */}
-      <section className="bg-[#261C18] text-[#FBF9F5] py-14 px-6 text-center border-b border-[#E4DCD0]/20">
+      {/* Header Banner - Compact */}
+      <section className="bg-[#261C18] text-[#FBF9F5] py-7 px-4 text-center border-b border-[#E4DCD0]/20">
         <div className="max-w-4xl mx-auto">
-          <span className="text-xs font-sans font-semibold tracking-[0.25em] text-[#4A5842] uppercase bg-[#4A5842]/20 px-4 py-1.5 rounded-full border border-[#4A5842]/30">
+          <span className="text-[10px] font-sans font-semibold tracking-[0.2em] text-[#4A5842] uppercase bg-[#4A5842]/20 px-3 py-1 rounded-full border border-[#4A5842]/30">
             LA CARTA • ARTISANAL MENU
           </span>
-          <h1 className="text-4xl sm:text-6xl font-serif font-bold mt-4 text-[#FBF9F5]">
+          <h1 className="text-2xl sm:text-4xl font-serif font-bold mt-2 text-[#FBF9F5]">
             Jaadoo Trattoria Menu
           </h1>
-          <p className="text-xs sm:text-sm font-serif italic text-stone-300 mt-2 max-w-xl mx-auto">
+          <p className="text-[11px] sm:text-xs font-serif italic text-stone-300 mt-1 max-w-xl mx-auto">
             Wood-fired Neapolitan Pizzas • 48h Natural Fermentation • Mountain Arabica & Tisanes
           </p>
         </div>
       </section>
 
       {/* Sticky Category Navigation Pills */}
-      <div className="sticky top-16 z-30 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0] py-3 shadow-xs">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 overflow-x-auto flex items-center gap-2 no-scrollbar">
+      <div className="sticky top-16 z-30 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0] py-2.5 shadow-2xs">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 overflow-x-auto flex items-center justify-center sm:justify-start gap-1.5 no-scrollbar">
           <button
             onClick={() => setActiveCategoryFilter("all")}
-            className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-sans font-medium tracking-wider uppercase transition-all ${
+            className={`whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-sans font-semibold tracking-wider uppercase transition-all ${
               activeCategoryFilter === "all"
                 ? "bg-[#261C18] text-[#FBF9F5] shadow-xs"
                 : "bg-[#F6F3EC] border border-[#E4DCD0] text-stone-700 hover:border-[#B85B43]"
@@ -100,7 +100,7 @@ export default function MenuPage() {
             <button
               key={c.id}
               onClick={() => setActiveCategoryFilter(c.id)}
-              className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-sans font-medium tracking-wider uppercase transition-all ${
+              className={`whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-sans font-semibold tracking-wider uppercase transition-all ${
                 activeCategoryFilter === c.id
                   ? "bg-[#261C18] text-[#FBF9F5] shadow-xs"
                   : "bg-[#F6F3EC] border border-[#E4DCD0] text-stone-700 hover:border-[#B85B43]"
@@ -112,112 +112,117 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Main Menu Cards Container */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 my-10">
+      {/* Main Menu Container - Sleek Horizontal Strip List Matching Reference Screenshot */}
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 my-8">
         <motion.div
           variants={container}
           initial="hidden"
           animate="show"
-          className="space-y-12"
+          className="space-y-10"
         >
           {filteredMenuData.map((category) => (
-            <motion.section id={category.id} key={category.id} variants={itemAnim} className="relative pt-4">
+            <motion.section id={category.id} key={category.id} variants={itemAnim} className="relative">
               
-              {/* Category Header */}
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-1 mb-6 border-b border-[#E4DCD0] pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="bg-[#F6F3EC] p-2 rounded-full border border-[#E4DCD0]">
-                    {categoryIcons[category.id] || <Utensils className="w-4 h-4 text-[#B85B43]" />}
+              {/* Category Header - Centered with Circular Badge, Serif Title & Italic Subtitle */}
+              <div className="flex flex-col items-center justify-center text-center mb-2">
+                <div className="flex items-center justify-center flex-wrap gap-2 text-center">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#E4DCD0] bg-[#FBF9F5] flex items-center justify-center text-[#B85B43] shrink-0 shadow-2xs">
+                    {categoryIcons[category.id] || <Utensils className="w-3.5 h-3.5 text-[#B85B43]" />}
                   </div>
-                  <div>
-                    <h3 className="text-2xl md:text-3xl font-serif font-bold text-[#261C18]">
-                      {category.name}
-                    </h3>
-                    {category.subtitle && (
-                      <p className="text-xs font-serif italic text-[#B85B43]">
+                  <h2 className="text-sm sm:text-base md:text-lg font-serif font-bold text-[#261C18] uppercase tracking-wider">
+                    {category.name}
+                  </h2>
+                  {category.subtitle && (
+                    <>
+                      <span className="text-[#B85B43] font-serif">•</span>
+                      <span className="text-xs sm:text-sm font-serif italic text-[#B85B43]">
                         {category.subtitle}
-                      </p>
-                    )}
-                  </div>
+                      </span>
+                    </>
+                  )}
                 </div>
+                {/* Thin horizontal separator line below category header */}
+                <div className="w-full h-px bg-[#EADFCF] mt-3 mb-1" />
               </div>
 
-              {category.id === "pizza" && (
-                <div className="mb-6 bg-[#F6F3EC] border border-[#E4DCD0] rounded-2xl p-4 flex gap-3 items-center">
-                  <Info className="w-4 h-4 text-[#B85B43] flex-shrink-0" />
-                  <p className="text-xs text-stone-700 font-sans">
-                    All our pizzas are wood-fired using Italian Tipo 00 flour with 48-hour natural dough fermentation. 100% vegetarian.
-                  </p>
-                </div>
-              )}
+              {/* Menu Item Strips - Compact Horizontal Rows */}
+              <div className="divide-y divide-[#EFE8DC]/80">
+                {category.items.map((item) => {
+                  const inCartItem = cartItems.find((i) => i.id === item.id);
+                  const qty = inCartItem?.quantity || 0;
 
-              {/* Menu Item Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                {category.items.map((item) => (
-                  <motion.div 
-                    key={item.id}
-                    whileHover={{ scale: 1.015, y: -2 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                    className="group bg-[#FBF9F5] rounded-2xl p-5 border border-[#E4DCD0] shadow-xs hover:shadow-md hover:border-[#B85B43]/60 transition-all duration-300 flex flex-col justify-between cursor-pointer relative overflow-hidden z-0 hover:z-20"
-                    onClick={() => addToCart(item)}
-                  >
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-[#B85B43] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  return (
+                    <motion.div 
+                      key={item.id}
+                      whileHover={{ scale: 1.005 }}
+                      transition={{ duration: 0.15 }}
+                      className={`group relative flex items-center justify-between py-3 px-2 sm:px-4 rounded-xl transition-all duration-150 cursor-pointer ${
+                        qty > 0 
+                          ? "bg-[#F7F3EB] border border-[#E5DAC8] shadow-2xs" 
+                          : "hover:bg-[#F7F3EB]/80 border border-transparent hover:border-[#E5DAC8]"
+                      }`}
+                      onClick={() => addToCart(item)}
+                    >
+                      {/* Left: Round Dish Illustration / Photo Thumbnail */}
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border border-[#E4DCD0] shrink-0 bg-[#F6F3EC] flex items-center justify-center shadow-2xs mr-3 sm:mr-4">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                            className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <Utensils className="w-4 h-4 text-[#B85B43]" />
+                        )}
+                      </div>
 
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1 pr-2">
-                        <h4 className="text-lg md:text-xl font-serif font-bold text-[#261C18] leading-tight group-hover:text-[#B85B43] transition-colors">
+                      {/* Middle: Tag Pill, Bold Uppercase Serif Title, Italic Description */}
+                      <div className="flex-1 min-w-0 pr-3 sm:pr-4 flex flex-col justify-center">
+                        {/* Tag Badge Pill */}
+                        {(item.badge || item.tags?.[0]) && (
+                          <span className="text-[9px] font-sans font-semibold uppercase tracking-wider text-stone-600 bg-[#EFECE4] px-2 py-0.5 rounded-full inline-block w-fit mb-0.5">
+                            {item.badge || item.tags?.[0]}
+                          </span>
+                        )}
+
+                        {/* Dish Title */}
+                        <h3 className="text-xs sm:text-sm font-serif font-bold text-[#261C18] uppercase tracking-wide leading-snug truncate sm:whitespace-normal group-hover:text-[#B85B43] transition-colors">
                           {item.name}
-                        </h4>
+                        </h3>
                         
+                        {/* Italic Description */}
                         {item.description && (
-                          <p className="text-xs text-stone-600 font-sans italic mt-1 leading-snug">
+                          <p className="text-[11px] sm:text-xs font-serif italic text-stone-500 truncate mt-0.5">
                             {item.description}
                           </p>
                         )}
                       </div>
 
-                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                        <span className="text-base font-serif font-bold text-[#261C18] bg-[#F6F3EC] group-hover:bg-[#B85B43]/10 group-hover:text-[#B85B43] px-3 py-1 rounded-xl border border-[#E4DCD0] transition-colors">
+                      {/* Right: Bold Price + Dark ADD Pill Button */}
+                      <div className="flex flex-col items-end shrink-0 pl-2">
+                        <span className="text-xs sm:text-sm font-serif font-bold text-[#261C18] text-right mb-1">
                           ₹{item.price}
                         </span>
+
                         <button 
-                          className="w-7 h-7 rounded-full bg-[#261C18] text-[#FBF9F5] flex items-center justify-center group-hover:bg-[#B85B43] group-hover:scale-105 shadow-xs transition-all"
-                          aria-label="Add to cart"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(item);
+                          }}
+                          className={`px-5 sm:px-6 py-1 rounded-full text-xs font-sans font-bold uppercase tracking-wider shadow-2xs transition-all flex items-center justify-center gap-1 ${
+                            qty > 0 
+                              ? "bg-[#B85B43] text-[#FBF9F5]" 
+                              : "bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5]"
+                          }`}
+                          aria-label={`Add ${item.name} to cart`}
                         >
-                          <Plus className="w-3.5 h-3.5 text-[#FBF9F5]" />
+                          {qty > 0 ? `ADDED (${qty})` : "ADD"}
                         </button>
                       </div>
-                    </div>
-
-                    {/* Expand Details on Hover */}
-                    <div className="max-h-0 opacity-0 group-hover:max-h-36 group-hover:opacity-100 group-hover:mt-3 transition-all duration-300 ease-out overflow-hidden border-t border-transparent group-hover:border-[#E4DCD0] group-hover:pt-2.5">
-                      {item.details && (
-                        <p className="text-xs text-stone-600 leading-relaxed font-sans mb-2">
-                          ✦ {item.details}
-                        </p>
-                      )}
-                      
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                        {item.prepTime && (
-                          <span className="text-[10px] font-medium uppercase bg-[#4A5842]/10 text-[#4A5842] px-2 py-0.5 rounded border border-[#4A5842]/20 font-sans">
-                            ⏱ {item.prepTime}
-                          </span>
-                        )}
-                        {item.tags?.map((tag, idx) => (
-                          <span 
-                            key={idx} 
-                            className="text-[10px] font-medium uppercase bg-[#F6F3EC] text-stone-700 px-2 py-0.5 rounded border border-[#E4DCD0] font-sans"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                        <span className="ml-auto text-[10px] font-sans font-semibold text-[#B85B43] uppercase group-hover:underline">
-                          + Add to Bill
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  );
+                })}
               </div>
             </motion.section>
           ))}
