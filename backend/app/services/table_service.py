@@ -141,16 +141,58 @@ class TableService:
                 ),
                 Reservation.status.in_(["CONFIRMED", "ARRIVED", "SEATED"]),
             )
-            .order_by(Reservation.reservation_date.desc(), Reservation.time_slot.desc())
+            .order_by(Reservation.reservation_date.asc(), Reservation.time_slot.asc())
         )
         res_res = await db.execute(res_stmt)
-        active_res = res_res.scalars().first()
+        candidate_reservations = res_res.scalars().all()
+
+        from app.utils.helpers import calculate_reservation_window
+        from app.workers.celery_app import celery_app
+
+        active_res = None
+        active_calc = None
+        modified_status = False
+
+        for res_item in candidate_reservations:
+            calc = calculate_reservation_window(res_item.reservation_date, res_item.time_slot)
+
+            # Rule 2: 15-Minute Grace Period & Auto-Release (No-Show Protection)
+            if res_item.status == "CONFIRMED" and calc.get("grace_exceeded"):
+                res_item.status = "NO_SHOW"
+                if res_item.celery_task_id:
+                    try:
+                        celery_app.control.revoke(res_item.celery_task_id, terminate=True)
+                    except Exception:
+                        pass
+                    res_item.celery_task_id = None
+                modified_status = True
+                continue
+
+            # Rule 1: Time-Window Smart Filter (Don't Alert Lunch Guests for Dinner Bookings)
+            # Only show "TABLE RESERVED" notice if within 60-90 min window or already arrived/seated
+            if res_item.status == "CONFIRMED":
+                if calc.get("is_within_alert_window"):
+                    active_res = res_item
+                    active_calc = calc
+                    break
+            elif res_item.status in ["ARRIVED", "SEATED"]:
+                if calc.get("is_today") and not calc.get("grace_exceeded"):
+                    active_res = res_item
+                    active_calc = calc
+                    break
+
+        if modified_status:
+            await db.commit()
 
         reservation_notice = None
         is_reserved = False
         if active_res:
             is_reserved = True
             cust_name = active_res.customer.name if active_res.customer else "Reserved Guest"
+            can_qd = active_calc.get("can_quick_dine", False) if active_calc else False
+            qd_mins = active_calc.get("quick_dine_minutes") if active_calc else None
+            mins_until = active_calc.get("minutes_until") if active_calc else None
+
             reservation_notice = ReservationNotice(
                 is_reserved=True,
                 reservation_id=active_res.id,
@@ -161,6 +203,10 @@ class TableService:
                 status=active_res.status,
                 floor_number=active_res.floor_number or 1,
                 table_name=active_res.table_name or table.table_number,
+                minutes_until_reservation=mins_until,
+                can_quick_dine=can_qd,
+                quick_dine_minutes=qd_mins,
+                allow_self_checkin=active_res.status in ["CONFIRMED", "ARRIVED"],
             )
 
         return QRValidateResponse(

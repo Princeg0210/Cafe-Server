@@ -219,3 +219,74 @@ class ReservationService:
     @staticmethod
     async def cancel_reservation(db: AsyncSession, reservation_id: int) -> Reservation:
         return await ReservationService.update_reservation_status(db, reservation_id, "CANCELLED")
+
+    @staticmethod
+    async def checkin_reservation(
+        db: AsyncSession, reservation_id: int, session_token: Optional[str] = None
+    ) -> Reservation:
+        """
+        1-Tap Self Check-In via QR Scan:
+        Transitions reservation from CONFIRMED -> ARRIVED -> SEATED.
+        Links customer to active DiningSession and unlocks digital ordering.
+        """
+        from app.models.table import DiningSession
+
+        reservation = await db.get(Reservation, reservation_id)
+        if not reservation:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
+
+        if reservation.status not in ["CONFIRMED", "ARRIVED", "SEATED"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot check in reservation with status '{reservation.status}'.",
+            )
+
+        reservation.status = "SEATED"
+
+        if session_token:
+            sess_stmt = select(DiningSession).where(DiningSession.session_token == session_token)
+            sess_res = await db.execute(sess_stmt)
+            dining_session = sess_res.scalar_one_or_none()
+            if dining_session:
+                dining_session.customer_id = reservation.customer_id
+                if dining_session.status == "OPENED":
+                    dining_session.status = "ACTIVE"
+
+        await db.commit()
+
+        from sqlalchemy.orm import selectinload
+        res = await db.execute(
+            select(Reservation).options(selectinload(Reservation.customer)).where(Reservation.id == reservation.id)
+        )
+        return res.scalar_one()
+
+    @staticmethod
+    async def auto_release_expired_no_shows(db: AsyncSession) -> int:
+        """
+        15-Minute Grace Period & Auto-Release (No-Show Protection):
+        Finds CONFIRMED reservations where slot_start + 15 min < current_time,
+        and transitions them to NO_SHOW, freeing up tables for walk-ins.
+        """
+        from app.utils.helpers import calculate_reservation_window
+
+        stmt = select(Reservation).where(Reservation.status == "CONFIRMED")
+        res = await db.execute(stmt)
+        reservations = res.scalars().all()
+        released_count = 0
+
+        for r in reservations:
+            calc = calculate_reservation_window(r.reservation_date, r.time_slot)
+            if calc.get("grace_exceeded"):
+                r.status = "NO_SHOW"
+                if r.celery_task_id:
+                    try:
+                        celery_app.control.revoke(r.celery_task_id, terminate=True)
+                    except Exception:
+                        pass
+                    r.celery_task_id = None
+                released_count += 1
+
+        if released_count > 0:
+            await db.commit()
+
+        return released_count

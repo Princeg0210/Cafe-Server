@@ -47,6 +47,11 @@ class ReservationStatusUpdate(BaseModel):
     status: str = Field(..., example="ARRIVED")
 
 
+class ReservationCheckInRequest(BaseModel):
+    session_token: Optional[str] = None
+    table_id: Optional[int] = None
+
+
 class ReservationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

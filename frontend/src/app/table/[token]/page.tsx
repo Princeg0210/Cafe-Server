@@ -18,6 +18,9 @@ import {
   Utensils,
   Calendar,
   AlertTriangle,
+  Users,
+  Clock,
+  Sparkles,
 } from "lucide-react";
 import { menuData } from "@/data/menu";
 
@@ -109,7 +112,16 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     status: string;
     floor_number?: number;
     table_name?: string;
+    minutes_until_reservation?: number;
+    can_quick_dine?: boolean;
+    quick_dine_minutes?: number;
+    allow_self_checkin?: boolean;
   } | null>(null);
+
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [checkInSuccess, setCheckInSuccess] = useState(false);
+  const [isQuickDineActive, setIsQuickDineActive] = useState(false);
+  const [quickDineMinutesLeft, setQuickDineMinutesLeft] = useState<number | null>(null);
 
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cart, setCart] = useState<{ [key: string | number]: { item: MenuItem; qty: number } }>({});
@@ -152,6 +164,9 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
           setIsValidQr(true);
           if (data.is_reserved && data.reservation) {
             setReservationNotice(data.reservation);
+            if (data.reservation.quick_dine_minutes) {
+              setQuickDineMinutesLeft(data.reservation.quick_dine_minutes);
+            }
           } else {
             setReservationNotice(null);
           }
@@ -172,6 +187,83 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     }
     validateQR();
   }, [rawToken]);
+
+  // 5. Multi-Device Shared Table Cart & Bill: Real-time background sync every 6s
+  useEffect(() => {
+    if (!sessionId || !sessionToken) return;
+
+    let isMounted = true;
+    const syncTableBill = async () => {
+      const apiBase = getApiBase();
+      try {
+        const res = await fetch(`${apiBase}/api/v1/tables/sessions/${sessionId}/bill`, {
+          headers: { "X-Session-Token": sessionToken },
+        });
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          setBillData(data);
+          if (data.items && data.items.length > 0) {
+            setDispatchedItems(data.items);
+          }
+        }
+      } catch {
+        // silent sync fallback
+      }
+    };
+
+    syncTableBill();
+    const interval = setInterval(syncTableBill, 6000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [sessionId, sessionToken]);
+
+  // Quick Dine Countdown Timer
+  useEffect(() => {
+    if (!isQuickDineActive || quickDineMinutesLeft === null) return;
+    const interval = setInterval(() => {
+      setQuickDineMinutesLeft((prev) => {
+        if (prev === null || prev <= 1) return 0;
+        return prev - 1;
+      });
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [isQuickDineActive, quickDineMinutesLeft]);
+
+  // 3. 1-Tap Self Check-In via QR Scan
+  const handleSelfCheckIn = async () => {
+    if (!reservationNotice) return;
+    setIsCheckingIn(true);
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/reservations/${reservationNotice.reservation_id}/checkin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_token: sessionToken }),
+      });
+      if (res.ok) {
+        setCheckInSuccess(true);
+        setReservationNotice((prev) =>
+          prev ? { ...prev, status: "SEATED", allow_self_checkin: false } : null
+        );
+      } else {
+        alert("Check-in could not be completed. Please inform your server or floor manager.");
+      }
+    } catch {
+      alert("Network error during check-in. Please try again.");
+    } finally {
+      setIsCheckingIn(false);
+    }
+  };
+
+  // 4. Quick Dine Acceptance Handler
+  const handleAcceptQuickDine = () => {
+    setIsQuickDineActive(true);
+    if (reservationNotice?.quick_dine_minutes) {
+      setQuickDineMinutesLeft(reservationNotice.quick_dine_minutes);
+    }
+  };
 
   const updateCart = (item: any, delta: number) => {
     setCart((prev) => {
@@ -256,7 +348,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     };
 
     try {
-      const res = await fetch(`${apiBase}/api/v1/orders/`, {
+      const res = await fetch(`${apiBase}/api/v1/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -351,10 +443,21 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
               <span className="font-serif font-extrabold text-base leading-none text-[#261C18] block">
                 JAADOO <span className="font-serif italic font-normal text-sm text-[#B85B43]">Trattoria</span>
               </span>
-              <span className="text-[10px] font-mono font-bold text-[#4A5842] flex items-center gap-1.5 mt-0.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                {tableNumber}
-              </span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] font-mono font-bold text-[#4A5842] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  {tableNumber}
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-800 bg-emerald-500/10 px-2 py-0.5 rounded-full font-sans font-medium border border-emerald-500/20">
+                  <Users className="w-2.5 h-2.5 text-emerald-600" />
+                  Shared Table Cart
+                  {billData && billData.items && billData.items.length > 0 && (
+                    <span className="font-bold font-mono">
+                      ({billData.items.reduce((s, it) => s + it.quantity, 0)})
+                    </span>
+                  )}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -363,15 +466,67 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-xs font-semibold uppercase tracking-wider transition-all shadow-xs"
           >
             <Receipt className="w-3.5 h-3.5 text-[#B85B43]" />
-            <span>VIEW BILL</span>
+            <span>
+              VIEW BILL
+              {billData && billData.grand_total > 0 ? ` (₹${Math.round(billData.grand_total)})` : ""}
+            </span>
           </button>
         </div>
       </header>
 
       {/* Main Container: Pure Menu & Bill Flow */}
       <main className="max-w-4xl mx-auto px-4 py-4 pb-32">
-        {/* Table Reservation Notice Banner */}
-        {reservationNotice && (
+        {/* Quick Dine Active Banner */}
+        {isQuickDineActive && reservationNotice && (
+          <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 text-amber-950 flex items-center justify-between gap-3 shadow-xs animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="font-condensed font-bold text-sm uppercase text-amber-950 block">
+                  ⚡ Quick Dine Session Active
+                </span>
+                <span className="text-xs text-amber-900">
+                  Table reserved at {reservationNotice.time_slot} • Wrap up within{" "}
+                  <span className="font-bold font-mono text-amber-800">
+                    {quickDineMinutesLeft ?? reservationNotice.quick_dine_minutes} mins
+                  </span>
+                </span>
+              </div>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-amber-600 text-white font-mono font-bold text-xs shrink-0 animate-pulse">
+              {quickDineMinutesLeft ?? reservationNotice.quick_dine_minutes}m left
+            </span>
+          </div>
+        )}
+
+        {/* Checked-In Welcome Banner */}
+        {(checkInSuccess || (reservationNotice && reservationNotice.status === "SEATED")) && (
+          <div className="mb-4 p-4 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/35 text-emerald-950 shadow-sm animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-xs shrink-0 mt-0.5">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-condensed font-bold text-sm uppercase tracking-wider text-emerald-900">
+                    Welcome, {reservationNotice?.customer_name || "Guest"}!
+                  </span>
+                  <span className="text-[10px] uppercase font-bold bg-emerald-500/20 text-emerald-900 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                    CHECKED IN • SEATED
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-900/90 mt-1">
+                  You are checked in at {reservationNotice?.table_name || tableNumber}. Your digital menu is unlocked — explore our wood-fired pizzas, starters, and beverages below!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Table Reservation Notice Banner (If not seated) */}
+        {reservationNotice && reservationNotice.status !== "SEATED" && !checkInSuccess && (
           <div className="mb-4 p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/35 text-amber-950 shadow-sm animate-in fade-in slide-in-from-top-2">
             <div className="flex items-start gap-3">
               <div className="p-2.5 bg-amber-600 text-white rounded-xl shadow-xs shrink-0 mt-0.5">
@@ -399,8 +554,53 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                 <p className="text-sm font-semibold text-[#261C18] mt-1.5">
                   This table is reserved for <span className="text-[#B85B43] font-bold">{reservationNotice.customer_name}</span> ({reservationNotice.guest_count} Guests) on {reservationNotice.reservation_date} at {reservationNotice.time_slot}.
                 </p>
-                <p className="text-xs text-amber-900/80 mt-1">
-                  If this is your reservation, welcome to Jaadoo! If you are a walk-in guest, please check with our floor manager or select an unreserved table.
+
+                {/* 3. 1-Tap Self Check-In via QR Scan */}
+                {reservationNotice.allow_self_checkin && (
+                  <div className="mt-3">
+                    <button
+                      onClick={handleSelfCheckIn}
+                      disabled={isCheckingIn}
+                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#261C18] hover:bg-[#B85B43] text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all"
+                    >
+                      {isCheckingIn ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Checking You In...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <span>Are you {reservationNotice.customer_name}? [Tap to Check In & Start Ordering]</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {/* 4. Quick Dine Option for Walk-Ins */}
+                {reservationNotice.can_quick_dine && !isQuickDineActive && (
+                  <div className="mt-3 p-3 bg-amber-100/80 rounded-xl border border-amber-300/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950 uppercase tracking-wide">
+                        <Clock className="w-4 h-4 text-amber-700" />
+                        <span>Walk-in Quick Dine (Under {reservationNotice.quick_dine_minutes} mins)</span>
+                      </div>
+                      <p className="text-xs text-amber-900/90 mt-0.5">
+                        This table is reserved in {reservationNotice.minutes_until_reservation} mins ({reservationNotice.time_slot}). Would you like a Quick Dine session (under {reservationNotice.quick_dine_minutes} mins)?
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleAcceptQuickDine}
+                      className="whitespace-nowrap px-3.5 py-2 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold uppercase tracking-wider transition shadow-2xs"
+                    >
+                      ⚡ Start Quick Dine
+                    </button>
+                  </div>
+                )}
+
+                <p className="text-xs text-amber-900/70 mt-2">
+                  If this is your reservation, tap check-in above. Walk-in guests can take a quick dine session or check with our floor manager for an unreserved table.
                 </p>
               </div>
             </div>

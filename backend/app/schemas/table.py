@@ -36,6 +36,10 @@ class ReservationNotice(BaseModel):
     status: str
     floor_number: Optional[int] = 1
     table_name: Optional[str] = "Table 1"
+    minutes_until_reservation: Optional[int] = None
+    can_quick_dine: bool = False
+    quick_dine_minutes: Optional[int] = None
+    allow_self_checkin: bool = True
 
 
 class QRValidateResponse(BaseModel):

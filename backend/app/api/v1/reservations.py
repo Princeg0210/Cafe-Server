@@ -5,7 +5,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
 from app.models.reservation import Reservation
-from app.schemas.reservation import ReservationCreate, ReservationUpdate, ReservationStatusUpdate, ReservationResponse
+from app.schemas.reservation import (
+    ReservationCreate,
+    ReservationUpdate,
+    ReservationStatusUpdate,
+    ReservationResponse,
+    ReservationCheckInRequest,
+)
 from app.services.reservation_service import ReservationService
 
 router = APIRouter(prefix="/reservations", tags=["Reservations Engine"])
@@ -14,6 +20,14 @@ router = APIRouter(prefix="/reservations", tags=["Reservations Engine"])
 @router.post("", response_model=ReservationResponse, status_code=201)
 async def create_reservation(data: ReservationCreate, db: AsyncSession = Depends(get_db)):
     return await ReservationService.create_reservation(db, data)
+
+
+@router.post("/{id}/checkin", response_model=ReservationResponse)
+async def checkin_reservation(
+    id: int, data: Optional[ReservationCheckInRequest] = None, db: AsyncSession = Depends(get_db)
+):
+    session_token = data.session_token if data else None
+    return await ReservationService.checkin_reservation(db, id, session_token)
 
 
 @router.get("/{id}", response_model=ReservationResponse)
