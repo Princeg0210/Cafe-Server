@@ -108,6 +108,11 @@ async def on_startup():
                 db.add_all([k1, k2])
                 await db.commit()
                 logger.info("Default branch and kitchens seeded.")
+
+        # Ensure POS cashier user and pos:access permissions exist in any environment (Render / Local)
+        from app.utils.create_pos_user import create_pos_user
+        await create_pos_user()
+        logger.info("Default POS user ensured.")
     except Exception as e:
         logger.warning(f"Database schema auto-init warning: {e}")
 
