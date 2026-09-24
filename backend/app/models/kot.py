@@ -1,6 +1,6 @@
 import datetime
 from decimal import Decimal
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.utils.helpers import utc_now
@@ -8,6 +8,9 @@ from app.utils.helpers import utc_now
 
 class KOT(Base):
     __tablename__ = "kots"
+    __table_args__ = (
+        UniqueConstraint("business_date", "sequence_number", name="uq_kots_date_seq"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     kot_number: Mapped[str] = mapped_column(String(50), nullable=False, index=True)

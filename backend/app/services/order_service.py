@@ -146,69 +146,81 @@ class OrderService:
                     }
                 )
 
-            # Generate Daily KOT Sequence (e.g., KOT-001, KOT-002, ...)
+            # Generate Daily KOT Sequence with Concurrency-Safe Retry Loop
             import datetime
+            import asyncio
             from sqlalchemy import func
+            from sqlalchemy.exc import IntegrityError
             today = datetime.date.today()
-
-            max_seq_res = await db.execute(
-                select(func.coalesce(func.max(KOT.sequence_number), 0)).where(
-                    KOT.business_date == today
-                )
-            )
-            next_seq = (max_seq_res.scalar() or 0) + 1
-            kot_number = f"KOT-{next_seq:03d}"
-
-            kot = KOT(
-                kot_number=kot_number,
-                sequence_number=next_seq,
-                business_date=today,
-                table_id=dining_session.table_id,
-                dining_session_id=dining_session.id,
-                order_id=order.id,
-                total_amount=total_order_amount,
-                items_count=total_order_items,
-                status="GENERATED",
-                printed_status="PENDING",
-            )
-            db.add(kot)
-            await db.flush()
-
-            # Formulate Thermal Printer Ticket
-            table_display = table.table_number if table else str(val.table_id)
-            kot_lines = [
-                "================================",
-                "          JAADOO CAFE           ",
-                "================================",
-                f"{kot.kot_number}        TABLE: {table_display}",
-                f"Date: {today.strftime('%d %b %Y')}",
-                f"Time: {order.created_at.strftime('%I:%M %p')}",
-                "--------------------------------",
-            ]
-            for r_item in all_kot_items:
-                line = f"{r_item['qty']} x {r_item['name']}"
-                if r_item["instructions"]:
-                    line += f" ({r_item['instructions']})"
-                kot_lines.append(line)
-            kot_lines.extend([
-                "--------------------------------",
-                f"Total Items: {total_order_items}",
-                f"Total: Rs. {total_order_amount}",
-                "================================",
-            ])
 
             created_kitchen_orders = []
             created_print_jobs = []
+            kot = None
+            table_display = table.table_number if table else str(val.table_id)
 
-            # Step 4: Create Thermal PrintJob for KOT
-            kot_print_job = PrintJob(
-                kot_id=kot.id,
-                ticket_content="\n".join(kot_lines),
-                status="PENDING",
-            )
-            db.add(kot_print_job)
-            await db.flush()
-            created_print_jobs.append(kot_print_job)
+            max_retries = 5
+            for attempt in range(max_retries):
+                try:
+                    async with db.begin_nested():
+                        max_seq_res = await db.execute(
+                            select(func.coalesce(func.max(KOT.sequence_number), 0)).where(
+                                KOT.business_date == today
+                            )
+                        )
+                        next_seq = (max_seq_res.scalar() or 0) + 1
+                        kot_number = f"KOT-{next_seq:03d}"
+
+                        kot = KOT(
+                            kot_number=kot_number,
+                            sequence_number=next_seq,
+                            business_date=today,
+                            table_id=dining_session.table_id,
+                            dining_session_id=dining_session.id,
+                            order_id=order.id,
+                            total_amount=total_order_amount,
+                            items_count=total_order_items,
+                            status="GENERATED",
+                            printed_status="PENDING",
+                        )
+                        db.add(kot)
+                        await db.flush()
+
+                        # Formulate Thermal Printer Ticket
+                        kot_lines = [
+                            "================================",
+                            "          JAADOO CAFE           ",
+                            "================================",
+                            f"{kot.kot_number}        TABLE: {table_display}",
+                            f"Date: {today.strftime('%d %b %Y')}",
+                            f"Time: {order.created_at.strftime('%I:%M %p')}",
+                            "--------------------------------",
+                        ]
+                        for r_item in all_kot_items:
+                            line = f"{r_item['qty']} x {r_item['name']}"
+                            if r_item["instructions"]:
+                                line += f" ({r_item['instructions']})"
+                            kot_lines.append(line)
+                        kot_lines.extend([
+                            "--------------------------------",
+                            f"Total Items: {total_order_items}",
+                            f"Total: Rs. {total_order_amount}",
+                            "================================",
+                        ])
+
+                        # Step 4: Create Thermal PrintJob for KOT
+                        kot_print_job = PrintJob(
+                            kot_id=kot.id,
+                            ticket_content="\n".join(kot_lines),
+                            status="PENDING",
+                        )
+                        db.add(kot_print_job)
+                        await db.flush()
+                        created_print_jobs.append(kot_print_job)
+                        break
+                except IntegrityError:
+                    if attempt == max_retries - 1:
+                        raise
+                    await asyncio.sleep(0.01 * (attempt + 1))
 
             # Step 5: Maintain kitchen orders for backward compatibility & routing
             for kitchen_id, routed_items in kitchen_item_routes.items():

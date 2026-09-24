@@ -158,3 +158,92 @@ async def test_kot_daily_sequence_and_offline_printer_resilience(db_session, cli
     assert sess_check.status == "CLOSED"
     tbl_check = await db_session.get(Table, table1.id)
     assert tbl_check.status == "Available"
+
+
+@pytest.mark.asyncio
+async def test_concurrent_kot_generation_no_duplicates(db_session, client: AsyncClient):
+    """
+    Test two simultaneous order requests for the same business date.
+    Verify:
+    1. Two concurrent orders NEVER receive the same KOT number.
+    2. Unique constraint (business_date, sequence_number) is enforced.
+    3. Safe retry/recalculation occurs on race without creating duplicate KOT numbers.
+    4. KOT and PrintJob remain transactionally consistent.
+    """
+    from tests.conftest import TestingSessionLocal
+    import asyncio
+
+    b = Branch(name="Concurrent Branch", address="Udaipur", phone="+919111111111")
+    db_session.add(b)
+    await db_session.flush()
+
+    cat = MenuCategory(name="Conc Cat", display_order=1)
+    db_session.add(cat)
+    await db_session.flush()
+
+    item = MenuItem(category_id=cat.id, name="Conc Pizza", price=Decimal("200.00"), is_active=True, is_available=True)
+    db_session.add(item)
+    await db_session.flush()
+
+    t1 = Table(branch_id=b.id, table_number="C1", capacity=2, status="Available")
+    t2 = Table(branch_id=b.id, table_number="C2", capacity=2, status="Available")
+    db_session.add_all([t1, t2])
+    await db_session.flush()
+
+    qr1 = TableQR(table_id=t1.id, qr_token="qr-conc-1")
+    qr2 = TableQR(table_id=t2.id, qr_token="qr-conc-2")
+    db_session.add_all([qr1, qr2])
+    await db_session.commit()
+
+    sess1 = await TableService.get_or_create_dining_session(db_session, t1.id)
+    sess2 = await TableService.get_or_create_dining_session(db_session, t2.id)
+
+    order_data1 = OrderCreate(
+        qr_token="qr-conc-1",
+        session_token=sess1.session_token,
+        items=[OrderItemCreate(menu_item_id=item.id, quantity=1)]
+    )
+    order_data2 = OrderCreate(
+        qr_token="qr-conc-2",
+        session_token=sess2.session_token,
+        items=[OrderItemCreate(menu_item_id=item.id, quantity=1)]
+    )
+
+    # Execute concurrent orders using separate sessions to simulate real parallel HTTP requests
+    async def place_concurrent_order(order_data):
+        async with TestingSessionLocal() as session:
+            return await OrderService.place_order(session, order_data)
+
+    results = await asyncio.gather(
+        place_concurrent_order(order_data1),
+        place_concurrent_order(order_data2),
+    )
+
+    o1, o2 = results[0], results[1]
+    assert o1.status == "CONFIRMED"
+    assert o2.status == "CONFIRMED"
+
+    # Query both KOTs
+    async with TestingSessionLocal() as session:
+        kots_res = await session.execute(
+            select(KOT).where(KOT.order_id.in_([o1.id, o2.id]))
+        )
+        kots = kots_res.scalars().all()
+
+        assert len(kots) == 2
+        kot_numbers = [k.kot_number for k in kots]
+        seq_numbers = [k.sequence_number for k in kots]
+
+        # Verify uniqueness: two concurrent orders must NEVER receive the same KOT number
+        assert len(set(kot_numbers)) == 2
+        assert len(set(seq_numbers)) == 2
+        assert abs(seq_numbers[0] - seq_numbers[1]) == 1
+
+        # Verify PrintJobs exist for both KOTs (transactional consistency)
+        for k in kots:
+            pjobs_res = await session.execute(
+                select(PrintJob).where(PrintJob.kot_id == k.id)
+            )
+            pjobs = pjobs_res.scalars().all()
+            assert len(pjobs) >= 1
+            assert pjobs[0].kot_id == k.id
