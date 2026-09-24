@@ -689,14 +689,14 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                       onClick={() => {
                         if (qtyInCart === 0) updateCart(item, 1);
                       }}
-                      className={`group flex items-center justify-between py-2.5 px-2 rounded-xl transition-all cursor-pointer ${
+                      className={`group flex items-start sm:items-center justify-between py-2.5 px-2 rounded-xl transition-all cursor-pointer ${
                         qtyInCart > 0
                           ? "bg-[#F7F3EB] border border-[#E5DAC8]"
                           : "hover:bg-[#F7F3EB]/70 border border-transparent"
                       }`}
                     >
                       {/* Thumbnail */}
-                      <div className="w-11 h-11 rounded-full overflow-hidden border border-[#E4DCD0] shrink-0 bg-[#F6F3EC] flex items-center justify-center shadow-2xs mr-3">
+                      <div className="w-11 h-11 rounded-full overflow-hidden border border-[#E4DCD0] shrink-0 bg-[#F6F3EC] flex items-center justify-center shadow-2xs mr-3 mt-0.5 sm:mt-0">
                         <img
                           src={imgUrl}
                           alt={item.name}
@@ -712,18 +712,18 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                             {badge}
                           </span>
                         )}
-                        <h3 className="text-sm font-serif font-bold text-[#261C18] uppercase tracking-wide leading-snug group-hover:text-[#B85B43] transition-colors truncate">
+                        <h3 className="text-sm font-serif font-bold text-[#261C18] uppercase tracking-wide leading-snug group-hover:text-[#B85B43] transition-colors break-words">
                           {item.name}
                         </h3>
                         {item.description && (
-                          <p className="text-xs font-serif italic text-stone-500 truncate mt-0.5">
+                          <p className="text-xs font-serif italic text-stone-500 mt-0.5 leading-relaxed break-words">
                             {item.description}
                           </p>
                         )}
                       </div>
 
                       {/* Price & Add Controls */}
-                      <div className="flex flex-col items-end shrink-0 pl-2">
+                      <div className="flex flex-col items-end shrink-0 pl-2 pt-0.5 sm:pt-0">
                         <span className="text-sm font-serif font-bold text-[#261C18] text-right mb-1">
                           ₹{item.price}
                         </span>

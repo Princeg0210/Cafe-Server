@@ -156,7 +156,7 @@ export default function MenuPage() {
                       key={item.id}
                       whileHover={{ scale: 1.005 }}
                       transition={{ duration: 0.15 }}
-                      className={`group relative flex items-center justify-between py-3 px-2 sm:px-4 rounded-xl transition-all duration-150 cursor-pointer ${
+                      className={`group relative flex items-start sm:items-center justify-between py-3 px-2 sm:px-4 rounded-xl transition-all duration-150 cursor-pointer ${
                         qty > 0 
                           ? "bg-[#F7F3EB] border border-[#E5DAC8] shadow-2xs" 
                           : "hover:bg-[#F7F3EB]/80 border border-transparent hover:border-[#E5DAC8]"
@@ -164,7 +164,7 @@ export default function MenuPage() {
                       onClick={() => addToCart(item)}
                     >
                       {/* Left: Round Dish Illustration / Photo Thumbnail */}
-                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border border-[#E4DCD0] shrink-0 bg-[#F6F3EC] flex items-center justify-center shadow-2xs mr-3 sm:mr-4">
+                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border border-[#E4DCD0] shrink-0 bg-[#F6F3EC] flex items-center justify-center shadow-2xs mr-3 sm:mr-4 mt-0.5 sm:mt-0">
                         {item.image_url ? (
                           <img
                             src={item.image_url}
@@ -187,20 +187,20 @@ export default function MenuPage() {
                         )}
 
                         {/* Dish Title */}
-                        <h3 className="text-xs sm:text-sm font-serif font-bold text-[#261C18] uppercase tracking-wide leading-snug truncate sm:whitespace-normal group-hover:text-[#B85B43] transition-colors">
+                        <h3 className="text-xs sm:text-sm font-serif font-bold text-[#261C18] uppercase tracking-wide leading-snug break-words group-hover:text-[#B85B43] transition-colors">
                           {item.name}
                         </h3>
                         
                         {/* Italic Description */}
                         {item.description && (
-                          <p className="text-[11px] sm:text-xs font-serif italic text-stone-500 truncate mt-0.5">
+                          <p className="text-[11px] sm:text-xs font-serif italic text-stone-500 mt-0.5 leading-relaxed break-words">
                             {item.description}
                           </p>
                         )}
                       </div>
 
                       {/* Right: Bold Price + Dark ADD Pill Button */}
-                      <div className="flex flex-col items-end shrink-0 pl-2">
+                      <div className="flex flex-col items-end shrink-0 pl-2 pt-0.5 sm:pt-0">
                         <span className="text-xs sm:text-sm font-serif font-bold text-[#261C18] text-right mb-1">
                           ₹{item.price}
                         </span>
