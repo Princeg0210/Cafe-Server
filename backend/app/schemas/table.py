@@ -26,6 +26,18 @@ class QRValidateRequest(BaseModel):
     qr_token: str
 
 
+class ReservationNotice(BaseModel):
+    is_reserved: bool = True
+    reservation_id: int
+    customer_name: str
+    guest_count: int
+    time_slot: str
+    reservation_date: str
+    status: str
+    floor_number: Optional[int] = 1
+    table_name: Optional[str] = "Table 1"
+
+
 class QRValidateResponse(BaseModel):
     is_valid: bool
     table_id: int
@@ -34,6 +46,8 @@ class QRValidateResponse(BaseModel):
     session_id: Optional[int] = None
     session_token: str
     session_status: str
+    is_reserved: bool = False
+    reservation: Optional[ReservationNotice] = None
 
 
 class DiningSessionResponse(BaseModel):

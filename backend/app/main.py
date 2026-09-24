@@ -92,6 +92,20 @@ async def on_startup():
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            is_sqlite = "sqlite" in settings.DATABASE_URL
+            if is_sqlite:
+                res_cols = await conn.execute(text("PRAGMA table_info(reservations)"))
+                cols = [c[1] for c in res_cols.fetchall()]
+                if "table_id" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN table_id INTEGER"))
+                if "floor_number" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN floor_number INTEGER DEFAULT 1"))
+                if "table_name" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN table_name VARCHAR(50)"))
+            else:
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS table_id INTEGER"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS floor_number INTEGER DEFAULT 1"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS table_name VARCHAR(50)"))
         logger.info("Database schema initialized successfully.")
 
         async with AsyncSessionLocal() as db:

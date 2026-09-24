@@ -16,6 +16,8 @@ import {
   Pizza,
   Wine,
   Utensils,
+  Calendar,
+  AlertTriangle,
 } from "lucide-react";
 import { menuData } from "@/data/menu";
 
@@ -97,6 +99,17 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const [isValidating, setIsValidating] = useState(true);
   const [isValidQr, setIsValidQr] = useState<boolean | null>(null);
   const [qrErrorMessage, setQrErrorMessage] = useState<string | null>(null);
+  const [reservationNotice, setReservationNotice] = useState<{
+    is_reserved: boolean;
+    reservation_id: number;
+    customer_name: string;
+    guest_count: number;
+    time_slot: string;
+    reservation_date: string;
+    status: string;
+    floor_number?: number;
+    table_name?: string;
+  } | null>(null);
 
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cart, setCart] = useState<{ [key: string | number]: { item: MenuItem; qty: number } }>({});
@@ -137,6 +150,11 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
           setSessionToken(data.session_token);
           setValidatedQrToken(rawToken);
           setIsValidQr(true);
+          if (data.is_reserved && data.reservation) {
+            setReservationNotice(data.reservation);
+          } else {
+            setReservationNotice(null);
+          }
         } else {
           setIsValidQr(false);
           setQrErrorMessage("This table QR code is invalid, expired, or has rotated. Direct URL manipulation is prohibited for dining privacy.");
@@ -352,6 +370,43 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
       {/* Main Container: Pure Menu & Bill Flow */}
       <main className="max-w-4xl mx-auto px-4 py-4 pb-32">
+        {/* Table Reservation Notice Banner */}
+        {reservationNotice && (
+          <div className="mb-4 p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/35 text-amber-950 shadow-sm animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 bg-amber-600 text-white rounded-xl shadow-xs shrink-0 mt-0.5">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-condensed font-bold text-sm uppercase tracking-wider text-amber-900">
+                    TABLE RESERVED NOTICE
+                  </span>
+                  <span className="text-[10px] uppercase font-bold bg-amber-500/20 text-amber-900 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                    {reservationNotice.status}
+                  </span>
+                  {reservationNotice.floor_number && (
+                    <span className="text-[10px] font-bold bg-[#261C18] text-white px-2 py-0.5 rounded-full">
+                      Floor {reservationNotice.floor_number}
+                    </span>
+                  )}
+                  {reservationNotice.table_name && (
+                    <span className="text-[10px] font-bold bg-[#B85B43] text-white px-2 py-0.5 rounded-full">
+                      {reservationNotice.table_name}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm font-semibold text-[#261C18] mt-1.5">
+                  This table is reserved for <span className="text-[#B85B43] font-bold">{reservationNotice.customer_name}</span> ({reservationNotice.guest_count} Guests) on {reservationNotice.reservation_date} at {reservationNotice.time_slot}.
+                </p>
+                <p className="text-xs text-amber-900/80 mt-1">
+                  If this is your reservation, welcome to Jaadoo! If you are a walk-in guest, please check with our floor manager or select an unreserved table.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Order Success Confirmation Banner */}
         {orderPlaced && (
           <div className="mb-4 p-3.5 rounded-2xl bg-[#F4EFE6] border border-[#4A5842]/40 text-[#261C18] flex items-center justify-between gap-3 shadow-xs animate-in fade-in">

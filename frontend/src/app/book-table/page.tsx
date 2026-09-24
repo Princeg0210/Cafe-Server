@@ -124,6 +124,9 @@ export default function BookTablePage() {
           guest_count: guests,
           reservation_date: date,
           time_slot: time,
+          table_id: selectedFloor === 1 && selectedTable?.name === "Table 1" ? 1 : (selectedTable?.id || 1),
+          floor_number: selectedFloor || 1,
+          table_name: selectedTable?.name || "Table 1",
         }),
       });
 

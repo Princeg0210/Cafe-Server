@@ -87,6 +87,9 @@ class ReservationService:
             guest_count=data.guest_count,
             reservation_date=data.reservation_date,
             time_slot=data.time_slot,
+            table_id=data.table_id,
+            floor_number=data.floor_number or 1,
+            table_name=data.table_name or "Table 1",
             status="CONFIRMED",
         )
         db.add(reservation)

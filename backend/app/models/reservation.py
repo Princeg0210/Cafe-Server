@@ -14,12 +14,16 @@ class Reservation(Base):
     guest_count: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
     reservation_date: Mapped[datetime.date] = mapped_column(Date, nullable=False, index=True)
     time_slot: Mapped[str] = mapped_column(String(20), nullable=False, index=True)  # e.g., "19:00-20:00"
+    table_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("tables.id", ondelete="SET NULL"), nullable=True)
+    floor_number: Mapped[int | None] = mapped_column(Integer, nullable=True, default=1)
+    table_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="CONFIRMED", nullable=False)  # PENDING, CONFIRMED, ARRIVED, SEATED, COMPLETED, CANCELLED, NO_SHOW
     celery_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     branch = relationship("Branch", back_populates="reservations")
     customer = relationship("Customer", back_populates="reservations")
+    table = relationship("Table", foreign_keys=[table_id], lazy="selectin")
 
 
 class ReservationCapacityRule(Base):

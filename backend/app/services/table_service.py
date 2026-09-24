@@ -2,7 +2,7 @@ import secrets
 import uuid
 import datetime
 from typing import Optional, List
-from sqlalchemy import select, update
+from sqlalchemy import select, update, or_, and_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,8 +10,10 @@ from fastapi import HTTPException, status
 from app.core.config import settings
 from app.models.table import Table, TableQR, DiningSession
 from app.models.order import Order, OrderItem
+from app.models.reservation import Reservation
 from app.schemas.table import (
     QRValidateResponse,
+    ReservationNotice,
     DiningSessionResponse,
     SessionBillResponse,
     SessionBillItemResponse,
@@ -127,6 +129,40 @@ class TableService:
 
         session = await TableService.get_or_create_dining_session(db, table.id)
 
+        # Check for active / upcoming reservation on this table
+        res_stmt = (
+            select(Reservation)
+            .options(selectinload(Reservation.customer))
+            .where(
+                or_(
+                    Reservation.table_id == table.id,
+                    Reservation.table_name == table.table_number,
+                    and_(table.id == 1, or_(Reservation.table_id.is_(None), Reservation.table_id == 1)),
+                ),
+                Reservation.status.in_(["CONFIRMED", "ARRIVED", "SEATED"]),
+            )
+            .order_by(Reservation.reservation_date.desc(), Reservation.time_slot.desc())
+        )
+        res_res = await db.execute(res_stmt)
+        active_res = res_res.scalars().first()
+
+        reservation_notice = None
+        is_reserved = False
+        if active_res:
+            is_reserved = True
+            cust_name = active_res.customer.name if active_res.customer else "Reserved Guest"
+            reservation_notice = ReservationNotice(
+                is_reserved=True,
+                reservation_id=active_res.id,
+                customer_name=cust_name,
+                guest_count=active_res.guest_count,
+                time_slot=active_res.time_slot,
+                reservation_date=str(active_res.reservation_date),
+                status=active_res.status,
+                floor_number=active_res.floor_number or 1,
+                table_name=active_res.table_name or table.table_number,
+            )
+
         return QRValidateResponse(
             is_valid=True,
             table_id=table.id,
@@ -135,6 +171,8 @@ class TableService:
             session_id=session.id,
             session_token=session.session_token,
             session_status=session.status,
+            is_reserved=is_reserved,
+            reservation=reservation_notice,
         )
 
     @staticmethod

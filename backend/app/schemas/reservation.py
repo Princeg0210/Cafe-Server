@@ -28,12 +28,18 @@ class ReservationCreate(BaseModel):
     guest_count: int = Field(..., ge=1, le=20, example=4)
     reservation_date: date = Field(..., example="2026-09-25")
     time_slot: str = Field(..., example="19:00-20:00")
+    table_id: Optional[int] = Field(None, example=1)
+    floor_number: Optional[int] = Field(None, example=1)
+    table_name: Optional[str] = Field(None, example="Table 1")
 
 
 class ReservationUpdate(BaseModel):
     guest_count: Optional[int] = Field(None, ge=1, le=20)
     reservation_date: Optional[date] = None
     time_slot: Optional[str] = None
+    table_id: Optional[int] = None
+    floor_number: Optional[int] = None
+    table_name: Optional[str] = None
     status: Optional[str] = None
 
 
@@ -50,6 +56,9 @@ class ReservationResponse(BaseModel):
     guest_count: int
     reservation_date: date
     time_slot: str
+    table_id: Optional[int] = None
+    floor_number: Optional[int] = None
+    table_name: Optional[str] = None
     status: str
     celery_task_id: Optional[str] = None
     created_at: datetime
