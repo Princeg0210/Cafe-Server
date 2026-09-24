@@ -443,21 +443,10 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
               <span className="font-serif font-extrabold text-base leading-none text-[#261C18] block">
                 JAADOO <span className="font-serif italic font-normal text-sm text-[#B85B43]">Trattoria</span>
               </span>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[10px] font-mono font-bold text-[#4A5842] flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  {tableNumber}
-                </span>
-                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-800 bg-emerald-500/10 px-2 py-0.5 rounded-full font-sans font-medium border border-emerald-500/20">
-                  <Users className="w-2.5 h-2.5 text-emerald-600" />
-                  Shared Table Cart
-                  {billData && billData.items && billData.items.length > 0 && (
-                    <span className="font-bold font-mono">
-                      ({billData.items.reduce((s, it) => s + it.quantity, 0)})
-                    </span>
-                  )}
-                </span>
-              </div>
+              <span className="text-[10px] font-mono font-bold text-[#4A5842] flex items-center gap-1.5 mt-0.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                {tableNumber}
+              </span>
             </div>
           </div>
 
