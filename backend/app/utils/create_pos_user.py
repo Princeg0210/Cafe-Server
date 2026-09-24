@@ -8,9 +8,9 @@ from app.models.user import User, Role, Permission, RolePermission
 
 
 async def create_pos_user(
-    username: str = "cashier",
-    password: str = "jaadoo_pos_2026!",
-    email: str = "cashier@jaadoo.local",
+    username: str = "Jaadoo",
+    password: str = "Jaadoo_123",
+    email: str = "jaadoo@jaadoo.local",
     role_name: str = "Cashier",
 ):
     async with AsyncSessionLocal() as db:
@@ -71,9 +71,9 @@ async def create_pos_user(
 
 def main():
     parser = argparse.ArgumentParser(description="Securely create or update a POS user.")
-    parser.add_argument("--username", default="cashier", help="Username for POS login")
-    parser.add_argument("--password", default="jaadoo_pos_2026!", help="Password for POS login")
-    parser.add_argument("--email", default="cashier@jaadoo.local", help="Staff email")
+    parser.add_argument("--username", default="Jaadoo", help="Username for POS login")
+    parser.add_argument("--password", default="Jaadoo_123", help="Password for POS login")
+    parser.add_argument("--email", default="jaadoo@jaadoo.local", help="Staff email")
     parser.add_argument("--role", default="Cashier", help="Staff role (Cashier/POS/Manager/Admin)")
 
     args = parser.parse_args()

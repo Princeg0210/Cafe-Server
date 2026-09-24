@@ -110,7 +110,7 @@ export default function POSDashboard() {
   const [posToken, setPosToken] = useState<string | null>(null);
   const [staffUser, setStaffUser] = useState<{ id: number; username: string; role?: { name: string } } | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [loginUsername, setLoginUsername] = useState("cashier");
+  const [loginUsername, setLoginUsername] = useState("Jaadoo");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
@@ -483,7 +483,7 @@ export default function POSDashboard() {
                 required
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
-                placeholder="e.g. cashier"
+                placeholder="e.g. Jaadoo"
                 className="w-full text-sm p-3.5 rounded-xl border border-gray-200 focus:outline-hidden focus:border-[#B85B43] bg-gray-50/50 font-sans"
               />
             </div>
