@@ -18,6 +18,9 @@ from app.schemas.pos import (
     POSSummaryResponse,
     ItemSummaryResponse,
     CategorySummaryResponse,
+    TableOverviewResponse,
+    TableSessionDetail,
+    SessionItemDetail,
 )
 from app.utils.helpers import utc_now
 
@@ -362,3 +365,134 @@ class POSService:
             return {"message": f"Table #{table_id} is already Available (no active dining session)."}
 
         return await POSService.close_dining_session(db, session_id=sess.id)
+
+    @staticmethod
+    async def get_table_sessions(
+        db: AsyncSession,
+        target_date: Optional[datetime.date] = None,
+    ) -> List[TableOverviewResponse]:
+        """Fetch all tables with their chronological dining sessions and ordered items."""
+        if not target_date:
+            target_date = datetime.date.today()
+
+        now_naive = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+        twenty_four_hours_ago = now_naive - datetime.timedelta(hours=24)
+
+        stmt = (
+            select(Table)
+            .options(
+                selectinload(Table.dining_sessions).selectinload(DiningSession.orders).selectinload(Order.items).selectinload(OrderItem.menu_item),
+                selectinload(Table.dining_sessions).selectinload(DiningSession.customer),
+            )
+            .order_by(Table.id.asc())
+        )
+        res = await db.execute(stmt)
+        tables = res.scalars().all()
+
+        results: List[TableOverviewResponse] = []
+
+        for tbl in tables:
+            relevant_sessions = []
+            for s in (tbl.dining_sessions or []):
+                # Always include active sessions
+                if s.status in ["OPENED", "ACTIVE", "CHECKOUT"]:
+                    relevant_sessions.append(s)
+                    continue
+
+                # For closed/settled sessions, include if within last 24h or matching target_date
+                s_opened = s.opened_at.replace(tzinfo=None) if s.opened_at else None
+                s_closed = s.closed_at.replace(tzinfo=None) if s.closed_at else None
+
+                if target_date == datetime.date.today():
+                    if (s_opened and s_opened >= twenty_four_hours_ago) or (s_closed and s_closed >= twenty_four_hours_ago):
+                        relevant_sessions.append(s)
+                    elif (s_opened and s_opened.date() == target_date) or (s_closed and s_closed.date() == target_date):
+                        relevant_sessions.append(s)
+                else:
+                    if (s_opened and s_opened.date() == target_date) or (s_closed and s_closed.date() == target_date):
+                        relevant_sessions.append(s)
+            # Sort chronologically (oldest session first so seq numbers are 1, 2, 3...)
+            relevant_sessions.sort(key=lambda s: s.opened_at or datetime.datetime.min)
+
+            session_details: List[TableSessionDetail] = []
+            active_count = 0
+
+            for seq, sess in enumerate(relevant_sessions, start=1):
+                is_active = sess.status in ["OPENED", "ACTIVE", "CHECKOUT"]
+                is_settled = sess.status in ["PAID", "CLOSED"]
+                if is_active:
+                    active_count += 1
+
+                # Aggregate items from all non-cancelled orders in this session
+                aggregated_items = {}
+                session_total = Decimal("0.00")
+                total_items_count = 0
+
+                for ord in (sess.orders or []):
+                    if ord.status == "CANCELLED":
+                        continue
+                    for oi in (ord.items or []):
+                        item_name = oi.menu_item.name if oi.menu_item else "Unknown Item"
+                        price = oi.unit_price or Decimal("0.00")
+                        subtotal = oi.subtotal or (price * oi.quantity)
+                        session_total += subtotal
+                        total_items_count += oi.quantity
+
+                        key = (item_name, price)
+                        if key not in aggregated_items:
+                            aggregated_items[key] = {
+                                "name": item_name,
+                                "quantity": oi.quantity,
+                                "unit_price": price,
+                                "subtotal": subtotal,
+                                "special_instructions": oi.special_instructions,
+                            }
+                        else:
+                            aggregated_items[key]["quantity"] += oi.quantity
+                            aggregated_items[key]["subtotal"] += subtotal
+                            if oi.special_instructions and not aggregated_items[key]["special_instructions"]:
+                                aggregated_items[key]["special_instructions"] = oi.special_instructions
+
+                items_list = [
+                    SessionItemDetail(
+                        name=v["name"],
+                        quantity=v["quantity"],
+                        unit_price=v["unit_price"],
+                        subtotal=v["subtotal"],
+                        special_instructions=v["special_instructions"],
+                    )
+                    for v in aggregated_items.values()
+                ]
+
+                session_details.append(
+                    TableSessionDetail(
+                        session_id=sess.id,
+                        session_seq=seq,
+                        session_token=sess.session_token,
+                        status=sess.status,
+                        opened_at=sess.opened_at,
+                        closed_at=sess.closed_at,
+                        customer_name=sess.customer.name if sess.customer else None,
+                        total_amount=session_total,
+                        items_count=total_items_count,
+                        is_active=is_active,
+                        is_settled=is_settled,
+                        items=items_list,
+                    )
+                )
+
+            table_status = "Occupied" if active_count > 0 else tbl.status
+
+            results.append(
+                TableOverviewResponse(
+                    table_id=tbl.id,
+                    table_number=tbl.table_number,
+                    capacity=tbl.capacity,
+                    status=table_status,
+                    active_session_count=active_count,
+                    total_sessions_today=len(session_details),
+                    sessions=session_details,
+                )
+            )
+
+        return results

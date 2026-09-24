@@ -140,6 +140,7 @@ async def security_setup(db_session):
         "sess2_token": sess2_token,
         "order1": order1,
         "order2": order2,
+        "item": item,
         "kot1": kot1,
         "sess_closed": sess_closed,
         "sess_closed_token": sess_closed_token,
@@ -309,3 +310,99 @@ async def test_12_customer_cannot_access_another_tables_order(sec_client, securi
     res = await sec_client.get(f"/api/v1/orders/{s['order2'].id}", headers=headers)
     assert res.status_code == 403
     assert "Cannot access order from another table session" in res.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_13_pos_table_sessions_security_and_hierarchy(sec_client, security_setup, db_session):
+    """13. POS table-sessions returns structured tables with sequential sessions and items."""
+    s = security_setup
+
+    # Unauthenticated / Customer gets 401/403
+    unauth_res = await sec_client.get("/api/v1/pos/table-sessions")
+    assert unauth_res.status_code in [401, 403]
+
+    cust_res = await sec_client.get(
+        "/api/v1/pos/table-sessions",
+        headers={"Authorization": f"Bearer {s['cust_jwt']}"}
+    )
+    assert cust_res.status_code == 403
+
+    # Cashier gets list of tables with sessions
+    staff_res = await sec_client.get(
+        "/api/v1/pos/table-sessions",
+        headers={"Authorization": f"Bearer {s['staff_jwt']}"}
+    )
+    assert staff_res.status_code == 200
+    data = staff_res.json()
+    assert isinstance(data, list)
+    assert len(data) >= 2
+
+    # Check Table 1 sessions
+    tbl1 = next(t for t in data if t["table_id"] == s["table1"].id)
+    assert tbl1["table_number"] == s["table1"].table_number
+    assert len(tbl1["sessions"]) >= 1
+    sess1 = tbl1["sessions"][0]
+    assert sess1["session_seq"] == 1
+    assert sess1["items_count"] == 1
+    assert len(sess1["items"]) == 1
+    assert sess1["items"][0]["name"] == "Margherita"
+    assert sess1["items"][0]["quantity"] == 1
+
+
+@pytest.mark.asyncio
+async def test_14_pos_table_shows_new_session_after_previous_settles(sec_client, security_setup, db_session):
+    """14. When previous session settles and a new guest arrives, new session shows after Table 1."""
+    s = security_setup
+
+    # Settle Table 1's active session
+    settle_res = await sec_client.post(
+        f"/api/v1/pos/tables/{s['table1'].id}/settle",
+        headers={"Authorization": f"Bearer {s['staff_jwt']}"}
+    )
+    assert settle_res.status_code == 200
+
+    # New guest arrives at Table 1 and scans/opens new session
+    new_sess = await TableService.get_or_create_dining_session(db_session, s["table1"].id)
+    
+    # New guest places an order
+    new_order = Order(
+        dining_session_id=new_sess.id,
+        order_number=f"ORD-TEST-{secrets.token_hex(4).upper()}",
+        status="CONFIRMED",
+    )
+    db_session.add(new_order)
+    await db_session.flush()
+
+    new_oi = OrderItem(
+        order_id=new_order.id,
+        menu_item_id=s["item"].id,
+        quantity=3,
+        unit_price=Decimal("450.00"),
+        subtotal=Decimal("1350.00"),
+    )
+    db_session.add(new_oi)
+    await db_session.commit()
+
+    # Query POS table sessions again
+    staff_res = await sec_client.get(
+        "/api/v1/pos/table-sessions",
+        headers={"Authorization": f"Bearer {s['staff_jwt']}"}
+    )
+    assert staff_res.status_code == 200
+    data = staff_res.json()
+    tbl1 = next(t for t in data if t["table_id"] == s["table1"].id)
+
+    # Now Table 1 must have at least 2 sessions: settled session(s) and the new active session
+    assert len(tbl1["sessions"]) >= 2
+    
+    # Verify there is at least one settled session and exactly one active session
+    active_sessions = [sess for sess in tbl1["sessions"] if sess["is_active"]]
+    settled_sessions = [sess for sess in tbl1["sessions"] if sess["is_settled"]]
+    assert len(active_sessions) == 1
+    assert len(settled_sessions) >= 1
+
+    active_sess = active_sessions[0]
+    assert active_sess["is_active"] is True
+    assert active_sess["is_settled"] is False
+    assert active_sess["items_count"] == 3
+    assert float(active_sess["total_amount"]) == 1350.0

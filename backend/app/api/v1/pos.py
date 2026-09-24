@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, require_permission
 from app.models.user import User
-from app.schemas.pos import KOTResponse, POSSummaryResponse
+from app.schemas.pos import KOTResponse, POSSummaryResponse, TableOverviewResponse
 from app.services.pos_service import POSService
 
 router = APIRouter(prefix="/pos", tags=["Live POS & KOT Operations"])
@@ -39,6 +39,21 @@ async def get_pos_summary(
         except ValueError:
             date_obj = None
     return await POSService.get_summary(db, target_date=date_obj)
+
+
+@router.get("/table-sessions", response_model=List[TableOverviewResponse])
+async def list_table_sessions(
+    target_date: Optional[str] = Query(None, description="Format YYYY-MM-DD"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
+):
+    date_obj = None
+    if target_date:
+        try:
+            date_obj = datetime.date.fromisoformat(target_date)
+        except ValueError:
+            date_obj = None
+    return await POSService.get_table_sessions(db, target_date=date_obj)
 
 
 @router.post("/kots/{id}/retry-print")

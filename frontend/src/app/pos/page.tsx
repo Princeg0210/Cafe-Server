@@ -20,6 +20,7 @@ import {
   VolumeX,
   ArrowLeft,
   ChevronRight,
+  ChevronDown,
   Lock,
   LogOut,
   ShieldCheck,
@@ -29,6 +30,39 @@ import {
   Phone,
   Mail,
 } from "lucide-react";
+
+interface SessionItem {
+  name: string;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
+  special_instructions?: string;
+}
+
+interface TableSession {
+  session_id: number;
+  session_seq: number;
+  session_token: string;
+  status: string;
+  opened_at: string;
+  closed_at?: string;
+  customer_name?: string;
+  total_amount: number;
+  items_count: number;
+  is_active: boolean;
+  is_settled: boolean;
+  items: SessionItem[];
+}
+
+interface TableOverview {
+  table_id: number;
+  table_number: string;
+  capacity: number;
+  status: string;
+  active_session_count: number;
+  total_sessions_today: number;
+  sessions: TableSession[];
+}
 
 interface KOTItem {
   name: string;
@@ -104,7 +138,12 @@ interface Reservation {
 }
 
 export default function POSDashboard() {
-  const [activeTab, setActiveTab] = useState<"kots" | "reservations">("kots");
+  const [activeTab, setActiveTab] = useState<"tables" | "kots" | "reservations">("tables");
+
+  // Table Sessions State
+  const [tableOverviews, setTableOverviews] = useState<TableOverview[]>([]);
+  const [expandedSessions, setExpandedSessions] = useState<Record<number, boolean>>({});
+  const [tableFilter, setTableFilter] = useState<"all" | "active" | "available">("all");
 
   // Authentication State
   const [posToken, setPosToken] = useState<string | null>(null);
@@ -266,9 +305,10 @@ export default function POSDashboard() {
     const apiBase = getApiBase();
     try {
       const headers = { Authorization: `Bearer ${tok}` };
-      const [kotsRes, sumRes] = await Promise.all([
+      const [kotsRes, sumRes, tablesRes] = await Promise.all([
         fetch(`${apiBase}/api/v1/pos/kots`, { headers }),
         fetch(`${apiBase}/api/v1/pos/summary`, { headers }),
+        fetch(`${apiBase}/api/v1/pos/table-sessions`, { headers }),
       ]);
 
       if (kotsRes.status === 401 || kotsRes.status === 403) {
@@ -283,6 +323,10 @@ export default function POSDashboard() {
       if (sumRes.ok) {
         const sumData = await sumRes.json();
         setSummary(sumData);
+      }
+      if (tablesRes.ok) {
+        const tablesData = await tablesRes.json();
+        setTableOverviews(tablesData);
       }
     } catch (err) {
       console.error("POS Data fetch error:", err);
@@ -470,6 +514,27 @@ export default function POSDashboard() {
     }
   };
 
+  const toggleSession = (sessionId: number) => {
+    setExpandedSessions((prev) => ({
+      ...prev,
+      [sessionId]: prev[sessionId] === undefined ? false : !prev[sessionId],
+    }));
+  };
+
+  const isSessionExpanded = (session: TableSession) => {
+    if (expandedSessions[session.session_id] !== undefined) {
+      return expandedSessions[session.session_id];
+    }
+    // Auto-expand active sessions that have orders so cashier sees them immediately
+    return session.is_active && session.items_count > 0;
+  };
+
+  const filteredTables = tableOverviews.filter((tbl) => {
+    if (tableFilter === "active") return tbl.active_session_count > 0;
+    if (tableFilter === "available") return tbl.active_session_count === 0;
+    return true;
+  });
+
   // 1. Initial Checking Screen
   if (isAuthChecking) {
     return (
@@ -630,6 +695,17 @@ export default function POSDashboard() {
             {/* Tab Selectors */}
             <div className="flex items-center bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
               <button
+                onClick={() => setActiveTab("tables")}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-medium transition-all ${
+                  activeTab === "tables"
+                    ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
+                    : "text-[#261C18]/70 hover:text-[#261C18]"
+                }`}
+              >
+                <UtensilsCrossed className="w-3.5 h-3.5" />
+                <span>Tables & Sessions ({tableOverviews.length})</span>
+              </button>
+              <button
                 onClick={() => setActiveTab("kots")}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-medium transition-all ${
                   activeTab === "kots"
@@ -637,7 +713,7 @@ export default function POSDashboard() {
                     : "text-[#261C18]/70 hover:text-[#261C18]"
                 }`}
               >
-                <UtensilsCrossed className="w-3.5 h-3.5" />
+                <Receipt className="w-3.5 h-3.5" />
                 <span>Live Tickets ({kots.length})</span>
               </button>
               <button
@@ -698,74 +774,348 @@ export default function POSDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-8">
-        {/* ================= TAB 1: LIVE KOT TICKETS ================= */}
-        {activeTab === "kots" && (
-          <>
-            {/* Editorial Hero Banner: TODAY'S KOTS */}
-            <section className="relative overflow-hidden rounded-3xl bg-[#261C18] text-[#FBF9F5] border border-[#E4DCD0]/30 p-6 sm:p-9 shadow-md">
-              <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-80 h-80 bg-[#B85B43]/15 rounded-full blur-3xl pointer-events-none" />
+        {/* Editorial Hero Banner: TODAY'S OPERATIONS */}
+        <section className="relative overflow-hidden rounded-3xl bg-[#261C18] text-[#FBF9F5] border border-[#E4DCD0]/30 p-6 sm:p-9 shadow-md">
+          <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-80 h-80 bg-[#B85B43]/15 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
-                <div>
-                  <div className="inline-flex items-center gap-2 bg-[#4A5842]/25 text-[#FBF9F5] border border-[#4A5842]/50 px-3 py-1 rounded-full text-[10px] font-sans font-semibold tracking-[0.2em] uppercase mb-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#4A5842] animate-pulse" />
-                    <span>DAILY OPERATIONS OVERVIEW</span>
-                  </div>
-                  <h2 className="text-sm font-serif italic text-stone-300">Daily Operations Overview</h2>
-                  <div className="flex items-baseline gap-4 mt-1">
-                    <span className="text-5xl sm:text-7xl font-sans font-extrabold tracking-tight text-[#FBF9F5]">
-                      {summary ? String(summary.total_kots).padStart(2, "0") : String(kots.length).padStart(2, "0")}
-                    </span>
-                    <span className="font-serif italic font-normal text-lg sm:text-2xl text-[#B85B43]">
-                      ORDERS TODAY
-                    </span>
-                  </div>
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-[#4A5842]/25 text-[#FBF9F5] border border-[#4A5842]/50 px-3 py-1 rounded-full text-[10px] font-sans font-semibold tracking-[0.2em] uppercase mb-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#4A5842] animate-pulse" />
+                <span>DAILY OPERATIONS OVERVIEW</span>
+              </div>
+              <h2 className="text-sm font-serif italic text-stone-300">Daily Operations Overview</h2>
+              <div className="flex items-baseline gap-4 mt-1">
+                <span className="text-5xl sm:text-7xl font-sans font-extrabold tracking-tight text-[#FBF9F5]">
+                  {summary ? String(summary.total_kots).padStart(2, "0") : String(kots.length).padStart(2, "0")}
+                </span>
+                <span className="font-serif italic font-normal text-lg sm:text-2xl text-[#B85B43]">
+                  ORDERS TODAY
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
+              <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
+                <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
+                  <Users className="w-3.5 h-3.5 text-[#B85B43]" />
+                  Tables Served
                 </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
-                  <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
-                    <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
-                      <Users className="w-3.5 h-3.5 text-[#B85B43]" />
-                      Tables Served
-                    </div>
-                    <div className="text-2xl font-sans font-bold text-[#FBF9F5]">
-                      {summary?.tables_served || 0}
-                    </div>
-                  </div>
-
-                  <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
-                    <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
-                      <UtensilsCrossed className="w-3.5 h-3.5 text-[#4A5842]" />
-                      Total Items
-                    </div>
-                    <div className="text-2xl font-sans font-bold text-[#FBF9F5]">
-                      {summary?.total_items || 0}
-                    </div>
-                  </div>
-
-                  <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
-                    <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
-                      <Receipt className="w-3.5 h-3.5 text-amber-400" />
-                      Avg KOT Value
-                    </div>
-                    <div className="text-2xl font-sans font-bold text-amber-300">
-                      ₹{summary?.avg_kot_value ? Math.round(summary.avg_kot_value) : 0}
-                    </div>
-                  </div>
-
-                  <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
-                    <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
-                      <Flame className="w-3.5 h-3.5 text-[#B85B43]" />
-                      Peak Hour
-                    </div>
-                    <div className="text-lg font-sans font-bold text-[#FBF9F5] truncate">
-                      {summary?.peak_hour || "N/A"}
-                    </div>
-                  </div>
+                <div className="text-2xl font-sans font-bold text-[#FBF9F5]">
+                  {summary?.tables_served || 0}
                 </div>
               </div>
-            </section>
 
+              <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
+                <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
+                  <UtensilsCrossed className="w-3.5 h-3.5 text-[#4A5842]" />
+                  Total Items
+                </div>
+                <div className="text-2xl font-sans font-bold text-[#FBF9F5]">
+                  {summary?.total_items || 0}
+                </div>
+              </div>
+
+              <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
+                <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
+                  <Receipt className="w-3.5 h-3.5 text-amber-400" />
+                  Avg KOT Value
+                </div>
+                <div className="text-2xl font-sans font-bold text-amber-300">
+                  ₹{summary?.avg_kot_value ? Math.round(summary.avg_kot_value) : 0}
+                </div>
+              </div>
+
+              <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
+                <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
+                  <Flame className="w-3.5 h-3.5 text-[#B85B43]" />
+                  Peak Hour
+                </div>
+                <div className="text-lg font-sans font-bold text-[#FBF9F5] truncate">
+                  {summary?.peak_hour || "N/A"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================= TAB 1: TABLE SESSIONS HIERARCHY ================= */}
+        {activeTab === "tables" && (
+          <div className="space-y-6">
+            {/* Filter and Overview Controls */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-[#E4DCD0] shadow-xs">
+              <div>
+                <h3 className="text-lg font-serif font-bold text-[#261C18]">
+                  Dining Tables & Session History
+                </h3>
+                <p className="text-xs font-serif italic text-stone-500 mt-0.5">
+                  Click any table session arrow to inspect ordered items, prices, and 1-tap settle bills
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
+                  {(["all", "active", "available"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setTableFilter(mode)}
+                      className={`px-3.5 py-1.5 rounded-full capitalize font-medium transition-all ${
+                        tableFilter === mode
+                          ? "bg-[#B85B43] text-[#FBF9F5] font-semibold shadow-xs"
+                          : "text-[#261C18]/70 hover:text-[#261C18]"
+                      }`}
+                    >
+                      {mode === "all"
+                        ? `All Tables (${tableOverviews.length})`
+                        : mode === "active"
+                        ? `Occupied (${tableOverviews.filter((t) => t.active_session_count > 0).length})`
+                        : `Available (${tableOverviews.filter((t) => t.active_session_count === 0).length})`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* List of All Tables */}
+            {filteredTables.length === 0 ? (
+              <div className="text-center py-16 px-4 bg-white rounded-3xl border border-[#E4DCD0] shadow-xs space-y-3">
+                <UtensilsCrossed className="w-12 h-12 text-stone-300 mx-auto stroke-[1.5]" />
+                <h4 className="text-lg font-serif font-bold text-[#261C18]">No Tables Found</h4>
+                <p className="text-xs font-serif italic text-stone-500 max-w-sm mx-auto">
+                  {tableFilter === "active"
+                    ? "No tables currently have active dining sessions."
+                    : "No tables available in the current filter."}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                {filteredTables.map((tbl) => {
+                  const cleanTableNumber = tbl.table_number.replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
+                  const displayTableName = `Table ${cleanTableNumber || tbl.table_id}`;
+
+                  return (
+                    <div
+                      key={tbl.table_id}
+                      className={`bg-white rounded-3xl border transition-all duration-200 overflow-hidden shadow-xs ${
+                        tbl.active_session_count > 0
+                          ? "border-amber-300 ring-1 ring-amber-400/25 shadow-sm"
+                          : "border-[#E4DCD0]"
+                      }`}
+                    >
+                      {/* Table Header Bar */}
+                      <div className="bg-[#FAF8F5] px-6 py-4 border-b border-[#E4DCD0]/70 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3.5">
+                          <div
+                            className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base shadow-xs ${
+                              tbl.active_session_count > 0
+                                ? "bg-[#261C18] text-[#FBF9F5] border border-[#B85B43]/50"
+                                : "bg-stone-200 text-stone-700"
+                            }`}
+                          >
+                            {cleanTableNumber.padStart(2, "0")}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-serif font-extrabold text-xl text-[#261C18]">
+                                {displayTableName}
+                              </span>
+                              <span className="text-xs px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-600 font-sans font-medium">
+                                {tbl.capacity} Seats
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {tbl.active_session_count > 0 ? (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                                  Currently Occupied ({tbl.active_session_count} Active Session)
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full border border-stone-200">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
+                                  Table Available
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-xs font-sans text-stone-500">
+                          <span className="bg-white px-3.5 py-1.5 rounded-full border border-[#E4DCD0] font-medium shadow-2xs">
+                            {tbl.total_sessions_today} {tbl.total_sessions_today === 1 ? "Session" : "Sessions"} Today
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Sessions Listed Under This Table */}
+                      <div className="p-4 sm:p-6 space-y-3">
+                        {tbl.sessions.length === 0 ? (
+                          <div className="py-6 px-4 rounded-2xl bg-stone-50/70 border border-dashed border-stone-200 text-center">
+                            <p className="text-xs text-stone-500 font-serif italic">
+                              No dining sessions recorded for {displayTableName} yet today. Ready for walk-in guests.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {tbl.sessions.map((sess) => {
+                              const isExpanded = isSessionExpanded(sess);
+                              const isClosing = closingSessionIds[sess.session_id];
+
+                              return (
+                                <div
+                                  key={sess.session_id}
+                                  className={`rounded-2xl border transition-all ${
+                                    sess.is_active
+                                      ? "bg-amber-50/30 border-amber-200 hover:border-amber-300"
+                                      : "bg-stone-50/50 border-stone-200 hover:border-stone-300"
+                                  }`}
+                                >
+                                  {/* Session Line Header */}
+                                  <div
+                                    onClick={() => toggleSession(sess.session_id)}
+                                    className="px-4 py-3.5 flex flex-wrap items-center justify-between gap-3 cursor-pointer select-none"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      {/* Expand/Collapse Arrow */}
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleSession(sess.session_id);
+                                        }}
+                                        className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors shadow-2xs"
+                                        title={isExpanded ? "Collapse item list" : "Expand ordered items"}
+                                      >
+                                        <ChevronDown
+                                          className={`w-4 h-4 transition-transform duration-200 ${
+                                            isExpanded ? "rotate-0" : "-rotate-90"
+                                          }`}
+                                        />
+                                      </button>
+
+                                      {/* Session Sequence & Table */}
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-sans font-bold text-sm text-[#261C18]">
+                                          {displayTableName} — Session #{sess.session_seq}
+                                        </span>
+                                        {sess.is_active ? (
+                                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                                            Active Session
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-700 bg-stone-200/80 px-2.5 py-0.5 rounded-full border border-stone-300">
+                                            <Check className="w-3 h-3 text-stone-500" />
+                                            Bill Settled
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Timestamp & Guest Name */}
+                                      <div className="hidden sm:flex items-center gap-2 text-xs text-stone-500 font-sans">
+                                        <span>Opened {new Date(sess.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                                        {sess.closed_at && (
+                                          <span>• Settled {new Date(sess.closed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                                        )}
+                                        {sess.customer_name && (
+                                          <span className="text-stone-700 font-medium">• Guest: {sess.customer_name}</span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Right Side: Totals & Settle Action */}
+                                    <div className="flex items-center gap-3">
+                                      <div className="text-right">
+                                        <div className="text-sm font-bold text-[#261C18] font-sans">
+                                          ₹{sess.total_amount}
+                                        </div>
+                                        <div className="text-[11px] text-stone-500 font-sans">
+                                          {sess.items_count} {sess.items_count === 1 ? "item" : "items"} ordered
+                                        </div>
+                                      </div>
+
+                                      {sess.is_active ? (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCloseSession(sess.session_id, cleanTableNumber, tbl.table_id);
+                                          }}
+                                          disabled={isClosing}
+                                          className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-sans font-semibold flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
+                                        >
+                                          <CheckCircle2 className="w-3.5 h-3.5" />
+                                          <span>{isClosing ? "Closing..." : "Settle Table"}</span>
+                                        </button>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                          Settled
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Collapsible Ordered Items Breakdown (Shown via arrow) */}
+                                  {isExpanded && (
+                                    <div className="px-5 pb-4 pt-1 border-t border-stone-200/70 bg-white rounded-b-2xl animate-in fade-in slide-in-from-top-1 duration-150">
+                                      <div className="text-[11px] font-sans font-semibold text-stone-400 uppercase tracking-wider mb-2 pt-2">
+                                        Ordered Items in {displayTableName} — Session #{sess.session_seq}
+                                      </div>
+
+                                      {sess.items.length === 0 ? (
+                                        <p className="text-xs text-stone-400 font-sans italic py-2">
+                                          No items ordered yet in this session.
+                                        </p>
+                                      ) : (
+                                        <div className="divide-y divide-stone-100">
+                                          {sess.items.map((item, idx) => (
+                                            <div key={idx} className="py-2.5 flex items-center justify-between text-xs font-sans">
+                                              <div className="flex items-center gap-2.5">
+                                                <span className="w-6 h-6 rounded-md bg-stone-100 text-stone-800 font-bold flex items-center justify-center text-xs">
+                                                  {item.quantity}×
+                                                </span>
+                                                <div>
+                                                  <span className="font-semibold text-[#261C18]">{item.name}</span>
+                                                  {item.special_instructions && (
+                                                    <div className="text-[11px] text-amber-700 italic">
+                                                      Note: {item.special_instructions}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center gap-4 text-stone-600">
+                                                <span className="text-[11px] text-stone-400">@ ₹{item.unit_price}</span>
+                                                <span className="font-bold text-[#261C18] min-w-[50px] text-right">₹{item.subtotal}</span>
+                                              </div>
+                                            </div>
+                                          ))}
+
+                                          {/* Session Item Summary Footer */}
+                                          <div className="pt-3 mt-1 flex items-center justify-between text-xs font-sans font-bold text-[#261C18]">
+                                            <span>Total Bill for Session #{sess.session_seq}</span>
+                                            <span className="text-base text-[#B85B43]">₹{sess.total_amount}</span>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= TAB 2: LIVE KOT TICKETS ================= */}
+        {activeTab === "kots" && (
+          <>
             {/* 2-Column Main Workspace */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               {/* Left Column: NEW KOTS Live Feed (7 Cols) */}

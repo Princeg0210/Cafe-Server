@@ -64,3 +64,36 @@ class POSSummaryResponse(BaseModel):
     item_summary: List[ItemSummaryResponse] = []
     category_summary: List[CategorySummaryResponse] = []
     comparison: dict = {}
+
+
+class SessionItemDetail(BaseModel):
+    name: str
+    quantity: int
+    unit_price: Decimal
+    subtotal: Decimal
+    special_instructions: Optional[str] = None
+
+
+class TableSessionDetail(BaseModel):
+    session_id: int
+    session_seq: int
+    session_token: str
+    status: str
+    opened_at: datetime
+    closed_at: Optional[datetime] = None
+    customer_name: Optional[str] = None
+    total_amount: Decimal
+    items_count: int
+    is_active: bool
+    is_settled: bool
+    items: List[SessionItemDetail] = []
+
+
+class TableOverviewResponse(BaseModel):
+    table_id: int
+    table_number: str
+    capacity: int
+    status: str
+    active_session_count: int
+    total_sessions_today: int
+    sessions: List[TableSessionDetail] = []
