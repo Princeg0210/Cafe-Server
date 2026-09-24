@@ -31,6 +31,7 @@ class QRValidateResponse(BaseModel):
     table_id: int
     table_number: str
     branch_id: int
+    session_id: Optional[int] = None
     session_token: str
     session_status: str
 

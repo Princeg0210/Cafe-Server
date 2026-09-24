@@ -12,13 +12,26 @@ export default function BookTablePage() {
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   // Form State
-  const [date, setDate] = useState("2026-09-24");
+  const [date, setDate] = useState("2026-09-25");
   const [time, setTime] = useState("19:30");
   const [guests, setGuests] = useState(2);
   const [seating, setSeating] = useState("rooftop");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [isBooked, setIsBooked] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [bookingId, setBookingId] = useState<number | null>(null);
+
+  const getApiBase = () => {
+    if (typeof window !== "undefined") {
+      const h = window.location.hostname;
+      if (h.includes("vercel.app") || h.includes("onrender.com")) {
+        return "https://cafe-piza-api.onrender.com";
+      }
+    }
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  };
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -34,9 +47,45 @@ export default function BookTablePage() {
     setCartItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleBookTable = (e: React.FormEvent) => {
+  const handleBookTable = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsBooked(true);
+    setIsSubmitting(true);
+    setSubmitError(null);
+    const apiBase = getApiBase();
+
+    try {
+      const res = await fetch(`${apiBase}/api/v1/reservations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          branch_id: 1,
+          customer_name: name,
+          customer_phone: phone,
+          guest_count: guests,
+          reservation_date: date,
+          time_slot: time,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        if (errData.detail && errData.detail.includes("CAPACITY_EXCEEDED")) {
+          setSubmitError("This time slot is fully booked. Please select another time or date.");
+        } else {
+          setSubmitError(errData.detail || "Unable to reserve table. Please check details and try again.");
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      const resData = await res.json();
+      setBookingId(resData.id);
+      setIsBooked(true);
+    } catch {
+      setSubmitError("Network error. Please verify connection and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -76,6 +125,7 @@ export default function BookTablePage() {
             </p>
             
             <div className="bg-amber-50/80 p-4 rounded-2xl border border-amber-200/70 inline-block text-left text-xs font-sans text-amber-950 space-y-1">
+              {bookingId && <p>🔖 <strong>Booking Ref:</strong> #RES-{String(bookingId).padStart(4, "0")}</p>}
               <p>📍 <strong>Brew Station:</strong> Old City, Udaipur</p>
               <p>🪑 <strong>Atmosphere:</strong> {seating.toUpperCase()} View ({guests} Guests)</p>
               <p>📱 <strong>Confirmation SMS:</strong> Sent to {phone}</p>
@@ -206,11 +256,26 @@ export default function BookTablePage() {
               </div>
             </div>
 
+            {submitError && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-sans flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{submitError}</span>
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full bg-[#24150e] hover:bg-[#b91c1c] text-white py-4 rounded-2xl font-condensed font-bold text-xl uppercase tracking-wider transition-colors shadow-md"
+              disabled={isSubmitting}
+              className="w-full bg-[#24150e] hover:bg-[#b91c1c] disabled:opacity-50 text-white py-4 rounded-2xl font-condensed font-bold text-xl uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2"
             >
-              Confirm Reservation
+              {isSubmitting ? (
+                <>
+                  <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Checking Availability & Reserving...</span>
+                </>
+              ) : (
+                "Confirm Reservation"
+              )}
             </button>
           </motion.form>
         )}

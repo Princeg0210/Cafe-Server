@@ -20,6 +20,14 @@ import {
   VolumeX,
   ArrowLeft,
   ChevronRight,
+  Lock,
+  LogOut,
+  ShieldCheck,
+  Calendar,
+  UserCheck,
+  XCircle,
+  Phone,
+  Mail,
 } from "lucide-react";
 
 interface KOTItem {
@@ -76,7 +84,38 @@ interface POSSummary {
   };
 }
 
+interface Customer {
+  id: number;
+  name: string;
+  phone: string;
+  email?: string;
+}
+
+interface Reservation {
+  id: number;
+  branch_id: number;
+  customer_id: number;
+  guest_count: number;
+  reservation_date: string;
+  time_slot: string;
+  status: string;
+  created_at: string;
+  customer?: Customer;
+}
+
 export default function POSDashboard() {
+  const [activeTab, setActiveTab] = useState<"kots" | "reservations">("kots");
+
+  // Authentication State
+  const [posToken, setPosToken] = useState<string | null>(null);
+  const [staffUser, setStaffUser] = useState<{ id: number; username: string; role?: { name: string } } | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [loginUsername, setLoginUsername] = useState("cashier");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // KOT & Summary State
   const [kots, setKots] = useState<KOT[]>([]);
   const [summary, setSummary] = useState<POSSummary | null>(null);
   const [filter, setFilter] = useState<"all" | "failed" | "printed" | "pending">("all");
@@ -87,6 +126,12 @@ export default function POSDashboard() {
   const [closingSessionIds, setClosingSessionIds] = useState<Record<number, boolean>>({});
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [lastNotification, setLastNotification] = useState<string | null>(null);
+
+  // Reservations State
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [isRefreshingRes, setIsRefreshingRes] = useState(false);
+  const [resFilter, setResFilter] = useState<"all" | "CONFIRMED" | "ARRIVED" | "SEATED" | "COMPLETED" | "CANCELLED">("all");
+  const [updatingResId, setUpdatingResId] = useState<number | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -136,14 +181,91 @@ export default function POSDashboard() {
     } catch {}
   };
 
-  const fetchData = async () => {
+  // Auth Verification
+  const verifyToken = async (tok: string) => {
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/auth/me`, {
+        headers: { Authorization: `Bearer ${tok}` },
+      });
+      if (res.ok) {
+        const u = await res.json();
+        setStaffUser(u);
+        setPosToken(tok);
+        fetchData(tok);
+        fetchReservations(tok);
+      } else {
+        localStorage.removeItem("jaadoo_pos_token");
+        setPosToken(null);
+        setStaffUser(null);
+      }
+    } catch {
+      // Keep state if offline
+    } finally {
+      setIsAuthChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    const savedToken = localStorage.getItem("jaadoo_pos_token");
+    if (savedToken) {
+      verifyToken(savedToken);
+    } else {
+      setIsAuthChecking(false);
+    }
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError(null);
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: loginUsername, password: loginPassword }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setLoginError(err.detail || "Invalid credentials. Please verify username and password.");
+        setIsLoggingIn(false);
+        return;
+      }
+      const data = await res.json();
+      const tok = data.access_token;
+      localStorage.setItem("jaadoo_pos_token", tok);
+      setPosToken(tok);
+      await verifyToken(tok);
+    } catch {
+      setLoginError("Network connection error. Café backend is unreachable.");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("jaadoo_pos_token");
+    setPosToken(null);
+    setStaffUser(null);
+  };
+
+  const fetchData = async (overrideToken?: string) => {
+    const tok = overrideToken || posToken;
+    if (!tok) return;
     setIsRefreshing(true);
     const apiBase = getApiBase();
     try {
+      const headers = { Authorization: `Bearer ${tok}` };
       const [kotsRes, sumRes] = await Promise.all([
-        fetch(`${apiBase}/api/v1/pos/kots`),
-        fetch(`${apiBase}/api/v1/pos/summary`),
+        fetch(`${apiBase}/api/v1/pos/kots`, { headers }),
+        fetch(`${apiBase}/api/v1/pos/summary`, { headers }),
       ]);
+
+      if (kotsRes.status === 401 || kotsRes.status === 403) {
+        handleLogout();
+        return;
+      }
 
       if (kotsRes.ok) {
         const kotsData = await kotsRes.json();
@@ -160,13 +282,65 @@ export default function POSDashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 10000); // Polling backup
-    return () => clearInterval(interval);
-  }, []);
+  const fetchReservations = async (overrideToken?: string) => {
+    const tok = overrideToken || posToken;
+    if (!tok) return;
+    setIsRefreshingRes(true);
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/reservations?branch_id=1`, {
+        headers: { Authorization: `Bearer ${tok}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReservations(data);
+      }
+    } catch (err) {
+      console.error("Reservations fetch error:", err);
+    } finally {
+      setIsRefreshingRes(false);
+    }
+  };
+
+  const handleUpdateReservationStatus = async (id: number, newStatus: string) => {
+    if (!posToken) return;
+    setUpdatingResId(id);
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/reservations/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${posToken}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        await fetchReservations();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Cannot update reservation: ${err.detail || "Server error"}`);
+      }
+    } catch {
+      alert("Network error updating reservation status.");
+    } finally {
+      setUpdatingResId(null);
+    }
+  };
 
   useEffect(() => {
+    if (!posToken) return;
+    fetchData();
+    fetchReservations();
+    const interval = setInterval(() => {
+      fetchData();
+      fetchReservations();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [posToken]);
+
+  useEffect(() => {
+    if (!posToken) return;
     const wsBase = getWsBase();
     const connectWs = () => {
       try {
@@ -194,6 +368,7 @@ export default function POSDashboard() {
             if (data.event === "KOT_CREATED" || data.event === "KOT_UPDATED") {
               const cleanTable = data.table_number ? data.table_number.replace(/^table\s*/i, "").trim() : "";
               setLastNotification(`New KOT ${data.kot_number} received for Table ${cleanTable}!`);
+              playChime();
               setTimeout(() => setLastNotification(null), 6000);
               fetchData();
             }
@@ -205,20 +380,25 @@ export default function POSDashboard() {
     };
 
     connectWs();
+
     return () => {
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       if (wsRef.current) {
-        wsRef.current.close();
+        try {
+          wsRef.current.close();
+        } catch {}
       }
     };
-  }, [soundEnabled]);
+  }, [posToken, soundEnabled]);
 
   const handleRetryPrint = async (kotId: number) => {
+    if (!posToken) return;
     setRetryingIds((prev) => ({ ...prev, [kotId]: true }));
     const apiBase = getApiBase();
     try {
       const res = await fetch(`${apiBase}/api/v1/pos/kots/${kotId}/retry-print`, {
         method: "POST",
+        headers: { Authorization: `Bearer ${posToken}` },
       });
       if (res.ok) {
         await fetchData();
@@ -231,6 +411,7 @@ export default function POSDashboard() {
   };
 
   const handleCloseSession = async (sessionId: number, tableNumber: string) => {
+    if (!posToken) return;
     if (!confirm(`Settle bill & close dining session for Table ${tableNumber}? This will mark the table as Available for new customers.`)) {
       return;
     }
@@ -239,17 +420,114 @@ export default function POSDashboard() {
     try {
       const res = await fetch(`${apiBase}/api/v1/pos/sessions/${sessionId}/close`, {
         method: "POST",
+        headers: { Authorization: `Bearer ${posToken}` },
       });
       if (res.ok) {
         alert(`Table ${tableNumber} session closed successfully.`);
         await fetchData();
       }
-    } catch (err) {
+    } catch {
       alert("Error closing session.");
     } finally {
       setClosingSessionIds((prev) => ({ ...prev, [sessionId]: false }));
     }
   };
+
+  // 1. Initial Checking Screen
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-[#F8F5F0] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-12 h-12 border-3 border-[#261C18] border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="font-condensed text-xl font-bold uppercase tracking-wider text-[#261C18]">
+          Verifying Staff POS Terminal Access...
+        </p>
+      </div>
+    );
+  }
+
+  // 2. Staff Authentication Modal / Gate (Requirement 1 & 5)
+  if (!posToken) {
+    return (
+      <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans flex flex-col justify-between p-6">
+        <div className="max-w-md mx-auto my-auto w-full bg-white rounded-3xl p-8 sm:p-10 border border-[#E4DCD0] shadow-2xl space-y-6">
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 rounded-full bg-[#261C18] flex items-center justify-center text-[#FBF9F5] border border-[#B85B43]/50 mx-auto shadow-md">
+              <Lock className="w-6 h-6 text-[#B85B43]" />
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B85B43]/10 text-[#B85B43] text-xs font-semibold uppercase tracking-widest">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Staff Authentication Required</span>
+            </div>
+            <h1 className="font-serif font-extrabold text-3xl text-[#261C18]">
+              JAADOO <span className="italic font-normal text-[#B85B43]">POS</span>
+            </h1>
+            <p className="text-xs text-stone-500 font-sans">
+              Enter authorized cashier or manager credentials to open the live terminal.
+            </p>
+          </div>
+
+          {loginError && (
+            <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+              <span>{loginError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 font-sans">
+                Username
+              </label>
+              <input
+                type="text"
+                required
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+                placeholder="e.g. cashier"
+                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 focus:outline-hidden focus:border-[#B85B43] bg-gray-50/50 font-sans"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 font-sans">
+                Password
+              </label>
+              <input
+                type="password"
+                required
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="Enter POS password"
+                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 focus:outline-hidden focus:border-[#B85B43] bg-gray-50/50 font-sans"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full bg-[#261C18] hover:bg-[#B85B43] disabled:opacity-50 text-white py-3.5 rounded-2xl font-condensed font-bold text-lg uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2"
+            >
+              {isLoggingIn ? (
+                <>
+                  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Verifying Credentials...</span>
+                </>
+              ) : (
+                "Authenticate POS Terminal"
+              )}
+            </button>
+          </form>
+
+          <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-stone-500 font-sans">
+            <Link href="/" className="hover:text-[#261C18] flex items-center gap-1">
+              <ArrowLeft className="w-3.5 h-3.5" /> Return to Website
+            </Link>
+            <span>Role: Cashier / POS</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const filteredKots = kots
     .filter((kot) => {
@@ -264,6 +542,11 @@ export default function POSDashboard() {
       }
       return b.sequence_number - a.sequence_number;
     });
+
+  const filteredReservations = reservations.filter((r) => {
+    if (resFilter === "all") return true;
+    return r.status.toUpperCase() === resFilter;
+  });
 
   const currentDateDisplay = summary?.business_date || new Date().toLocaleDateString("en-IN", {
     day: "numeric",
@@ -307,13 +590,38 @@ export default function POSDashboard() {
           )}
 
           <div className="flex items-center gap-2.5">
-            <Link
-              href="/"
-              className="hidden sm:flex items-center gap-1 text-xs font-medium text-[#261C18]/70 hover:text-[#261C18] px-3 py-1.5 rounded-full border border-[#E4DCD0] bg-[#F6F3EC] transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Main Site
-            </Link>
+            {/* Tab Selectors */}
+            <div className="flex items-center bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
+              <button
+                onClick={() => setActiveTab("kots")}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-medium transition-all ${
+                  activeTab === "kots"
+                    ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
+                    : "text-[#261C18]/70 hover:text-[#261C18]"
+                }`}
+              >
+                <UtensilsCrossed className="w-3.5 h-3.5" />
+                <span>Live Tickets ({kots.length})</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("reservations")}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-medium transition-all ${
+                  activeTab === "reservations"
+                    ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
+                    : "text-[#261C18]/70 hover:text-[#261C18]"
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Reservations ({reservations.length})</span>
+              </button>
+            </div>
+
+            {/* Authenticated Staff Indicator */}
+            <div className="hidden md:flex items-center gap-1.5 text-xs font-medium text-stone-600 bg-stone-100 border border-stone-200 px-3 py-1.5 rounded-full">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>{staffUser?.username || "cashier"}</span>
+              <span className="text-[10px] text-stone-400">({staffUser?.role?.name || "Cashier"})</span>
+            </div>
 
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
@@ -328,376 +636,301 @@ export default function POSDashboard() {
             </button>
 
             <button
-              onClick={fetchData}
-              disabled={isRefreshing}
+              onClick={() => {
+                fetchData();
+                fetchReservations();
+              }}
+              disabled={isRefreshing || isRefreshingRes}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#B85B43] hover:bg-[#A84E38] text-[#FBF9F5] text-xs font-semibold uppercase tracking-wider transition-all shadow-xs disabled:opacity-50"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isRefreshingRes ? "animate-spin" : ""}`} />
               Refresh
+            </button>
+
+            {/* Terminal Lock / Sign Out */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-medium transition-colors"
+              title="Lock POS Terminal"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Lock</span>
             </button>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-8">
-        {/* Editorial Hero Banner: TODAY'S KOTS */}
-        <section className="relative overflow-hidden rounded-3xl bg-[#261C18] text-[#FBF9F5] border border-[#E4DCD0]/30 p-6 sm:p-9 shadow-md">
-          <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-80 h-80 bg-[#B85B43]/15 rounded-full blur-3xl pointer-events-none" />
+        {/* ================= TAB 1: LIVE KOT TICKETS ================= */}
+        {activeTab === "kots" && (
+          <>
+            {/* Editorial Hero Banner: TODAY'S KOTS */}
+            <section className="relative overflow-hidden rounded-3xl bg-[#261C18] text-[#FBF9F5] border border-[#E4DCD0]/30 p-6 sm:p-9 shadow-md">
+              <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-80 h-80 bg-[#B85B43]/15 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
-            <div>
-              <div className="inline-flex items-center gap-2 bg-[#4A5842]/25 text-[#FBF9F5] border border-[#4A5842]/50 px-3 py-1 rounded-full text-[10px] font-sans font-semibold tracking-[0.2em] uppercase mb-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4A5842] animate-pulse" />
-                <span>DAILY OPERATIONS OVERVIEW</span>
-              </div>
-              <h2 className="text-sm font-serif italic text-stone-300">Daily Operations Overview</h2>
-              <div className="flex items-baseline gap-4 mt-1">
-                <span className="text-5xl sm:text-7xl font-sans font-extrabold tracking-tight text-[#FBF9F5]">
-                  {summary ? String(summary.total_kots).padStart(2, "0") : String(kots.length).padStart(2, "0")}
-                </span>
-                <span className="font-serif italic font-normal text-lg sm:text-2xl text-[#B85B43]">
-                  ORDERS TODAY
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
-              <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
-                <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
-                  <Users className="w-3.5 h-3.5 text-[#B85B43]" />
-                  Tables Served
-                </div>
-                <div className="text-2xl font-sans font-bold text-[#FBF9F5]">
-                  {summary?.tables_served || 0}
-                </div>
-              </div>
-
-              <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
-                <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
-                  <UtensilsCrossed className="w-3.5 h-3.5 text-[#4A5842]" />
-                  Total Items
-                </div>
-                <div className="text-2xl font-sans font-bold text-[#FBF9F5]">
-                  {summary?.total_items || 0}
-                </div>
-              </div>
-
-              <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
-                <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
-                  <Receipt className="w-3.5 h-3.5 text-amber-400" />
-                  Avg KOT Value
-                </div>
-                <div className="text-2xl font-sans font-bold text-amber-300">
-                  ₹{summary?.avg_kot_value ? Math.round(summary.avg_kot_value) : 0}
-                </div>
-              </div>
-
-              <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
-                <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
-                  <Flame className="w-3.5 h-3.5 text-[#B85B43]" />
-                  Peak Hour
-                </div>
-                <div className="text-lg font-sans font-bold text-[#FBF9F5] truncate">
-                  {summary?.peak_hour || "N/A"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 2-Column Main Workspace */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: NEW KOTS Live Feed (7 Cols) */}
-          <div className="lg:col-span-7 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E4DCD0] pb-3.5">
-              <div>
-                <h3 className="text-2xl font-serif font-bold text-[#261C18] flex items-center gap-2.5">
-                  <span>NEW KOTS</span>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#E4DCD0]/60 text-[#261C18] font-sans font-medium">
-                    <span className="font-bold">{filteredKots.length}</span> Tickets
-                  </span>
-                </h3>
-                <p className="text-xs font-serif italic text-stone-500 mt-0.5">Live real-time thermal ticket flow</p>
-              </div>
-
-              {/* Controls: Sort and Status Filters */}
-              <div className="flex flex-wrap items-center gap-2">
-                {/* 1 to N Sort Switcher */}
-                <div className="flex items-center gap-1 bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
-                  <button
-                    onClick={() => setSortOrder("asc")}
-                    className={`px-3 py-1 rounded-full font-medium transition-all ${
-                      sortOrder === "asc"
-                        ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
-                        : "text-[#261C18]/70 hover:text-[#261C18]"
-                    }`}
-                  >
-                    1 → N (Count)
-                  </button>
-                  <button
-                    onClick={() => setSortOrder("desc")}
-                    className={`px-3 py-1 rounded-full font-medium transition-all ${
-                      sortOrder === "desc"
-                        ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
-                        : "text-[#261C18]/70 hover:text-[#261C18]"
-                    }`}
-                  >
-                    Newest First
-                  </button>
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+                <div>
+                  <div className="inline-flex items-center gap-2 bg-[#4A5842]/25 text-[#FBF9F5] border border-[#4A5842]/50 px-3 py-1 rounded-full text-[10px] font-sans font-semibold tracking-[0.2em] uppercase mb-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#4A5842] animate-pulse" />
+                    <span>DAILY OPERATIONS OVERVIEW</span>
+                  </div>
+                  <h2 className="text-sm font-serif italic text-stone-300">Daily Operations Overview</h2>
+                  <div className="flex items-baseline gap-4 mt-1">
+                    <span className="text-5xl sm:text-7xl font-sans font-extrabold tracking-tight text-[#FBF9F5]">
+                      {summary ? String(summary.total_kots).padStart(2, "0") : String(kots.length).padStart(2, "0")}
+                    </span>
+                    <span className="font-serif italic font-normal text-lg sm:text-2xl text-[#B85B43]">
+                      ORDERS TODAY
+                    </span>
+                  </div>
                 </div>
 
-                {/* Filter Tabs matching main site pill nav */}
-                <div className="flex items-center gap-1 bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
-                  {(["all", "failed", "printed"] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setFilter(tab)}
-                      className={`px-3 py-1 rounded-full font-medium capitalize transition-all ${
-                        filter === tab
-                          ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
-                          : "text-[#261C18]/70 hover:text-[#261C18]"
-                      }`}
-                    >
-                      {tab === "failed" ? "Print Failed" : tab}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* KOT Cards Feed */}
-            <div className="space-y-4">
-              {filteredKots.map((kot) => {
-                const timeString = new Date(kot.created_at).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
-                const isPrintingFailed = kot.printed_status === "FAILED";
-                const isPrinted = kot.printed_status === "PRINTED";
-                const isRetrying = retryingIds[kot.id] || false;
-                const isClosing = closingSessionIds[kot.dining_session_id] || false;
-                const cleanTableNumber = kot.table_number.replace(/^table\s*/i, "").trim() || kot.table_number;
-
-                return (
-                  <div
-                    key={kot.id}
-                    className={`rounded-2xl border transition-all duration-200 overflow-hidden shadow-xs ${
-                      isPrintingFailed
-                        ? "bg-[#FFF9F8] border-[#B85B43]/60 shadow-[#B85B43]/5"
-                        : "bg-[#FBF9F5] border-[#E4DCD0] hover:border-[#D5C9B8]"
-                    }`}
-                  >
-                    {/* Header Strip */}
-                    <div className="px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 border-b border-[#E4DCD0] bg-[#F6F3EC]/80">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5 bg-[#B85B43]/10 px-2.5 py-1 rounded-lg border border-[#B85B43]/20">
-                          <span className="font-sans font-bold text-[10px] uppercase tracking-wider text-[#B85B43]">
-                            ORDER
-                          </span>
-                          <span className="font-sans font-extrabold text-xl text-[#B85B43] tracking-tight">
-                            #{kot.sequence_number}
-                          </span>
-                        </div>
-                        <div className="h-4 w-px bg-[#E4DCD0]" />
-                        <span className="font-serif font-bold text-base text-[#261C18]">
-                          TABLE <span className="font-sans font-bold text-lg">{cleanTableNumber}</span>
-                        </span>
-                        <span className="text-[11px] font-sans text-stone-500">
-                          (Session #<span className="font-sans font-bold">{kot.dining_session_id}</span>)
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <span className="font-sans font-bold text-xl text-[#261C18]">
-                          ₹{kot.total_amount}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-stone-600 bg-[#E4DCD0]/60 px-2.5 py-0.5 rounded-full font-mono">
-                          <Clock className="w-3 h-3 text-stone-500" />
-                          {timeString}
-                        </span>
-                      </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
+                  <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
+                    <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
+                      <Users className="w-3.5 h-3.5 text-[#B85B43]" />
+                      Tables Served
                     </div>
+                    <div className="text-2xl font-sans font-bold text-[#FBF9F5]">
+                      {summary?.tables_served || 0}
+                    </div>
+                  </div>
 
-                    {/* Status Pill Row */}
-                    <div className="px-5 py-2.5 bg-[#FAF7F2] flex flex-wrap items-center justify-between gap-3 border-b border-[#E4DCD0]/60 text-xs font-medium">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#4A5842]/15 border border-[#4A5842]/30 text-[#4A5842]">
-                          <Check className="w-3.5 h-3.5" /> Order received
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#261C18]/10 border border-[#261C18]/20 text-[#261C18]">
-                          <Check className="w-3.5 h-3.5" /> <span className="font-sans font-bold">{kot.kot_number}</span> generated
-                        </span>
+                  <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
+                    <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
+                      <UtensilsCrossed className="w-3.5 h-3.5 text-[#4A5842]" />
+                      Total Items
+                    </div>
+                    <div className="text-2xl font-sans font-bold text-[#FBF9F5]">
+                      {summary?.total_items || 0}
+                    </div>
+                  </div>
 
-                        {isPrintingFailed && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#B85B43]/15 border border-[#B85B43]/40 text-[#B85B43] font-semibold animate-pulse">
-                            <AlertCircle className="w-3.5 h-3.5" /> Printing failed
-                          </span>
-                        )}
+                  <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
+                    <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
+                      <Receipt className="w-3.5 h-3.5 text-amber-400" />
+                      Avg KOT Value
+                    </div>
+                    <div className="text-2xl font-sans font-bold text-amber-300">
+                      ₹{summary?.avg_kot_value ? Math.round(summary.avg_kot_value) : 0}
+                    </div>
+                  </div>
 
-                        {isPrinted && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#4A5842]/20 border border-[#4A5842]/40 text-[#4A5842]">
-                            <Printer className="w-3.5 h-3.5" /> Slip printed
-                          </span>
-                        )}
+                  <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
+                    <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
+                      <Flame className="w-3.5 h-3.5 text-[#B85B43]" />
+                      Peak Hour
+                    </div>
+                    <div className="text-lg font-sans font-bold text-[#FBF9F5] truncate">
+                      {summary?.peak_hour || "N/A"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
 
-                        {kot.printed_status === "PENDING" && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-800">
-                            <RotateCw className="w-3.5 h-3.5 animate-spin" /> Queued for printer
-                          </span>
-                        )}
-                      </div>
+            {/* 2-Column Main Workspace */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              {/* Left Column: NEW KOTS Live Feed (7 Cols) */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E4DCD0] pb-3.5">
+                  <div>
+                    <h3 className="text-2xl font-serif font-bold text-[#261C18] flex items-center gap-2.5">
+                      <span>NEW KOTS</span>
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#E4DCD0]/60 text-[#261C18] font-sans font-medium">
+                        <span className="font-bold">{filteredKots.length}</span> Tickets
+                      </span>
+                    </h3>
+                    <p className="text-xs font-serif italic text-stone-500 mt-0.5">Live real-time thermal ticket flow</p>
+                  </div>
 
-                      {/* Print Retry Button in Main-Site Terracotta / Dark Theme */}
+                  {/* Controls: Sort and Status Filters */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* 1 to N Sort Switcher */}
+                    <div className="flex items-center gap-1 bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
                       <button
-                        onClick={() => handleRetryPrint(kot.id)}
-                        disabled={isRetrying}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-sans font-semibold uppercase tracking-wider transition-all shadow-2xs ${
-                          isPrintingFailed
-                            ? "bg-[#B85B43] hover:bg-[#A84E38] text-[#FBF9F5]"
-                            : "bg-[#261C18] hover:bg-[#3D2E28] text-[#FBF9F5]"
-                        } disabled:opacity-50`}
+                        onClick={() => setSortOrder("asc")}
+                        className={`px-3 py-1 rounded-full font-medium transition-all ${
+                          sortOrder === "asc"
+                            ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
+                            : "text-[#261C18]/70 hover:text-[#261C18]"
+                        }`}
                       >
-                        <Printer className={`w-3.5 h-3.5 ${isRetrying ? "animate-spin" : ""}`} />
-                        {isRetrying ? "Retrying..." : isPrintingFailed ? "Retry Print" : "Reprint Slip"}
+                        1 → N (Count)
+                      </button>
+                      <button
+                        onClick={() => setSortOrder("desc")}
+                        className={`px-3 py-1 rounded-full font-medium transition-all ${
+                          sortOrder === "desc"
+                            ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
+                            : "text-[#261C18]/70 hover:text-[#261C18]"
+                        }`}
+                      >
+                        Latest First
                       </button>
                     </div>
 
-                    {/* Items List */}
-                    <div className="p-5 space-y-2.5 bg-[#FBF9F5]">
-                      {kot.items.map((item, idx) => (
-                        <div key={idx} className="flex items-start justify-between gap-4 text-sm">
-                          <div className="flex items-start gap-3">
-                            <span className="font-sans font-bold text-[#B85B43] bg-[#B85B43]/10 px-2 py-0.5 rounded-md text-xs min-w-[28px] text-center border border-[#B85B43]/20">
-                              {item.quantity}×
-                            </span>
-                            <div>
-                              <p className="font-sans font-medium text-[#261C18]">{item.name}</p>
-                              {item.special_instructions && (
-                                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded mt-1 inline-block">
-                                  Note: {item.special_instructions}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <span className="font-sans text-stone-700 text-sm font-semibold">
-                            ₹{item.subtotal}
-                          </span>
-                        </div>
+                    {/* Filter Pills */}
+                    <div className="flex items-center gap-1 bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
+                      {(["all", "failed", "printed", "pending"] as const).map((t) => (
+                        <button
+                          key={t}
+                          onClick={() => setFilter(t)}
+                          className={`px-3 py-1 rounded-full capitalize font-medium transition-all ${
+                            filter === t
+                              ? "bg-[#B85B43] text-[#FBF9F5] font-semibold shadow-xs"
+                              : "text-[#261C18]/70 hover:text-[#261C18]"
+                          }`}
+                        >
+                          {t}
+                        </button>
                       ))}
                     </div>
-
-                    {/* Footer Operations */}
-                    <div className="px-5 py-3 bg-[#F6F3EC]/70 border-t border-[#E4DCD0] flex items-center justify-between text-xs text-stone-500">
-                      <span className="text-[11px] font-sans text-stone-600">Order: <span className="font-sans font-bold text-[#261C18]">#{kot.sequence_number}</span> <span className="text-stone-400 text-[10px]">({kot.order_number})</span></span>
-                      <button
-                        onClick={() => handleCloseSession(kot.dining_session_id, cleanTableNumber)}
-                        disabled={isClosing}
-                        className="text-[#B85B43] hover:text-[#A84E38] hover:underline flex items-center gap-1 font-medium transition-colors"
-                      >
-                        <Receipt className="w-3.5 h-3.5" />
-                        Settle Table & Close Session
-                      </button>
-                    </div>
                   </div>
-                );
-              })}
-
-              {filteredKots.length === 0 && (
-                <div className="py-20 flex flex-col items-center justify-center text-stone-400 border-2 border-dashed border-[#E4DCD0] rounded-3xl bg-[#F6F3EC]/30">
-                  <CheckCircle2 className="w-12 h-12 mb-3 text-stone-300" />
-                  <p className="text-lg font-serif font-bold text-[#261C18]">All Caught Up!</p>
-                  <p className="text-xs font-serif italic text-stone-500 mt-1">
-                    When customers place orders at tables, printed tickets flow here in real time.
-                  </p>
                 </div>
-              )}
-            </div>
-          </div>
 
-          {/* Right Column: Summaries & Analytics (5 Cols) */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Today's Item Summary */}
-            <div className="rounded-3xl border border-[#E4DCD0] bg-[#FBF9F5] p-6 shadow-xs">
-              <div className="flex items-center justify-between border-b border-[#E4DCD0] pb-4 mb-4">
-                <div>
-                  <h3 className="text-lg font-serif font-bold text-[#261C18] flex items-center gap-2">
-                    <UtensilsCrossed className="w-4 h-4 text-[#B85B43]" />
-                    TODAY&apos;S ITEM SUMMARY
-                  </h3>
-                  <p className="text-xs font-serif italic text-stone-500 mt-0.5">Live preparation tallies for the kitchen</p>
-                </div>
-                <span className="text-[10px] font-sans tracking-widest text-[#4A5842] uppercase font-semibold bg-[#4A5842]/15 px-2.5 py-0.5 rounded-full border border-[#4A5842]/30">
-                  Live Prep
-                </span>
-              </div>
-
-              <div className="space-y-2.5">
-                {summary?.item_summary && summary.item_summary.length > 0 ? (
-                  summary.item_summary.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#E4DCD0]/70 hover:border-[#B85B43]/40 transition-colors shadow-2xs"
-                    >
-                      <span className="text-sm font-sans font-medium text-[#261C18]">{item.name}</span>
-                      <span className="font-sans font-bold text-base text-[#B85B43] bg-[#B85B43]/10 px-3 py-0.5 rounded-lg border border-[#B85B43]/20">
-                        {item.quantity}
-                      </span>
-                    </div>
-                  ))
+                {/* KOT Cards List */}
+                {filteredKots.length === 0 ? (
+                  <div className="text-center py-16 px-4 bg-white rounded-3xl border border-[#E4DCD0] shadow-xs space-y-3">
+                    <Printer className="w-12 h-12 text-stone-300 mx-auto stroke-[1.5]" />
+                    <h4 className="text-lg font-serif font-bold text-[#261C18]">No Active KOT Tickets</h4>
+                    <p className="text-xs font-serif italic text-stone-500 max-w-sm mx-auto">
+                      All kitchen orders have been dispatched or printed. New incoming table orders will automatically appear here.
+                    </p>
+                  </div>
                 ) : (
-                  <p className="text-xs font-serif italic text-stone-400 py-4 text-center">
-                    No items ordered yet today.
-                  </p>
+                  <div className="space-y-4">
+                    {filteredKots.map((kot) => {
+                      const cleanTableNumber = kot.table_number ? kot.table_number.replace(/^table\s*/i, "").trim() : "";
+                      return (
+                        <div
+                          key={kot.id}
+                          className="bg-white rounded-3xl border border-[#E4DCD0] p-5 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden"
+                        >
+                          <div className="flex items-start justify-between gap-4 border-b border-[#E4DCD0]/60 pb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-2xl bg-[#261C18] text-[#FBF9F5] flex flex-col items-center justify-center font-sans font-extrabold shadow-xs">
+                                <span className="text-[10px] text-stone-400 font-sans uppercase">No.</span>
+                                <span className="text-base text-[#FBF9F5] leading-none">{kot.sequence_number}</span>
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-sans font-bold text-lg text-[#261C18]">
+                                    {kot.kot_number}
+                                  </span>
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-600 font-sans font-medium">
+                                    {kot.order_number}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-stone-500 flex items-center gap-1 font-sans mt-0.5">
+                                  <Clock className="w-3.5 h-3.5 text-stone-400" />
+                                  <span>{new Date(kot.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <span className="inline-block px-3 py-1 rounded-full text-xs font-sans font-bold uppercase tracking-wider bg-amber-50 text-amber-900 border border-amber-200">
+                                TABLE {cleanTableNumber}
+                              </span>
+                              <div className="mt-1">
+                                {kot.printed_status === "PRINTED" ? (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                    <Check className="w-3 h-3" /> Printed
+                                  </span>
+                                ) : kot.printed_status === "FAILED" ? (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                                    <AlertCircle className="w-3 h-3" /> Failed
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                    <RotateCw className="w-3 h-3 animate-spin" /> Pending
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Ticket Items */}
+                          <div className="py-3 divide-y divide-gray-100">
+                            {kot.items.map((item, idx) => (
+                              <div key={idx} className="py-2 flex items-center justify-between text-sm font-sans">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-6 h-6 rounded-md bg-stone-100 text-stone-800 font-bold flex items-center justify-center text-xs">
+                                    {item.quantity}×
+                                  </span>
+                                  <span className="font-medium text-[#261C18]">{item.name}</span>
+                                </div>
+                                <span className="font-semibold text-stone-700">₹{item.subtotal}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Footer Actions: Print Retry & Settle Table */}
+                          <div className="pt-3 border-t border-[#E4DCD0]/60 flex items-center justify-between gap-3">
+                            <div className="text-xs font-sans text-stone-500">
+                              <span>Total: </span>
+                              <span className="font-bold text-[#261C18] text-sm">₹{kot.total_amount}</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {kot.printed_status === "FAILED" && (
+                                <button
+                                  onClick={() => handleRetryPrint(kot.id)}
+                                  disabled={retryingIds[kot.id]}
+                                  className="px-3 py-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-sans font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50"
+                                >
+                                  <Printer className="w-3.5 h-3.5" />
+                                  <span>{retryingIds[kot.id] ? "Printing..." : "Retry Print"}</span>
+                                </button>
+                              )}
+
+                              <button
+                                onClick={() => handleCloseSession(kot.dining_session_id, cleanTableNumber)}
+                                disabled={closingSessionIds[kot.dining_session_id]}
+                                className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-sans font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>{closingSessionIds[kot.dining_session_id] ? "Closing..." : "Settle Table"}</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
-            </div>
 
-            {/* Category Breakdown & Statistics */}
-            <div className="rounded-3xl border border-[#E4DCD0] bg-[#FBF9F5] p-6 shadow-xs">
-              <div className="flex items-center justify-between border-b border-[#E4DCD0] pb-4 mb-4">
-                <div>
-                  <h3 className="text-lg font-serif font-bold text-[#261C18] flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-[#4A5842]" />
-                    TODAY&apos;S KOT STATISTICS
-                  </h3>
-                  <p className="text-xs font-serif italic text-stone-500 mt-0.5">Operational velocity and averages</p>
-                </div>
-              </div>
+              {/* Right Column: Analytics & Operations Summary (5 Cols) */}
+              <div className="lg:col-span-5 space-y-6">
+                <div className="bg-white rounded-3xl border border-[#E4DCD0] p-6 shadow-xs space-y-6">
+                  <div>
+                    <h3 className="text-xl font-serif font-bold text-[#261C18] flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-[#B85B43]" />
+                      <span>Item Volume Summary</span>
+                    </h3>
+                    <p className="text-xs font-serif italic text-stone-500 mt-0.5">Top dispatched menu items today</p>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="p-4 rounded-2xl bg-white border border-[#E4DCD0]/70 shadow-2xs">
-                  <div className="text-xs font-serif italic text-stone-500">Avg Items / KOT</div>
-                  <div className="text-2xl font-sans font-bold text-[#261C18] mt-1">
-                    {summary?.avg_items_per_kot || "0.00"}
+                  <div className="space-y-3">
+                    {summary?.item_summary && summary.item_summary.length > 0 ? (
+                      summary.item_summary.slice(0, 8).map((it, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs font-sans py-1.5 border-b border-gray-100 last:border-none">
+                          <span className="text-[#261C18] font-medium">{it.name}</span>
+                          <span className="px-2.5 py-0.5 rounded-full bg-stone-100 font-bold text-stone-800">
+                            {it.quantity} orders
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-stone-400 font-sans italic">No items dispatched yet today.</p>
+                    )}
                   </div>
                 </div>
-                <div className="p-4 rounded-2xl bg-white border border-[#E4DCD0]/70 shadow-2xs">
-                  <div className="text-xs font-serif italic text-stone-500">KOTs / Hour</div>
-                  <div className="text-2xl font-sans font-bold text-[#4A5842] mt-1">
-                    {summary?.kots_per_hour || "0.0"}
-                  </div>
-                </div>
-              </div>
 
-              {/* Category Quantities */}
-              {summary?.category_summary && summary.category_summary.length > 0 && (
-                <div className="space-y-2 mb-6">
-                  <span className="text-[10px] uppercase font-sans tracking-[0.2em] text-[#4A5842] font-semibold block mb-2">
-                    Category Breakdown
-                  </span>
-                  {summary.category_summary.map((cat, idx) => (
-                    <div key={idx} className="flex items-center justify-between text-xs py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
-                      <span className="text-[#261C18] font-sans font-medium">{cat.category}</span>
-                      <span className="font-sans font-bold text-sm text-[#B85B43]">{cat.quantity}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Today vs Yesterday */}
-              {summary?.comparison && (
-                <div className="pt-4 border-t border-[#E4DCD0]">
-                  <div className="flex items-center justify-between mb-3">
+                <div className="bg-white rounded-3xl border border-[#E4DCD0] p-6 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between">
                     <span className="text-[10px] uppercase font-sans tracking-[0.2em] text-[#B85B43] font-semibold">
                       TODAY vs YESTERDAY
                     </span>
@@ -708,41 +941,229 @@ export default function POSDashboard() {
                     <div className="flex justify-between py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
                       <span className="text-[#261C18] font-sans">KOTs</span>
                       <span className="font-sans font-bold text-[#261C18]">
-                        {summary.comparison.today?.kots || 0}
+                        {summary?.comparison?.today?.kots || 0}
                         <span className="text-stone-300 font-sans font-normal mx-2">|</span>
-                        <span className="text-stone-400 font-normal">{summary.comparison.yesterday?.kots || 0}</span>
+                        <span className="text-stone-400 font-normal">{summary?.comparison?.yesterday?.kots || 0}</span>
                       </span>
                     </div>
                     <div className="flex justify-between py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
                       <span className="text-[#261C18] font-sans">Pizzas</span>
                       <span className="font-sans font-bold text-[#261C18]">
-                        {summary.comparison.today?.pizzas || 0}
+                        {summary?.comparison?.today?.pizzas || 0}
                         <span className="text-stone-300 font-sans font-normal mx-2">|</span>
-                        <span className="text-stone-400 font-normal">{summary.comparison.yesterday?.pizzas || 0}</span>
+                        <span className="text-stone-400 font-normal">{summary?.comparison?.yesterday?.pizzas || 0}</span>
                       </span>
                     </div>
                     <div className="flex justify-between py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
                       <span className="text-[#261C18] font-sans">Pasta</span>
                       <span className="font-sans font-bold text-[#261C18]">
-                        {summary.comparison.today?.pasta || 0}
+                        {summary?.comparison?.today?.pasta || 0}
                         <span className="text-stone-300 font-sans font-normal mx-2">|</span>
-                        <span className="text-stone-400 font-normal">{summary.comparison.yesterday?.pasta || 0}</span>
+                        <span className="text-stone-400 font-normal">{summary?.comparison?.yesterday?.pasta || 0}</span>
                       </span>
                     </div>
                     <div className="flex justify-between py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
                       <span className="text-[#261C18] font-sans">Beverages</span>
                       <span className="font-sans font-bold text-[#261C18]">
-                        {summary.comparison.today?.beverages || 0}
+                        {summary?.comparison?.today?.beverages || 0}
                         <span className="text-stone-300 font-sans font-normal mx-2">|</span>
-                        <span className="text-stone-400 font-normal">{summary.comparison.yesterday?.beverages || 0}</span>
+                        <span className="text-stone-400 font-normal">{summary?.comparison?.yesterday?.beverages || 0}</span>
                       </span>
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
+          </>
+        )}
+
+        {/* ================= TAB 2: TABLE RESERVATIONS (OPTION A) ================= */}
+        {activeTab === "reservations" && (
+          <div className="space-y-6">
+            {/* Reservations Header Banner */}
+            <section className="relative overflow-hidden rounded-3xl bg-[#261C18] text-[#FBF9F5] border border-[#E4DCD0]/30 p-6 sm:p-8 shadow-md">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 bg-[#B85B43]/20 text-[#FBF9F5] border border-[#B85B43]/50 px-3 py-1 rounded-full text-[10px] font-sans font-semibold tracking-[0.2em] uppercase mb-2">
+                    <Calendar className="w-3.5 h-3.5 text-[#B85B43]" />
+                    <span>TABLE RESERVATION DESK</span>
+                  </div>
+                  <h2 className="text-3xl sm:text-4xl font-serif font-extrabold">
+                    Guest Reservations ({reservations.length})
+                  </h2>
+                  <p className="text-xs font-serif italic text-stone-300 mt-1">
+                    Real-time bookings from website with guest details, table seating & arrival controls
+                  </p>
+                </div>
+
+                {/* Filter Pills */}
+                <div className="flex flex-wrap items-center gap-1.5 bg-[#1C1512] p-1.5 rounded-2xl border border-white/10 text-xs">
+                  {(["all", "CONFIRMED", "ARRIVED", "SEATED", "COMPLETED", "CANCELLED"] as const).map((st) => (
+                    <button
+                      key={st}
+                      onClick={() => setResFilter(st)}
+                      className={`px-3 py-1.5 rounded-xl capitalize font-medium transition-all ${
+                        resFilter === st
+                          ? "bg-[#B85B43] text-white font-bold shadow-xs"
+                          : "text-stone-300 hover:text-white"
+                      }`}
+                    >
+                      {st.toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Reservations List */}
+            {filteredReservations.length === 0 ? (
+              <div className="text-center py-16 px-4 bg-white rounded-3xl border border-[#E4DCD0] shadow-xs space-y-3">
+                <Calendar className="w-12 h-12 text-stone-300 mx-auto stroke-[1.5]" />
+                <h4 className="text-lg font-serif font-bold text-[#261C18]">No Reservations Found</h4>
+                <p className="text-xs font-serif italic text-stone-500 max-w-sm mx-auto">
+                  {resFilter === "all"
+                    ? "No online table bookings have been received yet."
+                    : `No reservations with status '${resFilter}' exist.`}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {filteredReservations.map((res) => {
+                  const cust = res.customer;
+                  const isCurrentUpdating = updatingResId === res.id;
+                  const st = res.status.toUpperCase();
+
+                  const statusColor =
+                    st === "CONFIRMED"
+                      ? "bg-blue-50 text-blue-800 border-blue-200"
+                      : st === "ARRIVED"
+                      ? "bg-amber-50 text-amber-800 border-amber-200"
+                      : st === "SEATED"
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                      : st === "COMPLETED"
+                      ? "bg-gray-100 text-gray-700 border-gray-200"
+                      : "bg-rose-50 text-rose-800 border-rose-200";
+
+                  return (
+                    <div
+                      key={res.id}
+                      className="bg-white rounded-3xl border border-[#E4DCD0] p-5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between space-y-4"
+                    >
+                      {/* Top Row: Ref & Status Badge */}
+                      <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
+                        <div>
+                          <span className="text-[11px] font-sans font-bold text-stone-400 uppercase tracking-wider block">
+                            Booking Ref
+                          </span>
+                          <span className="font-sans font-extrabold text-base text-[#261C18]">
+                            #RES-{String(res.id).padStart(4, "0")}
+                          </span>
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold uppercase tracking-wider border ${statusColor}`}>
+                          {res.status}
+                        </span>
+                      </div>
+
+                      {/* Guest Details */}
+                      <div className="space-y-2 text-xs font-sans text-stone-700">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-[#B85B43] shrink-0" />
+                          <span className="font-bold text-sm text-[#261C18]">{cust?.name || "Guest"}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-stone-100 text-[11px] font-semibold text-stone-600">
+                            {res.guest_count} {res.guest_count === 1 ? "Guest" : "Guests"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-stone-600">
+                          <Phone className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                          <span>{cust?.phone || "N/A"}</span>
+                        </div>
+
+                        {cust?.email && (
+                          <div className="flex items-center gap-2 text-stone-600">
+                            <Mail className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+                            <span className="truncate">{cust.email}</span>
+                          </div>
+                        )}
+
+                        <div className="p-3 bg-[#F8F5F0] rounded-2xl border border-[#E4DCD0] space-y-1 mt-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-stone-500 font-medium">Date:</span>
+                            <span className="font-bold text-[#261C18]">{res.reservation_date}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-stone-500 font-medium">Time Slot:</span>
+                            <span className="font-bold text-[#B85B43]">{res.time_slot}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Controls based on State Machine */}
+                      <div className="pt-2 border-t border-gray-100 flex items-center gap-2">
+                        {st === "CONFIRMED" && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateReservationStatus(res.id, "ARRIVED")}
+                              disabled={isCurrentUpdating}
+                              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" />
+                              <span>Arrived</span>
+                            </button>
+                            <button
+                              onClick={() => handleUpdateReservationStatus(res.id, "CANCELLED")}
+                              disabled={isCurrentUpdating}
+                              className="px-3 py-2 border border-red-200 text-red-700 hover:bg-red-50 rounded-xl text-xs font-sans font-semibold transition-colors disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+
+                        {st === "ARRIVED" && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateReservationStatus(res.id, "SEATED")}
+                              disabled={isCurrentUpdating}
+                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Seat Table</span>
+                            </button>
+                            <button
+                              onClick={() => handleUpdateReservationStatus(res.id, "CANCELLED")}
+                              disabled={isCurrentUpdating}
+                              className="px-3 py-2 border border-red-200 text-red-700 hover:bg-red-50 rounded-xl text-xs font-sans font-semibold transition-colors disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+
+                        {st === "SEATED" && (
+                          <button
+                            onClick={() => handleUpdateReservationStatus(res.id, "COMPLETED")}
+                            disabled={isCurrentUpdating}
+                            className="w-full bg-[#261C18] hover:bg-[#B85B43] text-white py-2 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Complete Dining</span>
+                          </button>
+                        )}
+
+                        {(st === "COMPLETED" || st === "CANCELLED") && (
+                          <span className="w-full text-center text-xs text-stone-400 font-sans italic py-1">
+                            {st === "COMPLETED" ? "Booking Completed" : "Booking Cancelled"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

@@ -1,4 +1,5 @@
 import asyncio
+import secrets
 from decimal import Decimal
 from sqlalchemy import select
 from app.core.database import Base, engine, AsyncSessionLocal
@@ -6,6 +7,7 @@ from app.models.branch import Branch
 from app.models.kitchen import Kitchen, MenuItemKitchenMapping
 from app.models.table import Table, TableQR
 from app.models.menu import MenuCategory, MenuItem
+from app.utils.create_pos_user import create_pos_user
 
 MENU_DATA = [
     {
@@ -107,8 +109,8 @@ async def seed():
                 tbl = Table(branch_id=branch.id, table_number=t_str, capacity=4, status="Available")
                 db.add(tbl)
                 await db.flush()
-                # Create active TableQR with qr_token matching table number (e.g. "1")
-                qr = TableQR(table_id=tbl.id, qr_token=str(t_num), is_active=True)
+                # Create active TableQR with secure opaque qr_token
+                qr = TableQR(table_id=tbl.id, qr_token=f"qr_sec_{secrets.token_urlsafe(32)}", is_active=True)
                 db.add(qr)
 
         # Category name migrations map
@@ -196,7 +198,8 @@ async def seed():
                         mapping.kitchen_id = target_kitchen.id
 
         await db.commit()
-        print("Database seeded and synced with exact menu items and dual-kitchen mappings successfully!")
+        await create_pos_user()
+        print("Database seeded and synced with exact menu items, dual-kitchen mappings, and POS cashier user successfully!")
 
 if __name__ == "__main__":
     asyncio.run(seed())

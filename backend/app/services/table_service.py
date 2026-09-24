@@ -113,38 +113,6 @@ class TableService:
         qr = qr_res.scalar_one_or_none()
 
         if not qr:
-            # Direct table routing fallback for URLs like /table/1, /table/tbl-05, /table/T-01
-            low = qr_token.lower()
-            if not low.startswith("qr_sec_") and not low.startswith("qr-") and (
-                low.startswith(("t-", "tbl-", "tbl_", "table-", "table_", "table", "t")) or qr_token.isdigit() or "/" in qr_token
-            ):
-                from sqlalchemy import or_
-                clean_digits = "".join(c for c in qr_token.split("/")[-1] if c.isdigit())
-                if clean_digits:
-                    num_val = int(clean_digits)
-                    tbl_stmt = select(Table).where(
-                        or_(
-                            Table.id == num_val,
-                            Table.table_number == qr_token,
-                            Table.table_number == qr_token.upper(),
-                            Table.table_number == clean_digits,
-                            Table.table_number == f"T-{clean_digits.zfill(2)}",
-                            Table.table_number == f"Table {num_val}",
-                        )
-                    )
-                    tbl_res = await db.execute(tbl_stmt)
-                    table_match = tbl_res.scalars().first()
-
-                    if table_match:
-                        existing_qr_stmt = select(TableQR).where(TableQR.table_id == table_match.id)
-                        existing_qr_res = await db.execute(existing_qr_stmt)
-                        qr = existing_qr_res.scalar_one_or_none()
-                        if not qr:
-                            qr = TableQR(table_id=table_match.id, qr_token=qr_token, is_active=True)
-                            db.add(qr)
-                            await db.flush()
-
-        if not qr:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="INVALID_QR_TOKEN: QR token is invalid, expired, or rotated.",
@@ -164,6 +132,7 @@ class TableService:
             table_id=table.id,
             table_number=table.table_number,
             branch_id=table.branch_id,
+            session_id=session.id,
             session_token=session.session_token,
             session_status=session.status,
         )

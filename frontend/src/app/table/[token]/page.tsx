@@ -88,12 +88,16 @@ const ITEM_MEDIA_MAP: Record<string, { image_url: string; badge?: string }> = {
 
 export default function TableQRPage({ params }: { params: Promise<{ token: string }> }) {
   const resolvedParams = use(params);
-  const rawToken = resolvedParams.token || "tbl-01";
-  const tokenNum = rawToken.replace(/[^0-9]/g, "") || "01";
+  const rawToken = resolvedParams.token || "";
 
-  const [tableNumber, setTableNumber] = useState(`TABLE ${tokenNum.padStart(2, "0")}`);
+  const [tableNumber, setTableNumber] = useState("");
   const [sessionId, setSessionId] = useState<number | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [validatedQrToken, setValidatedQrToken] = useState<string>(rawToken);
+  const [isValidating, setIsValidating] = useState(true);
+  const [isValidQr, setIsValidQr] = useState<boolean | null>(null);
+  const [qrErrorMessage, setQrErrorMessage] = useState<string | null>(null);
+
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cart, setCart] = useState<{ [key: string | number]: { item: MenuItem; qty: number } }>({});
   const [showCartDrawer, setShowCartDrawer] = useState(false);
@@ -117,6 +121,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   // Validate QR Token on mount
   useEffect(() => {
     async function validateQR() {
+      setIsValidating(true);
       const apiBase = getApiBase();
       try {
         const res = await fetch(`${apiBase}/api/v1/tables/qr/validate`, {
@@ -128,19 +133,27 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
           const data = await res.json();
           const cleanNum = data.table_number.replace(/[^0-9]/g, "").padStart(2, "0") || data.table_number;
           setTableNumber(`TABLE ${cleanNum}`);
-          setSessionId(data.session_id || 1);
-          if (data.qr_token) setValidatedQrToken(data.qr_token);
+          setSessionId(data.session_id);
+          setSessionToken(data.session_token);
+          setValidatedQrToken(rawToken);
+          setIsValidQr(true);
         } else {
-          setTableNumber(`TABLE ${tokenNum.padStart(2, "0")}`);
-          setSessionId(1);
+          setIsValidQr(false);
+          setQrErrorMessage("This table QR code is invalid, expired, or has rotated. Direct URL manipulation is prohibited for dining privacy.");
+          setSessionId(null);
+          setSessionToken(null);
         }
       } catch {
-        setTableNumber(`TABLE ${tokenNum.padStart(2, "0")}`);
-        setSessionId(1);
+        setIsValidQr(false);
+        setQrErrorMessage("Unable to verify table QR code. Please check your network connection.");
+        setSessionId(null);
+        setSessionToken(null);
+      } finally {
+        setIsValidating(false);
       }
     }
     validateQR();
-  }, [rawToken, tokenNum]);
+  }, [rawToken]);
 
   const updateCart = (item: any, delta: number) => {
     setCart((prev) => {
@@ -162,12 +175,16 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const totalCartPrice = Object.values(cart).reduce((sum, c) => sum + c.item.price * c.qty, 0);
 
   const fetchBill = async () => {
+    if (!sessionId || !sessionToken) return;
     setShowBillModal(true);
     setLoadingBill(true);
     const apiBase = getApiBase();
     try {
-      const activeSessionId = sessionId || 1;
-      const res = await fetch(`${apiBase}/api/v1/tables/sessions/${activeSessionId}/bill`);
+      const res = await fetch(`${apiBase}/api/v1/tables/sessions/${sessionId}/bill`, {
+        headers: {
+          "X-Session-Token": sessionToken,
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         setBillData(data);
@@ -175,7 +192,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         const sub = dispatchedItems.reduce((acc, it) => acc + it.total, 0);
         const tax = sub * 0.05;
         setBillData({
-          session_id: activeSessionId,
+          session_id: sessionId,
           table_number: tableNumber,
           status: "ACTIVE",
           items: dispatchedItems,
@@ -189,7 +206,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
       const sub = dispatchedItems.reduce((acc, it) => acc + it.total, 0);
       const tax = sub * 0.05;
       setBillData({
-        session_id: sessionId || 1,
+        session_id: sessionId,
         table_number: tableNumber,
         status: "ACTIVE",
         items: dispatchedItems,
@@ -204,11 +221,12 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   };
 
   const handleSendOrderToKitchen = async () => {
-    if (totalCartCount === 0) return;
+    if (totalCartCount === 0 || !sessionToken) return;
     const apiBase = getApiBase();
 
     const orderPayload = {
       qr_token: validatedQrToken,
+      session_token: sessionToken,
       items: Object.values(cart).map((c) => {
         let numericId = typeof c.item.id === "number" ? c.item.id : parseInt(String(c.item.id).replace(/\D/g, ""), 10);
         if (isNaN(numericId) || numericId <= 0) numericId = 1;
@@ -222,7 +240,10 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     try {
       const res = await fetch(`${apiBase}/api/v1/orders/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Session-Token": sessionToken,
+        },
         body: JSON.stringify(orderPayload),
       });
 
@@ -250,6 +271,54 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
       alert("Network error. Please make sure the café server is reachable.");
     }
   };
+
+  // 1. Loading State
+  if (isValidating) {
+    return (
+      <div className="min-h-screen bg-[#F8F5F0] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-12 h-12 border-3 border-[#261C18] border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="font-condensed text-xl font-bold uppercase tracking-wider text-[#261C18]">
+          Verifying Table QR Session...
+        </p>
+      </div>
+    );
+  }
+
+  // 2. Invalid or Expired QR Error State (e.g. /table/1 without valid QR token)
+  if (isValidQr === false) {
+    return (
+      <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans flex flex-col justify-between p-6">
+        <div className="max-w-md mx-auto my-auto w-full bg-white rounded-3xl p-8 border border-[#E4DCD0] shadow-xl text-center space-y-6">
+          <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto text-amber-700">
+            <UtensilsCrossed className="w-8 h-8" />
+          </div>
+          <h2 className="font-condensed text-3xl font-extrabold uppercase tracking-wide text-[#261C18]">
+            Invalid Table QR
+          </h2>
+          <p className="text-sm text-gray-600 font-sans leading-relaxed">
+            {qrErrorMessage || "This QR code is invalid, expired, or has rotated. Please scan the official QR code placed on your dining table."}
+          </p>
+          <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200/80 text-xs text-amber-900 font-sans">
+            🔒 For guest security and bill isolation, direct table number URLs (such as /table/1) are not allowed.
+          </div>
+          <div className="flex flex-col gap-3 pt-2">
+            <a
+              href="/"
+              className="w-full bg-[#261C18] text-white py-3.5 rounded-full font-condensed font-bold uppercase tracking-wider hover:bg-[#B85B43] transition-colors text-sm"
+            >
+              Explore Public Menu & Home
+            </a>
+            <a
+              href="/book-table"
+              className="w-full bg-white border border-[#261C18] text-[#261C18] py-3.5 rounded-full font-condensed font-bold uppercase tracking-wider hover:bg-gray-50 transition-colors text-sm"
+            >
+              Reserve a Table
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans selection:bg-[#B85B43]/20">

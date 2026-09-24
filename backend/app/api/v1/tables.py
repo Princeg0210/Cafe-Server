@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.deps import get_db
+from app.api.deps import get_db, verify_dining_session_access, verify_dining_session_close_access
 from app.models.table import Table, TableQR, DiningSession
 from app.schemas.table import (
     TableResponse,
@@ -54,19 +54,30 @@ async def get_or_create_session_by_qr(body: QRValidateRequest, db: AsyncSession 
 
 
 @sessions_router.get("/{id}", response_model=DiningSessionResponse)
-async def get_dining_session(id: int, db: AsyncSession = Depends(get_db)):
-    session = await db.get(DiningSession, id)
-    if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dining session not found")
+async def get_dining_session(
+    id: int,
+    session: DiningSession = Depends(verify_dining_session_access),
+):
     return session
 
 
 @sessions_router.get("/{id}/bill", response_model=SessionBillResponse)
-async def get_session_bill(id: int, db: AsyncSession = Depends(get_db)):
+async def get_session_bill(
+    id: int,
+    db: AsyncSession = Depends(get_db),
+    session: DiningSession = Depends(verify_dining_session_access),
+):
     return await TableService.get_session_bill(db, id)
 
 
 @sessions_router.post("/{id}/close", response_model=DiningSessionResponse)
-async def close_session(id: int, db: AsyncSession = Depends(get_db)):
+async def close_session(
+    id: int,
+    db: AsyncSession = Depends(get_db),
+    session: DiningSession = Depends(verify_dining_session_close_access),
+):
     return await TableService.close_dining_session(db, id)
+
+
+router.include_router(sessions_router)
 

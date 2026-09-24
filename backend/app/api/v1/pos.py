@@ -2,7 +2,8 @@ import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.deps import get_db
+from app.api.deps import get_db, require_permission
+from app.models.user import User
 from app.schemas.pos import KOTResponse, POSSummaryResponse
 from app.services.pos_service import POSService
 
@@ -14,6 +15,7 @@ async def list_kots(
     target_date: Optional[str] = Query(None, description="Format YYYY-MM-DD"),
     limit: int = Query(100, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
 ):
     date_obj = None
     if target_date:
@@ -28,6 +30,7 @@ async def list_kots(
 async def get_pos_summary(
     target_date: Optional[str] = Query(None, description="Format YYYY-MM-DD"),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
 ):
     date_obj = None
     if target_date:
@@ -42,6 +45,7 @@ async def get_pos_summary(
 async def retry_kot_print(
     id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
 ):
     return await POSService.retry_kot_print(db, kot_id=id)
 
@@ -50,5 +54,6 @@ async def retry_kot_print(
 async def close_session(
     id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
 ):
     return await POSService.close_dining_session(db, session_id=id)

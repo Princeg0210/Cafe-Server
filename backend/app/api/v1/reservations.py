@@ -35,7 +35,7 @@ async def update_reservation(id: int, data: ReservationUpdate, db: AsyncSession 
 
 @router.patch("/{id}/status", response_model=ReservationResponse)
 async def update_reservation_status(id: int, data: ReservationStatusUpdate, db: AsyncSession = Depends(get_db)):
-    return await ReservationService.update_reservation(db, id, ReservationUpdate(status=data.status))
+    return await ReservationService.update_reservation_status(db, id, data.status)
 
 
 @router.delete("/{id}", response_model=ReservationResponse)
