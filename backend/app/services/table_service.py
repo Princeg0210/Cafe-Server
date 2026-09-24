@@ -3,12 +3,13 @@ import uuid
 import datetime
 from typing import Optional, List
 from sqlalchemy import select, update
+from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.core.config import settings
 from app.models.table import Table, TableQR, DiningSession
-from app.models.order import Order
+from app.models.order import Order, OrderItem
 from app.schemas.table import (
     QRValidateResponse,
     DiningSessionResponse,
@@ -176,28 +177,45 @@ class TableService:
         table = await db.get(Table, session.table_id)
         table_number = table.table_number if table else f"T-{session.table_id}"
 
-        # Query all orders for session
-        orders_stmt = select(Order).where(Order.dining_session_id == session_id)
+        # Query all orders for session with eager loaded items and menu_items
+        orders_stmt = (
+            select(Order)
+            .where(Order.dining_session_id == session_id)
+            .options(selectinload(Order.items).selectinload(OrderItem.menu_item))
+        )
         orders_res = await db.execute(orders_stmt)
         orders = orders_res.scalars().all()
 
-        items: List[SessionBillItemResponse] = []
+        aggregated_items: dict[str, dict] = {}
         subtotal = 0.0
 
         for order in orders:
-            for item in getattr(order, "items", []):
+            for item in order.items:
                 qty = item.quantity
                 price = float(item.unit_price or 0.0)
                 tot = qty * price
                 subtotal += tot
-                items.append(
-                    SessionBillItemResponse(
-                        name=item.item_name or "Menu Item",
-                        quantity=qty,
-                        price=price,
-                        total=tot,
-                    )
-                )
+                name = item.menu_item.name if item.menu_item else "Menu Item"
+                if name in aggregated_items:
+                    aggregated_items[name]["quantity"] += qty
+                    aggregated_items[name]["total"] += tot
+                else:
+                    aggregated_items[name] = {
+                        "name": name,
+                        "quantity": qty,
+                        "price": price,
+                        "total": tot,
+                    }
+
+        items = [
+            SessionBillItemResponse(
+                name=val["name"],
+                quantity=val["quantity"],
+                price=val["price"],
+                total=round(val["total"], 2),
+            )
+            for val in aggregated_items.values()
+        ]
 
         # Dynamic configurable tax rate
         tax_rate = float(getattr(settings, "DEFAULT_TAX_RATE", "0.05"))

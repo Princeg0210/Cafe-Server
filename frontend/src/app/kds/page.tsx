@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Clock, Printer, Loader2, CheckCircle2, RefreshCw } from "lucide-react";
+import { Clock, Printer, CheckCircle2, RefreshCw } from "lucide-react";
 
 interface Kitchen {
   id: number;
@@ -221,14 +221,10 @@ export default function KDSDashboard() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {orders.filter(o => o.status !== "SERVED").map((order) => (
+        {orders.map((order) => (
           <div 
             key={order.id} 
-            className={`rounded-xl border ${
-              order.status === "READY" ? "border-green-500/30 bg-green-950/20" :
-              order.status === "PREPARING" ? "border-yellow-500/30 bg-yellow-950/20" :
-              "border-gray-800 bg-gray-900/50"
-            } p-5 flex flex-col shadow-lg transition-all`}
+            className="rounded-xl border border-gray-800 bg-gray-900/60 p-5 flex flex-col shadow-lg transition-all"
           >
             {(() => {
               const ticketContent = order.print_jobs?.[0]?.ticket_content || "";
@@ -297,38 +293,16 @@ export default function KDSDashboard() {
               );
             })()}
 
-            <div className="flex items-center gap-3 pt-4 border-t border-gray-800">
-              {order.status === "SENT" && (
-                <button 
-                  onClick={() => updateStatus(order.id, "PREPARING")}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
-                >
-                  <Loader2 className="w-4 h-4 animate-spin" /> Start Preparing
-                </button>
-              )}
-              {order.status === "PREPARING" && (
-                <button 
-                  onClick={() => updateStatus(order.id, "READY")}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
-                >
-                  <CheckCircle2 className="w-4 h-4" /> Mark Ready
-                </button>
-              )}
-              {order.status === "READY" && (
-                <button 
-                  disabled
-                  className="flex-1 bg-gray-800 text-gray-400 cursor-not-allowed font-semibold py-2.5 rounded-lg flex justify-center items-center gap-2"
-                >
-                  <CheckCircle2 className="w-4 h-4" /> Ready for Pickup
-                </button>
-              )}
-
+            <div className="flex items-center justify-between pt-4 border-t border-gray-800">
+              <span className="text-xs text-gray-400 font-mono tracking-wider">
+                Kitchen Order #{order.id}
+              </span>
               <button 
                 onClick={() => retryPrint(order.id)}
-                className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors"
-                title="Retry Print"
+                className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium"
+                title="Print Kitchen Ticket"
               >
-                <Printer className="w-5 h-5" />
+                <Printer className="w-4 h-4" /> Print Ticket
               </button>
             </div>
           </div>

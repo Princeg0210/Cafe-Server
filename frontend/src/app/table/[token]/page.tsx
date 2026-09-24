@@ -122,6 +122,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const [showCartDrawer, setShowCartDrawer] = useState(false);
   const [showBillModal, setShowBillModal] = useState(false);
   const [billData, setBillData] = useState<BillData | null>(null);
+  const [dispatchedItems, setDispatchedItems] = useState<Array<{ name: string; quantity: number; price: number; total: number }>>([]);
   const [loadingBill, setLoadingBill] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [lastOrderNum, setLastOrderNum] = useState("");
@@ -201,54 +202,51 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
   const fetchBill = async () => {
     setLoadingBill(true);
+    let remoteBillLoaded = false;
     try {
       const sId = sessionId || 1;
-      const res = await fetch(`http://localhost:8000/api/v1/sessions/${sId}/bill`);
+      const apiBase = getApiBase();
+      const res = await fetch(`${apiBase}/api/v1/sessions/${sId}/bill`);
       if (res.ok) {
         const data = await res.json();
-        setBillData(data);
-      } else {
-        const items = Object.values(cart).map((c) => ({
-          name: c.item.name,
-          quantity: c.qty,
-          price: c.item.price,
-          total: c.item.price * c.qty,
-        }));
-        const subtotal = items.reduce((acc, i) => acc + i.total, 0);
+        if (data && data.items && data.items.length > 0) {
+          setBillData(data);
+          remoteBillLoaded = true;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch remote bill from backend:", e);
+    } finally {
+      setLoadingBill(false);
+      setShowBillModal(true);
+    }
+
+    if (!remoteBillLoaded) {
+      if (dispatchedItems.length > 0) {
+        const subtotal = dispatchedItems.reduce((acc, i) => acc + i.total, 0);
         const tax_amount = Math.round(subtotal * 0.05 * 100) / 100;
         setBillData({
-          session_id: sId,
+          session_id: sessionId || 1,
           table_number: tableNumber,
           status: "ACTIVE",
-          items,
+          items: dispatchedItems,
           subtotal,
           tax_rate: 0.05,
           tax_amount,
           grand_total: Math.round((subtotal + tax_amount) * 100) / 100,
         });
+      } else {
+        setBillData({
+          session_id: sessionId || 1,
+          table_number: tableNumber,
+          status: "ACTIVE",
+          items: [],
+          subtotal: 0,
+          tax_rate: 0.05,
+          tax_amount: 0,
+          grand_total: 0,
+        });
       }
-    } catch (e) {
-      const items = Object.values(cart).map((c) => ({
-        name: c.item.name,
-        quantity: c.qty,
-        price: c.item.price,
-        total: c.item.price * c.qty,
-      }));
-      const subtotal = items.reduce((acc, i) => acc + i.total, 0);
-      const tax_amount = Math.round(subtotal * 0.05 * 100) / 100;
-      setBillData({
-        session_id: 1,
-        table_number: tableNumber,
-        status: "ACTIVE",
-        items,
-        subtotal,
-        tax_rate: 0.05,
-        tax_amount,
-        grand_total: Math.round((subtotal + tax_amount) * 100) / 100,
-      });
-    } finally {
-      setLoadingBill(false);
-      setShowBillModal(true);
     }
   };
 
@@ -304,6 +302,16 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
       if (res.ok) {
         const data = await res.json();
         setLastOrderNum(data.order_number || fallbackOrderNum);
+        if (data.dining_session_id) {
+          setSessionId(data.dining_session_id);
+        }
+        const newlyDispatched = Object.values(cart).map((c) => ({
+          name: c.item.name,
+          quantity: c.qty,
+          price: c.item.price,
+          total: c.item.price * c.qty,
+        }));
+        setDispatchedItems((prev) => [...prev, ...newlyDispatched]);
         setOrderPlaced(true);
         setCart({});
         setShowCartDrawer(false);
