@@ -37,8 +37,8 @@ const showcaseCategories = [
   },
   {
     id: "cakes",
-    title: "TRATTORIA DESSERTS",
-    sub: "Classic Tiramisu & Coconut Gelato",
+    title: "CAKES",
+    sub: "Classic Tiramisu & Coconut Ice Cream",
     image: "/insta-6.jpg",
     icon: <Cake className="w-8 h-8 text-[#FBF9F5]" />,
   },

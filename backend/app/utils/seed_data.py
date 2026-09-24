@@ -9,18 +9,18 @@ from app.models.menu import MenuCategory, MenuItem
 
 MENU_DATA = [
     {
-        "category": "STARTERS & SMALL PLATES",
+        "category": "STARTERS",
         "is_kitchen_1": True,
         "items": [
-            ("ROSEMARY & GARLIC FOCACCIA", "House-baked rosemary focaccia with sea salt & roasted garlic oil dip", 300),
-            ("CHEESE & WILD MUSHROOM TARTS", "Artisanal cheese & wild mushroom tartlets with fresh lettuce garnish", 400),
+            ("FOCACCIA WITH GARLIC DIP", "House-baked focaccia with garlic oil dip", 300),
+            ("CHEESE & MUSHROOM TARTS (2 PCS)", "with lettuce garnish", 400),
         ]
     },
     {
-        "category": "OVEN-BAKED PASTA",
+        "category": "PRIMO",
         "is_kitchen_1": True,
         "items": [
-            ("TOMATO & RICOTTA CANNELLONI", "Ricotta & mozzarella stuffed pasta rolls baked in San Marzano passata", 500),
+            ("CANNELLONI (CHEESE & TOMATO)", "Cheese & tomato stuffed pasta rolls baked in Italian passata", 500),
         ]
     },
     {
@@ -39,32 +39,33 @@ MENU_DATA = [
         ]
     },
     {
-        "category": "TRATTORIA DESSERTS",
+        "category": "CAKES",
         "is_kitchen_1": True,
         "items": [
-            ("CLASSIC TIRAMISU", "Espresso-soaked ladyfingers, whipped mascarpone cream & dark cocoa", 250),
-            ("COCONUT GELATO WITH BITTER ORANGE", "Organic coconut cream gelato topped with bitter orange glaze", 200),
+            ("CLASSIC TIRAMISU", "contains free-range eggs", 250),
+            ("COCONUT ICE CREAM WITH BITTER ORANGE SAUCE", "Coconut ice cream served with bitter orange sauce", 200),
         ]
     },
     {
-        "category": "COLD DRINKS & KOMBUCHA",
+        "category": "BEVERAGES",
         "is_kitchen_1": False,
         "items": [
-            ("FRESH MINT LIMONATA", "Key lime juice, sparkling soda water, fresh garden mint", 100),
-            ("SPARKLING LEMON GINGER", "House ginger reduction, fresh lemon juice, chilled soda water", 150),
-            ("PEACH & LEMON ICED TEA", "Slow-brewed black tea infused with peach nectar & lemon zest", 150),
-            ("ARTISANAL KOMBUCHA", "Botanical ferments: Lemongrass + Mint / Kokum / Pineapple + Rosemary", 250),
-            ("HIMALAYAN NATURAL SPRING WATER", "Pure high-altitude spring water bottled at origin", 50),
+            ("FRESH LIME SODA", "Key lime juice, sparkling soda water, fresh garden mint", 100),
+            ("LEMON GINGER SODA", "House ginger reduction, fresh lemon juice, chilled soda water", 150),
+            ("COKE", "Chilled classic Coca-Cola", 100),
+            ("HIMALAYAN MINERAL WATER", "Pure mineral water bottled at origin", 50),
+            ("ICE TEA", "Lemon & Peach flavour", 150),
+            ("KOMBUCHA", "with raw fruits: Lemongrass + mint, Kokum, Pineapple + rosemary, or Pomegranate", 250),
         ]
     },
     {
-        "category": "COFFEE & MOUNTAIN TISANES",
+        "category": "HOT DRINKS",
         "is_kitchen_1": False,
         "items": [
-            ("DOUBLE ARABICA ESPRESSO", "Double shot 100% mountain Arabica roast with rich caramel crema", 150),
-            ("HIMALAYAN RHODODENDRON & THYME TISANE", "Wild red rhododendron petals, garden mint & thyme", 150),
-            ("ROSEHIP & SPEARMINT TISANE", "Vitamin C rich rosehip husks brewed with fragrant spearmint", 150),
-            ("HIMALAYAN MIXED HERB INFUSION", "High-altitude botanical blend of tulsi, lemongrass, ginger & black pepper", 150),
+            ("ESPRESSO", "100% mountain Arabica roast with rich crema", 150),
+            ("RHODODENDRON MINT & THYME TISANE", "Wild red rhododendron petals, garden mint & thyme", 150),
+            ("HIMALAYAN ROSEHIP & MINT TISANE", "Rosehip husks brewed with fragrant mint", 150),
+            ("HIMALAYAN MIXED HERBS", "High-altitude botanical blend of tulsi, lemongrass, ginger & black pepper", 150),
         ]
     }
 ]
@@ -110,6 +111,42 @@ async def seed():
                 qr = TableQR(table_id=tbl.id, qr_token=str(t_num), is_active=True)
                 db.add(qr)
 
+        # Category name migrations map
+        CAT_MIGRATION = {
+            "STARTERS & SMALL PLATES": "STARTERS",
+            "OVEN-BAKED PASTA": "PRIMO",
+            "TRATTORIA DESSERTS": "CAKES",
+            "COLD DRINKS & KOMBUCHA": "BEVERAGES",
+            "COFFEE & MOUNTAIN TISANES": "HOT DRINKS",
+        }
+        for old_cat_name, new_cat_name in CAT_MIGRATION.items():
+            old_cat_res = await db.execute(select(MenuCategory).where(MenuCategory.name == old_cat_name))
+            old_cat = old_cat_res.scalar_one_or_none()
+            if old_cat:
+                old_cat.name = new_cat_name
+
+        # Item name migrations map
+        ITEM_MIGRATION = {
+            "ROSEMARY & GARLIC FOCACCIA": "FOCACCIA WITH GARLIC DIP",
+            "CHEESE & WILD MUSHROOM TARTS": "CHEESE & MUSHROOM TARTS (2 PCS)",
+            "TOMATO & RICOTTA CANNELLONI": "CANNELLONI (CHEESE & TOMATO)",
+            "COCONUT GELATO WITH BITTER ORANGE": "COCONUT ICE CREAM WITH BITTER ORANGE SAUCE",
+            "FRESH MINT LIMONATA": "FRESH LIME SODA",
+            "PEACH & LEMON ICED TEA": "ICE TEA",
+            "HIMALAYAN NATURAL SPRING WATER": "HIMALAYAN MINERAL WATER",
+            "DOUBLE ARABICA ESPRESSO": "ESPRESSO",
+            "HIMALAYAN RHODODENDRON & THYME TISANE": "RHODODENDRON MINT & THYME TISANE",
+            "ROSEHIP & SPEARMINT TISANE": "HIMALAYAN ROSEHIP & MINT TISANE",
+            "HIMALAYAN MIXED HERB INFUSION": "HIMALAYAN MIXED HERBS",
+        }
+        for old_item_name, new_item_name in ITEM_MIGRATION.items():
+            old_item_res = await db.execute(select(MenuItem).where(MenuItem.name == old_item_name))
+            old_item = old_item_res.scalar_one_or_none()
+            if old_item:
+                old_item.name = new_item_name
+
+        await db.flush()
+
         # 4. Categories & Menu Items & Kitchen Routing
         disp_order = 1
         for cat_data in MENU_DATA:
@@ -119,6 +156,8 @@ async def seed():
                 cat = MenuCategory(name=cat_data["category"], display_order=disp_order)
                 db.add(cat)
                 await db.flush()
+            else:
+                cat.display_order = disp_order
             disp_order += 1
 
             target_kitchen = k1 if cat_data["is_kitchen_1"] else k2
@@ -140,9 +179,24 @@ async def seed():
 
                     mapping = MenuItemKitchenMapping(menu_item_id=item.id, kitchen_id=target_kitchen.id)
                     db.add(mapping)
+                else:
+                    item.category_id = cat.id
+                    item.description = desc
+                    item.price = Decimal(str(price))
+                    item.is_available = True
+                    item.is_active = True
+                    
+                    # Ensure kitchen mapping exists
+                    map_res = await db.execute(select(MenuItemKitchenMapping).where(MenuItemKitchenMapping.menu_item_id == item.id))
+                    mapping = map_res.scalar_one_or_none()
+                    if not mapping:
+                        mapping = MenuItemKitchenMapping(menu_item_id=item.id, kitchen_id=target_kitchen.id)
+                        db.add(mapping)
+                    else:
+                        mapping.kitchen_id = target_kitchen.id
 
         await db.commit()
-        print("Database seeded with Tables, TableQRs, MenuItems, and Dual-Kitchen Mappings successfully!")
+        print("Database seeded and synced with exact menu items and dual-kitchen mappings successfully!")
 
 if __name__ == "__main__":
     asyncio.run(seed())
