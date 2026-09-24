@@ -191,8 +191,8 @@ export default function POSDashboard() {
           try {
             const data = JSON.parse(event.data);
             if (data.event === "KOT_CREATED" || data.event === "KOT_UPDATED") {
-              playChime();
-              setLastNotification(`New KOT ${data.kot_number} received for Table ${data.table_number}!`);
+              const cleanTable = data.table_number ? data.table_number.replace(/^table\s*/i, "").trim() : "";
+              setLastNotification(`New KOT ${data.kot_number} received for Table ${cleanTable}!`);
               setTimeout(() => setLastNotification(null), 6000);
               fetchData();
             }
@@ -441,6 +441,7 @@ export default function POSDashboard() {
                 const isPrinted = kot.printed_status === "PRINTED";
                 const isRetrying = retryingIds[kot.id] || false;
                 const isClosing = closingSessionIds[kot.dining_session_id] || false;
+                const cleanTableNumber = kot.table_number.replace(/^table\s*/i, "").trim() || kot.table_number;
 
                 return (
                   <div
@@ -459,7 +460,7 @@ export default function POSDashboard() {
                         </span>
                         <div className="h-4 w-px bg-[#E4DCD0]" />
                         <span className="font-serif font-bold text-base text-[#261C18]">
-                          TABLE <span className="font-gothic font-bold text-lg">{kot.table_number}</span>
+                          TABLE <span className="font-gothic font-bold text-lg">{cleanTableNumber}</span>
                         </span>
                         <span className="text-[11px] font-sans text-stone-500">
                           (Session #<span className="font-gothic font-bold">{kot.dining_session_id}</span>)
@@ -549,7 +550,7 @@ export default function POSDashboard() {
                     <div className="px-5 py-3 bg-[#F6F3EC]/70 border-t border-[#E4DCD0] flex items-center justify-between text-xs text-stone-500">
                       <span className="text-[11px] font-sans">Order: <span className="font-gothic font-bold text-[#261C18]">{kot.order_number}</span></span>
                       <button
-                        onClick={() => handleCloseSession(kot.dining_session_id, kot.table_number)}
+                        onClick={() => handleCloseSession(kot.dining_session_id, cleanTableNumber)}
                         disabled={isClosing}
                         className="text-[#B85B43] hover:text-[#A84E38] hover:underline flex items-center gap-1 font-medium transition-colors"
                       >

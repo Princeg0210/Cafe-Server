@@ -1,10 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Grenze+Gotisch:wght@500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Balthazar&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: var(--font-sans), system-ui, sans-serif;
   --font-serif: var(--font-serif), Georgia, serif;
-  --font-gothic: var(--font-gothic), "Grenze Gotisch", "Dela Gothic One", serif;
+  --font-gothic: "Copperplate Gothic Bold", "Copperplate Gothic", "Copperplate", "Cooper Gothic", "Balthazar", serif;
+  --font-cooper-gothic: "Copperplate Gothic Bold", "Copperplate Gothic", "Copperplate", "Cooper Gothic", "Balthazar", serif;
   
   --color-ivory: #FBF9F5;
   --color-paper: #F6F3EC;
@@ -37,8 +38,10 @@ h1, h2, h3, h4, h5, h6 {
   font-style: italic;
 }
 
-.font-gothic {
-  font-family: var(--font-gothic), "Grenze Gotisch", "Dela Gothic One", serif;
+.font-gothic,
+.font-cooper-gothic {
+  font-family: "Copperplate Gothic Bold", "Copperplate Gothic", "Copperplate", "Cooper Gothic", "Balthazar", serif;
+  letter-spacing: 0.04em;
 }
 
 /* Subtle paper texture effect */
