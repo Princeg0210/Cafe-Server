@@ -24,7 +24,7 @@ const MENU_ITEM_ID_MAP: Record<string, number> = {
   p1: 3,
   pz1: 4, pz2: 5, pz3: 6, pz4: 7, pz5: 8, pz6: 9, pz7: 10, pz8: 11, pz9: 12,
   c1: 13, c2: 14, d1: 13, d2: 14,
-  b1: 15, b2: 16, b3: 17, b4: 18, b5: 19,
+  b1: 15, b2: 16, b3: 17, b4: 18, b5: 19, b6: 24,
   h1: 20, h2: 21, h3: 22, h4: 23,
 };
 
