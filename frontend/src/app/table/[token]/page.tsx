@@ -12,16 +12,11 @@ import {
   X,
   Info,
   ChevronRight,
-  RefreshCw,
-  Clock,
-  Sparkles,
-  AlertCircle,
   Coffee,
   Pizza,
   Wine,
   Utensils,
 } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import { menuData } from "@/data/menu";
 
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -91,34 +86,16 @@ const ITEM_MEDIA_MAP: Record<string, { image_url: string; badge?: string }> = {
   h4: { image_url: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=800&q=80", badge: "Immunity Tonic" },
 };
 
-const REAL_FULL_MENU_ITEMS: MenuItem[] = menuData.flatMap((cat) =>
-  cat.items.map((item) => ({
-    id: item.id,
-    category_name: cat.name,
-    name: item.name,
-    description: item.description || item.details || "",
-    price: item.price,
-    is_available: true,
-    is_sold_out: false,
-    badge: ITEM_MEDIA_MAP[item.id]?.badge || item.tags?.[0] || cat.subtitle,
-    image_url: ITEM_MEDIA_MAP[item.id]?.image_url || "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80",
-    tags: item.tags,
-  }))
-);
-
 export default function TableQRPage({ params }: { params: Promise<{ token: string }> }) {
   const resolvedParams = use(params);
-  const rawToken = resolvedParams.token || "tbl-05";
-  const tokenNum = rawToken.replace(/[^0-9]/g, "") || "05";
+  const rawToken = resolvedParams.token || "tbl-01";
+  const tokenNum = rawToken.replace(/[^0-9]/g, "") || "01";
 
   const [tableNumber, setTableNumber] = useState(`TABLE ${tokenNum.padStart(2, "0")}`);
   const [sessionId, setSessionId] = useState<number | null>(null);
-  const [qrValid, setQrValid] = useState<boolean>(true);
-  const [qrError, setQrError] = useState<string | null>(null);
-
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(REAL_FULL_MENU_ITEMS);
+  const [validatedQrToken, setValidatedQrToken] = useState<string>(rawToken);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [cart, setCart] = useState<{ [key: string | number]: { item: any; qty: number } }>({});
+  const [cart, setCart] = useState<{ [key: string | number]: { item: MenuItem; qty: number } }>({});
   const [showCartDrawer, setShowCartDrawer] = useState(false);
   const [showBillModal, setShowBillModal] = useState(false);
   const [billData, setBillData] = useState<BillData | null>(null);
@@ -126,23 +103,20 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const [loadingBill, setLoadingBill] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [lastOrderNum, setLastOrderNum] = useState("");
-  const [activeTab, setActiveTab] = useState<"HUB" | "MENU">("HUB");
-
-  const categories = ["All", ...Array.from(new Set(menuItems.map((item) => item.category_name)))];
-
-  const [validatedQrToken, setValidatedQrToken] = useState<string>(rawToken);
 
   const getApiBase = () => {
-    if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
-    if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
-      return `http://${window.location.hostname}:8000`;
+    if (typeof window !== "undefined") {
+      const h = window.location.hostname;
+      if (h.includes("vercel.app") || h.includes("onrender.com")) {
+        return "https://cafe-piza-api.onrender.com";
+      }
     }
-    return "http://localhost:8000";
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   };
 
-  // Validate QR Token & Fetch backend menu on mount
+  // Validate QR Token on mount
   useEffect(() => {
-    async function validateQRAndFetchMenu() {
+    async function validateQR() {
       const apiBase = getApiBase();
       try {
         const res = await fetch(`${apiBase}/api/v1/tables/qr/validate`, {
@@ -152,156 +126,109 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         });
         if (res.ok) {
           const data = await res.json();
-          setTableNumber(`TABLE ${data.table_number.replace(/[^0-9]/g, "").padStart(2, "0") || data.table_number}`);
+          const cleanNum = data.table_number.replace(/[^0-9]/g, "").padStart(2, "0") || data.table_number;
+          setTableNumber(`TABLE ${cleanNum}`);
           setSessionId(data.session_id || 1);
           if (data.qr_token) setValidatedQrToken(data.qr_token);
-          setQrValid(true);
         } else {
           setTableNumber(`TABLE ${tokenNum.padStart(2, "0")}`);
           setSessionId(1);
         }
-      } catch (e) {
+      } catch {
         setTableNumber(`TABLE ${tokenNum.padStart(2, "0")}`);
         setSessionId(1);
       }
-
-      // Try fetching backend menu items if available
-      try {
-        const menuRes = await fetch(`${apiBase}/api/v1/menu/items`);
-        if (menuRes.ok) {
-          const apiItems = await menuRes.json();
-          if (Array.isArray(apiItems) && apiItems.length > 0) {
-            const CATEGORY_ID_TO_NAME: Record<number, string> = {
-              1: "STARTERS & SMALL PLATES",
-              2: "OVEN-BAKED PASTA",
-              3: "WOOD-FIRED NEAPOLITAN PIZZAS",
-              4: "TRATTORIA DESSERTS",
-              5: "COLD DRINKS & KOMBUCHA",
-              6: "COFFEE & MOUNTAIN TISANES",
-            };
-            const mappedApiItems: MenuItem[] = apiItems.map((item: any) => ({
-              id: item.id,
-              category_name: item.category_name || CATEGORY_ID_TO_NAME[item.category_id] || "WOOD-FIRED NEAPOLITAN PIZZAS",
-              name: item.name,
-              description: item.description || "",
-              price: parseFloat(item.price),
-              is_available: item.is_available,
-              is_sold_out: item.is_sold_out,
-              badge: item.badge || "Kitchen Fresh",
-              image_url: item.image_url || "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80",
-            }));
-            setMenuItems(mappedApiItems);
-          }
-        }
-      } catch (e) {
-        // Retain REAL_FULL_MENU_ITEMS
-      }
     }
-    validateQRAndFetchMenu();
+    validateQR();
   }, [rawToken, tokenNum]);
 
-  const fetchBill = async () => {
-    setLoadingBill(true);
-    let remoteBillLoaded = false;
-    try {
-      const sId = sessionId || 1;
-      const apiBase = getApiBase();
-      const res = await fetch(`${apiBase}/api/v1/sessions/${sId}/bill`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.items && data.items.length > 0) {
-          setBillData(data);
-          remoteBillLoaded = true;
-        }
-      }
-    } catch (e) {
-      console.warn("Could not fetch remote bill from backend:", e);
-    } finally {
-      setLoadingBill(false);
-      setShowBillModal(true);
-    }
-
-    if (!remoteBillLoaded) {
-      if (dispatchedItems.length > 0) {
-        const subtotal = dispatchedItems.reduce((acc, i) => acc + i.total, 0);
-        const tax_amount = Math.round(subtotal * 0.05 * 100) / 100;
-        setBillData({
-          session_id: sessionId || 1,
-          table_number: tableNumber,
-          status: "ACTIVE",
-          items: dispatchedItems,
-          subtotal,
-          tax_rate: 0.05,
-          tax_amount,
-          grand_total: Math.round((subtotal + tax_amount) * 100) / 100,
-        });
-      } else {
-        setBillData({
-          session_id: sessionId || 1,
-          table_number: tableNumber,
-          status: "ACTIVE",
-          items: [],
-          subtotal: 0,
-          tax_rate: 0.05,
-          tax_amount: 0,
-          grand_total: 0,
-        });
-      }
-    }
-  };
-
-  const filteredItems = menuItems.filter(
-    (item) => selectedCategory === "All" || item.category_name === selectedCategory
-  );
-
-  const updateCart = (item: any, change: number) => {
+  const updateCart = (item: any, delta: number) => {
     setCart((prev) => {
       const current = prev[item.id]?.qty || 0;
-      const newQty = current + change;
-      if (newQty <= 0) {
-        const next = { ...prev };
-        delete next[item.id];
-        return next;
+      const next = current + delta;
+      if (next <= 0) {
+        const copy = { ...prev };
+        delete copy[item.id];
+        return copy;
       }
-      return { ...prev, [item.id]: { item, qty: newQty } };
+      return {
+        ...prev,
+        [item.id]: { item, qty: next },
+      };
     });
   };
 
-  const totalCartCount = Object.values(cart).reduce((acc, c) => acc + c.qty, 0);
-  const totalCartPrice = Object.values(cart).reduce((acc, c) => acc + c.item.price * c.qty, 0);
+  const totalCartCount = Object.values(cart).reduce((sum, c) => sum + c.qty, 0);
+  const totalCartPrice = Object.values(cart).reduce((sum, c) => sum + c.item.price * c.qty, 0);
+
+  const fetchBill = async () => {
+    setShowBillModal(true);
+    setLoadingBill(true);
+    const apiBase = getApiBase();
+    try {
+      const activeSessionId = sessionId || 1;
+      const res = await fetch(`${apiBase}/api/v1/tables/sessions/${activeSessionId}/bill`);
+      if (res.ok) {
+        const data = await res.json();
+        setBillData(data);
+      } else {
+        const sub = dispatchedItems.reduce((acc, it) => acc + it.total, 0);
+        const tax = sub * 0.05;
+        setBillData({
+          session_id: activeSessionId,
+          table_number: tableNumber,
+          status: "ACTIVE",
+          items: dispatchedItems,
+          subtotal: sub,
+          tax_rate: 0.05,
+          tax_amount: tax,
+          grand_total: sub + tax,
+        });
+      }
+    } catch {
+      const sub = dispatchedItems.reduce((acc, it) => acc + it.total, 0);
+      const tax = sub * 0.05;
+      setBillData({
+        session_id: sessionId || 1,
+        table_number: tableNumber,
+        status: "ACTIVE",
+        items: dispatchedItems,
+        subtotal: sub,
+        tax_rate: 0.05,
+        tax_amount: tax,
+        grand_total: sub + tax,
+      });
+    } finally {
+      setLoadingBill(false);
+    }
+  };
 
   const handleSendOrderToKitchen = async () => {
     if (totalCartCount === 0) return;
-    const fallbackOrderNum = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
+    const apiBase = getApiBase();
+
+    const orderPayload = {
+      qr_token: validatedQrToken,
+      items: Object.values(cart).map((c) => {
+        let numericId = typeof c.item.id === "number" ? c.item.id : parseInt(String(c.item.id).replace(/\D/g, ""), 10);
+        if (isNaN(numericId) || numericId <= 0) numericId = 1;
+        return {
+          menu_item_id: numericId,
+          quantity: c.qty,
+        };
+      }),
+    };
 
     try {
-      const MENU_ITEM_ID_MAP: Record<string, number> = {
-        s1: 1, s2: 2, p1: 3,
-        pz1: 4, pz2: 5, pz3: 6, pz4: 7, pz5: 8, pz6: 9, pz7: 10, pz8: 11, pz9: 12,
-        c1: 13, c2: 14, d1: 13, d2: 14,
-        b1: 15, b2: 16, b3: 17, b4: 18, b5: 19, b6: 24,
-        h1: 20, h2: 21, h3: 22, h4: 23,
-      };
-
-      const orderItemsPayload = Object.values(cart).map((c) => ({
-        menu_item_id: typeof c.item.id === "number" ? c.item.id : (MENU_ITEM_ID_MAP[c.item.id] || parseInt(c.item.id) || 1),
-        quantity: c.qty,
-      }));
-
-      const apiBase = getApiBase();
-      const tokenToUse = validatedQrToken || rawToken;
-      const res = await fetch(`${apiBase}/api/v1/orders`, {
+      const res = await fetch(`${apiBase}/api/v1/orders/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          qr_token: tokenToUse,
-          items: orderItemsPayload,
-        }),
+        body: JSON.stringify(orderPayload),
       });
 
       if (res.ok) {
         const data = await res.json();
-        setLastOrderNum(data.order_number || fallbackOrderNum);
+        setLastOrderNum(data.order_number || `ORD-${Date.now().toString().slice(-6)}`);
         if (data.dining_session_id) {
           setSessionId(data.dining_session_id);
         }
@@ -317,378 +244,240 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         setShowCartDrawer(false);
       } else {
         const errData = await res.json().catch(() => ({}));
-        alert(`Order could not be sent to kitchen: ${errData.detail || "Server error"}`);
+        alert(`Order could not be placed: ${errData.detail || "Server error"}`);
       }
-    } catch (e) {
-      alert("Network connection error. Please make sure the café server is reachable.");
+    } catch {
+      alert("Network error. Please make sure the café server is reachable.");
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans selection:bg-[#B85B43]/20">
-      {/* Main Page Navbar with Scanned Table & Bill Trigger */}
-      <Navbar tableNumber={tableNumber} onOpenCart={fetchBill} />
-
-      {/* Dual Hub Navigation View */}
-      {activeTab === "HUB" ? (
-        <div className="max-w-xl mx-auto px-4 py-8 sm:py-12 space-y-6">
-          
-          {/* Scanned Table Confirmation Badge */}
-          <div className="text-center pt-2 pb-1">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#261C18] text-[#FBF9F5] border border-[#B85B43]/40 shadow-xs">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-mono font-bold text-xs sm:text-sm tracking-widest uppercase">
-                {tableNumber} SCANNED
+      {/* Direct Focused Header: Table Number & View Bill */}
+      <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0] shadow-xs px-4 sm:px-6 py-3">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[#261C18] flex items-center justify-center text-[#FBF9F5] border border-[#B85B43]/40 shadow-xs">
+              <span className="font-serif italic font-bold text-sm text-[#B85B43]">J</span>
+            </div>
+            <div>
+              <span className="font-serif font-extrabold text-base leading-none text-[#261C18] block">
+                JAADOO <span className="font-serif italic font-normal text-sm text-[#B85B43]">Trattoria</span>
+              </span>
+              <span className="text-[10px] font-mono font-bold text-[#4A5842] flex items-center gap-1.5 mt-0.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                {tableNumber}
               </span>
             </div>
-            <p className="text-xs text-[#5C4E48] font-sans mt-2">
-              Your dining session is active. Orders placed will be prepared and served directly to this table.
-            </p>
           </div>
 
-          {/* EXACTLY TWO Primary Actions matching user screenshot */}
-          <div className="grid grid-cols-1 gap-6">
-            {/* ACTION 1: ORDER MENU */}
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                setSelectedCategory("all");
-                setActiveTab("MENU");
-              }}
-              className="group p-8 sm:p-10 rounded-3xl bg-[#FBF9F5] border-2 border-[#E4DCD0] hover:border-[#B85B43] shadow-[0_4px_20px_rgba(38,28,24,0.06)] flex flex-col items-center text-center justify-between transition-all cursor-pointer"
-            >
-              <div className="w-20 h-20 rounded-full bg-[#261C18] text-[#FBF9F5] border border-[#261C18] flex items-center justify-center mb-6 group-hover:bg-[#B85B43] group-hover:border-[#B85B43] transition-colors shadow-sm">
-                <UtensilsCrossed className="w-10 h-10" />
-              </div>
-              <div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-[#261C18] group-hover:text-[#B85B43] transition-colors uppercase tracking-wider font-serif">
-                  ORDER MENU
-                </h3>
-                <p className="text-xs sm:text-sm text-[#5C4E48] mt-3 leading-relaxed max-w-md">
-                  Browse our artisanal wood-fired pizzas, specialty coffees, and send orders directly to the kitchen.
-                </p>
-              </div>
-              <div className="mt-8 inline-flex items-center gap-2 text-xs font-bold text-[#B85B43] uppercase tracking-widest group-hover:translate-x-1 transition-transform">
-                <span>EXPLORE MENU</span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
-            </motion.button>
-
-            {/* ACTION 2: VIEW BILL */}
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={fetchBill}
-              className="group p-8 sm:p-10 rounded-3xl bg-[#FBF9F5] border-2 border-[#E4DCD0] hover:border-[#B85B43] shadow-[0_4px_20px_rgba(38,28,24,0.06)] flex flex-col items-center text-center justify-between transition-all cursor-pointer"
-            >
-              <div className="w-20 h-20 rounded-full bg-[#B85B43] text-[#FBF9F5] border border-[#B85B43] flex items-center justify-center mb-6 transition-colors shadow-sm">
-                <Receipt className="w-10 h-10" />
-              </div>
-              <div>
-                <h3 className="text-2xl sm:text-3xl font-bold text-[#261C18] group-hover:text-[#B85B43] transition-colors uppercase tracking-wider font-serif">
-                  VIEW BILL
-                </h3>
-                <p className="text-xs sm:text-sm text-[#5C4E48] mt-3 leading-relaxed max-w-md">
-                  Review your running tab, active items, subtotal, taxes, and estimated grand total in real-time.
-                </p>
-              </div>
-              <div className="mt-8 inline-flex items-center gap-2 text-xs font-bold text-[#B85B43] uppercase tracking-widest group-hover:translate-x-1 transition-transform">
-                <span>VIEW RUNNING TAB</span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
-            </motion.button>
-          </div>
+          <button
+            onClick={fetchBill}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-xs font-semibold uppercase tracking-wider transition-all shadow-xs"
+          >
+            <Receipt className="w-3.5 h-3.5 text-[#B85B43]" />
+            <span>VIEW BILL</span>
+          </button>
         </div>
-      ) : (
+      </header>
 
-        /* MENU VIEW matching user's exact menu screenshot */
-        <div className="max-w-6xl mx-auto px-4 py-8 pb-32">
-          {/* Back to Hub Navigation */}
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#E4DCD0] flex-wrap gap-2">
-            <button
-              onClick={() => setActiveTab("HUB")}
-              className="px-5 py-2 rounded-full bg-[#FBF9F5] hover:bg-[#E4DCD0]/50 border border-[#E4DCD0] text-[#261C18] text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition"
-            >
-              ← BACK TO TABLE HUB
-            </button>
-
-            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#261C18] text-[#FBF9F5] text-xs font-mono font-bold shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>{tableNumber}</span>
+      {/* Main Container: Pure Menu & Bill Flow */}
+      <main className="max-w-4xl mx-auto px-4 py-4 pb-32">
+        {/* Order Success Confirmation Banner */}
+        {orderPlaced && (
+          <div className="mb-4 p-3.5 rounded-2xl bg-[#F4EFE6] border border-[#4A5842]/40 text-[#261C18] flex items-center justify-between gap-3 shadow-xs animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="w-5 h-5 text-[#4A5842] shrink-0" />
+              <div>
+                <p className="font-serif font-bold text-sm text-[#261C18]">Order Sent to Kitchen!</p>
+                <p className="text-[11px] text-stone-600 font-mono">Order #{lastOrderNum} • KOT Generated</p>
+              </div>
             </div>
-
-            <button
-              onClick={fetchBill}
-              className="px-5 py-2 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition shadow-xs"
-            >
-              <Receipt className="w-4 h-4 text-[#B85B43]" />
-              <span>VIEW RUNNING TAB</span>
-            </button>
-          </div>
-
-          {/* Order Success Banner / Warm Punchline - High Visibility & Beautiful Typography */}
-          {orderPlaced && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-8 p-6 sm:p-8 md:p-10 rounded-3xl bg-[#FAF7F2] text-[#261C18] border-2 border-[#DECFC0] shadow-xl relative overflow-hidden text-center max-w-3xl mx-auto"
-            >
-              {/* Checkmark Badge */}
-              <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#4A5842]/15 border-2 border-[#4A5842] text-[#4A5842] mb-3 shadow-xs">
-                <CheckCircle2 className="w-8 h-8 sm:w-9 sm:h-9 text-[#4A5842]" />
-              </div>
-
-              {/* Order ID Pill */}
-              <div className="mb-2">
-                <span className="inline-block text-xs sm:text-sm font-mono tracking-widest text-[#B85B43] uppercase font-bold bg-[#B85B43]/10 px-4 py-1 rounded-full border border-[#B85B43]/30">
-                  Order #{lastOrderNum || "CONFIRMED"} • Dispatched to Kitchen & Bar
-                </span>
-              </div>
-
-              {/* Main Headline */}
-              <h3 className="font-serif text-2xl sm:text-3xl md:text-4xl font-bold text-[#261C18] mb-3">
-                Your Order is Sizzling in the Oven!
-              </h3>
-
-              {/* Warm Note Box - High Contrast, Large Readable Font */}
-              <div className="bg-[#F3ECE1] border-2 border-[#E2D4C3] rounded-2xl p-5 sm:p-7 my-5 text-center shadow-xs">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/90 border border-[#DECFC0] text-xs font-sans font-bold uppercase tracking-wider text-[#B85B43] mb-3 shadow-2xs">
-                  <span>🤝 A Warm Note From Our Team</span>
-                </div>
-                
-                <p className="font-serif text-base sm:text-lg md:text-xl text-[#261C18] leading-relaxed font-semibold">
-                  “Please feel free to settle your bill at our reception counter whenever you wrap up. We invite you to pay at the counter not just for the bill, but because we genuinely love to meet, smile with, and thank the wonderful people who grace Jaadoo Café with their presence.”
-                </p>
-
-                <p className="text-xs sm:text-sm font-sans font-medium text-[#4A5842] mt-3">
-                  🌿 You are never just a table number to us — you are our guest. Savor every bite!
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
-                <button
-                  onClick={() => setOrderPlaced(false)}
-                  className="px-8 py-3 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-xs sm:text-sm font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
-                >
-                  Got it, thank you!
-                </button>
-                <button
-                  onClick={fetchBill}
-                  className="px-8 py-3 rounded-full bg-white hover:bg-[#F3ECE1] text-[#261C18] text-xs sm:text-sm font-bold uppercase tracking-wider border-2 border-[#DECFC0] shadow-xs hover:shadow-sm transition-all"
-                >
-                  View Running Tab
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Header Banner - Compact with Table Badge */}
-          <section className="bg-[#261C18] text-[#FBF9F5] py-7 px-4 text-center border-b border-[#E4DCD0]/20 rounded-3xl mb-6 shadow-md">
-            <div className="max-w-4xl mx-auto">
-              <span className="text-[10px] font-mono font-bold tracking-[0.2em] text-emerald-400 uppercase bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-500/30">
-                ● {tableNumber} ORDERING
-              </span>
-              <h1 className="text-2xl sm:text-4xl font-serif font-bold mt-2 text-[#FBF9F5]">
-                Jaadoo Trattoria Menu
-              </h1>
-              <p className="text-[11px] sm:text-xs font-serif italic text-stone-300 mt-1 max-w-xl mx-auto">
-                Wood-fired Neapolitan Pizzas • 48h Natural Fermentation • Mountain Arabica & Tisanes
-              </p>
-            </div>
-          </section>
-
-          {/* Sticky Category Navigation Pills */}
-          <div className="sticky top-16 z-30 bg-[#FBF9F5]/95 backdrop-blur-md border border-[#E4DCD0] py-2.5 shadow-2xs mb-6 rounded-2xl px-3">
-            <div className="overflow-x-auto flex items-center justify-center sm:justify-start gap-1.5 no-scrollbar">
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => setSelectedCategory("all")}
-                className={`whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-sans font-semibold tracking-wider uppercase transition-all ${
-                  selectedCategory === "all"
+                onClick={fetchBill}
+                className="px-3 py-1 rounded-full bg-[#261C18] text-[#FBF9F5] text-[11px] font-bold uppercase tracking-wider hover:bg-[#B85B43] transition"
+              >
+                View Bill
+              </button>
+              <button
+                onClick={() => setOrderPlaced(false)}
+                className="p-1 rounded-full text-stone-400 hover:text-stone-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Sticky Category Navigation Filter */}
+        <div className="sticky top-14 z-30 bg-[#FBF9F5]/95 backdrop-blur-md border border-[#E4DCD0] py-2 px-2.5 rounded-2xl shadow-2xs mb-5">
+          <div className="overflow-x-auto flex items-center gap-1.5 no-scrollbar">
+            <button
+              onClick={() => setSelectedCategory("all")}
+              className={`whitespace-nowrap px-3.5 py-1 rounded-full text-xs font-sans font-semibold tracking-wider uppercase transition-all ${
+                selectedCategory === "all"
+                  ? "bg-[#261C18] text-[#FBF9F5] shadow-xs"
+                  : "bg-[#F6F3EC] border border-[#E4DCD0] text-stone-700 hover:border-[#B85B43]"
+              }`}
+            >
+              ALL DISHES
+            </button>
+            {menuData.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setSelectedCategory(c.id)}
+                className={`whitespace-nowrap px-3.5 py-1 rounded-full text-xs font-sans font-semibold tracking-wider uppercase transition-all ${
+                  selectedCategory === c.id
                     ? "bg-[#261C18] text-[#FBF9F5] shadow-xs"
                     : "bg-[#F6F3EC] border border-[#E4DCD0] text-stone-700 hover:border-[#B85B43]"
                 }`}
               >
-                ALL DISHES
+                {c.name}
               </button>
-              {menuData.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setSelectedCategory(c.id)}
-                  className={`whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-sans font-semibold tracking-wider uppercase transition-all ${
-                    selectedCategory === c.id
-                      ? "bg-[#261C18] text-[#FBF9F5] shadow-xs"
-                      : "bg-[#F6F3EC] border border-[#E4DCD0] text-stone-700 hover:border-[#B85B43]"
-                  }`}
-                >
-                  {c.name}
-                </button>
-              ))}
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* Category Sections - Sleek Horizontal Strip List Matching Reference Screenshot */}
-          <div className="space-y-10 max-w-4xl mx-auto">
-            {(selectedCategory === "all"
-              ? menuData
-              : menuData.filter((c) => c.id === selectedCategory)
-            ).map((category) => (
-              <section id={category.id} key={category.id} className="relative">
-                {/* Category Header - Centered with Circular Badge, Serif Title & Italic Subtitle */}
-                <div className="flex flex-col items-center justify-center text-center mb-2">
-                  <div className="flex items-center justify-center flex-wrap gap-2 text-center">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#E4DCD0] bg-[#FBF9F5] flex items-center justify-center text-[#B85B43] shrink-0 shadow-2xs">
-                      {categoryIcons[category.id] || <Utensils className="w-3.5 h-3.5 text-[#B85B43]" />}
-                    </div>
-                    <h2 className="text-sm sm:text-base md:text-lg font-serif font-bold text-[#261C18] uppercase tracking-wider">
-                      {category.name}
-                    </h2>
-                    {category.subtitle && (
-                      <>
-                        <span className="text-[#B85B43] font-serif">•</span>
-                        <span className="text-xs sm:text-sm font-serif italic text-[#B85B43]">
-                          {category.subtitle}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  {/* Thin horizontal separator line below category header */}
-                  <div className="w-full h-px bg-[#EADFCF] mt-3 mb-1" />
+        {/* Category Sections & Items List */}
+        <div className="space-y-8">
+          {(selectedCategory === "all"
+            ? menuData
+            : menuData.filter((c) => c.id === selectedCategory)
+          ).map((category) => (
+            <section id={category.id} key={category.id}>
+              {/* Category Header */}
+              <div className="flex items-center gap-2 pb-2 mb-2 border-b border-[#EADFCF]">
+                <div className="w-6 h-6 rounded-full border border-[#E4DCD0] bg-[#FBF9F5] flex items-center justify-center text-[#B85B43] shrink-0">
+                  {categoryIcons[category.id] || <Utensils className="w-3 h-3 text-[#B85B43]" />}
                 </div>
+                <h2 className="text-sm font-serif font-bold text-[#261C18] uppercase tracking-wider">
+                  {category.name}
+                </h2>
+                {category.subtitle && (
+                  <span className="text-xs font-serif italic text-[#B85B43]">
+                    • {category.subtitle}
+                  </span>
+                )}
+              </div>
 
-                {/* Menu Item Strips - Compact Horizontal Rows */}
-                <div className="divide-y divide-[#EFE8DC]/80">
-                  {category.items.map((item) => {
-                    const qtyInCart = cart[item.id]?.qty || 0;
-                    return (
-                      <motion.div
-                        key={item.id}
-                        whileHover={{ scale: 1.005 }}
-                        transition={{ duration: 0.15 }}
-                        className={`group relative flex items-center justify-between py-3 px-2 sm:px-4 rounded-xl transition-all duration-150 cursor-pointer ${
-                          qtyInCart > 0
-                            ? "bg-[#F7F3EB] border border-[#E5DAC8] shadow-2xs"
-                            : "hover:bg-[#F7F3EB]/80 border border-transparent hover:border-[#E5DAC8]"
-                        }`}
-                        onClick={() => {
-                          if (qtyInCart === 0) updateCart(item, 1);
-                        }}
-                      >
-                        {/* Left: Round Dish Illustration / Photo Thumbnail */}
-                        <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border border-[#E4DCD0] shrink-0 bg-[#F6F3EC] flex items-center justify-center shadow-2xs mr-3 sm:mr-4">
-                          {item.image_url ? (
-                            <img
-                              src={item.image_url}
-                              alt={item.name}
-                              className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <Utensils className="w-4 h-4 text-[#B85B43]" />
-                          )}
-                        </div>
+              {/* Menu Items */}
+              <div className="divide-y divide-[#EFE8DC]/80">
+                {category.items.map((item) => {
+                  const qtyInCart = cart[item.id]?.qty || 0;
+                  const itemMedia = ITEM_MEDIA_MAP[item.id];
+                  const imgUrl = itemMedia?.image_url || "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80";
+                  const badge = itemMedia?.badge || item.tags?.[0];
 
-                        {/* Middle: Tag Pill, Bold Uppercase Serif Title, Italic Description */}
-                        <div className="flex-1 min-w-0 pr-3 sm:pr-4 flex flex-col justify-center">
-                          {/* Tag Badge Pill */}
-                          {(item.badge || item.tags?.[0]) && (
-                            <span className="text-[9px] font-sans font-semibold uppercase tracking-wider text-stone-600 bg-[#EFECE4] px-2 py-0.5 rounded-full inline-block w-fit mb-0.5">
-                              {item.badge || item.tags?.[0]}
-                            </span>
-                          )}
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        if (qtyInCart === 0) updateCart(item, 1);
+                      }}
+                      className={`group flex items-center justify-between py-2.5 px-2 rounded-xl transition-all cursor-pointer ${
+                        qtyInCart > 0
+                          ? "bg-[#F7F3EB] border border-[#E5DAC8]"
+                          : "hover:bg-[#F7F3EB]/70 border border-transparent"
+                      }`}
+                    >
+                      {/* Thumbnail */}
+                      <div className="w-11 h-11 rounded-full overflow-hidden border border-[#E4DCD0] shrink-0 bg-[#F6F3EC] flex items-center justify-center shadow-2xs mr-3">
+                        <img
+                          src={imgUrl}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
 
-                          {/* Dish Title */}
-                          <h3 className="text-xs sm:text-sm font-serif font-bold text-[#261C18] uppercase tracking-wide leading-snug truncate sm:whitespace-normal group-hover:text-[#B85B43] transition-colors">
-                            {item.name}
-                          </h3>
-
-                          {/* Italic Description */}
-                          {item.description && (
-                            <p className="text-[11px] sm:text-xs font-serif italic text-stone-500 truncate mt-0.5">
-                              {item.description}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Right: Bold Price + Dark ADD Pill Button or Quantity Controls */}
-                        <div className="flex flex-col items-end shrink-0 pl-2">
-                          <span className="text-xs sm:text-sm font-serif font-bold text-[#261C18] text-right mb-1">
-                            ₹{item.price}
+                      {/* Details */}
+                      <div className="flex-1 min-w-0 pr-3">
+                        {badge && (
+                          <span className="text-[9px] font-sans font-semibold uppercase tracking-wider text-stone-600 bg-[#EFECE4] px-1.5 py-0.5 rounded-full inline-block mb-0.5">
+                            {badge}
                           </span>
+                        )}
+                        <h3 className="text-sm font-serif font-bold text-[#261C18] uppercase tracking-wide leading-snug group-hover:text-[#B85B43] transition-colors truncate">
+                          {item.name}
+                        </h3>
+                        {item.description && (
+                          <p className="text-xs font-serif italic text-stone-500 truncate mt-0.5">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
 
-                          {qtyInCart === 0 ? (
+                      {/* Price & Add Controls */}
+                      <div className="flex flex-col items-end shrink-0 pl-2">
+                        <span className="text-sm font-serif font-bold text-[#261C18] text-right mb-1">
+                          ₹{item.price}
+                        </span>
+
+                        {qtyInCart === 0 ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateCart(item, 1);
+                            }}
+                            className="px-4 py-1 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-xs font-sans font-bold uppercase tracking-wider shadow-2xs transition-all"
+                          >
+                            ADD
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-1.5 bg-[#261C18] text-[#FBF9F5] rounded-full px-2 py-0.5 shadow-xs">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateCart(item, -1);
+                              }}
+                              className="w-5 h-5 rounded-full hover:bg-[#B85B43] flex items-center justify-center transition"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="font-mono font-bold text-xs px-1">
+                              {qtyInCart}
+                            </span>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 updateCart(item, 1);
                               }}
-                              className="px-5 sm:px-6 py-1 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-xs font-sans font-bold uppercase tracking-wider shadow-2xs transition-all flex items-center justify-center gap-1"
-                              aria-label={`Add ${item.name} to order`}
+                              className="w-5 h-5 rounded-full hover:bg-[#B85B43] flex items-center justify-center transition"
                             >
-                              ADD
+                              <Plus className="w-3 h-3" />
                             </button>
-                          ) : (
-                            <div className="flex items-center justify-center gap-2 bg-[#261C18] text-[#FBF9F5] rounded-full px-2.5 py-0.5 shadow-xs">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  updateCart(item, -1);
-                                }}
-                                className="w-5 h-5 rounded-full hover:bg-[#B85B43] flex items-center justify-center transition"
-                                aria-label="Decrease quantity"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="font-mono font-bold text-xs px-1">
-                                {qtyInCart}
-                              </span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  updateCart(item, 1);
-                                }}
-                                className="w-5 h-5 rounded-full hover:bg-[#B85B43] flex items-center justify-center transition"
-                                aria-label="Increase quantity"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
-      )}
+      </main>
 
-      {/* Floating Bottom Bar (Cart Drawer Trigger) */}
-      {totalCartCount > 0 && activeTab === "MENU" && (
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="fixed bottom-6 left-4 right-4 z-40 max-w-xl mx-auto"
-        >
+      {/* Floating Bottom Bar: Review & Send Order */}
+      {totalCartCount > 0 && (
+        <div className="fixed bottom-5 left-4 right-4 z-40 max-w-lg mx-auto">
           <button
             onClick={() => setShowCartDrawer(true)}
-            className="w-full py-4 px-6 rounded-2xl bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] font-bold text-sm uppercase tracking-wider shadow-[0_10px_30px_rgba(38,28,24,0.25)] flex items-center justify-between transition-all transform hover:scale-[1.01] active:scale-[0.99]"
+            className="w-full py-3.5 px-5 rounded-2xl bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] font-bold text-sm uppercase tracking-wider shadow-xl flex items-center justify-between transition-all transform active:scale-[0.99]"
           >
-            <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-[#FBF9F5] text-[#261C18] flex items-center justify-center font-mono font-extrabold text-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-full bg-[#FBF9F5] text-[#261C18] flex items-center justify-center font-mono font-black text-xs">
                 {totalCartCount}
               </span>
-              <span>REVIEW & SEND TO KITCHEN</span>
+              <span>CONFIRM ORDER</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-base font-extrabold">₹{totalCartPrice}</span>
-              <ChevronRight className="w-5 h-5" />
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono text-base font-bold">₹{totalCartPrice}</span>
+              <ChevronRight className="w-4 h-4" />
             </div>
           </button>
-        </motion.div>
+        </div>
       )}
 
       {/* Cart Review Drawer */}
@@ -715,31 +504,31 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                   <div className="flex items-center gap-2">
                     <UtensilsCrossed className="w-5 h-5 text-[#B85B43]" />
                     <h2 className="font-bold text-lg text-[#261C18] uppercase font-serif">
-                      {tableNumber} ORDER DISPATCH
+                      {tableNumber} ORDER
                     </h2>
                   </div>
                   <button
                     onClick={() => setShowCartDrawer(false)}
-                    className="p-2 rounded-full hover:bg-[#E4DCD0]/50 text-stone-600 hover:text-stone-900 transition"
+                    className="p-1.5 rounded-full hover:bg-[#E4DCD0]/50 text-stone-600 transition"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                {/* Items List */}
-                <div className="py-6 space-y-4">
+                {/* Items in Cart */}
+                <div className="py-5 space-y-3">
                   {Object.values(cart).map(({ item, qty }) => (
                     <div
                       key={item.id}
-                      className="p-4 rounded-xl bg-white border border-[#E4DCD0] flex items-center justify-between gap-4"
+                      className="p-3 rounded-xl bg-white border border-[#E4DCD0] flex items-center justify-between gap-3 shadow-2xs"
                     >
                       <div>
-                        <h4 className="font-bold text-sm text-[#261C18]">{item.name}</h4>
+                        <h4 className="font-serif font-bold text-sm text-[#261C18]">{item.name}</h4>
                         <span className="text-xs text-[#B85B43] font-mono font-bold">
                           ₹{item.price} × {qty}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 bg-[#FBF9F5] border border-[#E4DCD0] rounded-lg p-1">
+                      <div className="flex items-center gap-1.5 bg-[#FBF9F5] border border-[#E4DCD0] rounded-lg p-1">
                         <button
                           onClick={() => updateCart(item, -1)}
                           className="p-1 hover:bg-[#E4DCD0]/50 text-[#261C18] rounded"
@@ -761,19 +550,19 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                 </div>
               </div>
 
-              {/* Drawer Footer */}
-              <div className="border-t border-[#E4DCD0] pt-4 space-y-4">
+              {/* Cart Footer */}
+              <div className="border-t border-[#E4DCD0] pt-4 space-y-3">
                 <div className="flex items-center justify-between font-bold">
-                  <span className="text-[#5C4E48] uppercase text-xs tracking-wider">Subtotal</span>
+                  <span className="text-stone-500 uppercase text-xs tracking-wider">Subtotal</span>
                   <span className="text-[#B85B43] font-mono text-lg">₹{totalCartPrice}</span>
                 </div>
 
                 <button
                   onClick={handleSendOrderToKitchen}
-                  className="w-full py-4 rounded-xl bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] font-bold text-sm uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2"
+                  className="w-full py-3.5 rounded-xl bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] font-bold text-sm uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2"
                 >
                   <ShoppingBag className="w-4 h-4" />
-                  <span>CONFIRM & DISPATCH TO KITCHEN</span>
+                  <span>SEND ORDER TO KITCHEN</span>
                 </button>
               </div>
             </motion.div>
@@ -781,7 +570,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         )}
       </AnimatePresence>
 
-      {/* Running Bill Modal */}
+      {/* Live Running Bill Modal */}
       <AnimatePresence>
         {showBillModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -794,21 +583,21 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
             />
 
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               className="relative w-full max-w-md rounded-3xl bg-[#FBF9F5] border border-[#E4DCD0] p-6 shadow-2xl z-10 text-[#261C18]"
             >
-              <div className="flex items-center justify-between border-b border-[#E4DCD0] pb-4">
+              <div className="flex items-center justify-between border-b border-[#E4DCD0] pb-3.5">
                 <div className="flex items-center gap-2">
                   <Receipt className="w-5 h-5 text-[#B85B43]" />
                   <h3 className="font-bold text-lg text-[#261C18] uppercase font-serif">
-                    RUNNING TAB • {tableNumber}
+                    {tableNumber} • RUNNING BILL
                   </h3>
                 </div>
                 <button
                   onClick={() => setShowBillModal(false)}
-                  className="p-2 rounded-full hover:bg-[#E4DCD0]/50 text-stone-600 transition"
+                  className="p-1.5 rounded-full hover:bg-[#E4DCD0]/50 text-stone-600 transition"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -816,29 +605,31 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
               {loadingBill ? (
                 <div className="py-12 text-center text-[#B85B43] font-mono text-xs font-bold">
-                  FETCHING LIVE TAB DETAILS...
+                  FETCHING LIVE BILL DETAILS...
                 </div>
               ) : (
-                <div className="py-6 space-y-4 font-mono text-xs text-[#261C18]">
+                <div className="py-5 space-y-4 font-mono text-xs text-[#261C18]">
                   <div className="flex justify-between border-b border-[#E4DCD0] pb-2">
                     <span>Session Status:</span>
                     <span className="text-[#4A5842] font-bold">{billData?.status || "ACTIVE"}</span>
                   </div>
 
-                  {/* Itemized breakdown */}
+                  {/* Dispatched items */}
                   {billData?.items && billData.items.length > 0 ? (
-                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                       {billData.items.map((it, idx) => (
-                        <div key={idx} className="flex justify-between text-[#5C4E48] text-[11px]">
+                        <div key={idx} className="flex justify-between text-stone-600 text-[11px]">
                           <span>
-                            {it.quantity}x {it.name}
+                            {it.quantity}× {it.name}
                           </span>
-                          <span>₹{it.total}</span>
+                          <span className="font-bold text-[#261C18]">₹{it.total}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-stone-500 italic text-[11px]">No items dispatched yet.</div>
+                    <div className="text-stone-400 italic text-[11px] py-4 text-center">
+                      No items ordered yet for this table.
+                    </div>
                   )}
 
                   <div className="border-t border-[#E4DCD0] pt-3 space-y-1">
@@ -850,7 +641,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                       <span>GST ({( (billData?.tax_rate || 0.05) * 100 ).toFixed(0)}%):</span>
                       <span>₹{billData?.tax_amount.toFixed(2) || "0.00"}</span>
                     </div>
-                    <div className="flex justify-between text-[#B85B43] font-bold text-sm pt-2 border-t border-[#E4DCD0]">
+                    <div className="flex justify-between text-[#B85B43] font-bold text-base pt-2 border-t border-[#E4DCD0]">
                       <span>GRAND TOTAL:</span>
                       <span>₹{billData?.grand_total.toFixed(2) || "0.00"}</span>
                     </div>
@@ -858,16 +649,16 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                 </div>
               )}
 
-              <div className="p-4 rounded-xl bg-[#4A5842]/10 border border-[#4A5842]/20 text-[#261C18] text-xs leading-relaxed flex items-start gap-2">
+              <div className="p-3.5 rounded-xl bg-[#4A5842]/10 border border-[#4A5842]/20 text-[#261C18] text-xs leading-relaxed flex items-start gap-2">
                 <Info className="w-4 h-4 text-[#4A5842] shrink-0 mt-0.5" />
                 <p>
-                  Settlement is completed at your table or counter via Cash, Card, or UPI upon dining conclusion.
+                  You can pay and settle your bill at your table or at the counter upon leaving.
                 </p>
               </div>
 
               <button
                 onClick={() => setShowBillModal(false)}
-                className="w-full mt-6 py-3 rounded-xl bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] font-bold text-xs uppercase tracking-wider transition"
+                className="w-full mt-4 py-3 rounded-xl bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] font-bold text-xs uppercase tracking-wider transition"
               >
                 Close Bill View
               </button>
@@ -878,5 +669,3 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     </div>
   );
 }
-
-
