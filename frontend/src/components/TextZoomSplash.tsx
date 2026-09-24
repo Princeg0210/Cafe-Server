@@ -85,15 +85,15 @@ export default function TextZoomSplash({
           <motion.div
             initial={{ scale: 0.85, opacity: 0 }}
             animate={{
-              scale: phase === "zooming" ? 45 : 1,
-              opacity: phase === "zooming" ? 0.95 : 1,
+              scale: phase === "zooming" ? 22 : 1,
+              opacity: phase === "zooming" ? 0.98 : 1,
             }}
             transition={{
-              duration: phase === "zooming" ? 1.4 : 1.0,
-              ease: phase === "zooming" ? [0.7, 0, 0.84, 0] : [0.16, 1, 0.3, 1],
+              duration: phase === "zooming" ? 1.3 : 1.0,
+              ease: phase === "zooming" ? [0.65, 0, 0.35, 1] : [0.16, 1, 0.3, 1],
             }}
             className="relative transform-gpu will-change-transform"
-            style={{ backfaceVisibility: "hidden" }}
+            style={{ backfaceVisibility: "hidden", transformStyle: "preserve-3d" }}
           >
             {/* Stadium/Capsule Horizontal Pizza Frame matching exact photo */}
             <div className="relative w-[85vw] max-w-[820px] h-[180px] sm:h-[230px] md:h-[270px] rounded-full overflow-hidden shadow-[0_0_100px_rgba(234,140,40,0.3)] border-[3px] border-amber-500/50 bg-[#1a1715] p-1">
@@ -101,7 +101,7 @@ export default function TextZoomSplash({
                 src="/pizza-zoom-intro.jpg"
                 alt="Jaadoo Artisanal Woodfired Pizza"
                 className="w-full h-full object-cover object-center rounded-full transform-gpu"
-                style={{ imageRendering: "auto", backfaceVisibility: "hidden" }}
+                style={{ imageRendering: "-webkit-optimize-contrast", backfaceVisibility: "hidden" }}
               />
             </div>
           </motion.div>
