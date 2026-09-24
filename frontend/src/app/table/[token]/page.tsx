@@ -81,7 +81,7 @@ const ITEM_MEDIA_MAP: Record<string, { image_url: string; badge?: string }> = {
   b2: { image_url: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?auto=format&fit=crop&w=800&q=80", badge: "Sparkling" },
   b3: { image_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=800&q=80", badge: "Cold Brewed" },
   b4: { image_url: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80", badge: "Probiotic Ferment" },
-  b5: { image_url: "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=800&q=80", badge: "Natural Spring" },
+  b5: { image_url: "/images/himalayan_mineral_water.jpg", badge: "Natural Spring" },
   h1: { image_url: "https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=800&q=80", badge: "100% Arabica" },
   h2: { image_url: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=800&q=80", badge: "Himalayan Tisane" },
   h3: { image_url: "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=800&q=80", badge: "Rosehip Infusion" },

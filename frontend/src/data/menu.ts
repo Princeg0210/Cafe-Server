@@ -36,7 +36,7 @@ export const ITEM_MEDIA_MAP: Record<string, { image_url: string; badge: string }
   b2: { image_url: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?auto=format&fit=crop&w=400&q=80", badge: "DIGESTIVE" },
   b3: { image_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=400&q=80", badge: "COLD BREWED" },
   b4: { image_url: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=400&q=80", badge: "PROBIOTIC" },
-  b5: { image_url: "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=400&q=80", badge: "NATURAL SPRING" },
+  b5: { image_url: "/images/himalayan_mineral_water.jpg", badge: "NATURAL SPRING" },
   b6: { image_url: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=400&q=80", badge: "CHILLED" },
   h1: { image_url: "https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=400&q=80", badge: "100% ARABICA" },
   h2: { image_url: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=400&q=80", badge: "MOUNTAIN HERBS" },
