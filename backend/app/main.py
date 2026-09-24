@@ -127,6 +127,12 @@ async def on_startup():
         from app.utils.create_pos_user import create_pos_user
         await create_pos_user()
         logger.info("Default POS user ensured.")
+
+        # Ensure default tables (1 to 12) and their secure TableQR tokens exist
+        async with AsyncSessionLocal() as db:
+            from app.utils.init_tables import ensure_default_tables
+            await ensure_default_tables(db)
+        logger.info("Default tables and QR tokens ensured.")
     except Exception as e:
         logger.warning(f"Database schema auto-init warning: {e}")
 

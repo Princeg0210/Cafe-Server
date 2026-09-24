@@ -115,6 +115,21 @@ class TableService:
         qr = qr_res.scalar_one_or_none()
 
         if not qr:
+            from app.utils.init_tables import DEFAULT_TABLES, ensure_default_tables
+            matched_dt = next(
+                (dt for dt in DEFAULT_TABLES if dt["qr_token"] == qr_token),
+                None,
+            )
+            if matched_dt:
+                await ensure_default_tables(db)
+                qr_stmt2 = select(TableQR).where(
+                    TableQR.qr_token == matched_dt["qr_token"],
+                    TableQR.is_active == True,
+                )
+                qr2_res = await db.execute(qr_stmt2)
+                qr = qr2_res.scalars().first()
+
+        if not qr:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="INVALID_QR_TOKEN: QR token is invalid, expired, or rotated.",
