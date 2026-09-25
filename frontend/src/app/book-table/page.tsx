@@ -66,6 +66,7 @@ const FLOORS = [
 ];
 
 const ADVANCE_PER_GUEST = 200; // ₹200 deposit per person, 100% adjustable against dining tab
+const DEFAULT_MERCHANT_UPI_ID = "9460555743-2@ybl";
 
 interface UnavailableTable {
   floor_number: number;
@@ -105,6 +106,7 @@ export default function BookTablePage() {
   const [showUpiModal, setShowUpiModal] = useState(false);
   const [upiUtr, setUpiUtr] = useState("");
   const [customerVpa, setCustomerVpa] = useState("");
+  const [heldUpiId, setHeldUpiId] = useState<string>(DEFAULT_MERCHANT_UPI_ID);
   const [isVerifyingUpi, setIsVerifyingUpi] = useState(false);
   const [isCopiedUpi, setIsCopiedUpi] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -247,6 +249,7 @@ export default function BookTablePage() {
       const holdData = await res.json();
       setHeldReservationId(holdData.reservation_id);
       setHoldExpiresAt(holdData.hold_expires_at);
+      setHeldUpiId(holdData.upi_id || DEFAULT_MERCHANT_UPI_ID);
       setSecondsRemaining(holdData.seconds_remaining || 420);
       setUpiUri(holdData.upi_uri);
 
@@ -336,7 +339,7 @@ export default function BookTablePage() {
   };
 
   const handleCopyUpi = () => {
-    navigator.clipboard.writeText("jaadoo.udaipur@icici");
+    navigator.clipboard.writeText(heldUpiId || DEFAULT_MERCHANT_UPI_ID);
     setIsCopiedUpi(true);
     setTimeout(() => setIsCopiedUpi(false), 2000);
   };
@@ -939,7 +942,7 @@ export default function BookTablePage() {
                           </label>
                           <div className="flex items-center gap-1.5">
                             <code className="text-xs font-mono bg-white border border-gray-200 px-2.5 py-1.5 rounded-xl font-bold text-[#24150e] select-all">
-                              jaadoo.udaipur@icici
+                              {heldUpiId || DEFAULT_MERCHANT_UPI_ID}
                             </code>
                             <button
                               type="button"

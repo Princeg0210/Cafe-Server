@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # Merchant UPI Payment Settings (Direct to bank, 0% commission)
-    MERCHANT_UPI_ID: str = "jaadoo.udaipur@icici"
+    MERCHANT_UPI_ID: str = "9460555743-2@ybl"
     MERCHANT_NAME: str = "Jaadoo Cafe Piza"
 
     # CORS

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CreditCard, QrCode, ShieldCheck, CheckCircle2, ArrowRight, Smartphone } from "lucide-react";
+import { X, CreditCard, QrCode, ShieldCheck, CheckCircle2, ArrowRight, Smartphone, Copy, Check, ExternalLink } from "lucide-react";
+import QRCode from "qrcode";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -10,6 +11,9 @@ interface PaymentModalProps {
   totalAmount: number;
   onPaymentSuccess: () => void;
 }
+
+const MERCHANT_UPI_ID = "9460555743-2@ybl";
+const MERCHANT_NAME = "Jaadoo Cafe Piza";
 
 export default function PaymentModal({
   isOpen,
@@ -19,8 +23,30 @@ export default function PaymentModal({
 }: PaymentModalProps) {
   const [method, setMethod] = useState<"upi" | "card" | "qr">("upi");
   const [upiId, setUpiId] = useState("");
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+  const [isCopied, setIsCopied] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
+
+  const upiUri = `upi://pay?pa=${MERCHANT_UPI_ID}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${totalAmount.toFixed(2)}&cu=INR&tn=Order_Payment`;
+
+  useEffect(() => {
+    if (isOpen && method === "qr") {
+      QRCode.toDataURL(upiUri, {
+        width: 280,
+        margin: 2,
+        color: { dark: "#261C18", light: "#ffffff" },
+      })
+        .then((url) => setQrCodeDataUrl(url))
+        .catch((err) => console.error("QR Generation error:", err));
+    }
+  }, [isOpen, method, totalAmount, upiUri]);
+
+  const handleCopyUpi = () => {
+    navigator.clipboard.writeText(MERCHANT_UPI_ID);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
 
   const handlePayNow = (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,12 +181,44 @@ export default function PaymentModal({
 
                   {method === "qr" && (
                     <div className="bg-[#F6F3EC] p-5 rounded-2xl border border-[#E4DCD0] text-center space-y-3">
-                      <div className="w-36 h-36 bg-[#261C18] text-[#FBF9F5] rounded-2xl mx-auto flex items-center justify-center p-2 border border-[#B85B43]/50">
-                        <QrCode className="w-28 h-28 text-[#B85B43]" />
+                      <div className="w-44 h-44 bg-white rounded-2xl mx-auto flex items-center justify-center p-2 border border-[#E4DCD0] shadow-sm">
+                        {qrCodeDataUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={qrCodeDataUrl}
+                            alt={`UPI QR for ${MERCHANT_UPI_ID}`}
+                            className="w-40 h-40 object-contain rounded-xl"
+                          />
+                        ) : (
+                          <div className="w-40 h-40 bg-stone-100 rounded-xl flex items-center justify-center animate-pulse">
+                            <QrCode className="w-16 h-16 text-[#B85B43]/50" />
+                          </div>
+                        )}
                       </div>
-                      <p className="text-xs text-stone-600 font-sans">
-                        Scan with any UPI app to pay <strong className="text-[#261C18]">₹{totalAmount}</strong>
+                      <p className="text-xs text-stone-700 font-sans">
+                        Scan with GPay, PhonePe, Paytm, BHIM to pay <strong className="text-[#261C18]">₹{totalAmount}</strong>
                       </p>
+                      <div className="flex items-center justify-center gap-2 pt-1">
+                        <code className="text-[11px] font-mono bg-white border border-[#E4DCD0] px-2.5 py-1 rounded-lg font-bold text-[#261C18]">
+                          {MERCHANT_UPI_ID}
+                        </code>
+                        <button
+                          type="button"
+                          onClick={handleCopyUpi}
+                          className="px-2 py-1 bg-white border border-[#E4DCD0] rounded-lg text-[10px] font-bold text-stone-700 hover:bg-stone-50 flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          {isCopied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                          <span>{isCopied ? "Copied" : "Copy"}</span>
+                        </button>
+                      </div>
+                      <a
+                        href={upiUri}
+                        className="inline-flex items-center justify-center gap-1.5 w-full bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-xs"
+                      >
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>Pay via UPI App (Mobile)</span>
+                        <ExternalLink className="w-3 h-3 ml-0.5 opacity-80" />
+                      </a>
                     </div>
                   )}
 
