@@ -16,9 +16,11 @@ from app.models.supplier import Supplier, PurchaseOrder, PurchaseOrderItem
 from app.models.notification import Notification
 from app.models.feedback import Feedback
 from app.models.audit import AuditLog
+from app.models.bank_transaction import VerifiedBankCredit
 
 __all__ = [
     "Base",
+    "VerifiedBankCredit",
     "User",
     "Role",
     "Permission",

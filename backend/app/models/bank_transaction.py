@@ -1,0 +1,28 @@
+import datetime
+from decimal import Decimal
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.core.database import Base
+from app.utils.helpers import utc_now
+
+
+class VerifiedBankCredit(Base):
+    """
+    Independently verified bank/acquirer payment credits.
+    Only trusted sources (Bank Webhook, Payment Gateway, or Authenticated Staff Reconciliation)
+    can create records in this table. Customer-supplied inputs can NEVER write to this table.
+    """
+    __tablename__ = "verified_bank_credits"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    utr: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    merchant_vpa: Mapped[str] = mapped_column(String(100), nullable=False)
+    payer_vpa: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="SETTLED", nullable=False)  # SETTLED, FAILED
+    provider_source: Mapped[str] = mapped_column(String(50), nullable=False)  # BANK_WEBHOOK, RAZORPAY_WEBHOOK, CASHFREE, STAFF_VERIFIED
+    verified_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    is_claimed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    claimed_reservation_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("reservations.id", ondelete="SET NULL"), nullable=True)
+
+    claimed_reservation = relationship("Reservation", foreign_keys=[claimed_reservation_id], lazy="selectin")

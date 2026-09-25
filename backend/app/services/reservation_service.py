@@ -3,6 +3,7 @@ from typing import Optional, List
 from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
+from app.core.config import settings
 from app.models.reservation import Reservation, ReservationCapacityRule
 from app.models.customer import Customer
 from app.models.table import Table
@@ -18,7 +19,8 @@ from app.workers.celery_app import celery_app, send_reservation_reminder
 
 # Strict Allowed State Machine Map
 ALLOWED_STATE_TRANSITIONS = {
-    "HOLD": {"CONFIRMED", "CANCELLED", "EXPIRED"},
+    "HOLD": {"PAYMENT_PENDING", "CONFIRMED", "CANCELLED", "EXPIRED"},
+    "PAYMENT_PENDING": {"CONFIRMED", "CANCELLED", "EXPIRED"},
     "PENDING": {"CONFIRMED", "CANCELLED", "EXPIRED"},
     "CONFIRMED": {"ARRIVED", "CANCELLED", "NO_SHOW"},
     "ARRIVED": {"SEATED", "CANCELLED"},
@@ -331,7 +333,7 @@ class ReservationService:
         """
         now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
         stmt = select(Reservation).where(
-            Reservation.status == "HOLD",
+            Reservation.status.in_(["HOLD", "PAYMENT_PENDING"]),
             Reservation.hold_expires_at <= now,
         )
         res = await db.execute(stmt)
@@ -362,19 +364,19 @@ class ReservationService:
             Reservation.time_slot == data.time_slot,
             Reservation.floor_number == data.floor_number,
             Reservation.table_name == data.table_name,
-            Reservation.status.in_(["HOLD", "CONFIRMED", "ARRIVED", "SEATED"]),
+            Reservation.status.in_(["HOLD", "PAYMENT_PENDING", "CONFIRMED", "ARRIVED", "SEATED"]),
         )
         conflict_res = await db.execute(conflict_query)
         conflict = conflict_res.scalar_one_or_none()
 
         if conflict:
-            if conflict.status == "HOLD" and conflict.hold_expires_at and conflict.hold_expires_at > now:
+            if conflict.status in ["HOLD", "PAYMENT_PENDING"] and conflict.hold_expires_at and conflict.hold_expires_at > now:
                 remaining = int((conflict.hold_expires_at - now).total_seconds())
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"SLOT_HELD: {data.table_name} on Floor {data.floor_number} is currently held by another guest. Hold expires in {remaining}s.",
                 )
-            elif conflict.status != "HOLD":
+            elif conflict.status not in ["HOLD", "PAYMENT_PENDING"]:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"SLOT_BOOKED: {data.table_name} on Floor {data.floor_number} is already confirmed for {data.time_slot}.",
@@ -471,26 +473,37 @@ class ReservationService:
         db: AsyncSession, reservation_id: int, data: ReservationVerifyUpiRequest
     ) -> Reservation:
         """
-        Verifies customer UPI payment (using UTR/Transaction reference) while hold is valid.
-        Transitions reservation from HOLD -> CONFIRMED, payment_status -> PAID, officially locking the table.
+        Verifies customer UPI payment.
+        VULNERABILITY FIX: Customer-entered UTR NEVER self-confirms reservations.
+        Confirmation strictly requires independent bank/acquirer settlement verification.
+        UTR is recorded as a customer reconciliation reference while status is transitioned
+        to PAYMENT_PENDING until verified bank credit arrives or hold elapses.
         """
         from sqlalchemy.orm import selectinload
+        from app.services.payment_verification_service import PaymentVerificationService
 
-        # First clean up expired holds
+        # 1. Clean up expired holds
         await ReservationService.cleanup_expired_holds(db)
 
-        stmt = select(Reservation).options(selectinload(Reservation.customer)).where(Reservation.id == reservation_id)
+        # 2. Acquire atomic row-level lock on the reservation to prevent race conditions & double-confirm
+        stmt = (
+            select(Reservation)
+            .options(selectinload(Reservation.customer))
+            .where(Reservation.id == reservation_id)
+            .with_for_update()
+        )
         res = await db.execute(stmt)
         reservation = res.scalar_one_or_none()
 
         if not reservation:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
 
+        # Idempotent return if already confirmed
         if reservation.status == "CONFIRMED":
             return reservation
 
         now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
-        if reservation.status == "HOLD" and reservation.hold_expires_at and reservation.hold_expires_at <= now:
+        if reservation.status in ["HOLD", "PAYMENT_PENDING"] and reservation.hold_expires_at and reservation.hold_expires_at <= now:
             reservation.status = "EXPIRED"
             reservation.payment_status = "EXPIRED"
             await db.commit()
@@ -499,7 +512,7 @@ class ReservationService:
                 detail="HOLD_EXPIRED: Temporary hold elapsed before payment was verified. The table slot has been released.",
             )
 
-        if reservation.status not in ["HOLD", "PENDING"]:
+        if reservation.status not in ["HOLD", "PAYMENT_PENDING", "PENDING"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Cannot confirm reservation in status '{reservation.status}'.",
@@ -512,13 +525,14 @@ class ReservationService:
                 detail="INVALID_UTR: Please enter a valid UPI reference number / 12-digit UTR.",
             )
 
-        # Check if this UTR has already been used by another reservation (prevent replay attacks / UTR exhaustion)
+        # 3. Check if this UTR has already been confirmed/used by another reservation (prevent replay attacks)
         existing_utr_stmt = select(Reservation).where(
             Reservation.id != reservation.id,
             or_(
                 func.lower(Reservation.upi_utr) == clean_utr.lower(),
                 func.lower(Reservation.payment_reference) == clean_utr.lower(),
             ),
+            Reservation.payment_status == "PAID",
         )
         existing_utr_res = await db.execute(existing_utr_stmt)
         existing_booking = existing_utr_res.scalars().first()
@@ -528,11 +542,28 @@ class ReservationService:
                 detail=f"UTR_ALREADY_USED: This UPI Reference / UTR '{clean_utr}' has already been used and exhausted for Booking #{existing_booking.id}. Each table reservation requires its own unique payment transaction.",
             )
 
-        # Transition to CONFIRMED & PAID
-        reservation.status = "CONFIRMED"
-        reservation.payment_status = "PAID"
+        # 4. Transition to PAYMENT_PENDING and record customer UTR as reconciliation reference
+        reservation.status = "PAYMENT_PENDING"
+        reservation.payment_status = "PENDING_VERIFICATION"
         reservation.payment_reference = clean_utr
         reservation.upi_utr = clean_utr
+        await db.flush()
+
+        # 5. Strictly verify against trusted independent bank credit ledger
+        try:
+            await PaymentVerificationService.verify_and_claim_credit(
+                db=db,
+                reservation=reservation,
+                utr=clean_utr,
+            )
+        except HTTPException:
+            # Persist PAYMENT_PENDING and customer UTR for reconciliation; hold remains active until expiration
+            await db.commit()
+            raise
+
+        # 6. Authentic bank credit confirmed! Transition to CONFIRMED & PAID
+        reservation.status = "CONFIRMED"
+        reservation.payment_status = "PAID"
         reservation.hold_expires_at = None
 
         await db.commit()
@@ -562,7 +593,7 @@ class ReservationService:
         if not reservation:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
 
-        if reservation.status == "HOLD":
+        if reservation.status in ["HOLD", "PAYMENT_PENDING"]:
             reservation.status = "CANCELLED"
             reservation.payment_status = "CANCELLED"
             reservation.hold_expires_at = None
@@ -576,7 +607,7 @@ class ReservationService:
         db: AsyncSession, branch_id: int, reservation_date: datetime.date, time_slot: str
     ) -> List[dict]:
         """
-        Returns list of tables currently occupied or on active HOLD for the given date and time slot.
+        Returns list of tables currently occupied or on active HOLD / PAYMENT_PENDING for the given date and time slot.
         """
         await ReservationService.cleanup_expired_holds(db)
         now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
@@ -585,14 +616,14 @@ class ReservationService:
             Reservation.branch_id == branch_id,
             Reservation.reservation_date == reservation_date,
             Reservation.time_slot == time_slot,
-            Reservation.status.in_(["HOLD", "CONFIRMED", "ARRIVED", "SEATED"]),
+            Reservation.status.in_(["HOLD", "PAYMENT_PENDING", "CONFIRMED", "ARRIVED", "SEATED"]),
         )
         res = await db.execute(stmt)
         active_res = res.scalars().all()
 
         unavailable = []
         for r in active_res:
-            is_held = r.status == "HOLD" and r.hold_expires_at and r.hold_expires_at > now
+            is_held = r.status in ["HOLD", "PAYMENT_PENDING"] and r.hold_expires_at and r.hold_expires_at > now
             if r.status in ["CONFIRMED", "ARRIVED", "SEATED"] or is_held:
                 unavailable.append({
                     "floor_number": r.floor_number,
@@ -601,4 +632,97 @@ class ReservationService:
                     "seconds_remaining": int((r.hold_expires_at - now).total_seconds()) if is_held and r.hold_expires_at else 0,
                 })
         return unavailable
+
+    @staticmethod
+    async def process_bank_webhook(
+        db: AsyncSession,
+        utr: str,
+        amount: float,
+        merchant_vpa: str = settings.MERCHANT_UPI_ID,
+        payer_vpa: Optional[str] = None,
+        tx_status: str = "SETTLED",
+        provider_source: str = "BANK_WEBHOOK",
+    ) -> dict:
+        """
+        Receives authentic credit notification from bank/payment gateway.
+        Records the verified credit in the database and automatically confirms
+        any reservation waiting in PAYMENT_PENDING for this UTR.
+        """
+        from decimal import Decimal
+        from app.services.payment_verification_service import PaymentVerificationService
+
+        clean_utr = utr.strip().replace(" ", "").replace("-", "")
+        credit = await PaymentVerificationService.record_verified_bank_credit(
+            db=db,
+            utr=clean_utr,
+            amount=amount,
+            merchant_vpa=merchant_vpa,
+            payer_vpa=payer_vpa,
+            tx_status=tx_status,
+            provider_source=provider_source,
+        )
+
+        # Check if there is a reservation in PAYMENT_PENDING waiting for this UTR
+        stmt = (
+            select(Reservation)
+            .where(
+                Reservation.status == "PAYMENT_PENDING",
+                func.lower(Reservation.upi_utr) == clean_utr.lower(),
+            )
+            .with_for_update()
+        )
+        res = await db.execute(stmt)
+        reservation = res.scalars().first()
+
+        confirmed_reservation_id = None
+        if reservation and not credit.is_claimed and tx_status == "SETTLED":
+            if credit.amount >= Decimal(str(reservation.advance_amount or 0.0)):
+                credit.is_claimed = True
+                credit.claimed_reservation_id = reservation.id
+                reservation.status = "CONFIRMED"
+                reservation.payment_status = "PAID"
+                reservation.hold_expires_at = None
+                await db.commit()
+                confirmed_reservation_id = reservation.id
+
+        return {
+            "status": "SUCCESS",
+            "utr": clean_utr,
+            "credit_id": credit.id,
+            "confirmed_reservation_id": confirmed_reservation_id,
+        }
+
+    @staticmethod
+    async def staff_verify_payment(
+        db: AsyncSession,
+        reservation_id: int,
+        utr: str,
+        staff_username: str,
+    ) -> Reservation:
+        """
+        Allows authorized staff/cashier to reconcile payment from merchant bank app/soundbox,
+        recording an authorized bank credit and confirming the reservation.
+        """
+        from app.services.payment_verification_service import PaymentVerificationService
+
+        clean_utr = utr.strip().replace(" ", "").replace("-", "")
+        stmt = select(Reservation).where(Reservation.id == reservation_id).with_for_update()
+        res = await db.execute(stmt)
+        reservation = res.scalars().first()
+        if not reservation:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
+
+        advance = float(reservation.advance_amount or 0.0)
+        await PaymentVerificationService.record_verified_bank_credit(
+            db=db,
+            utr=clean_utr,
+            amount=advance,
+            provider_source=f"STAFF_VERIFIED:{staff_username}",
+            tx_status="SETTLED",
+        )
+        return await ReservationService.verify_upi_payment(
+            db=db,
+            reservation_id=reservation_id,
+            data=ReservationVerifyUpiRequest(upi_utr=clean_utr),
+        )
 

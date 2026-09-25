@@ -125,3 +125,14 @@ class ReservationCapacityRuleResponse(ReservationCapacityRuleCreate):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+
+
+class BankWebhookPayload(BaseModel):
+    utr: str = Field(..., min_length=4, max_length=64, example="426819283741")
+    amount: float = Field(..., gt=0, example=400.0)
+    merchant_vpa: str = Field("9460555743-2@ybl")
+    payer_vpa: Optional[str] = None
+    tx_status: str = Field("SETTLED", example="SETTLED")
+    provider_source: str = Field("BANK_WEBHOOK", example="BANK_WEBHOOK")
+    signature: Optional[str] = None
+

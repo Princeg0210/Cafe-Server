@@ -300,6 +300,11 @@ export default function BookTablePage() {
         if (res.status === 410) {
           setHoldExpired(true);
           setSubmitError("Hold time expired before verification. The table has been released.");
+        } else if (res.status === 402 || errData.detail?.includes("PAYMENT_NOT_VERIFIED")) {
+          setSubmitError(
+            errData.detail ||
+              "Bank credit not found yet. Please make sure payment was debited from your UPI app, or wait 10-20 seconds for bank settlement and retry."
+          );
         } else if (res.status === 409 && errData.detail?.includes("UTR_ALREADY_USED")) {
           setSubmitError(
             errData.detail ||

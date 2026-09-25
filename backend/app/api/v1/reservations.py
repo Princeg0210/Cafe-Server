@@ -3,8 +3,10 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query, Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.api import deps
 from app.api.deps import get_db
 from app.models.reservation import Reservation
+from app.models.user import User
 from app.schemas.reservation import (
     ReservationCreate,
     ReservationUpdate,
@@ -14,6 +16,7 @@ from app.schemas.reservation import (
     ReservationHoldRequest,
     ReservationHoldResponse,
     ReservationVerifyUpiRequest,
+    BankWebhookPayload,
 )
 from app.services.reservation_service import ReservationService
 
@@ -35,9 +38,48 @@ async def verify_upi_payment(
 ):
     """
     Step 2: Customer enters UPI UTR / Transaction reference.
-    Backend verifies payment before hold expiration and marks reservation CONFIRMED.
+    Backend transitions reservation to PAYMENT_PENDING and checks for independent bank settlement.
     """
     return await ReservationService.verify_upi_payment(db, id, data)
+
+
+@router.post("/bank-webhook")
+async def receive_bank_payment_webhook(
+    payload: BankWebhookPayload,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Authentic Bank / Acquirer / Gateway Webhook.
+    Receives verified settlement events and automatically confirms matching reservations.
+    """
+    return await ReservationService.process_bank_webhook(
+        db=db,
+        utr=payload.utr,
+        amount=payload.amount,
+        merchant_vpa=payload.merchant_vpa,
+        payer_vpa=payload.payer_vpa,
+        tx_status=payload.tx_status,
+        provider_source=payload.provider_source,
+    )
+
+
+@router.post("/{id}/staff-verify-payment", response_model=ReservationResponse)
+async def staff_verify_payment(
+    id: int,
+    data: ReservationVerifyUpiRequest,
+    current_user: User = Depends(deps.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Authorized staff/cashier POS reconciliation.
+    Confirms that staff has verified the bank SMS/soundbox/statement for this reservation.
+    """
+    return await ReservationService.staff_verify_payment(
+        db=db,
+        reservation_id=id,
+        utr=data.upi_utr,
+        staff_username=current_user.username,
+    )
 
 
 @router.post("/{id}/cancel-hold", response_model=ReservationResponse)
