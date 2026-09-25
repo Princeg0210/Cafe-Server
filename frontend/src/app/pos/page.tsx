@@ -374,26 +374,20 @@ export default function POSDashboard() {
     setLoginPassword("");
   };
 
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
+  const getLocalDateString = (offsetDays = 0) => {
+    const d = new Date();
+    if (offsetDays !== 0) d.setDate(d.getDate() + offsetDays);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}`;
-  });
+  };
 
-  const isTodaySelected = (() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    return selectedDate === `${yyyy}-${mm}-${dd}`;
-  })();
+  const [selectedDate, setSelectedDate] = useState<string>(() => getLocalDateString(0));
 
-  const isFutureDateSelected = (() => {
-    const todayStr = new Date().toISOString().split("T")[0];
-    return selectedDate > todayStr;
-  })();
+  const isTodaySelected = selectedDate === getLocalDateString(0);
+
+  const isFutureDateSelected = selectedDate > getLocalDateString(0);
 
   const fetchData = async (overrideToken?: string, dateStr?: string) => {
     const tok = overrideToken || posToken;
@@ -956,56 +950,56 @@ export default function POSDashboard() {
       {/* Top Editorial Bar */}
       <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0] shadow-xs px-4 sm:px-8 py-3.5">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+          {/* Header Brand */}
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3 group">
+            <Link href="/" className="flex items-center gap-2.5 group">
               <div className="w-9 h-9 rounded-full bg-[#261C18] flex items-center justify-center text-[#FBF9F5] border border-[#B85B43]/40 group-hover:border-[#B85B43] transition-all shadow-xs">
                 <span className="font-serif italic font-bold text-lg text-[#B85B43]">J</span>
               </div>
               <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="font-serif font-extrabold text-xl leading-none text-[#261C18]">
-                    JAADOO <span className="font-serif italic font-normal text-lg text-[#B85B43]">POS</span>
-                  </span>
-
-                  {/* Date Selector Dropdown Pill */}
-                  <div className="flex items-center gap-1 bg-[#261C18] text-[#FBF9F5] px-2.5 py-1 rounded-full border border-[#B85B43]/50 shadow-xs">
-                    <Calendar className="w-3 h-3 text-[#B85B43]" />
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      className="bg-transparent text-[11px] font-sans font-bold uppercase tracking-wider text-[#FBF9F5] focus:outline-none cursor-pointer"
-                    />
-                    {!isTodaySelected && (
-                      <button
-                        onClick={() => {
-                          const today = new Date();
-                          const yyyy = today.getFullYear();
-                          const mm = String(today.getMonth() + 1).padStart(2, "0");
-                          const dd = String(today.getDate()).padStart(2, "0");
-                          setSelectedDate(`${yyyy}-${mm}-${dd}`);
-                        }}
-                        className="ml-1 text-[9px] font-sans font-bold px-1.5 py-0.5 rounded bg-[#B85B43] text-white hover:bg-[#A84E38] transition-colors uppercase"
-                        title="Return to Today"
-                      >
-                        Today
-                      </button>
-                    )}
-                  </div>
-
-                  {currentTime && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider bg-[#261C18] text-[#FBF9F5] border border-[#B85B43]/40 shadow-xs flex items-center gap-1.5">
-                      <Clock className="w-3 h-3 text-[#B85B43]" />
-                      <span>{currentTime}</span>
-                    </span>
-                  )}
-                </div>
+                <span className="font-serif font-extrabold text-xl leading-none text-[#261C18]">
+                  JAADOO <span className="font-serif italic font-normal text-lg text-[#B85B43]">POS</span>
+                </span>
                 <span className="text-[9px] font-sans tracking-[0.2em] text-[#4A5842] uppercase font-semibold mt-0.5 flex items-center gap-1.5">
                   <span className={`h-2 w-2 rounded-full ${isConnected ? "bg-[#4A5842] animate-pulse" : "bg-rose-500"}`} />
-                  {isConnected ? "Live POS Terminal Active" : "Reconnecting to Terminal..."}
+                  {isConnected ? "Live POS Active" : "Reconnecting..."}
                 </span>
               </div>
             </Link>
+
+            {/* Header Date Picker Pill */}
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-[#1C1512] text-[#FBF9F5] px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-[#B85B43]/70 shadow-xs">
+              <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="hidden md:inline text-[11px] font-sans font-bold uppercase tracking-wider text-amber-200/90">Date:</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent text-xs font-mono font-bold uppercase tracking-wider text-white focus:outline-none cursor-pointer [color-scheme:dark] max-w-[125px]"
+                title="Filter POS by date"
+              />
+              {!isTodaySelected ? (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(getLocalDateString(0))}
+                  className="ml-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-[#B85B43] hover:bg-[#A84E38] text-white transition-colors uppercase cursor-pointer"
+                  title="Return to Today"
+                >
+                  Today
+                </button>
+              ) : (
+                <span className="hidden sm:inline ml-1 text-[9px] font-sans font-bold px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 uppercase">
+                  Today
+                </span>
+              )}
+            </div>
+
+            {currentTime && (
+              <span className="hidden md:flex px-2.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider bg-[#261C18] text-[#FBF9F5] border border-[#B85B43]/40 shadow-xs items-center gap-1.5">
+                <Clock className="w-3 h-3 text-[#B85B43]" />
+                <span>{currentTime}</span>
+              </span>
+            )}
           </div>
 
           {/* Real-time Order Popup Notification */}
@@ -1178,6 +1172,106 @@ export default function POSDashboard() {
                   {summary?.peak_hour || "N/A"}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Dedicated Operations Date Control Bar */}
+          <div className="mt-6 pt-5 border-t border-[#E4DCD0]/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="flex items-center gap-2 text-xs font-sans font-bold uppercase tracking-wider text-amber-200">
+                <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Operational Date:</span>
+              </span>
+
+              {/* Main Calendar Input */}
+              <div className="flex items-center gap-2 bg-[#1C1512] px-3.5 py-1.5 rounded-xl border-2 border-[#B85B43] shadow-md hover:border-[#D97055] transition-colors">
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="bg-transparent text-sm font-mono font-bold text-white focus:outline-none cursor-pointer [color-scheme:dark]"
+                  title="Choose any business date"
+                />
+              </div>
+
+              {/* Quick 1-Click Date Switchers */}
+              <div className="flex items-center gap-1 bg-[#1C1512]/90 p-1 rounded-xl border border-[#E4DCD0]/20 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(getLocalDateString(0))}
+                  className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                    isTodaySelected
+                      ? "bg-[#B85B43] text-white shadow-xs"
+                      : "text-stone-300 hover:text-white hover:bg-stone-800"
+                  }`}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(getLocalDateString(-1))}
+                  className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                    selectedDate === getLocalDateString(-1)
+                      ? "bg-[#B85B43] text-white shadow-xs font-bold"
+                      : "text-stone-300 hover:text-white hover:bg-stone-800"
+                  }`}
+                >
+                  Yesterday
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(getLocalDateString(-2))}
+                  className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                    selectedDate === getLocalDateString(-2)
+                      ? "bg-[#B85B43] text-white shadow-xs font-bold"
+                      : "text-stone-300 hover:text-white hover:bg-stone-800"
+                  }`}
+                >
+                  2 Days Ago
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(getLocalDateString(1))}
+                  className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                    selectedDate === getLocalDateString(1)
+                      ? "bg-[#B85B43] text-white shadow-xs font-bold"
+                      : "text-stone-300 hover:text-white hover:bg-stone-800"
+                  }`}
+                >
+                  Tomorrow
+                </button>
+              </div>
+            </div>
+
+            {/* Active Shift Indicator & Return Button */}
+            <div className="flex items-center gap-3">
+              <div className="text-xs font-sans text-stone-300 flex items-center gap-2">
+                <span>Active Date:</span>
+                <span className="font-mono font-bold text-amber-300 text-sm bg-[#1C1512] px-2.5 py-1 rounded-lg border border-[#E4DCD0]/20">
+                  {selectedDate}
+                </span>
+                {isTodaySelected ? (
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-900/90 text-emerald-300 border border-emerald-500/40 uppercase">
+                    Live Shift
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-900/90 text-amber-300 border border-amber-500/40 uppercase">
+                    {isFutureDateSelected ? "Future Booking" : "Historical"}
+                  </span>
+                )}
+              </div>
+
+              {!isTodaySelected && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(getLocalDateString(0))}
+                  className="text-xs font-bold px-3.5 py-1.5 rounded-full bg-[#B85B43] hover:bg-[#A84E38] text-white transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  title="Return to today's live shift"
+                >
+                  <RotateCw className="w-3.5 h-3.5" />
+                  <span>Return to Today</span>
+                </button>
+              )}
             </div>
           </div>
         </section>
