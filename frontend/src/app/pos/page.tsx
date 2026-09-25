@@ -532,6 +532,41 @@ export default function POSDashboard() {
     }
   };
 
+  const [isResettingAll, setIsResettingAll] = useState(false);
+
+  const handleResetAllSessions = async () => {
+    if (!posToken) {
+      alert("Staff session expired. Please sign in again.");
+      return;
+    }
+    if (!confirm("⚠️ Are you sure you want to RESET ALL POS SESSIONS?\n\nThis will close all active table sessions and mark all tables as Available immediately.")) {
+      return;
+    }
+    setIsResettingAll(true);
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pos/sessions/reset-all`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${posToken}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || "Successfully reset all active table sessions. All tables are now Available.");
+        await Promise.all([fetchData(), fetchReservations()]);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed to reset sessions: ${err.detail || "Server error"}`);
+      }
+    } catch {
+      alert("Network error: Could not reach café backend server.");
+    } finally {
+      setIsResettingAll(false);
+    }
+  };
+
   const toggleSession = (sessionId: number) => {
     setExpandedSessions((prev) => ({
       ...prev,
@@ -877,7 +912,18 @@ export default function POSDashboard() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetAllSessions}
+                  disabled={isResettingAll}
+                  className="px-3.5 py-1.5 rounded-full bg-rose-700 hover:bg-rose-800 text-white text-xs font-sans font-semibold flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+                  title="Reset all active table sessions & mark tables as available"
+                >
+                  <RotateCw className={`w-3.5 h-3.5 ${isResettingAll ? "animate-spin" : ""}`} />
+                  <span>{isResettingAll ? "Resetting..." : "Reset All Sessions"}</span>
+                </button>
+
                 <div className="flex items-center gap-1 bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
                   {(["all", "active", "available"] as const).map((mode) => (
                     <button

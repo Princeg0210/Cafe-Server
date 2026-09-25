@@ -81,3 +81,11 @@ async def settle_table(
     current_user: User = Depends(require_permission("pos:access")),
 ):
     return await POSService.settle_table_by_id(db, table_id=table_id)
+
+
+@router.post("/sessions/reset-all")
+async def reset_all_sessions(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
+):
+    return await POSService.reset_all_sessions(db)

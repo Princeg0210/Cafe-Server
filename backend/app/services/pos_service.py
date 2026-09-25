@@ -367,6 +367,46 @@ class POSService:
         return await POSService.close_dining_session(db, session_id=sess.id)
 
     @staticmethod
+    async def reset_all_sessions(db: AsyncSession) -> dict:
+        """Force reset/close all active dining sessions across all tables."""
+        session_stmt = select(DiningSession).where(
+            DiningSession.status.in_(["OPENED", "ACTIVE", "CHECKOUT"])
+        )
+        res = await db.execute(session_stmt)
+        active_sessions = res.scalars().all()
+
+        count = len(active_sessions)
+        now = utc_now()
+
+        for sess in active_sessions:
+            sess.status = "CLOSED"
+            sess.closed_at = now
+
+        # Set all tables to Available
+        table_stmt = select(Table)
+        table_res = await db.execute(table_stmt)
+        for tbl in table_res.scalars().all():
+            tbl.status = "Available"
+
+        # Complete active KOTs
+        kot_stmt = select(KOT).where(KOT.status != "COMPLETED")
+        kot_res = await db.execute(kot_stmt)
+        for kot in kot_res.scalars().all():
+            kot.status = "COMPLETED"
+
+        await db.commit()
+
+        from app.api.websocket import ws_manager
+        reset_event = {
+            "event": "SESSIONS_RESET",
+            "message": f"All {count} active sessions have been reset and closed.",
+        }
+        await ws_manager.broadcast("tables", reset_event)
+        await ws_manager.broadcast("pos", reset_event)
+
+        return {"message": f"Successfully reset all {count} active sessions. All tables are now set to Available."}
+
+    @staticmethod
     async def get_table_sessions(
         db: AsyncSession,
         target_date: Optional[datetime.date] = None,
