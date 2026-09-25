@@ -23,3 +23,7 @@ out/
 
 # OS
 .DS_Store
+
+# Load testing artifacts
+*.csv
+load_*

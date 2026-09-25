@@ -1,6 +1,7 @@
 import uuid
 import datetime
 import asyncio
+import secrets
 from decimal import Decimal
 from typing import Dict, List
 from sqlalchemy import select, func
@@ -75,11 +76,16 @@ class OrderService:
                         res_orders = await db.execute(daily_orders_stmt)
                         existing_numbers = set(res_orders.scalars().all())
 
-                        order_seq = len(existing_numbers) + 1
-                        order_number = f"ORD-{date_prefix}-{order_seq:03d}"
-                        while order_number in existing_numbers:
-                            order_seq += 1
+                        order_seq = len(existing_numbers) + 1 + order_attempt
+                        if order_attempt > 0:
+                            # Add random unique suffix on collision retry to guarantee zero stampede/lock wait
+                            rnd_suffix = secrets.token_hex(2).upper()
+                            order_number = f"ORD-{date_prefix}-{order_seq:03d}-{rnd_suffix}"
+                        else:
                             order_number = f"ORD-{date_prefix}-{order_seq:03d}"
+                            while order_number in existing_numbers:
+                                order_seq += 1
+                                order_number = f"ORD-{date_prefix}-{order_seq:03d}"
 
                         order = Order(
                             dining_session_id=dining_session.id,
@@ -92,7 +98,7 @@ class OrderService:
                 except IntegrityError:
                     if order_attempt == max_order_retries - 1:
                         raise
-                    await asyncio.sleep(0.01 * (order_attempt + 1))
+                    await asyncio.sleep(0.005 * (order_attempt + 1))
 
             status_log = OrderStatusHistory(
                 order_id=order.id,
