@@ -318,17 +318,40 @@ export default function POSDashboard() {
     setLoginPassword("");
   };
 
-  const fetchData = async (overrideToken?: string) => {
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  });
+
+  const isTodaySelected = (() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    return selectedDate === `${yyyy}-${mm}-${dd}`;
+  })();
+
+  const isFutureDateSelected = (() => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    return selectedDate > todayStr;
+  })();
+
+  const fetchData = async (overrideToken?: string, dateStr?: string) => {
     const tok = overrideToken || posToken;
     if (!tok) return;
     setIsRefreshing(true);
+    const target = dateStr || selectedDate;
     const apiBase = getApiBase();
     try {
       const headers = { Authorization: `Bearer ${tok}` };
+      const dateParam = target ? `?target_date=${target}` : "";
       const [kotsRes, sumRes, tablesRes] = await Promise.all([
-        fetch(`${apiBase}/api/v1/pos/kots`, { headers }),
-        fetch(`${apiBase}/api/v1/pos/summary`, { headers }),
-        fetch(`${apiBase}/api/v1/pos/table-sessions`, { headers }),
+        fetch(`${apiBase}/api/v1/pos/kots${dateParam}`, { headers }),
+        fetch(`${apiBase}/api/v1/pos/summary${dateParam}`, { headers }),
+        fetch(`${apiBase}/api/v1/pos/table-sessions${dateParam}`, { headers }),
       ]);
 
       if (kotsRes.status === 401 || kotsRes.status === 403) {
@@ -355,13 +378,15 @@ export default function POSDashboard() {
     }
   };
 
-  const fetchReservations = async (overrideToken?: string) => {
+  const fetchReservations = async (overrideToken?: string, dateStr?: string) => {
     const tok = overrideToken || posToken;
     if (!tok) return;
     setIsRefreshingRes(true);
+    const target = dateStr || selectedDate;
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/reservations?branch_id=1`, {
+      const dateParam = target ? `&reservation_date=${target}` : "";
+      const res = await fetch(`${apiBase}/api/v1/reservations?branch_id=1${dateParam}`, {
         headers: { Authorization: `Bearer ${tok}` },
       });
       if (res.ok) {
@@ -403,14 +428,14 @@ export default function POSDashboard() {
 
   useEffect(() => {
     if (!posToken) return;
-    fetchData();
-    fetchReservations();
+    fetchData(undefined, selectedDate);
+    fetchReservations(undefined, selectedDate);
     const interval = setInterval(() => {
-      fetchData();
-      fetchReservations();
+      fetchData(undefined, selectedDate);
+      fetchReservations(undefined, selectedDate);
     }, 10000);
     return () => clearInterval(interval);
-  }, [posToken]);
+  }, [posToken, selectedDate]);
 
   useEffect(() => {
     if (!posToken) return;
@@ -885,9 +910,33 @@ export default function POSDashboard() {
                   <span className="font-serif font-extrabold text-xl leading-none text-[#261C18]">
                     JAADOO <span className="font-serif italic font-normal text-lg text-[#B85B43]">POS</span>
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-sans font-semibold tracking-wider bg-[#4A5842]/15 text-[#4A5842] border border-[#4A5842]/30 uppercase">
-                    {currentDateDisplay}
-                  </span>
+
+                  {/* Date Selector Dropdown Pill */}
+                  <div className="flex items-center gap-1 bg-[#261C18] text-[#FBF9F5] px-2.5 py-1 rounded-full border border-[#B85B43]/50 shadow-xs">
+                    <Calendar className="w-3 h-3 text-[#B85B43]" />
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="bg-transparent text-[11px] font-sans font-bold uppercase tracking-wider text-[#FBF9F5] focus:outline-none cursor-pointer"
+                    />
+                    {!isTodaySelected && (
+                      <button
+                        onClick={() => {
+                          const today = new Date();
+                          const yyyy = today.getFullYear();
+                          const mm = String(today.getMonth() + 1).padStart(2, "0");
+                          const dd = String(today.getDate()).padStart(2, "0");
+                          setSelectedDate(`${yyyy}-${mm}-${dd}`);
+                        }}
+                        className="ml-1 text-[9px] font-sans font-bold px-1.5 py-0.5 rounded bg-[#B85B43] text-white hover:bg-[#A84E38] transition-colors uppercase"
+                        title="Return to Today"
+                      >
+                        Today
+                      </button>
+                    )}
+                  </div>
+
                   {currentTime && (
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider bg-[#261C18] text-[#FBF9F5] border border-[#B85B43]/40 shadow-xs flex items-center gap-1.5">
                       <Clock className="w-3 h-3 text-[#B85B43]" />
@@ -1001,16 +1050,28 @@ export default function POSDashboard() {
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
             <div>
               <div className="inline-flex items-center gap-2 bg-[#4A5842]/25 text-[#FBF9F5] border border-[#4A5842]/50 px-3 py-1 rounded-full text-[10px] font-sans font-semibold tracking-[0.2em] uppercase mb-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4A5842] animate-pulse" />
-                <span>DAILY OPERATIONS OVERVIEW</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${isTodaySelected ? "bg-[#4A5842] animate-pulse" : isFutureDateSelected ? "bg-amber-400" : "bg-stone-400"}`} />
+                <span>
+                  {isTodaySelected
+                    ? "LIVE TODAY OPERATIONS"
+                    : isFutureDateSelected
+                    ? `FUTURE DATE PLANNING • ${selectedDate}`
+                    : `HISTORICAL READ-ONLY ARCHIVE • ${selectedDate}`}
+                </span>
               </div>
-              <h2 className="text-sm font-serif italic text-stone-300">Daily Operations Overview</h2>
+              <h2 className="text-sm font-serif italic text-stone-300">
+                {isTodaySelected
+                  ? "Real-time Operations & Active Table Sessions"
+                  : isFutureDateSelected
+                  ? "Upcoming Reservations & Scheduled Bookings"
+                  : "Historical Business Day Archive (Read-Only)"}
+              </h2>
               <div className="flex items-baseline gap-4 mt-1">
                 <span className="text-5xl sm:text-7xl font-sans font-extrabold tracking-tight text-[#FBF9F5]">
                   {summary ? String(summary.total_kots).padStart(2, "0") : String(kots.length).padStart(2, "0")}
                 </span>
                 <span className="font-serif italic font-normal text-lg sm:text-2xl text-[#B85B43]">
-                  ORDERS TODAY
+                  {isTodaySelected ? "ORDERS TODAY" : isFutureDateSelected ? "UPCOMING ORDERS" : "HISTORICAL KOTS"}
                 </span>
               </div>
             </div>
@@ -1264,7 +1325,7 @@ export default function POSDashboard() {
                                         </div>
                                       </div>
 
-                                      {sess.is_active ? (
+                                      {sess.is_active && isTodaySelected ? (
                                         <button
                                           type="button"
                                           onClick={(e) => {
@@ -1280,7 +1341,7 @@ export default function POSDashboard() {
                                       ) : (
                                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                                           <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                          Settled
+                                          {sess.is_active ? "Active" : "Settled"}
                                         </span>
                                       )}
                                     </div>
