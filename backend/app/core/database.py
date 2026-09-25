@@ -6,7 +6,7 @@ from app.core.config import settings
 is_sqlite = "sqlite" in settings.DATABASE_URL
 engine_kwargs = {"echo": False, "future": True}
 if not is_sqlite:
-    engine_kwargs.update({"pool_pre_ping": True, "pool_size": 10, "max_overflow": 20})
+    engine_kwargs.update({"pool_pre_ping": True, "pool_size": 15, "max_overflow": 5, "pool_timeout": 30})
 else:
     engine_kwargs.update({"connect_args": {"check_same_thread": False}})
 
