@@ -5,8 +5,14 @@
 
 # Python
 __pycache__/
+**/__pycache__/
 *.py[cod]
+*.*.pyc
+**/*.pyc
 .pytest_cache/
+**/.pytest_cache/
+*.pyo
+*$py.class
 
 # Local databases
 *.db
