@@ -137,6 +137,16 @@ interface Reservation {
   customer?: Customer;
 }
 
+export const getTableFloor = (tableIdOrNum: number | string) => {
+  const num =
+    typeof tableIdOrNum === "number"
+      ? tableIdOrNum
+      : parseInt(String(tableIdOrNum).replace(/\D/g, ""), 10) || 1;
+  if (num <= 4) return { floor: 1, name: "Floor 1 • Ground Bistro", short: "Floor 1" };
+  if (num <= 8) return { floor: 2, name: "Floor 2 • Lake View Lounge", short: "Floor 2" };
+  return { floor: 3, name: "Floor 3 • Rooftop Terrace", short: "Floor 3" };
+};
+
 export default function POSDashboard() {
   const [activeTab, setActiveTab] = useState<"tables" | "kots" | "reservations">("tables");
 
@@ -1314,12 +1324,15 @@ export default function POSDashboard() {
                             {cleanTableNumber.padStart(2, "0")}
                           </div>
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <span className="font-serif font-extrabold text-xl text-[#261C18]">
                                 {displayTableName}
                               </span>
                               <span className="text-xs px-2.5 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-600 font-sans font-medium">
                                 {tbl.capacity} Seats
+                              </span>
+                              <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100/80 border border-amber-300 text-amber-950 font-sans font-semibold">
+                                {getTableFloor(cleanTableNumber || tbl.table_id).name}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 mt-0.5">
@@ -1469,7 +1482,7 @@ export default function POSDashboard() {
                                       {/* Session Sequence & Table */}
                                       <div className="flex items-center gap-2">
                                         <span className="font-sans font-bold text-sm text-[#261C18]">
-                                          {displayTableName} — Session #{sess.session_seq}
+                                          {displayTableName} • {getTableFloor(cleanTableNumber || tbl.table_id).short} — Session #{sess.session_seq}
                                         </span>
                                         {sess.is_active ? (
                                           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
@@ -1486,7 +1499,8 @@ export default function POSDashboard() {
 
                                       {/* Timestamp & Guest Name */}
                                       <div className="hidden sm:flex items-center gap-2 text-xs text-stone-500 font-sans">
-                                        <span>Opened {new Date(sess.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                                        <span>Date: {selectedDate}</span>
+                                        <span>• Opened {new Date(sess.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                                         {sess.closed_at && (
                                           <span>• Settled {new Date(sess.closed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                                         )}
@@ -1702,7 +1716,10 @@ export default function POSDashboard() {
                                     {kot.order_number}
                                   </span>
                                 </div>
-                                <div className="text-xs text-stone-500 flex items-center gap-1 font-sans mt-0.5">
+                                <div className="text-xs text-stone-500 flex items-center gap-1.5 font-sans mt-0.5">
+                                  <Calendar className="w-3.5 h-3.5 text-stone-400" />
+                                  <span>{kot.business_date || selectedDate}</span>
+                                  <span>•</span>
                                   <Clock className="w-3.5 h-3.5 text-stone-400" />
                                   <span>{new Date(kot.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                                 </div>
@@ -1711,7 +1728,7 @@ export default function POSDashboard() {
 
                             <div className="text-right">
                               <span className="inline-block px-3 py-1 rounded-full text-xs font-sans font-bold uppercase tracking-wider bg-amber-50 text-amber-900 border border-amber-200">
-                                TABLE {cleanTableNumber}
+                                TABLE {cleanTableNumber} • {getTableFloor(cleanTableNumber || kot.table_id).short}
                               </span>
                               <div className="mt-1">
                                 {kot.printed_status === "PRINTED" ? (
