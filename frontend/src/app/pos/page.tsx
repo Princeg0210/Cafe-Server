@@ -217,27 +217,72 @@ export default function POSDashboard() {
     return process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
   };
 
+  // Global user interaction listener to unlock AudioContext for real-time order alerts
+  useEffect(() => {
+    const unlockAudio = () => {
+      try {
+        if (!audioContextRef.current) {
+          const AudioContextClass =
+            window.AudioContext ||
+            (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          if (AudioContextClass) {
+            audioContextRef.current = new AudioContextClass();
+          }
+        }
+        if (audioContextRef.current && audioContextRef.current.state === "suspended") {
+          audioContextRef.current.resume();
+        }
+      } catch {}
+    };
+
+    window.addEventListener("click", unlockAudio);
+    window.addEventListener("touchstart", unlockAudio);
+    return () => {
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
+
   const playChime = () => {
     if (!soundEnabled) return;
     try {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+        audioContextRef.current = new AudioContextClass();
       }
       const ctx = audioContextRef.current;
       if (ctx.state === "suspended") {
         ctx.resume();
       }
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
-      gain.gain.setValueAtTime(0.18, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.4);
+
+      const now = ctx.currentTime;
+      // Tone 1: High crisp ding (880Hz / A5)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(880, now);
+      gain1.gain.setValueAtTime(0.45, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      // Tone 2: Cheerful bell chime (1318.5Hz / E6)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(1318.51, now + 0.12);
+      gain2.gain.setValueAtTime(0.5, now + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.65);
     } catch {}
   };
 
@@ -1007,13 +1052,19 @@ export default function POSDashboard() {
             </div>
 
             <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              className={`p-2 rounded-full border transition-colors ${
+              onClick={() => {
+                const next = !soundEnabled;
+                setSoundEnabled(next);
+                if (next) {
+                  setTimeout(playChime, 60);
+                }
+              }}
+              className={`p-2 rounded-full border transition-colors cursor-pointer ${
                 soundEnabled
                   ? "bg-[#261C18] border-[#261C18] text-[#FBF9F5]"
                   : "bg-[#F6F3EC] border-[#E4DCD0] text-stone-500"
               }`}
-              title={soundEnabled ? "Mute New KOT Chime" : "Enable Sound Chime"}
+              title={soundEnabled ? "Mute New KOT Chime (Sound ON)" : "Enable Sound Chime (Sound OFF)"}
             >
               {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
             </button>

@@ -597,32 +597,80 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
           </div>
         )}
 
-        {/* Order Success Confirmation Banner */}
-        {orderPlaced && (
-          <div className="mb-4 p-3.5 rounded-2xl bg-[#F4EFE6] border border-[#4A5842]/40 text-[#261C18] flex items-center justify-between gap-3 shadow-xs animate-in fade-in">
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-5 h-5 text-[#4A5842] shrink-0" />
-              <div>
-                <p className="font-serif font-bold text-sm text-[#261C18]">Order Sent to Kitchen!</p>
-                <p className="text-[11px] text-stone-600 font-mono">Order #{lastOrderNum} • KOT Generated</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={fetchBill}
-                className="px-3 py-1 rounded-full bg-[#261C18] text-[#FBF9F5] text-[11px] font-bold uppercase tracking-wider hover:bg-[#B85B43] transition"
-              >
-                View Bill
-              </button>
-              <button
+        {/* ================= ORDER SUCCESS CONFIRMATION MODAL & WARM NOTE ================= */}
+        <AnimatePresence>
+          {orderPlaced && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 onClick={() => setOrderPlaced(false)}
-                className="p-1 rounded-full text-stone-400 hover:text-stone-700"
+                className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+              />
+
+              <motion.div
+                initial={{ scale: 0.92, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.92, opacity: 0 }}
+                className="relative w-full max-w-md rounded-3xl bg-[#FAF8F5] border border-[#E4DCD0] p-6 sm:p-7 shadow-2xl z-10 text-center space-y-4 max-h-[92vh] overflow-y-auto"
               >
-                <X className="w-4 h-4" />
-              </button>
+                {/* Checkmark Badge */}
+                <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#4A5842]/15 border-2 border-[#4A5842] text-[#4A5842] mx-auto shadow-xs">
+                  <CheckCircle2 className="w-8 h-8 sm:w-9 sm:h-9 text-[#4A5842]" />
+                </div>
+
+                {/* Order ID Pill */}
+                <div>
+                  <span className="inline-block text-xs sm:text-sm font-mono tracking-widest text-[#B85B43] uppercase font-bold bg-[#B85B43]/10 px-4 py-1 rounded-full border border-[#B85B43]/30">
+                    ORDER #{lastOrderNum || "CONFIRMED"} • DISPATCHED TO KITCHEN
+                  </span>
+                </div>
+
+                {/* Main Headline */}
+                <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#261C18]">
+                  Your Order is Sizzling in the Oven!
+                </h3>
+
+                {/* Warm Note Box - High Contrast, Large Readable Font */}
+                <div className="bg-[#F3ECE1] border-2 border-[#E2D4C3] rounded-2xl p-5 sm:p-6 text-center shadow-xs">
+                  <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/95 border border-[#DECFC0] text-xs font-sans font-bold uppercase tracking-wider text-[#B85B43] mb-3 shadow-2xs">
+                    <span>🤝 A WARM NOTE FROM OUR TEAM</span>
+                  </div>
+
+                  <p className="font-serif text-sm sm:text-base text-[#261C18] leading-relaxed font-semibold">
+                    “Please feel free to settle your bill at our reception counter whenever you wrap up. We invite you to pay at the counter not just for the bill, but because we genuinely love to meet, smile with, and thank the wonderful people who grace Jaadoo Café with their presence.”
+                  </p>
+
+                  <p className="text-xs sm:text-sm font-sans font-medium text-[#4A5842] mt-3">
+                    🌿 You are never just a table number to us; you are our guest. Savor every bite!
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setOrderPlaced(false)}
+                    className="w-full py-3.5 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-xs sm:text-sm font-sans font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all cursor-pointer"
+                  >
+                    GOT IT, THANK YOU!
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrderPlaced(false);
+                      fetchBill();
+                    }}
+                    className="w-full py-3.5 rounded-full bg-white hover:bg-[#F3ECE1] text-[#261C18] text-xs sm:text-sm font-sans font-bold uppercase tracking-wider border-2 border-[#DECFC0] shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                  >
+                    VIEW RUNNING TAB
+                  </button>
+                </div>
+              </motion.div>
             </div>
-          </div>
-        )}
+          )}
+        </AnimatePresence>
 
         {/* Sticky Category Navigation Filter */}
         <div className="sticky top-14 z-30 bg-[#FBF9F5]/95 backdrop-blur-md border border-[#E4DCD0] py-2 px-2.5 rounded-2xl shadow-2xs mb-5">

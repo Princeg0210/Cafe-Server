@@ -134,7 +134,7 @@ export default function CartDrawer({
                       </div>
                       <h4 className="font-serif text-2xl font-bold text-[#261C18]">Order Dispatched!</h4>
                       <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[#B85B43] bg-[#B85B43]/10 px-3 py-0.5 rounded-full border border-[#B85B43]/20">
-                        Kitchen 1 (Oven) & Kitchen 2 (Bar)
+                        Kitchen (Oven)
                       </span>
 
                       <div className="bg-[#F6F3EC] border-2 border-[#E2D4C3] rounded-2xl p-5 text-center my-3 shadow-xs">
