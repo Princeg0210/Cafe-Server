@@ -142,9 +142,9 @@ export const getTableFloor = (tableIdOrNum: number | string) => {
     typeof tableIdOrNum === "number"
       ? tableIdOrNum
       : parseInt(String(tableIdOrNum).replace(/\D/g, ""), 10) || 1;
-  if (num <= 4) return { floor: 1, name: "Floor 1 • Ground Bistro", short: "Floor 1" };
-  if (num <= 8) return { floor: 2, name: "Floor 2 • Lake View Lounge", short: "Floor 2" };
-  return { floor: 3, name: "Floor 3 • Rooftop Terrace", short: "Floor 3" };
+  if (num <= 4) return { floor: 1, name: "Floor 1", short: "Floor 1" };
+  if (num <= 8) return { floor: 2, name: "Floor 2", short: "Floor 2" };
+  return { floor: 3, name: "Floor 3", short: "Floor 3" };
 };
 
 export default function POSDashboard() {
@@ -1416,40 +1416,28 @@ export default function POSDashboard() {
                     >
                       {/* Table Header Bar */}
                       <div className="bg-[#FAF8F5] px-6 py-4 border-b border-[#E4DCD0]/70 flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-4 sm:gap-6">
-                          {/* Giant Table Badge */}
-                          <div
-                            className={`w-18 h-18 sm:w-22 sm:h-22 rounded-3xl flex flex-col items-center justify-center font-black shadow-md shrink-0 border-2 transition-transform ${
-                              tbl.active_session_count > 0
-                                ? "bg-[#261C18] text-amber-300 border-amber-400/70 ring-4 ring-amber-400/20"
-                                : "bg-stone-200 text-stone-700 border-stone-300"
-                            }`}
-                          >
-                            <span className="text-[10px] sm:text-xs font-sans font-black tracking-widest uppercase text-stone-400">TABLE</span>
-                            <span className="text-3xl sm:text-5xl font-mono font-black leading-none">{cleanTableNumber.padStart(2, "0")}</span>
-                          </div>
+                        <div className="flex items-center gap-3">
                           <div>
-                            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3.5">
-                              <span className="font-serif font-black text-2xl sm:text-4xl lg:text-5xl text-[#261C18] tracking-tight">
+                            <div className="flex flex-wrap items-baseline gap-2.5 sm:gap-3">
+                              <span className="font-serif font-black text-2xl sm:text-3xl lg:text-4xl text-[#261C18] tracking-tight">
                                 {displayTableName}
                               </span>
-                              <span className="inline-flex items-center gap-1.5 text-sm sm:text-xl font-black px-4 py-1.5 rounded-2xl bg-[#261C18] text-amber-300 border-2 border-amber-400/60 shadow-sm uppercase tracking-wider">
-                                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
-                                {getTableFloor(cleanTableNumber || tbl.table_id).name}
+                              <span className="font-sans font-bold text-lg sm:text-2xl text-[#B85B43]">
+                                • {getTableFloor(cleanTableNumber || tbl.table_id).name}
                               </span>
-                              <span className="text-xs sm:text-sm px-3.5 py-1.5 rounded-xl bg-stone-100 border border-stone-200 text-stone-700 font-sans font-bold">
-                                {tbl.capacity} Seats
+                              <span className="text-xs sm:text-sm text-stone-500 font-sans font-medium">
+                                ({tbl.capacity} Seats)
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 mt-1.5">
+                            <div className="flex items-center gap-2 mt-1">
                               {tbl.active_session_count > 0 ? (
-                                <span className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-emerald-900 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 shadow-2xs">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse" />
+                                <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-emerald-800">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
                                   Currently Occupied ({tbl.active_session_count} Active Session)
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-stone-600 bg-stone-100 px-3 py-1 rounded-full border border-stone-200">
-                                  <span className="w-2 h-2 rounded-full bg-stone-400" />
+                                <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-stone-500">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
                                   Table Available
                                 </span>
                               )}
@@ -1586,15 +1574,15 @@ export default function POSDashboard() {
                                       </button>
 
                                       {/* Session Sequence & Table */}
-                                      <div className="flex flex-wrap items-center gap-2.5">
-                                        <span className="font-serif font-black text-base sm:text-xl text-[#261C18] tracking-tight">
+                                      <div className="flex flex-wrap items-baseline gap-2">
+                                        <span className="font-serif font-bold text-base sm:text-lg text-[#261C18]">
                                           {displayTableName}
                                         </span>
-                                        <span className="text-xs sm:text-sm font-black px-2.5 py-1 rounded-xl bg-[#261C18] text-amber-300 border border-amber-400/50 uppercase tracking-wide">
-                                          {getTableFloor(cleanTableNumber || tbl.table_id).name}
+                                        <span className="font-sans font-semibold text-sm text-[#B85B43]">
+                                          • {getTableFloor(cleanTableNumber || tbl.table_id).name}
                                         </span>
-                                        <span className="text-xs sm:text-sm font-mono font-bold text-stone-700 bg-stone-100 px-2.5 py-1 rounded-lg border border-stone-200">
-                                          Session #{sess.session_seq}
+                                        <span className="text-xs font-mono font-medium text-stone-500">
+                                          (Session #{sess.session_seq})
                                         </span>
                                         {sess.is_active ? (
                                           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
@@ -1838,14 +1826,13 @@ export default function POSDashboard() {
                               </div>
                             </div>
 
-                            <div className="text-right flex flex-col items-end gap-2">
-                              <div className="inline-flex items-center gap-2.5 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl bg-[#261C18] text-amber-300 border-2 border-amber-400/70 shadow-md">
-                                <span className="font-mono font-black text-xl sm:text-3xl tracking-wide">
-                                  TABLE {cleanTableNumber.padStart(2, "0") || kot.table_id}
+                            <div className="text-right flex flex-col items-end gap-1">
+                              <div className="flex items-baseline gap-2">
+                                <span className="font-mono font-black text-xl sm:text-2xl text-[#261C18] tracking-tight">
+                                  Table {cleanTableNumber.padStart(2, "0") || kot.table_id}
                                 </span>
-                                <span className="text-stone-400 text-base">•</span>
-                                <span className="text-xs sm:text-base font-black bg-[#4A5842] text-white px-2.5 py-1 rounded-xl border border-emerald-400/40 uppercase tracking-wider">
-                                  {getTableFloor(cleanTableNumber || kot.table_id).name}
+                                <span className="font-sans font-bold text-sm sm:text-base text-[#B85B43]">
+                                  • {getTableFloor(cleanTableNumber || kot.table_id).name}
                                 </span>
                               </div>
                               <div className="mt-1">
