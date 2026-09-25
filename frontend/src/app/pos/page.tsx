@@ -1147,6 +1147,55 @@ export default function POSDashboard() {
                   <span>{isResettingAll ? "Resetting..." : "Reset All Sessions"}</span>
                 </button>
 
+                {(() => {
+                  const totalSettledToday = tableOverviews.reduce(
+                    (acc, t) => acc + t.sessions.filter((s) => !s.is_active).length,
+                    0
+                  );
+                  const anyPastOpened =
+                    isTodaySelected &&
+                    tableOverviews.length > 0 &&
+                    tableOverviews.some((t) => showClosedToday[t.table_id]);
+
+                  if (!isTodaySelected || totalSettledToday === 0) return null;
+
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextState = !anyPastOpened;
+                        const updated: Record<number, boolean> = {};
+                        tableOverviews.forEach((t) => {
+                          updated[t.table_id] = nextState;
+                        });
+                        setShowClosedToday(updated);
+                      }}
+                      className={`px-3.5 py-1.5 rounded-full text-xs font-sans font-semibold flex items-center gap-1.5 transition-all shadow-xs border ${
+                        anyPastOpened
+                          ? "bg-[#261C18] text-white border-[#261C18] hover:bg-stone-800"
+                          : "bg-white text-[#B85B43] border-[#B85B43]/40 hover:bg-[#B85B43]/10"
+                      }`}
+                      title={
+                        anyPastOpened
+                          ? "Close past sessions on all tables"
+                          : "View past sessions across all tables"
+                      }
+                    >
+                      {anyPastOpened ? (
+                        <>
+                          <XCircle className="w-3.5 h-3.5 text-stone-300" />
+                          <span>Close All Past Sessions</span>
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-3.5 h-3.5 text-[#B85B43]" />
+                          <span>Past Sessions Today ({totalSettledToday})</span>
+                        </>
+                      )}
+                    </button>
+                  );
+                })()}
+
                 <div className="flex items-center gap-1 bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
                   {(["all", "active", "available"] as const).map((mode) => (
                     <button
@@ -1185,6 +1234,12 @@ export default function POSDashboard() {
                 {filteredTables.map((tbl) => {
                   const cleanTableNumber = tbl.table_number.replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
                   const displayTableName = `Table ${cleanTableNumber || tbl.table_id}`;
+                  const activeSessions = tbl.sessions.filter((s) => s.is_active);
+                  const settledSessions = tbl.sessions.filter((s) => !s.is_active);
+                  const showHistory = !!showClosedToday[tbl.table_id];
+                  const visibleSessions = isTodaySelected
+                    ? (showHistory ? tbl.sessions : activeSessions)
+                    : tbl.sessions;
 
                   return (
                     <div
@@ -1232,54 +1287,98 @@ export default function POSDashboard() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs font-sans text-stone-500">
+                        <div className="flex flex-wrap items-center gap-2 text-xs font-sans text-stone-500">
                           <span className="bg-white px-3.5 py-1.5 rounded-full border border-[#E4DCD0] font-medium shadow-2xs">
                             {tbl.total_sessions_today} {tbl.total_sessions_today === 1 ? "Session" : "Sessions"} Today
                           </span>
+
+                          {/* Per-Table Past Sessions Toggle & Close Button */}
+                          {isTodaySelected && settledSessions.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setShowClosedToday((prev) => ({
+                                  ...prev,
+                                  [tbl.table_id]: !prev[tbl.table_id],
+                                }))
+                              }
+                              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-sans font-semibold transition-all border shadow-2xs cursor-pointer ${
+                                showHistory
+                                  ? "bg-[#261C18] text-white border-[#261C18] hover:bg-stone-800"
+                                  : "bg-white text-[#B85B43] border-[#B85B43]/40 hover:bg-[#B85B43]/10"
+                              }`}
+                              title={
+                                showHistory
+                                  ? "Close past sessions list for this table"
+                                  : "View past settled sessions for this table"
+                              }
+                            >
+                              {showHistory ? (
+                                <>
+                                  <XCircle className="w-3.5 h-3.5 text-stone-300" />
+                                  <span>Close Past ({settledSessions.length})</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="w-3.5 h-3.5 text-[#B85B43]" />
+                                  <span>Past Sessions ({settledSessions.length})</span>
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </>
+                              )}
+                            </button>
+                          )}
                         </div>
                       </div>
 
                       {/* Sessions Listed Under This Table */}
                       <div className="p-4 sm:p-6 space-y-3">
-                        {(() => {
-                          const activeSessions = tbl.sessions.filter((s) => s.is_active);
-                          const settledSessions = tbl.sessions.filter((s) => !s.is_active);
-                          const showHistory = showClosedToday[tbl.table_id];
-                          const visibleSessions = isTodaySelected
-                            ? (showHistory ? tbl.sessions : activeSessions)
-                            : tbl.sessions;
-
-                          if (visibleSessions.length === 0) {
-                            return (
-                              <div className="py-6 px-4 rounded-2xl bg-stone-50/70 border border-dashed border-stone-200 text-center space-y-2">
-                                <p className="text-xs text-stone-500 font-serif italic">
-                                  No active dining sessions on {displayTableName} right now. Ready for walk-in guests.
-                                </p>
-                                {isTodaySelected && settledSessions.length > 0 && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setShowClosedToday((prev) => ({
-                                        ...prev,
-                                        [tbl.table_id]: !prev[tbl.table_id],
-                                      }))
-                                    }
-                                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#B85B43] hover:underline pt-1"
-                                  >
-                                    <span>
-                                      {showHistory ? "Hide" : "View"} {settledSessions.length} Past Settled {settledSessions.length === 1 ? "Session" : "Sessions"} Today
-                                    </span>
-                                    <ChevronDown
-                                      className={`w-3.5 h-3.5 transition-transform ${showHistory ? "rotate-180" : ""}`}
-                                    />
-                                  </button>
-                                )}
+                        {visibleSessions.length === 0 ? (
+                          <div className="py-6 px-4 rounded-2xl bg-stone-50/70 border border-dashed border-stone-200 text-center space-y-2">
+                            <p className="text-xs text-stone-500 font-serif italic">
+                              No active dining sessions on {displayTableName} right now. Ready for walk-in guests.
+                            </p>
+                            {isTodaySelected && settledSessions.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setShowClosedToday((prev) => ({
+                                    ...prev,
+                                    [tbl.table_id]: true,
+                                  }))
+                                }
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#B85B43] hover:underline pt-1 cursor-pointer"
+                              >
+                                <span>
+                                  View {settledSessions.length} Past Settled {settledSessions.length === 1 ? "Session" : "Sessions"} Today
+                                </span>
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {/* Prominent Dismissible Banner when viewing Past Sessions */}
+                            {showHistory && settledSessions.length > 0 && (
+                              <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-amber-50/80 border border-amber-200/90 text-xs text-[#261C18]">
+                                <span className="font-medium flex items-center gap-2">
+                                  <Clock className="w-3.5 h-3.5 text-[#B85B43]" />
+                                  Showing {settledSessions.length} past settled {settledSessions.length === 1 ? "session" : "sessions"} from today
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setShowClosedToday((prev) => ({
+                                      ...prev,
+                                      [tbl.table_id]: false,
+                                    }))
+                                  }
+                                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-stone-700 hover:text-red-700 bg-white hover:bg-red-50 border border-stone-300 hover:border-red-300 px-2.5 py-1 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                                >
+                                  <XCircle className="w-3.5 h-3.5 text-red-500" />
+                                  <span>Close Past Sessions</span>
+                                </button>
                               </div>
-                            );
-                          }
-
-                          return (
-                            <div className="space-y-3">
+                            )}
                               {visibleSessions.map((sess) => {
                                 const isExpanded = isSessionExpanded(sess);
                                 const isClosing = closingSessionIds[sess.session_id];
@@ -1426,9 +1525,27 @@ export default function POSDashboard() {
                                 </div>
                               );
                             })}
+
+                            {/* Bottom Close Button when viewing Past Sessions */}
+                            {showHistory && settledSessions.length > 0 && (
+                              <div className="pt-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setShowClosedToday((prev) => ({
+                                      ...prev,
+                                      [tbl.table_id]: false,
+                                    }))
+                                  }
+                                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-[#261C18] bg-stone-100 hover:bg-stone-200 px-4 py-1.5 rounded-full border border-stone-300 transition-colors shadow-2xs cursor-pointer"
+                                >
+                                  <XCircle className="w-3.5 h-3.5 text-stone-500" />
+                                  <span>Close Past Sessions View</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        );
-                        })()}
+                        )}
                       </div>
                     </div>
                   );

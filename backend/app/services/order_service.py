@@ -198,7 +198,7 @@ class OrderService:
             kot = None
             table_display = table.table_number if table else str(val.table_id)
 
-            max_retries = 5
+            max_retries = 10
             for attempt in range(max_retries):
                 try:
                     async with db.begin_nested():
@@ -208,6 +208,8 @@ class OrderService:
                             )
                         )
                         next_seq = (max_seq_res.scalar() or 0) + 1
+                        if attempt > 0:
+                            next_seq += secrets.randbelow(15) + 1 + attempt * 2
                         kot_number = f"KOT-{next_seq:03d}"
 
                         kot = KOT(
@@ -260,7 +262,7 @@ class OrderService:
                 except IntegrityError:
                     if attempt == max_retries - 1:
                         raise
-                    await asyncio.sleep(0.01 * (attempt + 1))
+                    await asyncio.sleep(0.005 * (attempt + 1))
 
             # Step 5: Maintain kitchen orders for backward compatibility & routing
             for kitchen_id, routed_items in kitchen_item_routes.items():
