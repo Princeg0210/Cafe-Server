@@ -103,10 +103,31 @@ async def on_startup():
                     await conn.execute(text("ALTER TABLE reservations ADD COLUMN floor_number INTEGER DEFAULT 1"))
                 if "table_name" not in cols:
                     await conn.execute(text("ALTER TABLE reservations ADD COLUMN table_name VARCHAR(50)"))
+                if "payment_status" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN payment_status VARCHAR(20) DEFAULT 'PAID'"))
+                if "advance_amount" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN advance_amount NUMERIC(10, 2) DEFAULT 0.00"))
+                if "payment_reference" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN payment_reference VARCHAR(64)"))
+                if "payment_method" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN payment_method VARCHAR(30)"))
+                if "hold_expires_at" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN hold_expires_at TIMESTAMP"))
+                if "upi_id" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN upi_id VARCHAR(100)"))
+                if "upi_utr" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN upi_utr VARCHAR(100)"))
             else:
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS table_id INTEGER"))
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS floor_number INTEGER DEFAULT 1"))
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS table_name VARCHAR(50)"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'PAID'"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS advance_amount NUMERIC(10, 2) DEFAULT 0.00"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(64)"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS payment_method VARCHAR(30)"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS hold_expires_at TIMESTAMP WITHOUT TIME ZONE"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS upi_id VARCHAR(100)"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS upi_utr VARCHAR(100)"))
         logger.info("Database schema initialized successfully.")
 
         async with AsyncSessionLocal() as db:

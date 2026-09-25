@@ -19,6 +19,9 @@ DEFAULT_TABLES = [
     {"id": 10, "table_number": "Table 10", "capacity": 4, "qr_token": "qr_sec_5e8b0c2d4f6a79bdf2468ace13579bdf"},
     {"id": 11, "table_number": "Table 11", "capacity": 4, "qr_token": "qr_sec_6f9c1d3e5a7b8ace13579bdf2468ace1"},
     {"id": 12, "table_number": "Table 12", "capacity": 4, "qr_token": "qr_sec_7a0d2e4f6b8c9bdf2468ace13579bdf2"},
+    {"id": 13, "table_number": "Table 13", "capacity": 2, "qr_token": "qr_sec_8b1e3f5a7c9d0bdf2468ace13579bdf3"},
+    {"id": 14, "table_number": "Table 14", "capacity": 4, "qr_token": "qr_sec_9c2f4a6b8d0e1bdf2468ace13579bdf4"},
+    {"id": 15, "table_number": "Table 15", "capacity": 6, "qr_token": "qr_sec_0d3a5b7c9e1f2bdf2468ace13579bdf5"},
 ]
 
 

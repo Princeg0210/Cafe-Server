@@ -136,9 +136,17 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const getApiBase = () => {
     if (typeof window !== "undefined") {
       const h = window.location.hostname;
-      if (h.includes("vercel.app") || h.includes("onrender.com")) {
-        return "https://cafe-piza-api.onrender.com";
+      const isLocal =
+        h === "localhost" ||
+        h === "127.0.0.1" ||
+        h.startsWith("192.168.") ||
+        h.startsWith("10.") ||
+        h.endsWith(".local");
+
+      if (isLocal) {
+        return `http://${h}:8000`;
       }
+      return process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
     }
     return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   };
