@@ -60,28 +60,39 @@ class OrderService:
                 table.status = "Occupied"
 
 
-            # Generate daily sequential order number (1 to n)
+            # Generate daily sequential order number (1 to n) with concurrency-safe retry loop
             today_date = datetime.date.today()
             date_prefix = today_date.strftime("%Y%m%d")
-            daily_orders_stmt = select(Order.order_number).where(
-                Order.order_number.like(f"ORD-{date_prefix}-%")
-            )
-            res_orders = await db.execute(daily_orders_stmt)
-            existing_numbers = set(res_orders.scalars().all())
 
-            order_seq = len(existing_numbers) + 1
-            order_number = f"ORD-{date_prefix}-{order_seq:03d}"
-            while order_number in existing_numbers:
-                order_seq += 1
-                order_number = f"ORD-{date_prefix}-{order_seq:03d}"
+            order = None
+            max_order_retries = 10
+            for order_attempt in range(max_order_retries):
+                try:
+                    async with db.begin_nested():
+                        daily_orders_stmt = select(Order.order_number).where(
+                            Order.order_number.like(f"ORD-{date_prefix}-%")
+                        )
+                        res_orders = await db.execute(daily_orders_stmt)
+                        existing_numbers = set(res_orders.scalars().all())
 
-            order = Order(
-                dining_session_id=dining_session.id,
-                order_number=order_number,
-                status="CONFIRMED",
-            )
-            db.add(order)
-            await db.flush()
+                        order_seq = len(existing_numbers) + 1
+                        order_number = f"ORD-{date_prefix}-{order_seq:03d}"
+                        while order_number in existing_numbers:
+                            order_seq += 1
+                            order_number = f"ORD-{date_prefix}-{order_seq:03d}"
+
+                        order = Order(
+                            dining_session_id=dining_session.id,
+                            order_number=order_number,
+                            status="CONFIRMED",
+                        )
+                        db.add(order)
+                        await db.flush()
+                        break
+                except IntegrityError:
+                    if order_attempt == max_order_retries - 1:
+                        raise
+                    await asyncio.sleep(0.01 * (order_attempt + 1))
 
             status_log = OrderStatusHistory(
                 order_id=order.id,
@@ -160,15 +171,8 @@ class OrderService:
                 )
                 db.add(order_item)
 
-                # Map item to kitchen
-                mapping_query = select(MenuItemKitchenMapping).where(
-                    MenuItemKitchenMapping.menu_item_id == menu_item.id
-                )
-                mapping_res = await db.execute(mapping_query)
-                mapping = mapping_res.scalar_one_or_none()
-
-                # Default to kitchen_id=1 (Hot Food) if mapping missing
-                target_kitchen_id = mapping.kitchen_id if mapping else 1
+                # Map item to Single Production Kitchen (Kitchen ID #1)
+                target_kitchen_id = 1
 
                 if target_kitchen_id not in kitchen_item_routes:
                     kitchen_item_routes[target_kitchen_id] = []

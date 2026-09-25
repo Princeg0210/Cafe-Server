@@ -117,11 +117,10 @@ async def on_startup():
                 branch = Branch(name="Jaadoo Udaipur", address="Chandpole, Udaipur", phone="+919876543210")
                 db.add(branch)
                 await db.flush()
-                k1 = Kitchen(branch_id=branch.id, name="Hot Food Kitchen")
-                k2 = Kitchen(branch_id=branch.id, name="Bar & Beverage")
-                db.add_all([k1, k2])
+                k1 = Kitchen(branch_id=branch.id, name="Main Kitchen")
+                db.add(k1)
                 await db.commit()
-                logger.info("Default branch and kitchens seeded.")
+                logger.info("Default branch and main kitchen seeded.")
 
         # Ensure POS cashier user and pos:access permissions exist in any environment (Render / Local)
         from app.utils.create_pos_user import create_pos_user

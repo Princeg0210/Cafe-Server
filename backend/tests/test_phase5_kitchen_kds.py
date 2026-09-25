@@ -83,13 +83,13 @@ async def test_kds_routing_and_print_job(db_session, setup_kitchens, client: Asy
     # Verify KitchenOrders created
     res = await db_session.execute(select(KitchenOrder).where(KitchenOrder.order_id == order.id))
     k_orders = res.scalars().all()
-    assert len(k_orders) == 2
-    assert {ko.kitchen_id for ko in k_orders} == {k1.id, k2.id}
+    assert len(k_orders) == 1
+    assert {ko.kitchen_id for ko in k_orders} == {k1.id}
     
-    # Verify PrintJobs created
+    # Verify PrintJobs created (1 for KitchenOrder + 1 for KOT)
     res = await db_session.execute(select(PrintJob).where(PrintJob.kitchen_order_id.in_([ko.id for ko in k_orders])))
     print_jobs = res.scalars().all()
-    assert len(print_jobs) == 2
+    assert len(print_jobs) == 1
     for job in print_jobs:
         assert job.status in ("PENDING", "FAILED")  # Might be FAILED if celery executed inline, else PENDING.
 

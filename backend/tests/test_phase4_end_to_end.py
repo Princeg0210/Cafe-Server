@@ -251,14 +251,13 @@ async def test_item_level_kitchen_routing_dual_kitchens(db_session, setup_branch
     db_session.add_all([pizza, drink])
     await db_session.flush()
 
-    # Setup Kitchen 1 and Kitchen 2
-    k1 = Kitchen(branch_id=1, name="Hot Kitchen P4")
-    k2 = Kitchen(branch_id=1, name="Bar Station P4")
-    db_session.add_all([k1, k2])
+    # Setup Single Main Kitchen
+    k1 = Kitchen(branch_id=1, name="Main Kitchen P4")
+    db_session.add(k1)
     await db_session.flush()
 
     map1 = MenuItemKitchenMapping(menu_item_id=pizza.id, kitchen_id=k1.id)
-    map2 = MenuItemKitchenMapping(menu_item_id=drink.id, kitchen_id=k2.id)
+    map2 = MenuItemKitchenMapping(menu_item_id=drink.id, kitchen_id=k1.id)
     db_session.add_all([map1, map2])
     await db_session.commit()
 
@@ -282,14 +281,15 @@ async def test_item_level_kitchen_routing_dual_kitchens(db_session, setup_branch
 
     order = await OrderService.place_order(db_session, order_data)
 
-    # Verify 2 Kitchen Orders created under 1 Order ID
+    # Verify 1 Single Kitchen Order created under 1 Order ID
+    assert len(order.kitchen_orders) == 1
     k_orders_res = await db_session.execute(
         select(KitchenOrder).where(KitchenOrder.order_id == order.id)
     )
     k_orders = k_orders_res.scalars().all()
-    assert len(k_orders) == 2
+    assert len(k_orders) == 1
     kitchen_ids = {ko.kitchen_id for ko in k_orders}
-    assert kitchen_ids == {k1.id, k2.id}
+    assert kitchen_ids == {k1.id}
 
 
 @pytest.mark.asyncio

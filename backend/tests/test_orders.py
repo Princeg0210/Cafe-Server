@@ -10,7 +10,7 @@ from app.services.order_service import OrderService
 
 
 @pytest.mark.asyncio
-async def test_place_order_dual_kitchen_routing(db_session: AsyncSession):
+async def test_place_order_single_kitchen_routing(db_session: AsyncSession):
     # Create Branch, Table, QR
     branch = Branch(name="Udaipur Main", address="Old City", phone="+919988776655")
     db_session.add(branch)
@@ -24,10 +24,9 @@ async def test_place_order_dual_kitchen_routing(db_session: AsyncSession):
     db_session.add(qr)
     await db_session.flush()
 
-    # Create Kitchen 1 (Food) & Kitchen 2 (Bar)
-    k1 = Kitchen(branch_id=branch.id, name="Kitchen 1 - Hot Food")
-    k2 = Kitchen(branch_id=branch.id, name="Kitchen 2 - Bar")
-    db_session.add_all([k1, k2])
+    # Create Single Main Kitchen
+    k1 = Kitchen(branch_id=branch.id, name="Main Kitchen")
+    db_session.add(k1)
     await db_session.flush()
 
     # Create Menu Category & Items
@@ -40,9 +39,9 @@ async def test_place_order_dual_kitchen_routing(db_session: AsyncSession):
     db_session.add_all([item_pizza, item_latte])
     await db_session.flush()
 
-    # Map Pizza to K1, Coffee to K2
+    # Map all items to Main Kitchen
     m1 = MenuItemKitchenMapping(menu_item_id=item_pizza.id, kitchen_id=k1.id)
-    m2 = MenuItemKitchenMapping(menu_item_id=item_latte.id, kitchen_id=k2.id)
+    m2 = MenuItemKitchenMapping(menu_item_id=item_latte.id, kitchen_id=k1.id)
     db_session.add_all([m1, m2])
     await db_session.commit()
 
@@ -60,4 +59,5 @@ async def test_place_order_dual_kitchen_routing(db_session: AsyncSession):
     assert order.id is not None
     assert order.status == "CONFIRMED"
     assert len(order.items) == 2
-    assert len(order.kitchen_orders) == 2
+    assert len(order.kitchen_orders) == 1
+    assert order.kitchen_orders[0].kitchen_id == 1
