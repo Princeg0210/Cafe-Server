@@ -11,10 +11,54 @@ from app.schemas.reservation import (
     ReservationStatusUpdate,
     ReservationResponse,
     ReservationCheckInRequest,
+    ReservationHoldRequest,
+    ReservationHoldResponse,
+    ReservationVerifyUpiRequest,
 )
 from app.services.reservation_service import ReservationService
 
 router = APIRouter(prefix="/reservations", tags=["Reservations Engine"])
+
+
+@router.post("/hold", response_model=ReservationHoldResponse, status_code=201)
+async def hold_reservation_slot(data: ReservationHoldRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Step 1: Check availability & temporarily lock/HOLD table slot for 7 minutes.
+    Generates dynamic 0% fee UPI intent details.
+    """
+    return await ReservationService.hold_reservation(db, data)
+
+
+@router.post("/{id}/verify-upi", response_model=ReservationResponse)
+async def verify_upi_payment(
+    id: int, data: ReservationVerifyUpiRequest, db: AsyncSession = Depends(get_db)
+):
+    """
+    Step 2: Customer enters UPI UTR / Transaction reference.
+    Backend verifies payment before hold expiration and marks reservation CONFIRMED.
+    """
+    return await ReservationService.verify_upi_payment(db, id, data)
+
+
+@router.post("/{id}/cancel-hold", response_model=ReservationResponse)
+async def cancel_reservation_hold(id: int, db: AsyncSession = Depends(get_db)):
+    """
+    If customer cancels or changes mind, temporary hold is released immediately.
+    """
+    return await ReservationService.cancel_hold(db, id)
+
+
+@router.get("/availability/slots")
+async def get_slot_availability(
+    reservation_date: date = Query(...),
+    time_slot: str = Query(...),
+    branch_id: int = Query(1),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Returns list of tables that are currently locked (HELD or BOOKED) for the given date & time slot.
+    """
+    return await ReservationService.get_unavailable_tables(db, branch_id, reservation_date, time_slot)
 
 
 @router.post("", response_model=ReservationResponse, status_code=201)

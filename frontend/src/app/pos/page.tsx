@@ -133,6 +133,10 @@ interface Reservation {
   reservation_date: string;
   time_slot: string;
   status: string;
+  payment_status?: string;
+  advance_amount?: number;
+  payment_reference?: string;
+  payment_method?: string;
   created_at: string;
   customer?: Customer;
 }
@@ -2078,6 +2082,20 @@ export default function POSDashboard() {
                             <span className="text-stone-500 font-medium">Time Slot:</span>
                             <span className="font-bold text-[#B85B43]">{res.time_slot}</span>
                           </div>
+                          {res.advance_amount !== undefined && Number(res.advance_amount) > 0 && (
+                            <div className="flex items-center justify-between text-xs pt-1.5 border-t border-[#E4DCD0]/70">
+                              <span className="text-stone-500 font-medium">Advance Paid:</span>
+                              <span className="font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md text-[11px]">
+                                ₹{Number(res.advance_amount).toFixed(0)} ({res.payment_method || "UPI"})
+                              </span>
+                            </div>
+                          )}
+                          {res.payment_reference && (
+                            <div className="flex items-center justify-between text-[10px] text-stone-500 pt-0.5">
+                              <span>Ref:</span>
+                              <span className="font-mono text-stone-600 truncate max-w-[150px]">{res.payment_reference}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 

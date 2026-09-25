@@ -1,10 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar as CalendarIcon, Clock, Users, Sparkles, CheckCircle2, Building2, Check, ArrowRight } from "lucide-react";
+import QRCode from "qrcode";
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  Users,
+  Sparkles,
+  CheckCircle2,
+  Building2,
+  Check,
+  ArrowRight,
+  ShieldCheck,
+  QrCode,
+  Smartphone,
+  Lock,
+  Copy,
+  Receipt,
+  X,
+  Wallet,
+  AlertCircle,
+  Timer,
+  RefreshCw,
+  ExternalLink
+} from "lucide-react";
 import Navbar from "@/components/Navbar";
-import CartDrawer, { CartItem } from "@/components/CartDrawer";
 import TanFooter from "@/components/TanFooter";
 
 interface TableOption {
@@ -44,10 +65,16 @@ const FLOORS = [
   { floor: 3, title: "Floor 3", tag: "Rooftop Terrace", desc: "Panoramic sunset & starlight dining" },
 ];
 
-export default function BookTablePage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
+const ADVANCE_PER_GUEST = 200; // ₹200 deposit per person, 100% adjustable against dining tab
 
+interface UnavailableTable {
+  floor_number: number;
+  table_name: string;
+  status: "HELD" | "BOOKED";
+  seconds_remaining: number;
+}
+
+export default function BookTablePage() {
   // Form State (Dynamic current date in local time)
   const [date, setDate] = useState(() => {
     const today = new Date();
@@ -59,17 +86,38 @@ export default function BookTablePage() {
   const [time, setTime] = useState("19:30");
   const [guests, setGuests] = useState(2);
 
-  // Floor & Table State
+  // Floor & Table Selection
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const [selectedTable, setSelectedTable] = useState<TableOption | null>(null);
+  const [unavailableTables, setUnavailableTables] = useState<UnavailableTable[]>([]);
 
   // Customer Contact State
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [isBooked, setIsBooked] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // UPI Temporary Hold & Payment Portal State
+  const [isHoldingSlot, setIsHoldingSlot] = useState(false);
+  const [heldReservationId, setHeldReservationId] = useState<number | null>(null);
+  const [holdExpiresAt, setHoldExpiresAt] = useState<string | null>(null);
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(420);
+  const [upiUri, setUpiUri] = useState<string>("");
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
+  const [showUpiModal, setShowUpiModal] = useState(false);
+  const [upiUtr, setUpiUtr] = useState("");
+  const [customerVpa, setCustomerVpa] = useState("");
+  const [isVerifyingUpi, setIsVerifyingUpi] = useState(false);
+  const [isCopiedUpi, setIsCopiedUpi] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [bookingId, setBookingId] = useState<number | null>(null);
+  const [holdExpired, setHoldExpired] = useState(false);
+
+  // Success Confirmation State
+  const [isBooked, setIsBooked] = useState(false);
+  const [confirmedBookingId, setConfirmedBookingId] = useState<number | null>(null);
+  const [confirmedUtr, setConfirmedUtr] = useState<string>("");
+  const [paidAdvance, setPaidAdvance] = useState<number>(0);
+
+  const totalAdvance = guests * ADVANCE_PER_GUEST;
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const getApiBase = () => {
     if (typeof window !== "undefined") {
@@ -81,80 +129,212 @@ export default function BookTablePage() {
     return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   };
 
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  // Poll unavailable tables for current date & time slot
+  useEffect(() => {
+    const fetchUnavailable = async () => {
+      try {
+        const apiBase = getApiBase();
+        const res = await fetch(
+          `${apiBase}/api/v1/reservations/availability/slots?reservation_date=${date}&time_slot=${time}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setUnavailableTables(data);
+        }
+      } catch {
+        // silent fail on initial load
+      }
+    };
+    fetchUnavailable();
+  }, [date, time]);
 
-  const handleUpdateQuantity = (id: string, delta: number) => {
-    setCartItems((prev) =>
-      prev
-        .map((item) => (item.id === id ? { ...item, quantity: item.quantity + delta } : item))
-        .filter((item) => item.quantity > 0)
-    );
-  };
-
-  const handleRemoveItem = (id: string) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
-  };
+  // Handle active hold countdown timer
+  useEffect(() => {
+    if (showUpiModal && secondsRemaining > 0 && !isBooked) {
+      timerRef.current = setInterval(() => {
+        setSecondsRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current as NodeJS.Timeout);
+            setHoldExpired(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [showUpiModal, secondsRemaining, isBooked]);
 
   const handleSelectFloor = (floorNum: number) => {
     setSelectedFloor(floorNum);
-    // If switching floors or no table selected yet, select Table 1 of that floor by default
     const tablesOnFloor = FLOOR_TABLES[floorNum];
     if (!selectedTable || !tablesOnFloor.some((t) => t.id === selectedTable.id)) {
       setSelectedTable(tablesOnFloor[0]);
     }
   };
 
-  const handleBookTable = async (e: React.FormEvent) => {
+  const isTableLocked = (floor: number, tableName: string) => {
+    return unavailableTables.some(
+      (u) => u.floor_number === floor && u.table_name.toLowerCase() === tableName.toLowerCase()
+    );
+  };
+
+  // Step 1: Request temporary 7-minute HOLD on the table and generate dynamic UPI QR
+  const handleInitiateHoldAndPay = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
+    setHoldExpired(false);
+
     if (!selectedFloor) {
       setSubmitError("Please select a floor (Floor 1, Floor 2, or Floor 3).");
       return;
     }
     if (!selectedTable) {
-      setSubmitError(`Please select your preferred table on Floor ${selectedFloor}.`);
+      setSubmitError(`Please pick your preferred table on Floor ${selectedFloor}.`);
+      return;
+    }
+    if (!name.trim()) {
+      setSubmitError("Please provide your full name.");
+      return;
+    }
+    if (!phone.trim() || phone.replace(/\D/g, "").length < 10) {
+      setSubmitError("Please enter a valid 10-digit mobile number.");
       return;
     }
 
-    setIsSubmitting(true);
-    setSubmitError(null);
+    setIsHoldingSlot(true);
     const apiBase = getApiBase();
 
     try {
-      const res = await fetch(`${apiBase}/api/v1/reservations`, {
+      const res = await fetch(`${apiBase}/api/v1/reservations/hold`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           branch_id: 1,
-          customer_name: name,
-          customer_phone: phone,
+          customer_name: name.trim(),
+          customer_phone: phone.trim(),
           guest_count: guests,
           reservation_date: date,
           time_slot: time,
-          table_id: selectedFloor === 1 && selectedTable?.name === "Table 1" ? 1 : (selectedTable?.id || 1),
-          floor_number: selectedFloor || 1,
-          table_name: selectedTable?.name || "Table 1",
+          floor_number: selectedFloor,
+          table_name: selectedTable.name,
         }),
       });
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        if (errData.detail && errData.detail.includes("CAPACITY_EXCEEDED")) {
-          setSubmitError("This time slot is fully booked. Please select another time or date.");
+        if (res.status === 409) {
+          setSubmitError(
+            errData.detail || "This table is currently held or confirmed by another customer. Please choose another table."
+          );
         } else {
-          setSubmitError(errData.detail || "Unable to reserve table. Please check details and try again.");
+          setSubmitError(errData.detail || "Unable to hold table slot. Please check details and try again.");
         }
-        setIsSubmitting(false);
+        setIsHoldingSlot(false);
         return;
       }
 
-      const resData = await res.json();
-      setBookingId(resData.id);
+      const holdData = await res.json();
+      setHeldReservationId(holdData.reservation_id);
+      setHoldExpiresAt(holdData.hold_expires_at);
+      setSecondsRemaining(holdData.seconds_remaining || 420);
+      setUpiUri(holdData.upi_uri);
+
+      // Generate real dynamic UPI QR Code image
+      const qrData = await QRCode.toDataURL(holdData.upi_uri, {
+        width: 320,
+        margin: 2,
+        color: { dark: "#24150e", light: "#ffffff" },
+      });
+      setQrCodeDataUrl(qrData);
+
+      setShowUpiModal(true);
+    } catch {
+      setSubmitError("Network connection interrupted. Please try again.");
+    } finally {
+      setIsHoldingSlot(false);
+    }
+  };
+
+  // Step 2: Customer enters 12-digit UPI UTR and verifies payment before hold expires
+  const handleVerifyUpiPayment = async () => {
+    if (!heldReservationId) return;
+    setSubmitError(null);
+
+    const cleanUtr = upiUtr.trim();
+    if (!cleanUtr || cleanUtr.length < 4) {
+      setSubmitError("Please enter the 12-digit UPI reference / UTR number from your payment app.");
+      return;
+    }
+
+    setIsVerifyingUpi(true);
+    const apiBase = getApiBase();
+
+    try {
+      const res = await fetch(`${apiBase}/api/v1/reservations/${heldReservationId}/verify-upi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          upi_utr: cleanUtr,
+          customer_upi_vpa: customerVpa.trim() || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        if (res.status === 410) {
+          setHoldExpired(true);
+          setSubmitError("Hold time expired before verification. The table has been released.");
+        } else {
+          setSubmitError(errData.detail || "Unable to verify UPI transaction. Please check the UTR and try again.");
+        }
+        setIsVerifyingUpi(false);
+        return;
+      }
+
+      const verifiedData = await res.json();
+      setConfirmedBookingId(verifiedData.id);
+      setConfirmedUtr(cleanUtr);
+      setPaidAdvance(verifiedData.advance_amount || totalAdvance);
+      setShowUpiModal(false);
       setIsBooked(true);
     } catch {
-      setSubmitError("Network error. Please verify connection and try again.");
+      setSubmitError("Gateway verification error. Please retry.");
     } finally {
-      setIsSubmitting(false);
+      setIsVerifyingUpi(false);
     }
+  };
+
+  // Step 3: Customer cancels hold or releases table slot early
+  const handleCancelHold = async () => {
+    if (heldReservationId) {
+      const apiBase = getApiBase();
+      try {
+        await fetch(`${apiBase}/api/v1/reservations/${heldReservationId}/cancel-hold`, {
+          method: "POST",
+        });
+      } catch {
+        // silent
+      }
+    }
+    setShowUpiModal(false);
+    setHeldReservationId(null);
+    setUpiUtr("");
+    setHoldExpired(false);
+  };
+
+  const handleCopyUpi = () => {
+    navigator.clipboard.writeText("jaadoo.udaipur@icici");
+    setIsCopiedUpi(true);
+    setTimeout(() => setIsCopiedUpi(false), 2000);
+  };
+
+  const formatTimer = (totalSec: number) => {
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
   return (
@@ -169,7 +349,7 @@ export default function BookTablePage() {
         >
           <div className="inline-flex items-center gap-2 bg-[#24150e]/10 text-[#24150e] px-4 py-1.5 rounded-full text-xs font-condensed font-bold uppercase tracking-widest mb-4">
             <Sparkles className="w-4 h-4 text-[#c88a48]" />
-            <span>Online Table Reservations</span>
+            <span>Online Table Reservations • Guaranteed Seating</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-condensed font-extrabold text-[#24150e] uppercase tracking-wide">
             Reserve Your Table
@@ -177,40 +357,112 @@ export default function BookTablePage() {
           <p className="text-gray-600 font-sans text-sm md:text-base mt-2">
             Experience Neapolitan Woodfired Magic with panoramic views of Lake Pichola.
           </p>
+
+          <div className="mt-3 inline-flex items-center gap-2 text-xs font-medium text-emerald-800 bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 rounded-full">
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <span>
+              Prepayment deposit of ₹{ADVANCE_PER_GUEST}/guest is <strong>100% credited</strong> to your dining bill.
+            </span>
+          </div>
         </motion.div>
 
         {isBooked ? (
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white rounded-3xl p-8 md:p-12 border border-[#e8ded2] shadow-xl text-center space-y-6"
           >
-            <CheckCircle2 className="w-20 h-20 text-emerald-600 mx-auto animate-pulse" />
-            <h2 className="font-condensed text-4xl font-extrabold text-[#24150e] uppercase tracking-wide">Table Reserved!</h2>
-            <p className="text-gray-600 font-sans text-base">
-              Thank you <span className="font-bold text-[#24150e]">{name}</span>! We look forward to welcoming you on{" "}
-              <span className="font-semibold text-[#b91c1c]">{date}</span> at{" "}
-              <span className="font-semibold text-[#b91c1c]">{time}</span>.
-            </p>
-            
-            <div className="bg-amber-50/80 p-5 rounded-2xl border border-amber-200/70 inline-block text-left text-xs font-sans text-amber-950 space-y-1.5 shadow-xs">
-              {bookingId && <p>🔖 <strong>Booking Ref:</strong> #RES-{String(bookingId).padStart(4, "0")}</p>}
-              <p>📍 <strong>Brew Station:</strong> Old City, Udaipur</p>
-              <p>🏢 <strong>Floor:</strong> Floor {selectedFloor}</p>
-              <p>🪑 <strong>Table Allocated:</strong> {selectedTable?.name} ({selectedTable?.capacity} People Space)</p>
-              <p>👥 <strong>Party Size:</strong> {guests} Guests</p>
-              <p>📅 <strong>Reserved For:</strong> {date} at {time}</p>
-              <p>📱 <strong>Confirmation SMS:</strong> Sent to {phone}</p>
+            <div className="relative inline-block">
+              <CheckCircle2 className="w-20 h-20 text-emerald-600 mx-auto" />
+              <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white rounded-full p-1 shadow-md">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
             </div>
 
             <div>
+              <span className="text-xs font-mono font-bold uppercase tracking-widest text-emerald-700 bg-emerald-100/80 px-3 py-1 rounded-full">
+                UPI Payment Verified • Table Officially Reserved
+              </span>
+              <h2 className="font-condensed text-4xl font-extrabold text-[#24150e] uppercase tracking-wide mt-3">
+                Booking Confirmed!
+              </h2>
+              <p className="text-gray-600 font-sans text-base mt-2">
+                Thank you <span className="font-bold text-[#24150e]">{name}</span>! Your table has been officially locked for{" "}
+                <span className="font-semibold text-[#b91c1c]">{date}</span> at{" "}
+                <span className="font-semibold text-[#b91c1c]">{time}</span>.
+              </p>
+            </div>
+
+            {/* Official Digital Receipt Card */}
+            <div className="bg-linear-to-b from-amber-50/90 to-orange-50/50 p-6 rounded-2xl border border-amber-200/80 text-left text-xs font-sans text-amber-950 space-y-3 shadow-xs">
+              <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-[#c88a48]" />
+                  <span className="font-bold uppercase tracking-wider text-xs text-[#24150e]">
+                    Official Table Booking & Payment Receipt
+                  </span>
+                </div>
+                <span className="text-[11px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-300">
+                  PAID ₹{paidAdvance}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                {confirmedBookingId && (
+                  <p>
+                    🔖 <strong>Booking Ref:</strong> #RES-{String(confirmedBookingId).padStart(4, "0")}
+                  </p>
+                )}
+                <p>
+                  ⚡ <strong>UPI UTR / Ref:</strong> {confirmedUtr}
+                </p>
+                <p>
+                  💳 <strong>Payment Route:</strong> Direct NPCI UPI (0% Fee)
+                </p>
+                <p>
+                  🏢 <strong>Floor:</strong> Floor {selectedFloor}
+                </p>
+                <p>
+                  🪑 <strong>Table Allocated:</strong> {selectedTable?.name} ({selectedTable?.capacity} People Space)
+                </p>
+                <p>
+                  👥 <strong>Party Size:</strong> {guests} Guests
+                </p>
+                <p>
+                  📅 <strong>Reserved For:</strong> {date} at {time}
+                </p>
+                <p>
+                  📱 <strong>Customer Phone:</strong> {phone}
+                </p>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-amber-200/70 bg-white/70 p-3 rounded-xl flex items-start gap-2.5">
+                <Check className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                <p className="text-[11px] leading-relaxed text-gray-700">
+                  <strong>100% Bill Credit Guarantee:</strong> Present this receipt or your phone number to the cashier when
+                  paying your dining bill. The full <strong>₹{paidAdvance}</strong> deposit will be deducted directly from
+                  your check.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={() => window.print()}
+                className="w-full sm:w-auto border border-gray-300 bg-white hover:bg-gray-50 text-[#24150e] px-6 py-2.5 rounded-full text-xs font-condensed font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Print / Save Receipt
+              </button>
               <button
                 onClick={() => {
                   setIsBooked(false);
                   setSelectedFloor(null);
                   setSelectedTable(null);
+                  setName("");
+                  setPhone("");
+                  setUpiUtr("");
                 }}
-                className="bg-[#24150e] text-white px-6 py-2.5 rounded-full text-xs font-condensed font-bold uppercase tracking-wider hover:bg-[#b91c1c] transition-colors"
+                className="w-full sm:w-auto bg-[#24150e] text-white px-6 py-2.5 rounded-full text-xs font-condensed font-bold uppercase tracking-wider hover:bg-[#b91c1c] transition-colors cursor-pointer"
               >
                 Book Another Table
               </button>
@@ -221,10 +473,10 @@ export default function BookTablePage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            onSubmit={handleBookTable}
+            onSubmit={handleInitiateHoldAndPay}
             className="bg-white rounded-3xl p-6 md:p-10 border border-[#e8ded2] shadow-lg space-y-8"
           >
-            {/* Step 1: Date, Time & Guests (Unchanged) */}
+            {/* Step 1: Date, Time & Guests */}
             <div>
               <span className="text-xs uppercase font-mono tracking-widest text-[#c88a48] font-bold block mb-3">
                 Step 1: Date, Time & Guest Count
@@ -269,13 +521,13 @@ export default function BookTablePage() {
                     onChange={(e) => setGuests(Number(e.target.value))}
                     className="w-full text-sm p-3 rounded-xl border border-gray-200 focus:outline-hidden focus:border-[#c88a48] bg-gray-50/50 font-sans"
                   >
-                    <option value={1}>1 Person</option>
-                    <option value={2}>2 People (Pair)</option>
-                    <option value={3}>3 People</option>
-                    <option value={4}>4 People (Family)</option>
-                    <option value={5}>5 People</option>
-                    <option value={6}>6 People (Group)</option>
-                    <option value={8}>8+ People (Party)</option>
+                    <option value={1}>1 Person (₹200 deposit)</option>
+                    <option value={2}>2 People (Pair - ₹400 deposit)</option>
+                    <option value={3}>3 People (₹600 deposit)</option>
+                    <option value={4}>4 People (Family - ₹800 deposit)</option>
+                    <option value={5}>5 People (₹1,000 deposit)</option>
+                    <option value={6}>6 People (Group - ₹1,200 deposit)</option>
+                    <option value={8}>8+ People (Party - ₹1,600 deposit)</option>
                   </select>
                 </div>
               </div>
@@ -287,7 +539,7 @@ export default function BookTablePage() {
                 Step 2: Choose Floor & Pick Your Table
               </span>
 
-              {/* Floor Options (Floor 1, Floor 2, Floor 3) */}
+              {/* Floor Options */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {FLOORS.map((f) => {
                   const isSelected = selectedFloor === f.floor;
@@ -296,7 +548,7 @@ export default function BookTablePage() {
                       key={f.floor}
                       type="button"
                       onClick={() => handleSelectFloor(f.floor)}
-                      className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                      className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between cursor-pointer ${
                         isSelected
                           ? "border-[#c88a48] bg-amber-50/70 shadow-sm ring-2 ring-[#c88a48]/25"
                           : "border-gray-200 bg-gray-50/40 hover:border-gray-300 hover:bg-gray-50"
@@ -365,57 +617,83 @@ export default function BookTablePage() {
                       {FLOOR_TABLES[selectedFloor].map((tbl) => {
                         const isSelected = selectedTable?.id === tbl.id;
                         const fitsGuests = tbl.capacity >= guests;
+                        const locked = isTableLocked(selectedFloor, tbl.name);
 
                         return (
                           <button
                             key={tbl.id}
                             type="button"
+                            disabled={locked}
                             onClick={() => setSelectedTable(tbl)}
                             className={`p-3.5 rounded-2xl border text-left transition-all relative flex flex-col justify-between ${
-                              isSelected
-                                ? "border-[#24150e] bg-[#24150e] text-white shadow-md ring-2 ring-[#c88a48]/50"
-                                : "border-gray-200 bg-white hover:border-[#c88a48]/70 hover:bg-amber-50/50 text-[#24150e]"
+                              locked
+                                ? "border-gray-200 bg-gray-100 opacity-60 cursor-not-allowed text-gray-400"
+                                : isSelected
+                                ? "border-[#24150e] bg-[#24150e] text-white shadow-md ring-2 ring-[#c88a48]/50 cursor-pointer"
+                                : "border-gray-200 bg-white hover:border-[#c88a48]/70 hover:bg-amber-50/50 text-[#24150e] cursor-pointer"
                             }`}
                           >
                             <div>
                               <div className="flex items-center justify-between mb-1.5">
-                                <span className={`font-condensed font-bold text-base tracking-wide uppercase ${
-                                  isSelected ? "text-amber-300" : "text-[#24150e]"
-                                }`}>
+                                <span
+                                  className={`font-condensed font-bold text-base tracking-wide uppercase ${
+                                    locked
+                                      ? "text-gray-400"
+                                      : isSelected
+                                      ? "text-amber-300"
+                                      : "text-[#24150e]"
+                                  }`}
+                                >
                                   {tbl.name}
                                 </span>
-                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                                  isSelected ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
-                                }`}>
-                                  FL {selectedFloor}
+                                <span
+                                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                                    locked
+                                      ? "bg-red-100 text-red-700"
+                                      : isSelected
+                                      ? "bg-white/20 text-white"
+                                      : "bg-gray-100 text-gray-600"
+                                  }`}
+                                >
+                                  {locked ? "Locked" : `FL ${selectedFloor}`}
                                 </span>
                               </div>
 
-                              <div className={`text-xs font-bold flex items-center gap-1 mb-1 ${
-                                isSelected ? "text-white" : "text-gray-800"
-                              }`}>
+                              <div
+                                className={`text-xs font-bold flex items-center gap-1 mb-1 ${
+                                  locked ? "text-gray-400" : isSelected ? "text-white" : "text-gray-800"
+                                }`}
+                              >
                                 <Users className="w-3.5 h-3.5 shrink-0 text-[#c88a48]" />
                                 <span>{tbl.capacity} People Space</span>
                               </div>
 
-                              <p className={`text-[11px] leading-tight ${
-                                isSelected ? "text-amber-100/75" : "text-gray-500"
-                              }`}>
-                                {tbl.desc}
+                              <p
+                                className={`text-[11px] leading-tight ${
+                                  locked ? "text-gray-400" : isSelected ? "text-amber-100/75" : "text-gray-500"
+                                }`}
+                              >
+                                {locked ? "Currently reserved or held" : tbl.desc}
                               </p>
                             </div>
 
                             <div className="mt-3 pt-2 border-t border-gray-100/20 flex items-center justify-between">
-                              <span className={`text-[10px] font-medium ${
-                                fitsGuests
-                                  ? (isSelected ? "text-emerald-300" : "text-emerald-600 font-semibold")
-                                  : (isSelected ? "text-amber-200/80" : "text-amber-700")
-                              }`}>
-                                {fitsGuests ? `✓ Fits ${guests} guests` : `Cozy for ${guests}`}
+                              <span
+                                className={`text-[10px] font-medium ${
+                                  locked
+                                    ? "text-red-500 font-bold"
+                                    : fitsGuests
+                                    ? isSelected
+                                      ? "text-emerald-300"
+                                      : "text-emerald-600 font-semibold"
+                                    : isSelected
+                                    ? "text-amber-200/80"
+                                    : "text-amber-700"
+                                }`}
+                              >
+                                {locked ? "✕ Unavailable" : fitsGuests ? `✓ Fits ${guests} guests` : `Cozy for ${guests}`}
                               </span>
-                              {isSelected && (
-                                <Check className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                              )}
+                              {isSelected && !locked && <Check className="w-3.5 h-3.5 text-amber-300 shrink-0" />}
                             </div>
                           </button>
                         );
@@ -429,7 +707,8 @@ export default function BookTablePage() {
                     className="mt-4 p-5 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 text-center"
                   >
                     <p className="text-xs font-medium text-gray-500">
-                      👆 Click on <strong>Floor 1</strong>, <strong>Floor 2</strong>, or <strong>Floor 3</strong> above to view available tables (Table 1 to Table 5 with dedicated seating capacity).
+                      👆 Click on <strong>Floor 1</strong>, <strong>Floor 2</strong>, or <strong>Floor 3</strong> above to view
+                      available tables (Table 1 to Table 5 with dedicated seating capacity).
                     </p>
                   </motion.div>
                 )}
@@ -445,7 +724,7 @@ export default function BookTablePage() {
                 <input
                   type="text"
                   required
-                  placeholder="Your Name"
+                  placeholder="e.g. Rahul Verma"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full text-sm p-3 rounded-xl border border-gray-200 focus:outline-hidden focus:border-[#c88a48] bg-gray-50/50 font-sans"
@@ -459,7 +738,7 @@ export default function BookTablePage() {
                 <input
                   type="tel"
                   required
-                  placeholder="+91 98765 43210"
+                  placeholder="10-digit mobile number"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full text-sm p-3 rounded-xl border border-gray-200 focus:outline-hidden focus:border-[#c88a48] bg-gray-50/50 font-sans"
@@ -467,33 +746,286 @@ export default function BookTablePage() {
               </div>
             </div>
 
+            {/* Advance Deposit Summary Pill */}
+            <div className="p-4 bg-linear-to-r from-amber-50 to-orange-50/40 border border-amber-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#24150e]">
+                  <Wallet className="w-4 h-4 text-[#c88a48]" />
+                  <span>Advance Booking Deposit Required</span>
+                </div>
+                <p className="text-[11px] text-gray-600 mt-0.5">
+                  ₹{ADVANCE_PER_GUEST} × {guests} {guests === 1 ? "Guest" : "Guests"} = <strong>₹{totalAdvance}</strong>{" "}
+                  (100% credited against your final dining bill)
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-xs text-gray-500 block uppercase font-mono tracking-wider">Payable Now</span>
+                <span className="text-xl font-extrabold text-[#b91c1c] font-condensed">₹{totalAdvance}</span>
+              </div>
+            </div>
+
             {submitError && (
               <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-sm font-sans flex items-center gap-2">
-                <span>⚠️</span>
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
                 <span>{submitError}</span>
               </div>
             )}
 
+            {/* Action button triggers temporary hold & opens UPI portal */}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isHoldingSlot}
               className="w-full bg-[#24150e] hover:bg-[#b91c1c] disabled:opacity-50 text-white py-4 rounded-2xl font-condensed font-bold text-xl uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
-              {isSubmitting ? (
+              {isHoldingSlot ? (
                 <>
-                  <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Checking Availability & Reserving...</span>
+                  <RefreshCw className="w-5 h-5 animate-spin text-amber-300" />
+                  <span>Checking Slot & Locking Table...</span>
                 </>
               ) : (
-                "Confirm Reservation"
+                <>
+                  <Lock className="w-5 h-5 text-amber-300" />
+                  <span>Lock Table & Pay via UPI (₹{totalAdvance})</span>
+                </>
               )}
             </button>
+
+            <p className="text-center text-[11px] text-gray-400 font-sans">
+              🔒 0% Fee Direct UPI Payment • 7-Min Guaranteed Hold • 100% Dining Tab Credit
+            </p>
           </motion.form>
         )}
       </main>
 
-      <TanFooter />
+      {/* ========================================================= */}
+      {/* 7-MINUTE TEMPORARY HOLD & DIRECT UPI PAYMENT MODAL         */}
+      {/* ========================================================= */}
+      <AnimatePresence>
+        {showUpiModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 15 }}
+              className="bg-white rounded-3xl w-full max-w-lg max-h-[94vh] overflow-y-auto border border-[#e8ded2] shadow-2xl relative flex flex-col"
+            >
+              {/* Header with Live Expiration Countdown */}
+              <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-amber-50/70 rounded-t-3xl">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-[#24150e] text-white flex items-center justify-center shadow-xs">
+                    <QrCode className="w-5 h-5 text-amber-300" />
+                  </div>
+                  <div>
+                    <h3 className="font-condensed font-bold text-xl text-[#24150e] uppercase tracking-wide">
+                      Table Held • Pay via UPI
+                    </h3>
+                    <p className="text-[11px] text-gray-600 font-sans">
+                      Floor {selectedFloor} • {selectedTable?.name} ({guests} Guests)
+                    </p>
+                  </div>
+                </div>
 
+                {/* Hold Expiration Timer Pill */}
+                <div className={`px-3 py-1.5 rounded-full border text-xs font-mono font-bold flex items-center gap-1.5 ${
+                  holdExpired
+                    ? "bg-red-100 text-red-700 border-red-300"
+                    : secondsRemaining < 60
+                    ? "bg-red-50 text-red-600 border-red-200 animate-pulse"
+                    : "bg-white text-[#24150e] border-amber-300 shadow-xs"
+                }`}>
+                  <Timer className="w-3.5 h-3.5 text-[#c88a48]" />
+                  <span>{holdExpired ? "EXPIRED" : formatTimer(secondsRemaining)}</span>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-5">
+                {holdExpired ? (
+                  <div className="p-6 text-center space-y-3 bg-red-50/70 border border-red-200 rounded-2xl">
+                    <AlertCircle className="w-12 h-12 text-red-600 mx-auto" />
+                    <h4 className="font-condensed font-bold text-2xl text-red-900 uppercase">
+                      Temporary Hold Expired
+                    </h4>
+                    <p className="text-xs text-gray-600 font-sans leading-relaxed">
+                      The 7-minute temporary hold on <strong>Floor {selectedFloor} • {selectedTable?.name}</strong> has
+                      elapsed, and the table slot has been released back to availability.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleCancelHold}
+                      className="mt-2 bg-[#24150e] text-white px-5 py-2 rounded-xl text-xs font-condensed font-bold uppercase tracking-wider hover:bg-black transition-colors cursor-pointer"
+                    >
+                      Re-select Table
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Amount Banner */}
+                    <div className="bg-[#24150e] text-white p-4 rounded-2xl flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-mono tracking-wider text-amber-300 block">
+                          Total Advance Deposit
+                        </span>
+                        <span className="text-xs text-gray-300">
+                          {date} at {time}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-2xl font-extrabold font-condensed text-amber-400">₹{totalAdvance}</span>
+                        <span className="text-[10px] text-emerald-300 block font-medium">✓ 100% Food Credit</span>
+                      </div>
+                    </div>
+
+                    {/* Dynamic UPI QR Code Display */}
+                    <div className="flex flex-col sm:flex-row items-center gap-5 p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                      {qrCodeDataUrl ? (
+                        <div className="bg-white p-2.5 rounded-2xl border border-gray-300 shadow-sm shrink-0 flex flex-col items-center">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={qrCodeDataUrl}
+                            alt="Dynamic UPI QR Code"
+                            className="w-36 h-36 rounded-xl object-contain"
+                          />
+                          <span className="text-[9px] font-mono text-gray-500 mt-1 uppercase font-bold">
+                            Scan with any UPI App
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="w-36 h-36 bg-gray-200 rounded-2xl flex items-center justify-center animate-pulse">
+                          <QrCode className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+
+                      <div className="space-y-2.5 text-left w-full">
+                        <span className="text-xs font-bold text-gray-800 uppercase tracking-wider block">
+                          Pay with any UPI App:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {["Google Pay", "PhonePe", "Paytm", "BHIM", "CRED"].map((app) => (
+                            <span
+                              key={app}
+                              className="text-[10px] font-semibold bg-white border border-gray-200 px-2 py-0.5 rounded-md text-gray-700"
+                            >
+                              {app}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Direct Mobile UPI Intent Link Button */}
+                        {upiUri && (
+                          <a
+                            href={upiUri}
+                            className="inline-flex items-center justify-center gap-1.5 w-full bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-condensed font-bold uppercase tracking-wider transition-colors shadow-xs"
+                          >
+                            <Smartphone className="w-3.5 h-3.5" />
+                            <span>Open in UPI App (Mobile)</span>
+                            <ExternalLink className="w-3 h-3 ml-0.5 opacity-80" />
+                          </a>
+                        )}
+
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                            Official Café UPI ID:
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <code className="text-xs font-mono bg-white border border-gray-200 px-2.5 py-1.5 rounded-xl font-bold text-[#24150e] select-all">
+                              jaadoo.udaipur@icici
+                            </code>
+                            <button
+                              type="button"
+                              onClick={handleCopyUpi}
+                              className="p-1.5 border border-gray-200 rounded-xl bg-white hover:bg-gray-100 text-xs text-gray-700 flex items-center gap-1 cursor-pointer"
+                            >
+                              {isCopiedUpi ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                              <span className="text-[10px]">{isCopiedUpi ? "Copied" : "Copy"}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* UTR Input Section */}
+                    <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-3">
+                      <div>
+                        <label className="text-xs font-bold text-[#24150e] uppercase tracking-wider block font-sans mb-1">
+                          Step 2: Enter 12-Digit UPI Reference / UTR
+                        </label>
+                        <p className="text-[11px] text-gray-600 font-sans mb-2">
+                          After making the ₹{totalAdvance} payment in your UPI app, enter the 12-digit UTR/Ref number from the receipt:
+                        </p>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. 426819283741 or UPI Ref"
+                          value={upiUtr}
+                          onChange={(e) => setUpiUtr(e.target.value)}
+                          className="w-full text-sm p-3 rounded-xl border border-gray-300 bg-white font-mono focus:outline-hidden focus:border-[#c88a48] tracking-widest text-[#24150e]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-600 uppercase tracking-wider block font-sans mb-1">
+                          Your UPI ID / VPA (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. yourname@oksbi"
+                          value={customerVpa}
+                          onChange={(e) => setCustomerVpa(e.target.value)}
+                          className="w-full text-xs p-2.5 rounded-xl border border-gray-200 bg-white focus:outline-hidden focus:border-[#c88a48]"
+                        />
+                      </div>
+                    </div>
+
+                    {submitError && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-sans flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                        <span>{submitError}</span>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="space-y-2 pt-2">
+                      <button
+                        type="button"
+                        disabled={isVerifyingUpi || !upiUtr.trim()}
+                        onClick={handleVerifyUpiPayment}
+                        className="w-full bg-[#24150e] hover:bg-[#b91c1c] disabled:opacity-50 text-white py-3.5 rounded-2xl font-condensed font-bold text-lg uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        {isVerifyingUpi ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin text-amber-300" />
+                            <span>Verifying UPI Payment...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                            <span>Verify Payment & Confirm Table</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCancelHold}
+                        className="w-full text-center text-xs text-gray-500 hover:text-red-700 font-sans py-1 transition-colors cursor-pointer"
+                      >
+                        Cancel & Release Table Hold
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <TanFooter />
     </div>
   );
 }

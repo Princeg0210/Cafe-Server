@@ -5,17 +5,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.models.reservation import Reservation, ReservationCapacityRule
 from app.models.customer import Customer
-from app.schemas.reservation import ReservationCreate, ReservationUpdate, ReservationStatusUpdate
+from app.models.table import Table
+from app.schemas.reservation import (
+    ReservationCreate,
+    ReservationUpdate,
+    ReservationStatusUpdate,
+    ReservationHoldRequest,
+    ReservationHoldResponse,
+    ReservationVerifyUpiRequest,
+)
 from app.workers.celery_app import celery_app, send_reservation_reminder
 
 # Strict Allowed State Machine Map
 ALLOWED_STATE_TRANSITIONS = {
-    "PENDING": {"CONFIRMED", "CANCELLED"},
+    "HOLD": {"CONFIRMED", "CANCELLED", "EXPIRED"},
+    "PENDING": {"CONFIRMED", "CANCELLED", "EXPIRED"},
     "CONFIRMED": {"ARRIVED", "CANCELLED", "NO_SHOW"},
     "ARRIVED": {"SEATED", "CANCELLED"},
     "SEATED": {"COMPLETED"},
     "COMPLETED": set(),
     "CANCELLED": set(),
+    "EXPIRED": set(),
     "NO_SHOW": set(),
 }
 
@@ -81,16 +91,38 @@ class ReservationService:
             db.add(customer)
             await db.flush()
 
+        # Ensure table_id is valid in the tables table, or compute corresponding floor table ID
+        valid_table_id = data.table_id
+        if valid_table_id is not None:
+            tbl_check = await db.execute(select(Table.id).where(Table.id == valid_table_id))
+            if not tbl_check.scalar_one_or_none():
+                # Attempt to map to floor-based table ID (e.g., Table 1 on Floor 2 -> id 6)
+                if data.floor_number and data.table_name:
+                    try:
+                        digits = "".join(filter(str.isdigit, data.table_name))
+                        t_num = int(digits) if digits else 1
+                        computed_id = (data.floor_number - 1) * 5 + t_num
+                        c_check = await db.execute(select(Table.id).where(Table.id == computed_id))
+                        valid_table_id = computed_id if c_check.scalar_one_or_none() else None
+                    except Exception:
+                        valid_table_id = None
+                else:
+                    valid_table_id = None
+
         reservation = Reservation(
             branch_id=data.branch_id,
             customer_id=customer.id,
             guest_count=data.guest_count,
             reservation_date=data.reservation_date,
             time_slot=data.time_slot,
-            table_id=data.table_id,
+            table_id=valid_table_id,
             floor_number=data.floor_number or 1,
             table_name=data.table_name or "Table 1",
             status="CONFIRMED",
+            payment_status=data.payment_status or "PAID",
+            advance_amount=data.advance_amount if data.advance_amount is not None else 0.0,
+            payment_reference=data.payment_reference,
+            payment_method=data.payment_method or "UPI",
         )
         db.add(reservation)
         await db.flush()
@@ -290,3 +322,265 @@ class ReservationService:
             await db.commit()
 
         return released_count
+
+    @staticmethod
+    async def cleanup_expired_holds(db: AsyncSession) -> int:
+        """
+        Releases any HOLD reservations whose temporary hold_expires_at timer has elapsed.
+        Transitions them to EXPIRED and payment_status to EXPIRED, instantly freeing up the table.
+        """
+        now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+        stmt = select(Reservation).where(
+            Reservation.status == "HOLD",
+            Reservation.hold_expires_at <= now,
+        )
+        res = await db.execute(stmt)
+        expired_holds = res.scalars().all()
+        count = len(expired_holds)
+        for h in expired_holds:
+            h.status = "EXPIRED"
+            h.payment_status = "EXPIRED"
+        if count > 0:
+            await db.commit()
+        return count
+
+    @staticmethod
+    async def hold_reservation(db: AsyncSession, data: ReservationHoldRequest) -> ReservationHoldResponse:
+        """
+        Temporarily holds a table slot for 7 minutes for direct 0% UPI payment.
+        Validates availability, locks the table against conflicting holds, creates reservation with status=HOLD.
+        """
+        # 1. Clean up any expired holds first
+        await ReservationService.cleanup_expired_holds(db)
+
+        now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+        # 2. Check if the specific table is already held or booked
+        conflict_query = select(Reservation).where(
+            Reservation.branch_id == data.branch_id,
+            Reservation.reservation_date == data.reservation_date,
+            Reservation.time_slot == data.time_slot,
+            Reservation.floor_number == data.floor_number,
+            Reservation.table_name == data.table_name,
+            Reservation.status.in_(["HOLD", "CONFIRMED", "ARRIVED", "SEATED"]),
+        )
+        conflict_res = await db.execute(conflict_query)
+        conflict = conflict_res.scalar_one_or_none()
+
+        if conflict:
+            if conflict.status == "HOLD" and conflict.hold_expires_at and conflict.hold_expires_at > now:
+                remaining = int((conflict.hold_expires_at - now).total_seconds())
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"SLOT_HELD: {data.table_name} on Floor {data.floor_number} is currently held by another guest. Hold expires in {remaining}s.",
+                )
+            elif conflict.status != "HOLD":
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"SLOT_BOOKED: {data.table_name} on Floor {data.floor_number} is already confirmed for {data.time_slot}.",
+                )
+
+        # 3. Check overall branch capacity
+        capacity_ok = await ReservationService.check_capacity(
+            db, data.branch_id, data.reservation_date, data.time_slot, data.guest_count
+        )
+        if not capacity_ok:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="CAPACITY_EXCEEDED: This time slot is fully booked across the restaurant.",
+            )
+
+        # 4. Resolve table_id
+        valid_table_id = data.table_id
+        if valid_table_id is not None:
+            tbl_check = await db.execute(select(Table.id).where(Table.id == valid_table_id))
+            if not tbl_check.scalar_one_or_none():
+                valid_table_id = None
+
+        if valid_table_id is None and data.floor_number and data.table_name:
+            try:
+                digits = "".join(filter(str.isdigit, data.table_name))
+                t_num = int(digits) if digits else 1
+                computed_id = (data.floor_number - 1) * 5 + t_num
+                c_check = await db.execute(select(Table.id).where(Table.id == computed_id))
+                valid_table_id = computed_id if c_check.scalar_one_or_none() else None
+            except Exception:
+                valid_table_id = None
+
+        # 5. Get or create Customer
+        cust_query = select(Customer).where(Customer.phone == data.customer_phone)
+        cust_result = await db.execute(cust_query)
+        customer = cust_result.scalar_one_or_none()
+        if not customer:
+            customer = Customer(
+                name=data.customer_name,
+                phone=data.customer_phone,
+                email=data.customer_email,
+            )
+            db.add(customer)
+            await db.flush()
+
+        # 6. Set 7-minute hold expiration
+        hold_duration_seconds = 420  # 7 minutes
+        hold_expires_at = now + datetime.timedelta(seconds=hold_duration_seconds)
+        advance_amount = float(data.guest_count * 200.0)
+        upi_merchant_id = "jaadoo.udaipur@icici"
+
+        reservation = Reservation(
+            branch_id=data.branch_id,
+            customer_id=customer.id,
+            guest_count=data.guest_count,
+            reservation_date=data.reservation_date,
+            time_slot=data.time_slot,
+            table_id=valid_table_id,
+            floor_number=data.floor_number,
+            table_name=data.table_name,
+            status="HOLD",
+            payment_status="PENDING",
+            advance_amount=advance_amount,
+            payment_method="UPI",
+            upi_id=upi_merchant_id,
+            hold_expires_at=hold_expires_at,
+        )
+        db.add(reservation)
+        await db.commit()
+        await db.refresh(reservation)
+
+        # Standard NPCI UPI URI Scheme (works in GPay, PhonePe, Paytm, BHIM)
+        upi_uri = f"upi://pay?pa={upi_merchant_id}&pn=Jaadoo%20Cafe%20Piza&am={advance_amount:.2f}&cu=INR&tn=TableRes_{reservation.id}"
+
+        return ReservationHoldResponse(
+            reservation_id=reservation.id,
+            hold_expires_at=hold_expires_at,
+            seconds_remaining=hold_duration_seconds,
+            advance_amount=advance_amount,
+            upi_id=upi_merchant_id,
+            upi_uri=upi_uri,
+            qr_code_content=upi_uri,
+            status="HOLD",
+            floor_number=data.floor_number,
+            table_name=data.table_name,
+            reservation_date=data.reservation_date,
+            time_slot=data.time_slot,
+        )
+
+    @staticmethod
+    async def verify_upi_payment(
+        db: AsyncSession, reservation_id: int, data: ReservationVerifyUpiRequest
+    ) -> Reservation:
+        """
+        Verifies customer UPI payment (using UTR/Transaction reference) while hold is valid.
+        Transitions reservation from HOLD -> CONFIRMED, payment_status -> PAID, officially locking the table.
+        """
+        from sqlalchemy.orm import selectinload
+
+        # First clean up expired holds
+        await ReservationService.cleanup_expired_holds(db)
+
+        stmt = select(Reservation).options(selectinload(Reservation.customer)).where(Reservation.id == reservation_id)
+        res = await db.execute(stmt)
+        reservation = res.scalar_one_or_none()
+
+        if not reservation:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
+
+        if reservation.status == "CONFIRMED":
+            return reservation
+
+        now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+        if reservation.status == "HOLD" and reservation.hold_expires_at and reservation.hold_expires_at <= now:
+            reservation.status = "EXPIRED"
+            reservation.payment_status = "EXPIRED"
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_410_GONE,
+                detail="HOLD_EXPIRED: Temporary hold elapsed before payment was verified. The table slot has been released.",
+            )
+
+        if reservation.status not in ["HOLD", "PENDING"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot confirm reservation in status '{reservation.status}'.",
+            )
+
+        clean_utr = data.upi_utr.strip()
+        if len(clean_utr) < 4:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="INVALID_UTR: Please enter a valid UPI reference number / 12-digit UTR.",
+            )
+
+        # Transition to CONFIRMED & PAID
+        reservation.status = "CONFIRMED"
+        reservation.payment_status = "PAID"
+        reservation.payment_reference = clean_utr
+        reservation.upi_utr = clean_utr
+        reservation.hold_expires_at = None
+
+        await db.commit()
+        await db.refresh(reservation)
+
+        # Schedule Celery booking reminder
+        try:
+            task_result = send_reservation_reminder.apply_async(args=[reservation.id], countdown=3600)
+            tid = getattr(task_result, "id", None)
+            reservation.celery_task_id = str(tid) if tid is not None else None
+            await db.commit()
+        except Exception:
+            pass
+
+        return reservation
+
+    @staticmethod
+    async def cancel_hold(db: AsyncSession, reservation_id: int) -> Reservation:
+        """
+        Cancels an active temporary hold and immediately releases the table slot.
+        """
+        from sqlalchemy.orm import selectinload
+        stmt = select(Reservation).options(selectinload(Reservation.customer)).where(Reservation.id == reservation_id)
+        res = await db.execute(stmt)
+        reservation = res.scalar_one_or_none()
+
+        if not reservation:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
+
+        if reservation.status == "HOLD":
+            reservation.status = "CANCELLED"
+            reservation.payment_status = "CANCELLED"
+            reservation.hold_expires_at = None
+            await db.commit()
+            await db.refresh(reservation)
+
+        return reservation
+
+    @staticmethod
+    async def get_unavailable_tables(
+        db: AsyncSession, branch_id: int, reservation_date: datetime.date, time_slot: str
+    ) -> List[dict]:
+        """
+        Returns list of tables currently occupied or on active HOLD for the given date and time slot.
+        """
+        await ReservationService.cleanup_expired_holds(db)
+        now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+        stmt = select(Reservation).where(
+            Reservation.branch_id == branch_id,
+            Reservation.reservation_date == reservation_date,
+            Reservation.time_slot == time_slot,
+            Reservation.status.in_(["HOLD", "CONFIRMED", "ARRIVED", "SEATED"]),
+        )
+        res = await db.execute(stmt)
+        active_res = res.scalars().all()
+
+        unavailable = []
+        for r in active_res:
+            is_held = r.status == "HOLD" and r.hold_expires_at and r.hold_expires_at > now
+            if r.status in ["CONFIRMED", "ARRIVED", "SEATED"] or is_held:
+                unavailable.append({
+                    "floor_number": r.floor_number,
+                    "table_name": r.table_name,
+                    "status": "HELD" if is_held else "BOOKED",
+                    "seconds_remaining": int((r.hold_expires_at - now).total_seconds()) if is_held and r.hold_expires_at else 0,
+                })
+        return unavailable
+

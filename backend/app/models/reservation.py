@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Time
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Time, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.utils.helpers import utc_now
@@ -18,6 +18,13 @@ class Reservation(Base):
     floor_number: Mapped[int | None] = mapped_column(Integer, nullable=True, default=1)
     table_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="CONFIRMED", nullable=False)  # PENDING, CONFIRMED, ARRIVED, SEATED, COMPLETED, CANCELLED, NO_SHOW
+    payment_status: Mapped[str] = mapped_column(String(20), default="PAID", nullable=False)
+    advance_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True, default=0.0)
+    payment_reference: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    payment_method: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    hold_expires_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    upi_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    upi_utr: Mapped[str | None] = mapped_column(String(100), nullable=True)
     celery_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
