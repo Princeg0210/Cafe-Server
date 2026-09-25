@@ -306,14 +306,12 @@ export default function POSDashboard() {
       if (res.ok) {
         const u = await res.json();
         setStaffUser(u);
-        setPosToken(tok);
-        fetchData(tok);
-        fetchReservations(tok);
+        try {
+          localStorage.setItem("jaadoo_pos_user", JSON.stringify(u));
+        } catch {}
         return true;
       } else {
-        localStorage.removeItem("jaadoo_pos_token");
-        setPosToken(null);
-        setStaffUser(null);
+        handleLogout();
         return false;
       }
     } catch {
@@ -325,7 +323,15 @@ export default function POSDashboard() {
 
   useEffect(() => {
     const savedToken = localStorage.getItem("jaadoo_pos_token");
+    const savedUser = localStorage.getItem("jaadoo_pos_user");
     if (savedToken) {
+      setPosToken(savedToken);
+      if (savedUser) {
+        try {
+          setStaffUser(JSON.parse(savedUser));
+        } catch {}
+      }
+      setIsAuthChecking(false);
       verifyToken(savedToken);
     } else {
       setIsAuthChecking(false);
@@ -355,20 +361,23 @@ export default function POSDashboard() {
       const data = await res.json();
       const tok = data.access_token;
       localStorage.setItem("jaadoo_pos_token", tok);
-      setPosToken(tok);
-      const verified = await verifyToken(tok);
-      if (!verified) {
-        setLoginError("Authentication succeeded but staff session verification failed. Please try again.");
+      if (data.user) {
+        try {
+          localStorage.setItem("jaadoo_pos_user", JSON.stringify(data.user));
+        } catch {}
+        setStaffUser(data.user);
       }
+      setPosToken(tok);
+      setIsLoggingIn(false);
     } catch {
       setLoginError("Network connection error. Café backend is unreachable.");
-    } finally {
       setIsLoggingIn(false);
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("jaadoo_pos_token");
+    localStorage.removeItem("jaadoo_pos_user");
     setPosToken(null);
     setStaffUser(null);
     setLoginPassword("");

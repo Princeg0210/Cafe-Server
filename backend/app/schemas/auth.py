@@ -8,12 +8,6 @@ class LoginRequest(BaseModel):
     password: str = Field(..., example="secret123")
 
 
-class Token(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-
-
 class TokenPayload(BaseModel):
     sub: Optional[str] = None
     type: Optional[str] = None
@@ -51,3 +45,10 @@ class UserResponse(BaseModel):
     is_active: bool
     role: Optional[RoleResponse] = None
     created_at: datetime
+
+
+class Token(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    user: Optional[UserResponse] = None

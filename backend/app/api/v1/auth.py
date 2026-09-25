@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from app.api.deps import get_db, get_current_user
 from app.core.security import create_access_token, create_refresh_token, verify_password, decode_token
-from app.models.user import User
+from app.models.user import User, Role
 from app.schemas.auth import LoginRequest, Token, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -12,7 +13,11 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 @router.post("/login", response_model=Token)
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     uname = (data.username or "").strip()
-    query = select(User).where(User.username.ilike(uname))
+    query = (
+        select(User)
+        .options(selectinload(User.role).selectinload(Role.permissions))
+        .where(User.username.ilike(uname))
+    )
     result = await db.execute(query)
     user = result.scalar_one_or_none()
 
@@ -29,7 +34,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     access_token = create_access_token(subject=user.id)
     refresh_token = create_refresh_token(subject=user.id)
-    return Token(access_token=access_token, refresh_token=refresh_token)
+    return Token(access_token=access_token, refresh_token=refresh_token, user=user)
 
 
 @router.post("/refresh", response_model=Token)
