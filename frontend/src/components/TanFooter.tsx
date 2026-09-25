@@ -104,7 +104,7 @@ export default function TanFooter() {
       {/* Bottom Footer Bar */}
       <div className="max-w-6xl mx-auto pt-6 border-t border-[#E4DCD0]/20 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-stone-400 font-sans">
         <p className="text-center md:text-left">
-          Copyright © JAADOO TRATTORIA (Jazz & Blues Hospitality LLP) 2026. All Rights Reserved.
+          Copyright © JAADOO TRATTORIA (Jazz & Blues Hospitality LLP) {new Date().getFullYear()}. All Rights Reserved.
         </p>
 
         <div className="flex items-center gap-4">

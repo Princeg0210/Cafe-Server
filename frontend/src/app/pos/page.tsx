@@ -165,6 +165,24 @@ export default function POSDashboard() {
   const [closingSessionIds, setClosingSessionIds] = useState<Record<number, boolean>>({});
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [lastNotification, setLastNotification] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState<string>("");
+
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }).toUpperCase()
+      );
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Reservations State
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -674,6 +692,12 @@ export default function POSDashboard() {
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-sans font-semibold tracking-wider bg-[#4A5842]/15 text-[#4A5842] border border-[#4A5842]/30 uppercase">
                     {currentDateDisplay}
                   </span>
+                  {currentTime && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider bg-[#261C18] text-[#FBF9F5] border border-[#B85B43]/40 shadow-xs flex items-center gap-1.5">
+                      <Clock className="w-3 h-3 text-[#B85B43]" />
+                      <span>{currentTime}</span>
+                    </span>
+                  )}
                 </div>
                 <span className="text-[9px] font-sans tracking-[0.2em] text-[#4A5842] uppercase font-semibold mt-0.5 flex items-center gap-1.5">
                   <span className={`h-2 w-2 rounded-full ${isConnected ? "bg-[#4A5842] animate-pulse" : "bg-rose-500"}`} />

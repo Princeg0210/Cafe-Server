@@ -48,8 +48,14 @@ export default function BookTablePage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Form State (Date, Time, Guests remain intact)
-  const [date, setDate] = useState("2026-09-25");
+  // Form State (Dynamic current date in local time)
+  const [date, setDate] = useState(() => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  });
   const [time, setTime] = useState("19:30");
   const [guests, setGuests] = useState(2);
 
