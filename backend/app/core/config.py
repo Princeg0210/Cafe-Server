@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # Merchant UPI Payment Settings (Direct to bank, 0% commission)
+    MERCHANT_UPI_ID: str = "jaadoo.udaipur@icici"
+    MERCHANT_NAME: str = "Jaadoo Cafe Piza"
+
     # CORS
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 

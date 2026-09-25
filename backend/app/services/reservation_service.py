@@ -424,7 +424,9 @@ class ReservationService:
         hold_duration_seconds = 420  # 7 minutes
         hold_expires_at = now + datetime.timedelta(seconds=hold_duration_seconds)
         advance_amount = float(data.guest_count * 200.0)
-        upi_merchant_id = "jaadoo.udaipur@icici"
+        from app.core.config import settings
+        upi_merchant_id = settings.MERCHANT_UPI_ID
+        merchant_encoded = settings.MERCHANT_NAME.replace(" ", "%20")
 
         reservation = Reservation(
             branch_id=data.branch_id,
@@ -447,7 +449,7 @@ class ReservationService:
         await db.refresh(reservation)
 
         # Standard NPCI UPI URI Scheme (works in GPay, PhonePe, Paytm, BHIM)
-        upi_uri = f"upi://pay?pa={upi_merchant_id}&pn=Jaadoo%20Cafe%20Piza&am={advance_amount:.2f}&cu=INR&tn=TableRes_{reservation.id}"
+        upi_uri = f"upi://pay?pa={upi_merchant_id}&pn={merchant_encoded}&am={advance_amount:.2f}&cu=INR&tn=TableRes_{reservation.id}"
 
         return ReservationHoldResponse(
             reservation_id=reservation.id,

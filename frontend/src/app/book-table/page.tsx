@@ -125,6 +125,9 @@ export default function BookTablePage() {
       if (h.includes("vercel.app") || h.includes("onrender.com")) {
         return "https://cafe-piza-api.onrender.com";
       }
+      if (h && h !== "localhost" && h !== "127.0.0.1") {
+        return `http://${h}:8000`;
+      }
     }
     return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   };
@@ -251,8 +254,10 @@ export default function BookTablePage() {
       setQrCodeDataUrl(qrData);
 
       setShowUpiModal(true);
-    } catch {
-      setSubmitError("Network connection interrupted. Please try again.");
+    } catch (err: unknown) {
+      console.error("Hold reservation error:", err);
+      const msg = err instanceof Error ? err.message : "Unable to reach server";
+      setSubmitError(`Connection error (${msg}). Please verify network connection and try again.`);
     } finally {
       setIsHoldingSlot(false);
     }
