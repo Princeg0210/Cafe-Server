@@ -143,6 +143,7 @@ export default function POSDashboard() {
   // Table Sessions State
   const [tableOverviews, setTableOverviews] = useState<TableOverview[]>([]);
   const [expandedSessions, setExpandedSessions] = useState<Record<number, boolean>>({});
+  const [showClosedToday, setShowClosedToday] = useState<Record<number, boolean>>({});
   const [tableFilter, setTableFilter] = useState<"all" | "active" | "available">("all");
 
   // Authentication State
@@ -1240,27 +1241,58 @@ export default function POSDashboard() {
 
                       {/* Sessions Listed Under This Table */}
                       <div className="p-4 sm:p-6 space-y-3">
-                        {tbl.sessions.length === 0 ? (
-                          <div className="py-6 px-4 rounded-2xl bg-stone-50/70 border border-dashed border-stone-200 text-center">
-                            <p className="text-xs text-stone-500 font-serif italic">
-                              No dining sessions recorded for {displayTableName} yet today. Ready for walk-in guests.
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            {tbl.sessions.map((sess) => {
-                              const isExpanded = isSessionExpanded(sess);
-                              const isClosing = closingSessionIds[sess.session_id];
+                        {(() => {
+                          const activeSessions = tbl.sessions.filter((s) => s.is_active);
+                          const settledSessions = tbl.sessions.filter((s) => !s.is_active);
+                          const showHistory = showClosedToday[tbl.table_id];
+                          const visibleSessions = isTodaySelected
+                            ? (showHistory ? tbl.sessions : activeSessions)
+                            : tbl.sessions;
 
-                              return (
-                                <div
-                                  key={sess.session_id}
-                                  className={`rounded-2xl border transition-all ${
-                                    sess.is_active
-                                      ? "bg-amber-50/30 border-amber-200 hover:border-amber-300"
-                                      : "bg-stone-50/50 border-stone-200 hover:border-stone-300"
-                                  }`}
-                                >
+                          if (visibleSessions.length === 0) {
+                            return (
+                              <div className="py-6 px-4 rounded-2xl bg-stone-50/70 border border-dashed border-stone-200 text-center space-y-2">
+                                <p className="text-xs text-stone-500 font-serif italic">
+                                  No active dining sessions on {displayTableName} right now. Ready for walk-in guests.
+                                </p>
+                                {isTodaySelected && settledSessions.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setShowClosedToday((prev) => ({
+                                        ...prev,
+                                        [tbl.table_id]: !prev[tbl.table_id],
+                                      }))
+                                    }
+                                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#B85B43] hover:underline pt-1"
+                                  >
+                                    <span>
+                                      {showHistory ? "Hide" : "View"} {settledSessions.length} Past Settled {settledSessions.length === 1 ? "Session" : "Sessions"} Today
+                                    </span>
+                                    <ChevronDown
+                                      className={`w-3.5 h-3.5 transition-transform ${showHistory ? "rotate-180" : ""}`}
+                                    />
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="space-y-3">
+                              {visibleSessions.map((sess) => {
+                                const isExpanded = isSessionExpanded(sess);
+                                const isClosing = closingSessionIds[sess.session_id];
+
+                                return (
+                                  <div
+                                    key={sess.session_id}
+                                    className={`rounded-2xl border transition-all ${
+                                      sess.is_active
+                                        ? "bg-amber-50/30 border-amber-200 hover:border-amber-300"
+                                        : "bg-stone-50/50 border-stone-200 hover:border-stone-300 opacity-80"
+                                    }`}
+                                  >
                                   {/* Session Line Header */}
                                   <div
                                     onClick={() => toggleSession(sess.session_id)}
@@ -1395,7 +1427,8 @@ export default function POSDashboard() {
                               );
                             })}
                           </div>
-                        )}
+                        );
+                        })()}
                       </div>
                     </div>
                   );
