@@ -976,32 +976,7 @@ export default function POSDashboard() {
               </div>
             </Link>
 
-            {/* Header Date Picker Pill */}
-            <div className="flex items-center gap-1.5 sm:gap-2 bg-[#1C1512] text-[#FBF9F5] px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-[#B85B43]/70 shadow-xs">
-              <Calendar className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="hidden md:inline text-[11px] font-sans font-bold uppercase tracking-wider text-amber-200/90">Date:</span>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-transparent text-xs font-mono font-bold uppercase tracking-wider text-white focus:outline-none cursor-pointer [color-scheme:dark] max-w-[125px]"
-                title="Filter POS by date"
-              />
-              {!isTodaySelected ? (
-                <button
-                  type="button"
-                  onClick={() => setSelectedDate(getLocalDateString(0))}
-                  className="ml-1 text-[10px] font-sans font-bold px-2 py-0.5 rounded-full bg-[#B85B43] hover:bg-[#A84E38] text-white transition-colors uppercase cursor-pointer"
-                  title="Return to Today"
-                >
-                  Today
-                </button>
-              ) : (
-                <span className="hidden sm:inline ml-1 text-[9px] font-sans font-bold px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-500/40 uppercase">
-                  Today
-                </span>
-              )}
-            </div>
+
 
             {currentTime && (
               <span className="hidden md:flex px-2.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider bg-[#261C18] text-[#FBF9F5] border border-[#B85B43]/40 shadow-xs items-center gap-1.5">
