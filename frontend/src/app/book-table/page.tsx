@@ -300,6 +300,11 @@ export default function BookTablePage() {
         if (res.status === 410) {
           setHoldExpired(true);
           setSubmitError("Hold time expired before verification. The table has been released.");
+        } else if (res.status === 409 && errData.detail?.includes("UTR_ALREADY_USED")) {
+          setSubmitError(
+            errData.detail ||
+              "This UPI Reference / UTR has already been used and exhausted for another booking. Please complete a new UPI payment for this reservation."
+          );
         } else {
           setSubmitError(errData.detail || "Unable to verify UPI transaction. Please check the UTR and try again.");
         }

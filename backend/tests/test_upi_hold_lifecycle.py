@@ -102,3 +102,57 @@ async def test_upi_hold_cancellation_releases_table(client: AsyncClient, db_sess
     rehold_res = await client.post("/api/v1/reservations/hold", json=hold_payload)
     assert rehold_res.status_code == 201
     assert rehold_res.json()["status"] == "HOLD"
+
+
+@pytest.mark.asyncio
+async def test_utr_replay_attack_rejected(client: AsyncClient, db_session: AsyncSession):
+    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919876543210")
+    db_session.add(branch)
+    t1 = Table(id=3, branch_id=1, table_number="Table 3", capacity=2, status="Available")
+    t2 = Table(id=4, branch_id=1, table_number="Table 4", capacity=2, status="Available")
+    db_session.add_all([t1, t2])
+    await db_session.commit()
+
+    # 1. First booking uses UTR 888899990000
+    hold1 = await client.post("/api/v1/reservations/hold", json={
+        "branch_id": 1,
+        "customer_name": "User 1",
+        "customer_phone": "+919111222333",
+        "guest_count": 2,
+        "reservation_date": "2026-10-05",
+        "time_slot": "18:00",
+        "floor_number": 1,
+        "table_name": "Table 3",
+        "table_id": 3,
+    })
+    assert hold1.status_code == 201
+    res1_id = hold1.json()["reservation_id"]
+
+    v1 = await client.post(f"/api/v1/reservations/{res1_id}/verify-upi", json={
+        "upi_utr": "888899990000",
+    })
+    assert v1.status_code == 200
+    assert v1.json()["status"] == "CONFIRMED"
+
+    # 2. Second booking attempts to reuse the same UTR 888899990000 (even with spaces/dashes)
+    hold2 = await client.post("/api/v1/reservations/hold", json={
+        "branch_id": 1,
+        "customer_name": "User 2",
+        "customer_phone": "+919444555666",
+        "guest_count": 2,
+        "reservation_date": "2026-10-05",
+        "time_slot": "18:00",
+        "floor_number": 1,
+        "table_name": "Table 4",
+        "table_id": 4,
+    })
+    assert hold2.status_code == 201
+    res2_id = hold2.json()["reservation_id"]
+
+    v2 = await client.post(f"/api/v1/reservations/{res2_id}/verify-upi", json={
+        "upi_utr": "8888 9999 0000",
+    })
+    assert v2.status_code == 409
+    err = v2.json()
+    assert "UTR_ALREADY_USED" in err["detail"]
+

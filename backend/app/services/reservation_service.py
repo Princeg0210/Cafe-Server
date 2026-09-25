@@ -1,6 +1,6 @@
 import datetime
 from typing import Optional, List
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.models.reservation import Reservation, ReservationCapacityRule
@@ -505,11 +505,27 @@ class ReservationService:
                 detail=f"Cannot confirm reservation in status '{reservation.status}'.",
             )
 
-        clean_utr = data.upi_utr.strip()
+        clean_utr = data.upi_utr.strip().replace(" ", "").replace("-", "")
         if len(clean_utr) < 4:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="INVALID_UTR: Please enter a valid UPI reference number / 12-digit UTR.",
+            )
+
+        # Check if this UTR has already been used by another reservation (prevent replay attacks / UTR exhaustion)
+        existing_utr_stmt = select(Reservation).where(
+            Reservation.id != reservation.id,
+            or_(
+                func.lower(Reservation.upi_utr) == clean_utr.lower(),
+                func.lower(Reservation.payment_reference) == clean_utr.lower(),
+            ),
+        )
+        existing_utr_res = await db.execute(existing_utr_stmt)
+        existing_booking = existing_utr_res.scalars().first()
+        if existing_booking:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"UTR_ALREADY_USED: This UPI Reference / UTR '{clean_utr}' has already been used and exhausted for Booking #{existing_booking.id}. Each table reservation requires its own unique payment transaction.",
             )
 
         # Transition to CONFIRMED & PAID
