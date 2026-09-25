@@ -184,6 +184,8 @@ export default function POSDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  const [isResettingAll, setIsResettingAll] = useState(false);
+
   // Reservations State
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isRefreshingRes, setIsRefreshingRes] = useState(false);
@@ -532,17 +534,176 @@ export default function POSDashboard() {
     }
   };
 
-  const [isResettingAll, setIsResettingAll] = useState(false);
+  const generatePDFReport = () => {
+    const reportDate = summary?.business_date || new Date().toISOString().split("T")[0];
+    const printTime = new Date().toLocaleString("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+
+    let htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>JAADOO POS Reset Report - ${reportDate}</title>
+        <style>
+          body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #261C18; padding: 30px; background: #fff; }
+          .header { text-align: center; border-bottom: 2px solid #261C18; padding-bottom: 15px; margin-bottom: 20px; }
+          .header h1 { margin: 0; font-size: 24px; font-weight: bold; letter-spacing: 1px; }
+          .header p { margin: 5px 0 0 0; font-size: 12px; color: #666; }
+          .badge { display: inline-block; background: #261C18; color: #fff; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-top: 8px; }
+          .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+          .card { background: #f9f7f4; border: 1px solid #e4dcd0; padding: 12px; border-radius: 8px; text-align: center; }
+          .card .title { font-size: 10px; text-transform: uppercase; color: #666; font-weight: bold; }
+          .card .val { font-size: 18px; font-weight: bold; color: #B85B43; margin-top: 4px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+          th { background: #261C18; color: #fff; text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; }
+          td { border-bottom: 1px solid #eee; padding: 8px 12px; }
+          tr:nth-child(even) { background: #faf9f7; }
+          .section-title { font-size: 14px; font-weight: bold; margin-top: 25px; margin-bottom: 8px; text-transform: uppercase; border-left: 4px solid #B85B43; padding-left: 8px; }
+          .footer { margin-top: 40px; text-align: center; font-size: 10px; color: #888; border-top: 1px solid #ddd; padding-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>JAADOO TRATTORIA • POS RESET REPORT</h1>
+          <p>Udaipur Old City • Automated Session Backup</p>
+          <div class="badge">Date: ${reportDate} | Generated: ${printTime}</div>
+        </div>
+
+        <div class="grid">
+          <div class="card">
+            <div class="title">Total Revenue</div>
+            <div class="val">₹${kots.reduce((sum, k) => sum + k.total_amount, 0)}</div>
+          </div>
+          <div class="card">
+            <div class="title">Total KOTs</div>
+            <div class="val">${summary?.total_kots || kots.length || 0}</div>
+          </div>
+          <div class="card">
+            <div class="title">Tables Served</div>
+            <div class="val">${summary?.tables_served || 0}</div>
+          </div>
+          <div class="card">
+            <div class="title">Avg KOT Value</div>
+            <div class="val">₹${summary?.avg_kot_value ? Math.round(summary.avg_kot_value) : 0}</div>
+          </div>
+        </div>
+
+        <div class="section-title">Active Table Sessions Before Reset</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Table</th>
+              <th>Status</th>
+              <th>Session ID</th>
+              <th>Opened At</th>
+              <th>Items</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    let activeCount = 0;
+    tableOverviews.forEach((tbl) => {
+      tbl.sessions.forEach((s) => {
+        if (s.is_active) {
+          activeCount++;
+          htmlContent += `
+            <tr>
+              <td><strong>Table #${tbl.table_number}</strong></td>
+              <td><span style="color: #059669; font-weight: bold;">ACTIVE</span></td>
+              <td>#${s.session_seq} (${s.session_token.slice(0, 8)}...)</td>
+              <td>${new Date(s.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+              <td>${s.items_count} items</td>
+              <td><strong>₹${s.total_amount}</strong></td>
+            </tr>
+          `;
+        }
+      });
+    });
+
+    if (activeCount === 0) {
+      htmlContent += `<tr><td colspan="6" style="text-align:center; color:#888; padding: 15px;">No active sessions found at the time of reset.</td></tr>`;
+    }
+
+    htmlContent += `
+          </tbody>
+        </table>
+
+        <div class="section-title">All Live KOT Tickets (${kots.length})</div>
+        <table>
+          <thead>
+            <tr>
+              <th>KOT #</th>
+              <th>Table</th>
+              <th>Status</th>
+              <th>Time</th>
+              <th>Items</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    kots.forEach((kot) => {
+      htmlContent += `
+        <tr>
+          <td><strong>${kot.kot_number}</strong></td>
+          <td>${kot.table_number}</td>
+          <td>${kot.status}</td>
+          <td>${new Date(kot.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+          <td>${kot.items_count}</td>
+          <td><strong>₹${kot.total_amount}</strong></td>
+        </tr>
+      `;
+    });
+
+    htmlContent += `
+          </tbody>
+        </table>
+
+        <div class="footer">
+          This report was automatically generated prior to performing a POS session reset.<br>
+          JAADOO TRATTORIA (Jazz & Blues Hospitality LLP) • ${reportDate}
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open("", "_blank", "width=850,height=1100");
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    }
+  };
 
   const handleResetAllSessions = async () => {
     if (!posToken) {
       alert("Staff session expired. Please sign in again.");
       return;
     }
-    if (!confirm("⚠️ Are you sure you want to RESET ALL POS SESSIONS?\n\nThis will close all active table sessions and mark all tables as Available immediately.")) {
+    if (!confirm("⚠️ Are you sure you want to RESET ALL POS SESSIONS?\n\nA PDF summary report will be generated and saved/printed automatically before resetting.")) {
       return;
     }
+
     setIsResettingAll(true);
+
+    // 1. First automatically generate and trigger PDF download/print report
+    try {
+      generatePDFReport();
+    } catch (e) {
+      console.error("PDF generation warning:", e);
+    }
+
+    // 2. Perform API reset
     const apiBase = getApiBase();
     try {
       const res = await fetch(`${apiBase}/api/v1/pos/sessions/reset-all`, {
@@ -554,7 +715,7 @@ export default function POSDashboard() {
       });
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || "Successfully reset all active table sessions. All tables are now Available.");
+        alert(data.message || "Session report saved! All active table sessions have been reset and tables set to Available.");
         await Promise.all([fetchData(), fetchReservations()]);
       } else {
         const err = await res.json().catch(() => ({}));
