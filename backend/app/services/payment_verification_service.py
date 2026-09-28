@@ -1,8 +1,6 @@
 import datetime
-import re
 from decimal import Decimal
 from typing import Optional, Union, List, Dict, Any
-
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -151,67 +149,32 @@ class PaymentVerificationService:
     @staticmethod
     async def process_android_payment_event(
         db: AsyncSession,
-        event_id: Optional[str] = None,
-        utr: Optional[str] = None,
-        amount: Optional[Union[Decimal, float, str, Any]] = None,
-        merchant_vpa: Optional[str] = None,
+        event_id: str,
+        utr: str,
+        amount: Union[Decimal, float, str],
+        merchant_vpa: str,
         payer_vpa: Optional[str] = None,
         event_timestamp: Optional[datetime.datetime] = None,
         raw_sms: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Processes an authentic, signed/authenticated payment event from the café's Android phone listener.
-        Safely reconciles against pending reservations or flags for staff review.
-        """
-        sms_text = str(raw_sms or utr or "").strip()
-        raw_utr_str = str(utr or "").strip()
+        # Smart fallback: Parse 12-digit UTR and amount from raw SMS if passed
+        clean_utr = utr.strip().replace(" ", "").replace("-", "")
+        dec_amount = Decimal(str(amount)) if amount is not None else Decimal("0.00")
 
-        # Check if this is a test ping from SmsForwarder / MacroDroid test button
-        is_test_ping = (
-            not raw_utr_str
-            or raw_utr_str in ["[msg]", "%msg%", "{not_body}", "test", ""]
-            or ("[msg]" in sms_text and len(sms_text) < 15)
-        )
+        # If clean_utr is not a standard 12-digit UTR or if raw_sms is provided, parse via regex
+        target_text = f"{utr} {raw_sms or ''}"
+        import re
+        utr_regex = re.search(r'(?:Ref(?:\s*no)?|UTR|Txn(?:\s*id)?|UPI\s*Ref(?:\s*no)?)[\s/:]*([0-9]{12})\b', target_text, re.IGNORECASE)
+        if not utr_regex:
+            utr_regex = re.search(r'\b([0-9]{12})\b', target_text)
+        if utr_regex:
+            clean_utr = utr_regex.group(1)
 
-        clean_utr = raw_utr_str.replace(" ", "").replace("-", "")
+        if dec_amount <= 0:
+            amt_regex = re.search(r'(?:Rs\.?|INR|\u20b9)\s*([0-9]+(?:\.[0-9]{1,2})?)', target_text, re.IGNORECASE)
+            if amt_regex:
+                dec_amount = Decimal(amt_regex.group(1))
 
-        # Attempt regex extraction if UTR is not a standard 12-digit number
-        if not re.fullmatch(r'\d{12}', clean_utr):
-            extracted_utr = re.search(r'\b(\d{12})\b', sms_text)
-            if extracted_utr:
-                clean_utr = extracted_utr.group(1)
-                is_test_ping = False
-
-        if is_test_ping:
-            return {
-                "status": "SUCCESS",
-                "message": "Webhook listener test connection verified successfully! Ready to receive live payment events.",
-                "test_mode": True,
-            }
-
-        if not clean_utr:
-            clean_utr = f"UTR-{int(datetime.datetime.now().timestamp())}"
-
-        if not event_id:
-            event_id = f"evt-{clean_utr}"
-
-        # Parse amount (from explicit amount, or extract from SMS)
-        dec_amount = Decimal("0.00")
-        if amount not in [None, "", "[msg]", "%msg%"]:
-            try:
-                dec_amount = Decimal(str(amount).replace(",", "").strip())
-            except Exception:
-                pass
-
-        if dec_amount <= Decimal("0.00") and sms_text:
-            amt_match = re.search(r'(?:Rs\.?|INR|₹)\s*([\d,]+\.?\d*)', sms_text, re.IGNORECASE)
-            if amt_match:
-                try:
-                    dec_amount = Decimal(amt_match.group(1).replace(",", "").strip())
-                except Exception:
-                    pass
-
-        actual_merchant = (merchant_vpa or settings.MERCHANT_UPI_ID).strip()
         now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
 
 
@@ -234,22 +197,21 @@ class PaymentVerificationService:
             }
 
         # 2. Validate Merchant UPI ID
-        is_valid_merchant = actual_merchant.lower() == settings.MERCHANT_UPI_ID.lower()
+        is_valid_merchant = merchant_vpa.lower() == settings.MERCHANT_UPI_ID.lower()
         if not is_valid_merchant:
             # Not café's merchant UPI account!
             credit = await PaymentVerificationService.record_verified_bank_credit(
                 db=db,
                 utr=clean_utr,
                 amount=dec_amount,
-                merchant_vpa=actual_merchant,
+                merchant_vpa=merchant_vpa,
                 provider_source="ANDROID_LISTENER",
                 payer_vpa=payer_vpa,
                 tx_status="PAYMENT_REVIEW_REQUIRED",
                 event_id=event_id,
                 raw_event_payload=raw_sms,
-                review_reason=f"INVALID_MERCHANT_VPA: Payment received on '{actual_merchant}', expected '{settings.MERCHANT_UPI_ID}'.",
+                review_reason=f"INVALID_MERCHANT_VPA: Payment received on '{merchant_vpa}', expected '{settings.MERCHANT_UPI_ID}'.",
             )
-
             return {
                 "status": "PAYMENT_REVIEW_REQUIRED",
                 "credit_id": credit.id,
