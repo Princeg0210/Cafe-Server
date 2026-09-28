@@ -23,7 +23,9 @@ from app.schemas.reservation import (
     ReservationAssignTableRequest,
     BankWebhookPayload,
     AndroidPaymentEventPayload,
+    PaymentEventPayload,
     PolicySettingsUpdate,
+
 )
 from app.services.reservation_service import ReservationService
 from app.services.settings_service import SettingsService
@@ -31,13 +33,13 @@ from app.services.settings_service import SettingsService
 router = APIRouter(prefix="/reservations", tags=["Reservations Engine"])
 
 
-def verify_android_auth(
+def verify_device_auth(
     x_device_token: Optional[str] = Header(None, alias="X-Device-Token"),
     authorization: Optional[str] = Header(None, alias="Authorization"),
     x_signature: Optional[str] = Header(None, alias="X-Signature"),
 ):
     """
-    Enforces authentication on the Android payment listener webhook.
+    Enforces authentication on the device payment listener / iPhone shortcut webhook.
     Accepts configured device token (via X-Device-Token or Authorization Bearer) or HMAC signature.
     """
     token_candidate = x_device_token
@@ -64,9 +66,11 @@ def verify_android_auth(
     if not (valid_token or valid_signature):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="DEVICE_AUTH_FAILED: Android payment listener is not authenticated with valid token/HMAC signature.",
+            detail="DEVICE_AUTH_FAILED: Device payment listener is not authenticated with valid token/HMAC signature.",
         )
 
+
+verify_android_auth = verify_device_auth
 
 
 @router.post("/hold", response_model=ReservationHoldResponse, status_code=201)
@@ -90,38 +94,31 @@ async def verify_upi_payment(
     return await ReservationService.verify_upi_payment(db, id, data)
 
 
+@router.post("/payment-event")
+@router.post("/device-payment-event")
 @router.post("/android-payment-event")
-async def receive_android_payment_event(
-    payload: AndroidPaymentEventPayload,
+async def receive_device_payment_event(
+    payload: PaymentEventPayload,
     db: AsyncSession = Depends(get_db),
-    _auth: None = Depends(verify_android_auth),
+    _auth: None = Depends(verify_device_auth),
 ):
     """
-    Secure endpoint for café's registered Android payment listener app.
-    Authenticated via HTTPS + X-Device-Token or HMAC signature.
+    Secure endpoint for café's iPhone Shortcut or registered Device payment listener.
+    Authenticated via HTTPS + X-Device-Token or Authorization Bearer.
     Matches credit to pending reservation or marks PAYMENT_REVIEW_REQUIRED.
     """
-    extra_data = payload.model_extra or {}
-    effective_sms = (
-        payload.raw_sms
-        or getattr(payload, "msg", None)
-        or extra_data.get("msg")
-        or extra_data.get("text")
-        or extra_data.get("content")
-        or ""
-    )
-    effective_utr = payload.utr or (effective_sms if effective_sms and len(effective_sms) <= 64 else None) or "UNKNOWN"
+    effective_sms = payload.raw_sms or payload.msg or payload.text or payload.content or ""
+    effective_utr = payload.utr or ""
     return await ReservationService.process_android_payment_event(
         db=db,
-        event_id=payload.event_id or f"evt-{effective_utr[:24]}",
+        event_id=payload.event_id or (f"evt-{effective_utr}" if effective_utr else None),
         utr=effective_utr,
         amount=payload.amount,
-        merchant_vpa=payload.merchant_vpa or "9460555743-2@ybl",
+        merchant_vpa=payload.merchant_vpa or settings.MERCHANT_UPI_ID,
         payer_vpa=payload.payer_vpa,
         event_timestamp=payload.event_timestamp,
         raw_sms=effective_sms or payload.raw_sms,
     )
-
 
 
 
