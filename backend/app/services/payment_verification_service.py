@@ -158,11 +158,17 @@ class PaymentVerificationService:
         raw_sms: Optional[str] = None,
     ) -> Dict[str, Any]:
         # Smart fallback: Parse 12-digit UTR and amount from raw SMS if passed
-        clean_utr = utr.strip().replace(" ", "").replace("-", "")
-        dec_amount = Decimal(str(amount)) if amount is not None else Decimal("0.00")
+        clean_utr = utr.strip().replace(" ", "").replace("-", "") if utr else "UNKNOWN"
+        try:
+            if amount is not None and str(amount).strip() and str(amount).strip().lower() != "none":
+                dec_amount = Decimal(str(amount).strip())
+            else:
+                dec_amount = Decimal("0.00")
+        except Exception:
+            dec_amount = Decimal("0.00")
 
         # If clean_utr is not a standard 12-digit UTR or if raw_sms is provided, parse via regex
-        target_text = f"{utr} {raw_sms or ''}"
+        target_text = f"{utr or ''} {raw_sms or ''}"
         import re
         utr_regex = re.search(r'(?:Ref(?:\s*no)?|UTR|Txn(?:\s*id)?|UPI\s*Ref(?:\s*no)?)[\s/:]*([0-9]{12})\b', target_text, re.IGNORECASE)
         if not utr_regex:
@@ -173,9 +179,13 @@ class PaymentVerificationService:
         if dec_amount <= 0:
             amt_regex = re.search(r'(?:Rs\.?|INR|\u20b9)\s*([0-9]+(?:\.[0-9]{1,2})?)', target_text, re.IGNORECASE)
             if amt_regex:
-                dec_amount = Decimal(amt_regex.group(1))
+                try:
+                    dec_amount = Decimal(amt_regex.group(1))
+                except Exception:
+                    pass
 
         now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
 
 
         # 1. Check idempotency by event_id or utr
