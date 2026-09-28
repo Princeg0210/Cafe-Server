@@ -32,14 +32,13 @@ router = APIRouter(prefix="/reservations", tags=["Reservations Engine"])
 
 
 def verify_android_auth(
-    request: Request,
     x_device_token: Optional[str] = Header(None, alias="X-Device-Token"),
     authorization: Optional[str] = Header(None, alias="Authorization"),
     x_signature: Optional[str] = Header(None, alias="X-Signature"),
 ):
     """
     Enforces authentication on the Android payment listener webhook.
-    Accepts configured device token (via X-Device-Token, Authorization Bearer, or ?token= query param) or HMAC signature.
+    Accepts configured device token (via X-Device-Token or Authorization Bearer) or HMAC signature.
     """
     token_candidate = x_device_token
     if not token_candidate and authorization:
@@ -48,19 +47,10 @@ def verify_android_auth(
         else:
             token_candidate = authorization.strip()
 
-    if not token_candidate and request:
-        token_candidate = (
-            request.query_params.get("token")
-            or request.query_params.get("device_token")
-            or request.query_params.get("key")
-            or request.headers.get("x-device-token")
-            or request.headers.get("token")
-        )
-
     valid_token = token_candidate and (
-        token_candidate.strip() == settings.ANDROID_DEVICE_TOKEN
-        or token_candidate.strip() == "test_device_token"
-        or token_candidate.strip() == "dev_token_jaadoo_android_phone_9460555743"
+        token_candidate == settings.ANDROID_DEVICE_TOKEN
+        or token_candidate == "test_device_token"
+        or token_candidate == "dev_token_jaadoo_android_phone_9460555743"
     )
     valid_signature = False
     if x_signature:
@@ -72,18 +62,10 @@ def verify_android_auth(
         valid_signature = hmac.compare_digest(x_signature, expected)
 
     if not (valid_token or valid_signature):
-        # Allow test ping placeholder [msg] so forwarder UI test button succeeds
-        # Real bank transactions contain 12-digit numbers and require valid token.
-        query_str = str(request.query_params)
-        if "[msg]" in query_str or "%5Bmsg%5D" in query_str:
-            return
-
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="DEVICE_AUTH_FAILED: Android payment listener is not authenticated with valid token/HMAC signature.",
         )
-
-
 
 
 
@@ -109,9 +91,8 @@ async def verify_upi_payment(
 
 
 @router.post("/android-payment-event")
-@router.get("/android-payment-event")
 async def receive_android_payment_event(
-    request: Request,
+    payload: AndroidPaymentEventPayload,
     db: AsyncSession = Depends(get_db),
     _auth: None = Depends(verify_android_auth),
 ):
@@ -119,59 +100,27 @@ async def receive_android_payment_event(
     Secure endpoint for café's registered Android payment listener app.
     Authenticated via HTTPS + X-Device-Token or HMAC signature.
     Matches credit to pending reservation or marks PAYMENT_REVIEW_REQUIRED.
-    Accepts JSON, Form-URL-Encoded, and raw SMS payloads seamlessly.
     """
-    import json
-    from urllib.parse import parse_qs
-    body_dict = {}
-    raw_body_text = ""
-    try:
-        raw_bytes = await request.body()
-        raw_body_text = raw_bytes.decode("utf-8", errors="ignore").strip()
-        if raw_body_text:
-            try:
-                body_dict = json.loads(raw_body_text)
-            except Exception:
-                parsed = parse_qs(raw_body_text)
-                for k, v in parsed.items():
-                    val = v[0] if v else ""
-                    if val.startswith("{") and val.endswith("}"):
-                        try:
-                            body_dict.update(json.loads(val))
-                        except Exception:
-                            body_dict[k] = val
-                    else:
-                        body_dict[k] = val
-                if not body_dict:
-                    body_dict = {"raw_sms": raw_body_text}
-    except Exception:
-        pass
-
-    if not body_dict and request.query_params:
-        body_dict = dict(request.query_params)
-
-    try:
-        payload = AndroidPaymentEventPayload.model_validate(body_dict or {})
-        msg_body = payload.raw_sms or payload.msg or payload.text or payload.content or payload.utr or raw_body_text
-
-        return await ReservationService.process_android_payment_event(
-            db=db,
-            event_id=payload.event_id,
-            utr=payload.utr,
-            amount=payload.amount,
-            merchant_vpa=payload.merchant_vpa or settings.MERCHANT_UPI_ID,
-            payer_vpa=payload.payer_vpa,
-            event_timestamp=payload.event_timestamp,
-            raw_sms=msg_body,
-        )
-    except Exception as e:
-        logger.warning(f"Error in android payment event handler: {e}")
-        return {
-            "status": "SUCCESS",
-            "message": "Webhook listener test connection verified successfully! Ready to receive live payment events.",
-            "test_mode": True,
-        }
-
+    extra_data = payload.model_extra or {}
+    effective_sms = (
+        payload.raw_sms
+        or getattr(payload, "msg", None)
+        or extra_data.get("msg")
+        or extra_data.get("text")
+        or extra_data.get("content")
+        or ""
+    )
+    effective_utr = payload.utr or (effective_sms if effective_sms and len(effective_sms) <= 64 else None) or "UNKNOWN"
+    return await ReservationService.process_android_payment_event(
+        db=db,
+        event_id=payload.event_id or f"evt-{effective_utr[:24]}",
+        utr=effective_utr,
+        amount=payload.amount,
+        merchant_vpa=payload.merchant_vpa or "9460555743-2@ybl",
+        payer_vpa=payload.payer_vpa,
+        event_timestamp=payload.event_timestamp,
+        raw_sms=effective_sms or payload.raw_sms,
+    )
 
 
 
