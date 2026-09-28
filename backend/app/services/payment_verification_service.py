@@ -161,9 +161,29 @@ class PaymentVerificationService:
         Processes an authentic, signed/authenticated payment event from the café's Android phone listener.
         Safely reconciles against pending reservations or flags for staff review.
         """
+        import re
+        full_text = f"{utr} {raw_sms or ''}"
         clean_utr = utr.strip().replace(" ", "").replace("-", "")
+
+        # Auto-extract 12-digit UPI UTR if raw SMS or long string was provided
+        if not re.fullmatch(r"[0-9]{10,18}", clean_utr):
+            utr_match = re.search(r"(?:UPI\s*(?:Ref|txn|Ref\s*no|Reference|ID)?[:\s/]*|UTR[:\s/]*|Ref\s*No[:\s/]*|\b)([0-9]{12})\b", full_text, re.IGNORECASE)
+            if utr_match:
+                clean_utr = utr_match.group(1)
+
         dec_amount = Decimal(str(amount))
+        # Auto-extract amount from SMS if amount is zero or standard text passed
+        amt_match = re.search(r"(?:Rs\.?|INR|\u20b9)\s*([0-9]+(?:\.[0-9]{1,2})?)", full_text, re.IGNORECASE)
+        if amt_match:
+            try:
+                extracted_amt = Decimal(amt_match.group(1))
+                if extracted_amt > 0:
+                    dec_amount = extracted_amt
+            except Exception:
+                pass
+
         now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
 
         # 1. Check idempotency by event_id or utr
         check_stmt = select(VerifiedBankCredit).where(

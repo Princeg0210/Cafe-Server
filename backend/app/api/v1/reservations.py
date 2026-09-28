@@ -34,13 +34,14 @@ router = APIRouter(prefix="/reservations", tags=["Reservations Engine"])
 def verify_android_auth(
     x_device_token: Optional[str] = Header(None, alias="X-Device-Token"),
     authorization: Optional[str] = Header(None, alias="Authorization"),
+    token: Optional[str] = Query(None),
     x_signature: Optional[str] = Header(None, alias="X-Signature"),
 ):
     """
     Enforces authentication on the Android payment listener webhook.
-    Accepts configured device token (via X-Device-Token or Authorization Bearer) or HMAC signature.
+    Accepts configured device token (via X-Device-Token, Authorization Bearer, or query ?token=) or HMAC signature.
     """
-    token_candidate = x_device_token
+    token_candidate = x_device_token or token
     if not token_candidate and authorization:
         if authorization.lower().startswith("bearer "):
             token_candidate = authorization[7:].strip()
@@ -52,6 +53,7 @@ def verify_android_auth(
         or token_candidate == "test_device_token"
         or token_candidate == "dev_token_jaadoo_android_phone_9460555743"
     )
+
     valid_signature = False
     if x_signature:
         expected = hmac.new(
