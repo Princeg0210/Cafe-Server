@@ -1,7 +1,8 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, Any
 from pydantic import BaseModel, ConfigDict, Field
+
 
 
 class CustomerBase(BaseModel):
@@ -151,13 +152,19 @@ class BankWebhookPayload(BaseModel):
 
 
 class AndroidPaymentEventPayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     event_id: Optional[str] = Field(None, example="evt-sms-android-887766")
-    utr: str = Field(..., min_length=4, max_length=64, example="235745067878")
-    amount: Decimal = Field(..., gt=0, example=600.00)
-    merchant_vpa: str = Field("9460555743-2@ybl")
+    utr: Optional[str] = Field(None, example="235745067878")
+    amount: Optional[Any] = Field(None, example=600.00)
+    merchant_vpa: Optional[str] = Field("9460555743-2@ybl")
     payer_vpa: Optional[str] = None
     event_timestamp: Optional[datetime] = None
     raw_sms: Optional[str] = Field(None, example="Rs. 600 credited to account ... UPI Ref 235745067878")
+    msg: Optional[str] = None
+    text: Optional[str] = None
+    content: Optional[str] = None
+
 
 
 
