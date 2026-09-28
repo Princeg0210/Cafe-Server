@@ -111,6 +111,16 @@ interface CategorySummary {
   quantity: number;
 }
 
+interface DailyDoughCapacity {
+  branch_id?: number;
+  production_date?: string;
+  total_dough_limit: number | null;
+  total_allocated_dough: number;
+  total_active_protected: number;
+  walk_in_available: number | null;
+  note?: string;
+}
+
 interface POSSummary {
   business_date: string;
   total_kots: number;
@@ -208,6 +218,10 @@ export default function POSDashboard() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [lastNotification, setLastNotification] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<string>("");
+
+  // Daily Dough Capacity State
+  const [doughCapacity, setDoughCapacity] = useState<DailyDoughCapacity | null>(null);
+  const [isLoadingDoughCapacity, setIsLoadingDoughCapacity] = useState(false);
 
   useEffect(() => {
     const updateClock = () => {
@@ -457,10 +471,12 @@ export default function POSDashboard() {
     try {
       const headers = { Authorization: `Bearer ${tok}` };
       const dateParam = target ? `?target_date=${target}` : "";
-      const [kotsRes, sumRes, tablesRes] = await Promise.all([
+      setIsLoadingDoughCapacity(true);
+      const [kotsRes, sumRes, tablesRes, doughRes] = await Promise.all([
         fetch(`${apiBase}/api/v1/pos/kots${dateParam}`, { headers }),
         fetch(`${apiBase}/api/v1/pos/summary${dateParam}`, { headers }),
         fetch(`${apiBase}/api/v1/pos/table-sessions${dateParam}`, { headers }),
+        fetch(`${apiBase}/api/v1/pos/daily-dough-capacity${target ? `?target_date=${target}` : ""}`, { headers }),
       ]);
 
       if (kotsRes.status === 401 || kotsRes.status === 403) {
@@ -480,9 +496,14 @@ export default function POSDashboard() {
         const tablesData = await tablesRes.json();
         setTableOverviews(tablesData);
       }
+      if (doughRes.ok) {
+        const doughData = await doughRes.json();
+        setDoughCapacity(doughData);
+      }
     } catch (err) {
       console.error("POS Data fetch error:", err);
     } finally {
+      setIsLoadingDoughCapacity(false);
       setIsRefreshing(false);
     }
   };
@@ -1315,6 +1336,78 @@ export default function POSDashboard() {
                 </div>
                 <div className="text-lg font-sans font-bold text-[#FBF9F5] truncate">
                   {summary?.peak_hour || "N/A"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Compact Daily Pizza Dough Capacity Bar */}
+          <div className="mt-5 p-4 bg-[#1C1512]/95 border border-amber-500/20 rounded-2xl shadow-inner relative z-10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <Flame className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-sans font-bold uppercase tracking-wider text-amber-300">
+                      DAILY PIZZA CAPACITY
+                    </span>
+                    {isLoadingDoughCapacity ? (
+                      <span className="text-[10px] text-stone-400 flex items-center gap-1">
+                        <RefreshCw className="w-3 h-3 animate-spin" /> Loading...
+                      </span>
+                    ) : doughCapacity?.walk_in_available === 0 ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-900/60 text-red-300 border border-red-500/30">
+                        WALK-IN EXHAUSTED
+                      </span>
+                    ) : doughCapacity?.total_dough_limit != null ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-900/60 text-emerald-300 border border-emerald-500/30">
+                        OPERATIONAL
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-800 text-stone-400 border border-stone-700">
+                        NO RULE SET
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] font-serif italic text-stone-400 mt-0.5">
+                    Real-time dough pool protection (Source: Kitchen Backend)
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2 sm:gap-4 font-sans text-center">
+                <div className="bg-[#261C18] px-3 py-2 rounded-xl border border-stone-700/50">
+                  <div className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Total</div>
+                  <div className="text-base sm:text-lg font-extrabold text-[#FBF9F5]">
+                    {doughCapacity?.total_dough_limit ?? "—"}
+                  </div>
+                </div>
+
+                <div className="bg-[#261C18] px-3 py-2 rounded-xl border border-stone-700/50">
+                  <div className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Used</div>
+                  <div className="text-base sm:text-lg font-extrabold text-amber-300">
+                    {doughCapacity?.total_allocated_dough ?? 0}
+                  </div>
+                </div>
+
+                <div className="bg-[#261C18] px-3 py-2 rounded-xl border border-stone-700/50">
+                  <div className="text-[10px] uppercase tracking-wider text-blue-300/80 font-semibold">Protected</div>
+                  <div className="text-base sm:text-lg font-extrabold text-blue-300">
+                    {doughCapacity?.total_active_protected ?? 0}
+                  </div>
+                </div>
+
+                <div className={`px-3 py-2 rounded-xl border ${
+                  (doughCapacity?.walk_in_available ?? 0) > 0
+                    ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-300"
+                    : "bg-red-950/40 border-red-500/30 text-red-300"
+                }`}>
+                  <div className="text-[10px] uppercase tracking-wider opacity-80 font-semibold">Walk-In Available</div>
+                  <div className="text-base sm:text-lg font-extrabold">
+                    {doughCapacity?.walk_in_available ?? "—"}
+                  </div>
                 </div>
               </div>
             </div>

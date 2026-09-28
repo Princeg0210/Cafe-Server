@@ -53,6 +53,23 @@ class SettingsService:
         )
 
     @staticmethod
+    async def get_reservation_pizza_demand_ratio(db: AsyncSession) -> float:
+        """
+        Returns the configurable pizza demand ratio per guest for reservations.
+        Key: RESERVATION_PIZZA_DEMAND_PER_GUEST
+        Falls back to settings.DEFAULT_RESERVATION_PIZZA_DEMAND_PER_GUEST (e.g. 0.75).
+        """
+        val = await SettingsService.get_setting(
+            db,
+            "RESERVATION_PIZZA_DEMAND_PER_GUEST",
+            settings.DEFAULT_RESERVATION_PIZZA_DEMAND_PER_GUEST,
+        )
+        try:
+            return float(val)
+        except Exception:
+            return 0.75
+
+    @staticmethod
     async def get_cancellation_policy(db: AsyncSession) -> dict:
         policy = await SettingsService.get_setting(db, "CANCELLATION_REFUND_POLICY", settings.DEFAULT_CANCELLATION_POLICY)
         cutoff_hours_str = await SettingsService.get_setting(db, "CANCELLATION_CUTOFF_HOURS", str(settings.DEFAULT_CANCELLATION_CUTOFF_HOURS))

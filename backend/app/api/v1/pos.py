@@ -89,3 +89,34 @@ async def reset_all_sessions(
     current_user: User = Depends(require_permission("pos:access")),
 ):
     return await POSService.reset_all_sessions(db)
+
+
+@router.get("/daily-dough-capacity")
+async def get_daily_dough_capacity(
+    branch_id: int = Query(1, description="Branch ID"),
+    target_date: Optional[str] = Query(None, description="Format YYYY-MM-DD (default: today)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
+):
+    """
+    Returns today's pizza dough production capacity for the POS dashboard.
+
+    Example response:
+      {
+        "total_dough_limit": 70,
+        "total_allocated_dough": 25,
+        "total_active_protected": 15,
+        "walk_in_available": 30
+      }
+
+    DAILY PIZZA CAPACITY
+    70 Total | 25 Used | 15 Protected | 30 Walk-in Available
+    """
+    from app.services.capacity_service import CapacityService
+    date_obj = None
+    if target_date:
+        try:
+            date_obj = datetime.date.fromisoformat(target_date)
+        except ValueError:
+            date_obj = None
+    return await CapacityService.get_daily_dough_overview(db, branch_id=branch_id, target_date=date_obj)

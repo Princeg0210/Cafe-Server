@@ -144,6 +144,17 @@ class ReservationService:
         db.add(reservation)
         await db.flush()
 
+        # Create protected dough allocation for this confirmed reservation
+        from app.services.capacity_service import CapacityService
+        await CapacityService.create_reservation_dough_allocation(
+            db=db,
+            reservation_id=reservation.id,
+            branch_id=reservation.branch_id,
+            reservation_date=reservation.reservation_date,
+            guest_count=reservation.guest_count,
+            expected_pizza_count=reservation.expected_pizza_count,
+        )
+
         # Schedule Celery booking reminder task
         try:
             task_result = send_reservation_reminder.apply_async(
@@ -178,6 +189,13 @@ class ReservationService:
             )
 
         reservation.status = new_status
+
+        # Release dough allocation for terminal statuses
+        if new_status in ["CANCELLED", "NO_SHOW", "EXPIRED", "COMPLETED"]:
+            from app.services.capacity_service import CapacityService
+            await CapacityService.release_reservation_dough_allocation(
+                db=db, reservation_id=reservation_id
+            )
 
         # If cancelled or no-show, revoke Celery reminder task if present
         if new_status in ["CANCELLED", "NO_SHOW"] and reservation.celery_task_id:
@@ -304,6 +322,12 @@ class ReservationService:
         reservation.status = "CANCELLED"
         reservation.payment_status = "REFUNDED" if refund_amount > Decimal("0.00") else "CANCELLED"
 
+        # Release unused protected dough allocation on cancellation
+        from app.services.capacity_service import CapacityService
+        await CapacityService.release_reservation_dough_allocation(
+            db=db, reservation_id=reservation_id
+        )
+
         if reservation.celery_task_id:
             try:
                 celery_app.control.revoke(reservation.celery_task_id, terminate=True)
@@ -421,10 +445,15 @@ class ReservationService:
         reservations = res.scalars().all()
         released_count = 0
 
+        from app.services.capacity_service import CapacityService
         for r in reservations:
             calc = calculate_reservation_window(r.reservation_date, r.time_slot)
             if calc.get("grace_exceeded"):
                 r.status = "NO_SHOW"
+                # Release unused dough protection for no-show
+                await CapacityService.release_reservation_dough_allocation(
+                    db=db, reservation_id=r.id
+                )
                 if r.celery_task_id:
                     try:
                         celery_app.control.revoke(r.celery_task_id, terminate=True)
@@ -452,9 +481,14 @@ class ReservationService:
         res = await db.execute(stmt)
         expired_holds = res.scalars().all()
         count = len(expired_holds)
+        from app.services.capacity_service import CapacityService
         for h in expired_holds:
             h.status = "EXPIRED"
             h.payment_status = "EXPIRED"
+            # Release dough allocation for expired holds (if any was ever created)
+            await CapacityService.release_reservation_dough_allocation(
+                db=db, reservation_id=h.id
+            )
         if count > 0:
             await db.commit()
         return count

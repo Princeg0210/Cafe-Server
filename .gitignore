@@ -33,3 +33,5 @@ out/
 # Load testing artifacts
 *.csv
 load_*
+
+.vscode/

@@ -13,6 +13,7 @@ from app.models.bank_transaction import VerifiedBankCredit
 from app.services.billing_service import BillingService
 from app.services.settings_service import SettingsService
 from app.services.payment_verification_service import PaymentVerificationService
+from app.models.customer import Customer
 from app.services.reservation_service import ReservationService
 from app.schemas.reservation import (
     ReservationHoldRequest,
@@ -633,8 +634,10 @@ async def test_cancellation_and_no_show_policies(client: AsyncClient, db_session
     Requirement 10: Cancellation & No-Show configurable policies.
     """
     branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
-    db_session.add(branch)
+    customer = Customer(id=1, name="Policy Cust", phone="+919999999999")
+    db_session.add_all([branch, customer])
     await db_session.commit()
+
 
     # 1. Full Refund Policy
     await SettingsService.set_setting(db_session, "CANCELLATION_REFUND_POLICY", "FULL_REFUND")

@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     # Reservation Deposit & Hold Settings
     DEFAULT_DEPOSIT_PER_GUEST: str = "200.00"
     RESERVATION_HOLD_MINUTES: int = 7
+    DEFAULT_RESERVATION_PIZZA_DEMAND_PER_GUEST: str = "0.75"
+
 
     # Android Payment Listener Security
     ANDROID_DEVICE_SECRET: str = "cafe-jaadoo-android-listener-secret-2026"

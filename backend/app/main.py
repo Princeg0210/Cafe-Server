@@ -125,6 +125,9 @@ async def on_startup():
                     await conn.execute(text("ALTER TABLE reservations ADD COLUMN cancellation_refund_amount NUMERIC(10, 2) DEFAULT 0.00"))
                 if "cancellation_refund_status" not in cols:
                     await conn.execute(text("ALTER TABLE reservations ADD COLUMN cancellation_refund_status VARCHAR(30)"))
+                if "expected_pizza_count" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN expected_pizza_count INTEGER"))
+
 
                 sess_cols = await conn.execute(text("PRAGMA table_info(dining_sessions)"))
                 s_cols = [c[1] for c in sess_cols.fetchall()]
@@ -169,6 +172,8 @@ async def on_startup():
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS credited_bill_id INTEGER"))
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancellation_refund_amount NUMERIC(10, 2) DEFAULT 0.00"))
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancellation_refund_status VARCHAR(30)"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS expected_pizza_count INTEGER"))
+
 
                 await conn.execute(text("ALTER TABLE dining_sessions ADD COLUMN IF NOT EXISTS reservation_id INTEGER"))
 

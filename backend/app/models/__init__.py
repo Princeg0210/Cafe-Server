@@ -6,7 +6,7 @@ from app.models.settings import SystemSettings
 from app.models.table import Table, TableQR, DiningSession
 from app.models.reservation import Reservation, ReservationCapacityRule
 from app.models.menu import MenuCategory, MenuItem
-from app.models.capacity import ItemCapacityRule
+from app.models.capacity import ItemCapacityRule, DailyProductionRule, ReservationDoughAllocation
 from app.models.order import Order, OrderItem, OrderStatusHistory
 from app.models.kot import KOT
 from app.models.kitchen import Kitchen, MenuItemKitchenMapping, KitchenOrder, KitchenPrinter, PrintJob
@@ -36,6 +36,9 @@ __all__ = [
     "MenuCategory",
     "MenuItem",
     "ItemCapacityRule",
+    "DailyProductionRule",
+    "ReservationDoughAllocation",
+
     "Order",
     "OrderItem",
     "OrderStatusHistory",

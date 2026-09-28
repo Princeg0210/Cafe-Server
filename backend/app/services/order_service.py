@@ -60,6 +60,11 @@ class OrderService:
             if table and table.status == "Available":
                 table.status = "Occupied"
 
+            # Resolve branch and reservation context for capacity checks
+            branch_id = table.branch_id if table else 1
+            order_reservation_id = dining_session.reservation_id
+            production_date = datetime.date.today()
+
 
             # Generate daily sequential order number (1 to n) with concurrency-safe retry loop
             today_date = datetime.date.today()
@@ -151,7 +156,14 @@ class OrderService:
                     )
 
                 # Step 2: Validate Production Capacity Limit (PIZZA_SOLD_OUT check)
-                await CapacityService.validate_and_allocate(db, menu_item.id, item_data.quantity)
+                await CapacityService.validate_and_allocate(
+                    db,
+                    menu_item.id,
+                    item_data.quantity,
+                    branch_id=branch_id,
+                    production_date=production_date,
+                    reservation_id=order_reservation_id,
+                )
 
                 # Step 3: Validate & Deduct BOM Ingredient Stock
                 await InventoryService.deduct_bom_stock(db, menu_item.id, item_data.quantity, order_number)

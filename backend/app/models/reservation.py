@@ -30,8 +30,10 @@ class Reservation(Base):
     credited_bill_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("bills.id", ondelete="SET NULL", use_alter=True), nullable=True)
     cancellation_refund_amount: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True, default=Decimal("0.00"))
     cancellation_refund_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
-    celery_task_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    celery_task_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    expected_pizza_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
 
     branch = relationship("Branch", back_populates="reservations")
     customer = relationship("Customer", back_populates="reservations")
