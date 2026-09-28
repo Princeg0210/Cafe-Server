@@ -150,6 +150,10 @@ async def on_startup():
                     await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN raw_event_payload VARCHAR(500)"))
                 if "review_reason" not in v_cols:
                     await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN review_reason VARCHAR(200)"))
+                if "is_claimed" not in v_cols:
+                    await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN is_claimed BOOLEAN DEFAULT 0"))
+                if "claimed_reservation_id" not in v_cols:
+                    await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN claimed_reservation_id INTEGER"))
             else:
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS table_id INTEGER"))
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS floor_number INTEGER DEFAULT 1"))
@@ -176,6 +180,13 @@ async def on_startup():
                 await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS event_id VARCHAR(100)"))
                 await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS raw_event_payload VARCHAR(500)"))
                 await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS review_reason VARCHAR(200)"))
+                await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS is_claimed BOOLEAN DEFAULT FALSE"))
+                await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS claimed_reservation_id INTEGER"))
+                await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS merchant_vpa VARCHAR(100) DEFAULT '9460555743-2@ybl'"))
+                await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS payer_vpa VARCHAR(100)"))
+                await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS provider_source VARCHAR(50) DEFAULT 'ANDROID_LISTENER'"))
+                await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'SETTLED'"))
+
         logger.info("Database schema initialized successfully.")
 
         async with AsyncSessionLocal() as db:
