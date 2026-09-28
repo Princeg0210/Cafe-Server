@@ -103,7 +103,7 @@ async def receive_android_payment_event(
     """
     return await ReservationService.process_android_payment_event(
         db=db,
-        event_id=payload.event_id,
+        event_id=payload.event_id or f"evt-{payload.utr}",
         utr=payload.utr,
         amount=payload.amount,
         merchant_vpa=payload.merchant_vpa,
@@ -111,6 +111,7 @@ async def receive_android_payment_event(
         event_timestamp=payload.event_timestamp,
         raw_sms=payload.raw_sms,
     )
+
 
 
 @router.post("/bank-webhook")

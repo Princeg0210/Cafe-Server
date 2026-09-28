@@ -151,13 +151,14 @@ class BankWebhookPayload(BaseModel):
 
 
 class AndroidPaymentEventPayload(BaseModel):
-    event_id: str = Field(..., min_length=4, max_length=100, example="evt-sms-android-887766")
+    event_id: Optional[str] = Field(None, example="evt-sms-android-887766")
     utr: str = Field(..., min_length=4, max_length=64, example="235745067878")
     amount: Decimal = Field(..., gt=0, example=600.00)
     merchant_vpa: str = Field("9460555743-2@ybl")
     payer_vpa: Optional[str] = None
     event_timestamp: Optional[datetime] = None
     raw_sms: Optional[str] = Field(None, example="Rs. 600 credited to account ... UPI Ref 235745067878")
+
 
 
 class PolicySettingsUpdate(BaseModel):
