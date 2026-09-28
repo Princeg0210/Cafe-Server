@@ -19,8 +19,11 @@ class VerifiedBankCredit(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     merchant_vpa: Mapped[str] = mapped_column(String(100), nullable=False)
     payer_vpa: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    status: Mapped[str] = mapped_column(String(20), default="SETTLED", nullable=False)  # SETTLED, FAILED
-    provider_source: Mapped[str] = mapped_column(String(50), nullable=False)  # BANK_WEBHOOK, RAZORPAY_WEBHOOK, CASHFREE, STAFF_VERIFIED
+    status: Mapped[str] = mapped_column(String(30), default="SETTLED", nullable=False)  # SETTLED, PAYMENT_REVIEW_REQUIRED, FAILED
+    provider_source: Mapped[str] = mapped_column(String(50), nullable=False)  # ANDROID_LISTENER, BANK_WEBHOOK, RAZORPAY_WEBHOOK, CASHFREE, STAFF_VERIFIED
+    event_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True, index=True)
+    raw_event_payload: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    review_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
     verified_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     is_claimed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     claimed_reservation_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("reservations.id", ondelete="SET NULL"), nullable=True)

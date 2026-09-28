@@ -36,6 +36,7 @@ class DiningSession(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     table_id: Mapped[int] = mapped_column(Integer, ForeignKey("tables.id", ondelete="CASCADE"), nullable=False)
     customer_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("customers.id", ondelete="SET NULL"), nullable=True)
+    reservation_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("reservations.id", ondelete="SET NULL", use_alter=True), nullable=True)
     session_token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(20), default="OPENED", nullable=False)  # OPENED, ACTIVE, CHECKOUT, PAID, CLOSED
     opened_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
@@ -43,6 +44,7 @@ class DiningSession(Base):
 
     table = relationship("Table", back_populates="dining_sessions")
     customer = relationship("Customer", back_populates="dining_sessions")
+    reservation = relationship("Reservation", foreign_keys=[reservation_id], lazy="selectin")
     orders = relationship("Order", back_populates="dining_session")
     kots = relationship("KOT", back_populates="dining_session")
     bills = relationship("Bill", back_populates="dining_session")

@@ -87,6 +87,15 @@ class TableSessionDetail(BaseModel):
     is_active: bool
     is_settled: bool
     items: List[SessionItemDetail] = []
+    reservation_id: Optional[int] = None
+    subtotal: Decimal = Decimal("0.00")
+    tax_amount: Decimal = Decimal("0.00")
+    gross_amount: Decimal = Decimal("0.00")
+    reservation_deposit_paid: Decimal = Decimal("0.00")
+    reservation_credit: Decimal = Decimal("0.00")
+    net_amount_due: Decimal = Decimal("0.00")
+    remainder_action: Optional[str] = None
+    remainder_amount: Decimal = Decimal("0.00")
 
 
 class TableOverviewResponse(BaseModel):

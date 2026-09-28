@@ -43,6 +43,21 @@ class Settings(BaseSettings):
     MERCHANT_UPI_ID: str = "9460555743-2@ybl"
     MERCHANT_NAME: str = "Jaadoo Cafe Piza"
 
+    # Reservation Deposit & Hold Settings
+    DEFAULT_DEPOSIT_PER_GUEST: str = "200.00"
+    RESERVATION_HOLD_MINUTES: int = 7
+
+    # Android Payment Listener Security
+    ANDROID_DEVICE_SECRET: str = "cafe-jaadoo-android-listener-secret-2026"
+    ANDROID_DEVICE_TOKEN: str = "dev_token_jaadoo_android_phone_9460555743"
+
+    # Reservation Deposit Remainder & Cancellation Policies
+    DEFAULT_DEPOSIT_REMAINDER_POLICY: str = "CUSTOMER_CREDIT"  # REFUND_REMAINDER, CUSTOMER_CREDIT, FORFEIT_REMAINDER
+    DEFAULT_CANCELLATION_POLICY: str = "REFUND_BEFORE_CUTOFF"  # FULL_REFUND, REFUND_BEFORE_CUTOFF, NO_REFUND
+    DEFAULT_CANCELLATION_CUTOFF_HOURS: int = 2
+    DEFAULT_CANCELLATION_REFUND_PERCENTAGE: int = 100
+    DEFAULT_NO_SHOW_POLICY: str = "FORFEIT"  # FORFEIT, PARTIAL_CREDIT
+
     # CORS
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 

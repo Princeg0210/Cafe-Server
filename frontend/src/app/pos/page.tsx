@@ -27,6 +27,7 @@ import {
   Calendar,
   UserCheck,
   XCircle,
+  X,
   Phone,
   Mail,
 } from "lucide-react";
@@ -52,6 +53,15 @@ interface TableSession {
   is_active: boolean;
   is_settled: boolean;
   items: SessionItem[];
+  reservation_id?: number;
+  subtotal?: number;
+  tax_amount?: number;
+  gross_amount?: number;
+  reservation_deposit_paid?: number;
+  reservation_credit?: number;
+  net_amount_due?: number;
+  remainder_action?: string;
+  remainder_amount?: number;
 }
 
 interface TableOverview {
@@ -137,8 +147,25 @@ interface Reservation {
   advance_amount?: number;
   payment_reference?: string;
   payment_method?: string;
+  table_id?: number;
+  floor_number?: number;
+  table_name?: string;
+  is_deposit_credited?: boolean;
+  credited_bill_id?: number;
   created_at: string;
   customer?: Customer;
+}
+
+interface PendingPaymentReview {
+  credit_id: number;
+  utr: string;
+  amount: number;
+  merchant_vpa: string;
+  provider_source: string;
+  status: string;
+  review_reason: string;
+  raw_event_payload?: string;
+  verified_at: string;
 }
 
 export const getTableFloor = (tableIdOrNum: number | string) => {
@@ -206,6 +233,9 @@ export default function POSDashboard() {
   const [isRefreshingRes, setIsRefreshingRes] = useState(false);
   const [resFilter, setResFilter] = useState<"all" | "CONFIRMED" | "ARRIVED" | "SEATED" | "COMPLETED" | "CANCELLED">("all");
   const [updatingResId, setUpdatingResId] = useState<number | null>(null);
+  const [pendingReviews, setPendingReviews] = useState<PendingPaymentReview[]>([]);
+  const [assigningTableRes, setAssigningTableRes] = useState<Reservation | null>(null);
+  const [selectedAssignTableId, setSelectedAssignTableId] = useState<number>(1);
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -479,11 +509,46 @@ export default function POSDashboard() {
     }
   };
 
+  const fetchPendingReviews = async (overrideToken?: string) => {
+    const tok = overrideToken || posToken;
+    if (!tok) return;
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/reservations/pending-reviews`, {
+        headers: { Authorization: `Bearer ${tok}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPendingReviews(data);
+      }
+    } catch (err) {
+      console.error("Pending reviews fetch error:", err);
+    }
+  };
+
   const handleUpdateReservationStatus = async (id: number, newStatus: string) => {
     if (!posToken) return;
     setUpdatingResId(id);
     const apiBase = getApiBase();
     try {
+      if (newStatus === "SEATED") {
+        const resObj = reservations.find((r) => r.id === id);
+        if (resObj && resObj.table_id) {
+          const checkinRes = await fetch(`${apiBase}/api/v1/reservations/${id}/checkin`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${posToken}`,
+            },
+            body: JSON.stringify({ table_id: resObj.table_id }),
+          });
+          if (checkinRes.ok) {
+            await Promise.all([fetchReservations(), fetchData(), fetchPendingReviews()]);
+            return;
+          }
+        }
+      }
+
       const res = await fetch(`${apiBase}/api/v1/reservations/${id}/status`, {
         method: "PATCH",
         headers: {
@@ -493,7 +558,7 @@ export default function POSDashboard() {
         body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) {
-        await fetchReservations();
+        await Promise.all([fetchReservations(), fetchData(), fetchPendingReviews()]);
       } else {
         const err = await res.json().catch(() => ({}));
         alert(`Cannot update reservation: ${err.detail || "Server error"}`);
@@ -505,13 +570,83 @@ export default function POSDashboard() {
     }
   };
 
+  const handleReviewAction = async (creditId: number, utr: string, action: "VERIFY" | "REJECT") => {
+    if (!posToken) return;
+    const apiBase = getApiBase();
+    try {
+      if (action === "VERIFY") {
+        // Find matching pending reservation if any
+        const match = reservations.find(
+          (r) =>
+            (r.payment_reference && r.payment_reference.toLowerCase() === utr.toLowerCase()) ||
+            r.status === "HOLD" ||
+            r.status === "PAYMENT_PENDING"
+        );
+        const resId = match ? match.id : prompt("Enter Reservation ID to confirm with this verified credit:");
+        if (!resId) return;
+
+        const res = await fetch(`${apiBase}/api/v1/reservations/${resId}/staff-verify`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${posToken}`,
+          },
+          body: JSON.stringify({ upi_utr: utr }),
+        });
+        if (res.ok) {
+          alert(`Payment for Reservation #${resId} verified and confirmed!`);
+          await Promise.all([fetchReservations(), fetchPendingReviews(), fetchData()]);
+        } else {
+          const err = await res.json().catch(() => ({}));
+          alert(`Cannot verify payment: ${err.detail || "Server error"}`);
+        }
+      } else {
+        if (!confirm(`Reject bank credit UTR: ${utr}? Staff review will flag this as reviewed.`)) return;
+        setPendingReviews((prev) => prev.filter((p) => p.credit_id !== creditId));
+      }
+    } catch {
+      alert("Network error processing review action.");
+    }
+  };
+
+  const handleAssignTable = async (reservationId: number, tableId: number) => {
+    if (!posToken) return;
+    const apiBase = getApiBase();
+    try {
+      const targetTbl = tableOverviews.find((t) => t.table_id === tableId);
+      const res = await fetch(`${apiBase}/api/v1/reservations/${reservationId}/assign-table`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${posToken}`,
+        },
+        body: JSON.stringify({
+          table_id: tableId,
+          table_name: targetTbl?.table_number ? `Table ${targetTbl.table_number}` : `Table ${tableId}`,
+          floor_number: getTableFloor(targetTbl?.table_number || tableId).floor,
+        }),
+      });
+      if (res.ok) {
+        setAssigningTableRes(null);
+        await Promise.all([fetchReservations(), fetchData()]);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Cannot assign table: ${err.detail || "Server error"}`);
+      }
+    } catch {
+      alert("Network error assigning table.");
+    }
+  };
+
   useEffect(() => {
     if (!posToken) return;
     fetchData(undefined, selectedDate);
     fetchReservations(undefined, selectedDate);
+    fetchPendingReviews(undefined);
     const interval = setInterval(() => {
       fetchData(undefined, selectedDate);
       fetchReservations(undefined, selectedDate);
+      fetchPendingReviews(undefined);
     }, 10000);
     return () => clearInterval(interval);
   }, [posToken, selectedDate]);
@@ -598,7 +733,13 @@ export default function POSDashboard() {
       alert("Staff session expired. Please sign in again.");
       return;
     }
-    if (!confirm(`Settle bill & close dining session for Table ${tableNumber}? This will mark the table as Available for new customers.`)) {
+    const session = tableOverviews.flatMap((t) => t.sessions).find((s) => s.session_id === sessionId);
+    let confirmMsg = `Settle bill & close dining session for Table ${tableNumber}?`;
+    if (session && session.reservation_deposit_paid && Number(session.reservation_deposit_paid) > 0) {
+      confirmMsg += `\n\nBill Total: ₹${session.gross_amount || session.total_amount}\nReservation Credit: -₹${session.reservation_credit}\nAmount Due: ₹${session.net_amount_due}`;
+    }
+    confirmMsg += `\n\nThis will mark the table as Available for new customers.`;
+    if (!confirm(confirmMsg)) {
       return;
     }
     setClosingSessionIds((prev) => ({ ...prev, [sessionId]: true }));
@@ -2018,6 +2159,71 @@ export default function POSDashboard() {
               </div>
             </section>
 
+            {/* PENDING RESERVATION PAYMENTS (Requirement 16) */}
+            {pendingReviews.length > 0 && (
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    </span>
+                    <h3 className="font-serif font-bold text-lg text-amber-950 uppercase tracking-wide">
+                      PENDING RESERVATION PAYMENTS ({pendingReviews.length})
+                    </h3>
+                  </div>
+                  <span className="text-xs font-sans font-bold bg-amber-200/80 text-amber-900 px-3 py-1 rounded-full">
+                    Action Required
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {pendingReviews.map((rev) => (
+                    <div key={rev.credit_id} className="bg-white rounded-2xl p-4 border border-amber-200 shadow-xs space-y-2.5">
+                      <div className="flex items-center justify-between text-xs border-b border-gray-100 pb-2">
+                        <span className="font-bold text-stone-800">Bank Credit #{rev.credit_id}</span>
+                        <span className="font-mono text-stone-500">
+                          {new Date(rev.verified_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      <div className="text-xs space-y-1 text-stone-700">
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Payment Event:</span>
+                          <span className="font-semibold text-emerald-700">Received</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">Amount:</span>
+                          <span className="font-extrabold text-base text-[#261C18]">₹{rev.amount}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-stone-500">UTR / Ref:</span>
+                          <span className="font-mono font-bold text-stone-800">{rev.utr}</span>
+                        </div>
+                        <div className="text-[11px] text-amber-800 bg-amber-50 p-1.5 rounded-lg border border-amber-200">
+                          Reason: {rev.review_reason}
+                        </div>
+                      </div>
+                      <div className="pt-2 flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleReviewAction(rev.credit_id, rev.utr, "VERIFY")}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                        >
+                          Verify & Confirm
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleReviewAction(rev.credit_id, rev.utr, "REJECT")}
+                          className="px-3 py-2 border border-stone-200 hover:bg-red-50 text-red-700 rounded-xl text-xs font-sans font-semibold transition-colors cursor-pointer"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Reservations List */}
             {filteredReservations.length === 0 ? (
               <div className="text-center py-16 px-4 bg-white rounded-3xl border border-[#E4DCD0] shadow-xs space-y-3">
@@ -2100,7 +2306,7 @@ export default function POSDashboard() {
                           </div>
                           {res.advance_amount !== undefined && Number(res.advance_amount) > 0 && (
                             <div className="flex items-center justify-between text-xs pt-1.5 border-t border-[#E4DCD0]/70">
-                              <span className="text-stone-500 font-medium">Advance Paid:</span>
+                              <span className="text-stone-500 font-medium">Deposit Paid (₹200/guest):</span>
                               <span className="font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md text-[11px]">
                                 ₹{Number(res.advance_amount).toFixed(0)} ({res.payment_method || "UPI"})
                               </span>
@@ -2108,10 +2314,33 @@ export default function POSDashboard() {
                           )}
                           {res.payment_reference && (
                             <div className="flex items-center justify-between text-[10px] text-stone-500 pt-0.5">
-                              <span>Ref:</span>
+                              <span>Ref / UTR:</span>
                               <span className="font-mono text-stone-600 truncate max-w-[150px]">{res.payment_reference}</span>
                             </div>
                           )}
+                          <div className="flex items-center justify-between text-xs pt-1 border-t border-[#E4DCD0]/70">
+                            <span className="text-stone-500 font-medium">Assigned Table:</span>
+                            {res.table_name || res.table_id ? (
+                              <span className="font-bold text-[#261C18] bg-stone-100 px-2 py-0.5 rounded-md text-[11px] flex items-center gap-1">
+                                <span>{res.table_name || `Table ${res.table_id}`}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setAssigningTableRes(res)}
+                                  className="text-[10px] text-[#B85B43] hover:underline ml-1"
+                                >
+                                  (Change)
+                                </button>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setAssigningTableRes(res)}
+                                className="text-[11px] font-bold text-[#B85B43] bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-md cursor-pointer transition-colors"
+                              >
+                                + Assign Table
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -2122,15 +2351,23 @@ export default function POSDashboard() {
                             <button
                               onClick={() => handleUpdateReservationStatus(res.id, "ARRIVED")}
                               disabled={isCurrentUpdating}
-                              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
                             >
                               <UserCheck className="w-3.5 h-3.5" />
                               <span>Arrived</span>
                             </button>
+                            {!res.table_id && (
+                              <button
+                                onClick={() => setAssigningTableRes(res)}
+                                className="px-2.5 py-2 border border-stone-200 text-stone-700 hover:bg-stone-50 rounded-xl text-xs font-sans font-semibold transition-colors cursor-pointer"
+                              >
+                                Assign
+                              </button>
+                            )}
                             <button
                               onClick={() => handleUpdateReservationStatus(res.id, "CANCELLED")}
                               disabled={isCurrentUpdating}
-                              className="px-3 py-2 border border-red-200 text-red-700 hover:bg-red-50 rounded-xl text-xs font-sans font-semibold transition-colors disabled:opacity-50"
+                              className="px-3 py-2 border border-red-200 text-red-700 hover:bg-red-50 rounded-xl text-xs font-sans font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -2140,17 +2377,23 @@ export default function POSDashboard() {
                         {st === "ARRIVED" && (
                           <>
                             <button
-                              onClick={() => handleUpdateReservationStatus(res.id, "SEATED")}
+                              onClick={() => {
+                                if (!res.table_id) {
+                                  setAssigningTableRes(res);
+                                } else {
+                                  handleUpdateReservationStatus(res.id, "SEATED");
+                                }
+                              }}
                               disabled={isCurrentUpdating}
-                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Seat Table</span>
+                              <span>{res.table_id ? "Seat Table" : "Assign & Seat Table"}</span>
                             </button>
                             <button
                               onClick={() => handleUpdateReservationStatus(res.id, "CANCELLED")}
                               disabled={isCurrentUpdating}
-                              className="px-3 py-2 border border-red-200 text-red-700 hover:bg-red-50 rounded-xl text-xs font-sans font-semibold transition-colors disabled:opacity-50"
+                              className="px-3 py-2 border border-red-200 text-red-700 hover:bg-red-50 rounded-xl text-xs font-sans font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -2179,6 +2422,77 @@ export default function POSDashboard() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Assign Table Modal (Requirement 11) */}
+        {assigningTableRes && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+            <div className="bg-white rounded-3xl w-full max-w-md p-6 border border-[#E4DCD0] shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 className="font-serif font-bold text-xl text-[#261C18]">
+                  Assign Physical Table
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setAssigningTableRes(null)}
+                  className="p-1 rounded-full hover:bg-gray-100 text-gray-500 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl text-xs space-y-1">
+                <p>
+                  <strong>Reservation:</strong> #RES-{String(assigningTableRes.id).padStart(4, "0")} • {assigningTableRes.customer?.name}
+                </p>
+                <p>
+                  <strong>Party Size:</strong> {assigningTableRes.guest_count} Guests • {assigningTableRes.reservation_date} at {assigningTableRes.time_slot}
+                </p>
+                {assigningTableRes.advance_amount && (
+                  <p className="text-emerald-800 font-bold">
+                    Deposit Paid: ₹{assigningTableRes.advance_amount}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block font-sans">
+                  Select Physical Table:
+                </label>
+                <select
+                  value={selectedAssignTableId}
+                  onChange={(e) => setSelectedAssignTableId(Number(e.target.value))}
+                  className="w-full text-sm p-3 rounded-xl border border-gray-300 bg-gray-50 font-sans focus:outline-hidden focus:border-[#B85B43]"
+                >
+                  {tableOverviews.map((tbl) => {
+                    const fl = getTableFloor(tbl.table_number || tbl.table_id);
+                    return (
+                      <option key={tbl.table_id} value={tbl.table_id}>
+                        Table {tbl.table_number} ({fl.name} • {tbl.capacity} Seats) — {tbl.status}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleAssignTable(assigningTableRes.id, selectedAssignTableId)}
+                  className="flex-1 bg-[#261C18] hover:bg-[#B85B43] text-white py-3 rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition-colors shadow-xs cursor-pointer"
+                >
+                  Confirm Table Assignment
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAssigningTableRes(null)}
+                  className="px-4 py-3 border border-gray-200 hover:bg-gray-100 text-stone-700 rounded-xl text-xs font-sans font-semibold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>

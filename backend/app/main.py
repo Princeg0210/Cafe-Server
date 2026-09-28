@@ -117,6 +117,39 @@ async def on_startup():
                     await conn.execute(text("ALTER TABLE reservations ADD COLUMN upi_id VARCHAR(100)"))
                 if "upi_utr" not in cols:
                     await conn.execute(text("ALTER TABLE reservations ADD COLUMN upi_utr VARCHAR(100)"))
+                if "is_deposit_credited" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN is_deposit_credited BOOLEAN DEFAULT 0"))
+                if "credited_bill_id" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN credited_bill_id INTEGER"))
+                if "cancellation_refund_amount" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN cancellation_refund_amount NUMERIC(10, 2) DEFAULT 0.00"))
+                if "cancellation_refund_status" not in cols:
+                    await conn.execute(text("ALTER TABLE reservations ADD COLUMN cancellation_refund_status VARCHAR(30)"))
+
+                sess_cols = await conn.execute(text("PRAGMA table_info(dining_sessions)"))
+                s_cols = [c[1] for c in sess_cols.fetchall()]
+                if "reservation_id" not in s_cols:
+                    await conn.execute(text("ALTER TABLE dining_sessions ADD COLUMN reservation_id INTEGER"))
+
+                bill_cols = await conn.execute(text("PRAGMA table_info(bills)"))
+                b_cols = [c[1] for c in bill_cols.fetchall()]
+                if "reservation_deposit_paid" not in b_cols:
+                    await conn.execute(text("ALTER TABLE bills ADD COLUMN reservation_deposit_paid NUMERIC(12, 2) DEFAULT 0.00"))
+                if "reservation_credit" not in b_cols:
+                    await conn.execute(text("ALTER TABLE bills ADD COLUMN reservation_credit NUMERIC(12, 2) DEFAULT 0.00"))
+                if "remainder_action" not in b_cols:
+                    await conn.execute(text("ALTER TABLE bills ADD COLUMN remainder_action VARCHAR(30)"))
+                if "remainder_amount" not in b_cols:
+                    await conn.execute(text("ALTER TABLE bills ADD COLUMN remainder_amount NUMERIC(12, 2) DEFAULT 0.00"))
+
+                credit_cols = await conn.execute(text("PRAGMA table_info(verified_bank_credits)"))
+                v_cols = [c[1] for c in credit_cols.fetchall()]
+                if "event_id" not in v_cols:
+                    await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN event_id VARCHAR(100)"))
+                if "raw_event_payload" not in v_cols:
+                    await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN raw_event_payload VARCHAR(500)"))
+                if "review_reason" not in v_cols:
+                    await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN review_reason VARCHAR(200)"))
             else:
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS table_id INTEGER"))
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS floor_number INTEGER DEFAULT 1"))
@@ -128,6 +161,21 @@ async def on_startup():
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS hold_expires_at TIMESTAMP WITHOUT TIME ZONE"))
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS upi_id VARCHAR(100)"))
                 await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS upi_utr VARCHAR(100)"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS is_deposit_credited BOOLEAN DEFAULT FALSE"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS credited_bill_id INTEGER"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancellation_refund_amount NUMERIC(10, 2) DEFAULT 0.00"))
+                await conn.execute(text("ALTER TABLE reservations ADD COLUMN IF NOT EXISTS cancellation_refund_status VARCHAR(30)"))
+
+                await conn.execute(text("ALTER TABLE dining_sessions ADD COLUMN IF NOT EXISTS reservation_id INTEGER"))
+
+                await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS reservation_deposit_paid NUMERIC(12, 2) DEFAULT 0.00"))
+                await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS reservation_credit NUMERIC(12, 2) DEFAULT 0.00"))
+                await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS remainder_action VARCHAR(30)"))
+                await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS remainder_amount NUMERIC(12, 2) DEFAULT 0.00"))
+
+                await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS event_id VARCHAR(100)"))
+                await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS raw_event_payload VARCHAR(500)"))
+                await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS review_reason VARCHAR(200)"))
         logger.info("Database schema initialized successfully.")
 
         async with AsyncSessionLocal() as db:

@@ -31,7 +31,11 @@ class BillResponse(BaseModel):
     subtotal: Decimal
     tax_amount: Decimal
     discount_amount: Decimal
-    total_amount: Decimal
+    reservation_deposit_paid: Decimal = Decimal("0.00")
+    reservation_credit: Decimal = Decimal("0.00")
+    remainder_action: Optional[str] = None
+    remainder_amount: Decimal = Decimal("0.00")
+    total_amount: Decimal  # Amount due after reservation credit and discount
     is_paid: bool
     created_at: datetime
     payments: List[PaymentResponse] = []

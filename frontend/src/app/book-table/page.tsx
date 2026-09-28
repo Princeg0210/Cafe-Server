@@ -177,6 +177,38 @@ export default function BookTablePage() {
     };
   }, [showUpiModal, secondsRemaining, isBooked]);
 
+  // Real-time polling while payment modal is open:
+  // Detects when the café's Android SMS listener confirms the payment automatically
+  useEffect(() => {
+    if (!showUpiModal || !heldReservationId || isBooked || holdExpired) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const apiBase = getApiBase();
+        const res = await fetch(`${apiBase}/api/v1/reservations/${heldReservationId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === "CONFIRMED" || data.payment_status === "PAID") {
+            clearInterval(pollInterval);
+            setConfirmedBookingId(data.id);
+            setConfirmedUtr(data.payment_reference || "AUTO-VERIFIED-UPI");
+            setPaidAdvance(data.advance_amount || totalAdvance);
+            setShowUpiModal(false);
+            setIsBooked(true);
+          } else if (data.status === "EXPIRED" || data.status === "CANCELLED") {
+            clearInterval(pollInterval);
+            setHoldExpired(true);
+            setSubmitError("Hold time expired. The table slot has been released.");
+          }
+        }
+      } catch {
+        // silent polling catch
+      }
+    }, 2500);
+
+    return () => clearInterval(pollInterval);
+  }, [showUpiModal, heldReservationId, isBooked, holdExpired, totalAdvance]);
+
   const handleSelectFloor = (floorNum: number) => {
     setSelectedFloor(floorNum);
     const tablesOnFloor = FLOOR_TABLES[floorNum];
@@ -537,30 +569,48 @@ export default function BookTablePage() {
 
                 <div>
                   <label className="flex items-center gap-2 text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 font-sans">
-                    <Users className="w-4 h-4 text-[#c88a48]" /> Guests
+                    <Users className="w-4 h-4 text-[#c88a48]" /> Guests (₹200 / person)
                   </label>
-                  <select
-                    value={guests}
-                    onChange={(e) => setGuests(Number(e.target.value))}
-                    className="w-full text-sm p-3 rounded-xl border border-gray-200 focus:outline-hidden focus:border-[#c88a48] bg-gray-50/50 font-sans"
-                  >
-                    <option value={1}>1 Person (₹200 deposit)</option>
-                    <option value={2}>2 People (Pair - ₹400 deposit)</option>
-                    <option value={3}>3 People (₹600 deposit)</option>
-                    <option value={4}>4 People (Family - ₹800 deposit)</option>
-                    <option value={5}>5 People (₹1,000 deposit)</option>
-                    <option value={6}>6 People (Group - ₹1,200 deposit)</option>
-                    <option value={8}>8+ People (Party - ₹1,600 deposit)</option>
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setGuests((g) => Math.max(1, g - 1))}
+                      className="w-11 h-11 rounded-xl bg-gray-100 hover:bg-amber-100 border border-gray-300 font-extrabold text-lg text-[#24150e] flex items-center justify-center cursor-pointer transition-colors shadow-2xs"
+                      aria-label="Decrease guests"
+                    >
+                      −
+                    </button>
+                    <div className="flex-1 text-center font-bold text-base bg-gray-50 border border-gray-200 rounded-xl py-2.5 font-condensed text-[#24150e]">
+                      {guests} {guests === 1 ? "Guest" : "Guests"}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setGuests((g) => Math.min(12, g + 1))}
+                      className="w-11 h-11 rounded-xl bg-gray-100 hover:bg-amber-100 border border-gray-300 font-extrabold text-lg text-[#24150e] flex items-center justify-center cursor-pointer transition-colors shadow-2xs"
+                      aria-label="Increase guests"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="mt-2 text-xs font-medium text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl flex items-center justify-between">
+                    <span>{guests} × ₹200 = <strong>₹{totalAdvance}</strong> deposit</span>
+                    <span className="text-[10px] font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-md border border-emerald-200">Bill Credit</span>
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-1 italic font-sans">
+                    This deposit will be adjusted against your final café bill.
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Step 2: Floor & Table Selection */}
             <div className="pt-6 border-t border-gray-100">
-              <span className="text-xs uppercase font-mono tracking-widest text-[#c88a48] font-bold block mb-3">
-                Step 2: Choose Floor & Pick Your Table
+              <span className="text-xs uppercase font-mono tracking-widest text-[#c88a48] font-bold block mb-1">
+                Step 2: Seating Preference (Optional)
               </span>
+              <p className="text-xs text-gray-500 font-sans mb-3">
+                Choose your preferred zone. Café host operationally assigns physical tables upon arrival.
+              </p>
 
               {/* Floor Options */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -803,12 +853,12 @@ export default function BookTablePage() {
               {isHoldingSlot ? (
                 <>
                   <RefreshCw className="w-5 h-5 animate-spin text-amber-300" />
-                  <span>Checking Slot & Locking Table...</span>
+                  <span>Checking Capacity & Creating 7-Min Hold...</span>
                 </>
               ) : (
                 <>
                   <Lock className="w-5 h-5 text-amber-300" />
-                  <span>Lock Table & Pay via UPI (₹{totalAdvance})</span>
+                  <span>PROCEED TO PAYMENT (₹{totalAdvance})</span>
                 </>
               )}
             </button>
@@ -887,16 +937,27 @@ export default function BookTablePage() {
                     <div className="bg-[#24150e] text-white p-4 rounded-2xl flex items-center justify-between">
                       <div>
                         <span className="text-[10px] uppercase font-mono tracking-wider text-amber-300 block">
-                          Total Advance Deposit
+                          RESERVATION DEPOSIT
                         </span>
-                        <span className="text-xs text-gray-300">
-                          {date} at {time}
+                        <span className="text-xs text-gray-300 font-sans">
+                          {guests} {guests === 1 ? "Guest" : "Guests"} × ₹200 • {date} at {time}
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="text-2xl font-extrabold font-condensed text-amber-400">₹{totalAdvance}</span>
-                        <span className="text-[10px] text-emerald-300 block font-medium">✓ 100% Food Credit</span>
+                        <span className="text-3xl font-extrabold font-condensed text-amber-400">₹{totalAdvance}</span>
+                        <span className="text-[10px] text-emerald-300 block font-medium">✓ Adjusted against final bill</span>
                       </div>
+                    </div>
+
+                    {/* Live Listening Status Banner */}
+                    <div className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs font-sans text-amber-950">
+                      <span className="relative flex h-2.5 w-2.5 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                      </span>
+                      <p className="leading-snug">
+                        <strong>Waiting for payment confirmation...</strong> Once paid via any UPI app, our café listener will automatically confirm your table.
+                      </p>
                     </div>
 
                     {/* Dynamic UPI QR Code Display */}

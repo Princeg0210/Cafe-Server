@@ -321,15 +321,25 @@ class POSService:
         for ord_item in ord_res.scalars().all():
             ord_item.status = "BILLED"
 
-        # Complete any seated reservations for this table
+        # Generate or finalize bill and credit reservation deposit
+        from app.services.billing_service import BillingService
+        bill = await BillingService.get_or_calculate_bill(db, session_id)
+        if bill:
+            bill.is_paid = True
+
+        # Complete any seated reservations for this table or session
         from app.models.reservation import Reservation
         res_stmt = select(Reservation).where(
-            Reservation.table_id == sess.table_id,
+            (Reservation.table_id == sess.table_id) | (Reservation.id == sess.reservation_id),
             Reservation.status.in_(["ARRIVED", "SEATED"]),
         )
         res_res = await db.execute(res_stmt)
         for r in res_res.scalars().all():
             r.status = "COMPLETED"
+            if not r.is_deposit_credited and r.payment_status == "PAID":
+                r.is_deposit_credited = True
+                if bill:
+                    r.credited_bill_id = bill.id
 
         await db.commit()
 
@@ -423,6 +433,8 @@ class POSService:
             .options(
                 selectinload(Table.dining_sessions).selectinload(DiningSession.orders).selectinload(Order.items).selectinload(OrderItem.menu_item),
                 selectinload(Table.dining_sessions).selectinload(DiningSession.customer),
+                selectinload(Table.dining_sessions).selectinload(DiningSession.reservation),
+                selectinload(Table.dining_sessions).selectinload(DiningSession.bills),
             )
             .order_by(Table.id.asc())
         )
@@ -504,6 +516,30 @@ class POSService:
                     for v in aggregated_items.values()
                 ]
 
+                tax_amt = (session_total * Decimal("0.05")).quantize(Decimal("0.01"))
+                gross_amt = session_total + tax_amt
+                dep_paid = Decimal("0.00")
+                res_credit = Decimal("0.00")
+                rem_action = None
+                rem_amount = Decimal("0.00")
+                net_due = gross_amt
+
+                if sess.bills:
+                    b = sess.bills[-1]
+                    dep_paid = b.reservation_deposit_paid or Decimal("0.00")
+                    res_credit = b.reservation_credit or Decimal("0.00")
+                    net_due = b.total_amount
+                    rem_action = b.remainder_action
+                    rem_amount = b.remainder_amount or Decimal("0.00")
+                elif sess.reservation and sess.reservation.payment_status == "PAID":
+                    dep_paid = Decimal(str(sess.reservation.advance_amount or "0.00"))
+                    res_credit = min(gross_amt, dep_paid)
+                    net_due = max(Decimal("0.00"), gross_amt - res_credit)
+                    if gross_amt < dep_paid:
+                        from app.services.settings_service import SettingsService
+                        rem_action = await SettingsService.get_deposit_remainder_policy(db)
+                        rem_amount = dep_paid - gross_amt
+
                 session_details.append(
                     TableSessionDetail(
                         session_id=sess.id,
@@ -518,6 +554,15 @@ class POSService:
                         is_active=is_active,
                         is_settled=is_settled,
                         items=items_list,
+                        reservation_id=sess.reservation_id,
+                        subtotal=session_total,
+                        tax_amount=tax_amt,
+                        gross_amount=gross_amt,
+                        reservation_deposit_paid=dep_paid,
+                        reservation_credit=res_credit,
+                        net_amount_due=net_due,
+                        remainder_action=rem_action,
+                        remainder_amount=rem_amount,
                     )
                 )
 
