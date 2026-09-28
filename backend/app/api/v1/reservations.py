@@ -92,7 +92,7 @@ async def verify_upi_payment(
 
 @router.post("/android-payment-event")
 async def receive_android_payment_event(
-    payload: AndroidPaymentEventPayload,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     _auth: None = Depends(verify_android_auth),
 ):
@@ -100,8 +100,40 @@ async def receive_android_payment_event(
     Secure endpoint for café's registered Android payment listener app.
     Authenticated via HTTPS + X-Device-Token or HMAC signature.
     Matches credit to pending reservation or marks PAYMENT_REVIEW_REQUIRED.
+    Accepts JSON, Form-URL-Encoded, and raw SMS payloads seamlessly.
     """
-    msg_body = payload.raw_sms or payload.msg or payload.text or payload.content or payload.utr
+    import json
+    from urllib.parse import parse_qs
+    body_dict = {}
+    raw_body_text = ""
+    try:
+        raw_bytes = await request.body()
+        raw_body_text = raw_bytes.decode("utf-8", errors="ignore").strip()
+        if raw_body_text:
+            try:
+                body_dict = json.loads(raw_body_text)
+            except Exception:
+                parsed = parse_qs(raw_body_text)
+                for k, v in parsed.items():
+                    val = v[0] if v else ""
+                    if val.startswith("{") and val.endswith("}"):
+                        try:
+                            body_dict.update(json.loads(val))
+                        except Exception:
+                            body_dict[k] = val
+                    else:
+                        body_dict[k] = val
+                if not body_dict:
+                    body_dict = {"raw_sms": raw_body_text}
+    except Exception:
+        pass
+
+    if not body_dict and request.query_params:
+        body_dict = dict(request.query_params)
+
+    payload = AndroidPaymentEventPayload.model_validate(body_dict or {})
+    msg_body = payload.raw_sms or payload.msg or payload.text or payload.content or payload.utr or raw_body_text
+
     return await ReservationService.process_android_payment_event(
         db=db,
         event_id=payload.event_id,
@@ -112,6 +144,7 @@ async def receive_android_payment_event(
         event_timestamp=payload.event_timestamp,
         raw_sms=msg_body,
     )
+
 
 
 
