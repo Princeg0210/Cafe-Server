@@ -1,0 +1,395 @@
+;
+; Archive created at 2026-10-04 14:06:51 IST
+;     dbname: cafe_db_bt7y
+;     TOC Entries: 385
+;     Compression: gzip
+;     Dump Version: 1.16-0
+;     Format: CUSTOM
+;     Integer: 4 bytes
+;     Offset: 8 bytes
+;     Dumped from database version: 18.6 (Debian 18.6-1.pgdg12+2)
+;     Dumped by pg_dump version: 18.6 (Homebrew)
+;
+;
+; Selected TOC Entries:
+;
+5; 2615 2200 SCHEMA - public cafe_db
+269; 1259 16856 TABLE public audit_logs cafe_db
+268; 1259 16855 SEQUENCE public audit_logs_id_seq cafe_db
+3903; 0 0 SEQUENCE OWNED BY public audit_logs_id_seq cafe_db
+273; 1259 16894 TABLE public bills cafe_db
+272; 1259 16893 SEQUENCE public bills_id_seq cafe_db
+3904; 0 0 SEQUENCE OWNED BY public bills_id_seq cafe_db
+226; 1259 16444 TABLE public branches cafe_db
+225; 1259 16443 SEQUENCE public branches_id_seq cafe_db
+3905; 0 0 SEQUENCE OWNED BY public branches_id_seq cafe_db
+224; 1259 16431 TABLE public customers cafe_db
+223; 1259 16430 SEQUENCE public customers_id_seq cafe_db
+3906; 0 0 SEQUENCE OWNED BY public customers_id_seq cafe_db
+293; 1259 17156 TABLE public daily_production_rules cafe_db
+292; 1259 17155 SEQUENCE public daily_production_rules_id_seq cafe_db
+3907; 0 0 SEQUENCE OWNED BY public daily_production_rules_id_seq cafe_db
+255; 1259 16710 TABLE public dining_sessions cafe_db
+254; 1259 16709 SEQUENCE public dining_sessions_id_seq cafe_db
+3908; 0 0 SEQUENCE OWNED BY public dining_sessions_id_seq cafe_db
+277; 1259 16937 TABLE public feedback cafe_db
+276; 1259 16936 SEQUENCE public feedback_id_seq cafe_db
+3909; 0 0 SEQUENCE OWNED BY public feedback_id_seq cafe_db
+232; 1259 16486 TABLE public inventory_items cafe_db
+231; 1259 16485 SEQUENCE public inventory_items_id_seq cafe_db
+3910; 0 0 SEQUENCE OWNED BY public inventory_items_id_seq cafe_db
+249; 1259 16654 TABLE public inventory_transactions cafe_db
+248; 1259 16653 SEQUENCE public inventory_transactions_id_seq cafe_db
+3911; 0 0 SEQUENCE OWNED BY public inventory_transactions_id_seq cafe_db
+257; 1259 16734 TABLE public item_capacity_rules cafe_db
+256; 1259 16733 SEQUENCE public item_capacity_rules_id_seq cafe_db
+3912; 0 0 SEQUENCE OWNED BY public item_capacity_rules_id_seq cafe_db
+283; 1259 17004 TABLE public kitchen_orders cafe_db
+282; 1259 17003 SEQUENCE public kitchen_orders_id_seq cafe_db
+3913; 0 0 SEQUENCE OWNED BY public kitchen_orders_id_seq cafe_db
+261; 1259 16777 TABLE public kitchen_printers cafe_db
+260; 1259 16776 SEQUENCE public kitchen_printers_id_seq cafe_db
+3914; 0 0 SEQUENCE OWNED BY public kitchen_printers_id_seq cafe_db
+247; 1259 16638 TABLE public kitchens cafe_db
+246; 1259 16637 SEQUENCE public kitchens_id_seq cafe_db
+3915; 0 0 SEQUENCE OWNED BY public kitchens_id_seq cafe_db
+289; 1259 17073 TABLE public kots cafe_db
+288; 1259 17072 SEQUENCE public kots_id_seq cafe_db
+3916; 0 0 SEQUENCE OWNED BY public kots_id_seq cafe_db
+230; 1259 16472 TABLE public menu_categories cafe_db
+229; 1259 16471 SEQUENCE public menu_categories_id_seq cafe_db
+3917; 0 0 SEQUENCE OWNED BY public menu_categories_id_seq cafe_db
+259; 1259 16756 TABLE public menu_item_kitchen_mapping cafe_db
+258; 1259 16755 SEQUENCE public menu_item_kitchen_mapping_id_seq cafe_db
+3918; 0 0 SEQUENCE OWNED BY public menu_item_kitchen_mapping_id_seq cafe_db
+245; 1259 16614 TABLE public menu_items cafe_db
+244; 1259 16613 SEQUENCE public menu_items_id_seq cafe_db
+3919; 0 0 SEQUENCE OWNED BY public menu_items_id_seq cafe_db
+267; 1259 16836 TABLE public notifications cafe_db
+266; 1259 16835 SEQUENCE public notifications_id_seq cafe_db
+3920; 0 0 SEQUENCE OWNED BY public notifications_id_seq cafe_db
+279; 1259 16956 TABLE public order_items cafe_db
+278; 1259 16955 SEQUENCE public order_items_id_seq cafe_db
+3921; 0 0 SEQUENCE OWNED BY public order_items_id_seq cafe_db
+281; 1259 16982 TABLE public order_status_history cafe_db
+280; 1259 16981 SEQUENCE public order_status_history_id_seq cafe_db
+3922; 0 0 SEQUENCE OWNED BY public order_status_history_id_seq cafe_db
+271; 1259 16875 TABLE public orders cafe_db
+270; 1259 16874 SEQUENCE public orders_id_seq cafe_db
+3923; 0 0 SEQUENCE OWNED BY public orders_id_seq cafe_db
+285; 1259 17027 TABLE public payments cafe_db
+284; 1259 17026 SEQUENCE public payments_id_seq cafe_db
+3924; 0 0 SEQUENCE OWNED BY public payments_id_seq cafe_db
+220; 1259 16408 TABLE public permissions cafe_db
+219; 1259 16407 SEQUENCE public permissions_id_seq cafe_db
+3925; 0 0 SEQUENCE OWNED BY public permissions_id_seq cafe_db
+287; 1259 17046 TABLE public print_jobs cafe_db
+286; 1259 17045 SEQUENCE public print_jobs_id_seq cafe_db
+3926; 0 0 SEQUENCE OWNED BY public print_jobs_id_seq cafe_db
+265; 1259 16813 TABLE public purchase_order_items cafe_db
+264; 1259 16812 SEQUENCE public purchase_order_items_id_seq cafe_db
+3927; 0 0 SEQUENCE OWNED BY public purchase_order_items_id_seq cafe_db
+251; 1259 16672 TABLE public purchase_orders cafe_db
+250; 1259 16671 SEQUENCE public purchase_orders_id_seq cafe_db
+3928; 0 0 SEQUENCE OWNED BY public purchase_orders_id_seq cafe_db
+275; 1259 16915 TABLE public recipe_items cafe_db
+274; 1259 16914 SEQUENCE public recipe_items_id_seq cafe_db
+3929; 0 0 SEQUENCE OWNED BY public recipe_items_id_seq cafe_db
+263; 1259 16795 TABLE public recipes cafe_db
+262; 1259 16794 SEQUENCE public recipes_id_seq cafe_db
+3930; 0 0 SEQUENCE OWNED BY public recipes_id_seq cafe_db
+243; 1259 16596 TABLE public reservation_capacity_rules cafe_db
+242; 1259 16595 SEQUENCE public reservation_capacity_rules_id_seq cafe_db
+3931; 0 0 SEQUENCE OWNED BY public reservation_capacity_rules_id_seq cafe_db
+295; 1259 17181 TABLE public reservation_dough_allocations cafe_db
+294; 1259 17180 SEQUENCE public reservation_dough_allocations_id_seq cafe_db
+3932; 0 0 SEQUENCE OWNED BY public reservation_dough_allocations_id_seq cafe_db
+241; 1259 16568 TABLE public reservations cafe_db
+240; 1259 16567 SEQUENCE public reservations_id_seq cafe_db
+3933; 0 0 SEQUENCE OWNED BY public reservations_id_seq cafe_db
+235; 1259 16511 TABLE public role_permissions cafe_db
+222; 1259 16419 TABLE public roles cafe_db
+221; 1259 16418 SEQUENCE public roles_id_seq cafe_db
+3934; 0 0 SEQUENCE OWNED BY public roles_id_seq cafe_db
+234; 1259 16502 TABLE public suppliers cafe_db
+233; 1259 16501 SEQUENCE public suppliers_id_seq cafe_db
+3935; 0 0 SEQUENCE OWNED BY public suppliers_id_seq cafe_db
+228; 1259 16458 TABLE public system_settings cafe_db
+227; 1259 16457 SEQUENCE public system_settings_id_seq cafe_db
+3936; 0 0 SEQUENCE OWNED BY public system_settings_id_seq cafe_db
+253; 1259 16690 TABLE public table_qr cafe_db
+252; 1259 16689 SEQUENCE public table_qr_id_seq cafe_db
+3937; 0 0 SEQUENCE OWNED BY public table_qr_id_seq cafe_db
+239; 1259 16550 TABLE public tables cafe_db
+238; 1259 16549 SEQUENCE public tables_id_seq cafe_db
+3938; 0 0 SEQUENCE OWNED BY public tables_id_seq cafe_db
+237; 1259 16529 TABLE public users cafe_db
+236; 1259 16528 SEQUENCE public users_id_seq cafe_db
+3939; 0 0 SEQUENCE OWNED BY public users_id_seq cafe_db
+291; 1259 17125 TABLE public verified_bank_credits cafe_db
+290; 1259 17124 SEQUENCE public verified_bank_credits_id_seq cafe_db
+3940; 0 0 SEQUENCE OWNED BY public verified_bank_credits_id_seq cafe_db
+3447; 2604 16859 DEFAULT public audit_logs id cafe_db
+3449; 2604 16897 DEFAULT public bills id cafe_db
+3421; 2604 16447 DEFAULT public branches id cafe_db
+3420; 2604 16434 DEFAULT public customers id cafe_db
+3467; 2604 17159 DEFAULT public daily_production_rules id cafe_db
+3440; 2604 16713 DEFAULT public dining_sessions id cafe_db
+3454; 2604 16940 DEFAULT public feedback id cafe_db
+3424; 2604 16489 DEFAULT public inventory_items id cafe_db
+3437; 2604 16657 DEFAULT public inventory_transactions id cafe_db
+3441; 2604 16737 DEFAULT public item_capacity_rules id cafe_db
+3457; 2604 17007 DEFAULT public kitchen_orders id cafe_db
+3443; 2604 16780 DEFAULT public kitchen_printers id cafe_db
+3436; 2604 16641 DEFAULT public kitchens id cafe_db
+3460; 2604 17076 DEFAULT public kots id cafe_db
+3423; 2604 16475 DEFAULT public menu_categories id cafe_db
+3442; 2604 16759 DEFAULT public menu_item_kitchen_mapping id cafe_db
+3435; 2604 16617 DEFAULT public menu_items id cafe_db
+3446; 2604 16839 DEFAULT public notifications id cafe_db
+3455; 2604 16959 DEFAULT public order_items id cafe_db
+3456; 2604 16985 DEFAULT public order_status_history id cafe_db
+3448; 2604 16878 DEFAULT public orders id cafe_db
+3458; 2604 17030 DEFAULT public payments id cafe_db
+3418; 2604 16411 DEFAULT public permissions id cafe_db
+3459; 2604 17049 DEFAULT public print_jobs id cafe_db
+3445; 2604 16816 DEFAULT public purchase_order_items id cafe_db
+3438; 2604 16675 DEFAULT public purchase_orders id cafe_db
+3453; 2604 16918 DEFAULT public recipe_items id cafe_db
+3444; 2604 16798 DEFAULT public recipes id cafe_db
+3434; 2604 16599 DEFAULT public reservation_capacity_rules id cafe_db
+3468; 2604 17184 DEFAULT public reservation_dough_allocations id cafe_db
+3428; 2604 16571 DEFAULT public reservations id cafe_db
+3419; 2604 16422 DEFAULT public roles id cafe_db
+3425; 2604 16505 DEFAULT public suppliers id cafe_db
+3422; 2604 16461 DEFAULT public system_settings id cafe_db
+3439; 2604 16693 DEFAULT public table_qr id cafe_db
+3427; 2604 16553 DEFAULT public tables id cafe_db
+3426; 2604 16532 DEFAULT public users id cafe_db
+3466; 2604 17128 DEFAULT public verified_bank_credits id cafe_db
+3869; 0 16856 TABLE DATA public audit_logs cafe_db
+3873; 0 16894 TABLE DATA public bills cafe_db
+3826; 0 16444 TABLE DATA public branches cafe_db
+3824; 0 16431 TABLE DATA public customers cafe_db
+3893; 0 17156 TABLE DATA public daily_production_rules cafe_db
+3855; 0 16710 TABLE DATA public dining_sessions cafe_db
+3877; 0 16937 TABLE DATA public feedback cafe_db
+3832; 0 16486 TABLE DATA public inventory_items cafe_db
+3849; 0 16654 TABLE DATA public inventory_transactions cafe_db
+3857; 0 16734 TABLE DATA public item_capacity_rules cafe_db
+3883; 0 17004 TABLE DATA public kitchen_orders cafe_db
+3861; 0 16777 TABLE DATA public kitchen_printers cafe_db
+3847; 0 16638 TABLE DATA public kitchens cafe_db
+3889; 0 17073 TABLE DATA public kots cafe_db
+3830; 0 16472 TABLE DATA public menu_categories cafe_db
+3859; 0 16756 TABLE DATA public menu_item_kitchen_mapping cafe_db
+3845; 0 16614 TABLE DATA public menu_items cafe_db
+3867; 0 16836 TABLE DATA public notifications cafe_db
+3879; 0 16956 TABLE DATA public order_items cafe_db
+3881; 0 16982 TABLE DATA public order_status_history cafe_db
+3871; 0 16875 TABLE DATA public orders cafe_db
+3885; 0 17027 TABLE DATA public payments cafe_db
+3820; 0 16408 TABLE DATA public permissions cafe_db
+3887; 0 17046 TABLE DATA public print_jobs cafe_db
+3865; 0 16813 TABLE DATA public purchase_order_items cafe_db
+3851; 0 16672 TABLE DATA public purchase_orders cafe_db
+3875; 0 16915 TABLE DATA public recipe_items cafe_db
+3863; 0 16795 TABLE DATA public recipes cafe_db
+3843; 0 16596 TABLE DATA public reservation_capacity_rules cafe_db
+3895; 0 17181 TABLE DATA public reservation_dough_allocations cafe_db
+3841; 0 16568 TABLE DATA public reservations cafe_db
+3835; 0 16511 TABLE DATA public role_permissions cafe_db
+3822; 0 16419 TABLE DATA public roles cafe_db
+3834; 0 16502 TABLE DATA public suppliers cafe_db
+3828; 0 16458 TABLE DATA public system_settings cafe_db
+3853; 0 16690 TABLE DATA public table_qr cafe_db
+3839; 0 16550 TABLE DATA public tables cafe_db
+3837; 0 16529 TABLE DATA public users cafe_db
+3891; 0 17125 TABLE DATA public verified_bank_credits cafe_db
+3941; 0 0 SEQUENCE SET public audit_logs_id_seq cafe_db
+3942; 0 0 SEQUENCE SET public bills_id_seq cafe_db
+3943; 0 0 SEQUENCE SET public branches_id_seq cafe_db
+3944; 0 0 SEQUENCE SET public customers_id_seq cafe_db
+3945; 0 0 SEQUENCE SET public daily_production_rules_id_seq cafe_db
+3946; 0 0 SEQUENCE SET public dining_sessions_id_seq cafe_db
+3947; 0 0 SEQUENCE SET public feedback_id_seq cafe_db
+3948; 0 0 SEQUENCE SET public inventory_items_id_seq cafe_db
+3949; 0 0 SEQUENCE SET public inventory_transactions_id_seq cafe_db
+3950; 0 0 SEQUENCE SET public item_capacity_rules_id_seq cafe_db
+3951; 0 0 SEQUENCE SET public kitchen_orders_id_seq cafe_db
+3952; 0 0 SEQUENCE SET public kitchen_printers_id_seq cafe_db
+3953; 0 0 SEQUENCE SET public kitchens_id_seq cafe_db
+3954; 0 0 SEQUENCE SET public kots_id_seq cafe_db
+3955; 0 0 SEQUENCE SET public menu_categories_id_seq cafe_db
+3956; 0 0 SEQUENCE SET public menu_item_kitchen_mapping_id_seq cafe_db
+3957; 0 0 SEQUENCE SET public menu_items_id_seq cafe_db
+3958; 0 0 SEQUENCE SET public notifications_id_seq cafe_db
+3959; 0 0 SEQUENCE SET public order_items_id_seq cafe_db
+3960; 0 0 SEQUENCE SET public order_status_history_id_seq cafe_db
+3961; 0 0 SEQUENCE SET public orders_id_seq cafe_db
+3962; 0 0 SEQUENCE SET public payments_id_seq cafe_db
+3963; 0 0 SEQUENCE SET public permissions_id_seq cafe_db
+3964; 0 0 SEQUENCE SET public print_jobs_id_seq cafe_db
+3965; 0 0 SEQUENCE SET public purchase_order_items_id_seq cafe_db
+3966; 0 0 SEQUENCE SET public purchase_orders_id_seq cafe_db
+3967; 0 0 SEQUENCE SET public recipe_items_id_seq cafe_db
+3968; 0 0 SEQUENCE SET public recipes_id_seq cafe_db
+3969; 0 0 SEQUENCE SET public reservation_capacity_rules_id_seq cafe_db
+3970; 0 0 SEQUENCE SET public reservation_dough_allocations_id_seq cafe_db
+3971; 0 0 SEQUENCE SET public reservations_id_seq cafe_db
+3972; 0 0 SEQUENCE SET public roles_id_seq cafe_db
+3973; 0 0 SEQUENCE SET public suppliers_id_seq cafe_db
+3974; 0 0 SEQUENCE SET public system_settings_id_seq cafe_db
+3975; 0 0 SEQUENCE SET public table_qr_id_seq cafe_db
+3976; 0 0 SEQUENCE SET public tables_id_seq cafe_db
+3977; 0 0 SEQUENCE SET public users_id_seq cafe_db
+3978; 0 0 SEQUENCE SET public verified_bank_credits_id_seq cafe_db
+3572; 2606 16867 CONSTRAINT public audit_logs audit_logs_pkey cafe_db
+3579; 2606 16907 CONSTRAINT public bills bills_pkey cafe_db
+3491; 2606 16455 CONSTRAINT public branches branches_pkey cafe_db
+3487; 2606 16440 CONSTRAINT public customers customers_pkey cafe_db
+3615; 2606 17170 CONSTRAINT public daily_production_rules daily_production_rules_pkey cafe_db
+3548; 2606 16720 CONSTRAINT public dining_sessions dining_sessions_pkey cafe_db
+3585; 2606 16948 CONSTRAINT public feedback feedback_pkey cafe_db
+3503; 2606 16497 CONSTRAINT public inventory_items inventory_items_pkey cafe_db
+3536; 2606 16664 CONSTRAINT public inventory_transactions inventory_transactions_pkey cafe_db
+3552; 2606 16748 CONSTRAINT public item_capacity_rules item_capacity_rules_menu_item_id_key cafe_db
+3554; 2606 16746 CONSTRAINT public item_capacity_rules item_capacity_rules_pkey cafe_db
+3595; 2606 17014 CONSTRAINT public kitchen_orders kitchen_orders_pkey cafe_db
+3561; 2606 16787 CONSTRAINT public kitchen_printers kitchen_printers_pkey cafe_db
+3534; 2606 16646 CONSTRAINT public kitchens kitchens_pkey cafe_db
+3607; 2606 17095 CONSTRAINT public kots kots_pkey cafe_db
+3499; 2606 16483 CONSTRAINT public menu_categories menu_categories_name_key cafe_db
+3501; 2606 16481 CONSTRAINT public menu_categories menu_categories_pkey cafe_db
+3558; 2606 16764 CONSTRAINT public menu_item_kitchen_mapping menu_item_kitchen_mapping_pkey cafe_db
+3531; 2606 16629 CONSTRAINT public menu_items menu_items_pkey cafe_db
+3570; 2606 16848 CONSTRAINT public notifications notifications_pkey cafe_db
+3589; 2606 16969 CONSTRAINT public order_items order_items_pkey cafe_db
+3592; 2606 16991 CONSTRAINT public order_status_history order_status_history_pkey cafe_db
+3577; 2606 16885 CONSTRAINT public orders orders_pkey cafe_db
+3599; 2606 17037 CONSTRAINT public payments payments_pkey cafe_db
+3480; 2606 16415 CONSTRAINT public permissions permissions_pkey cafe_db
+3602; 2606 17059 CONSTRAINT public print_jobs print_jobs_pkey cafe_db
+3567; 2606 16823 CONSTRAINT public purchase_order_items purchase_order_items_pkey cafe_db
+3540; 2606 16682 CONSTRAINT public purchase_orders purchase_orders_pkey cafe_db
+3583; 2606 16924 CONSTRAINT public recipe_items recipe_items_pkey cafe_db
+3564; 2606 16805 CONSTRAINT public recipes recipes_pkey cafe_db
+3527; 2606 16606 CONSTRAINT public reservation_capacity_rules reservation_capacity_rules_pkey cafe_db
+3624; 2606 17202 CONSTRAINT public reservation_dough_allocations reservation_dough_allocations_pkey cafe_db
+3524; 2606 16581 CONSTRAINT public reservations reservations_pkey cafe_db
+3511; 2606 16517 CONSTRAINT public role_permissions role_permissions_pkey cafe_db
+3483; 2606 16428 CONSTRAINT public roles roles_name_key cafe_db
+3485; 2606 16426 CONSTRAINT public roles roles_pkey cafe_db
+3509; 2606 16509 CONSTRAINT public suppliers suppliers_pkey cafe_db
+3496; 2606 16468 CONSTRAINT public system_settings system_settings_pkey cafe_db
+3544; 2606 16699 CONSTRAINT public table_qr table_qr_pkey cafe_db
+3546; 2606 16701 CONSTRAINT public table_qr table_qr_table_id_key cafe_db
+3519; 2606 16560 CONSTRAINT public tables tables_pkey cafe_db
+3619; 2606 17172 CONSTRAINT public daily_production_rules uq_daily_production_branch_date cafe_db
+3609; 2606 17120 CONSTRAINT public kots uq_kots_date_seq cafe_db
+3626; 2606 17204 CONSTRAINT public reservation_dough_allocations uq_res_dough_alloc_reservation_id cafe_db
+3516; 2606 16540 CONSTRAINT public users users_pkey cafe_db
+3613; 2606 17138 CONSTRAINT public verified_bank_credits verified_bank_credits_pkey cafe_db
+3620; 1259 17217 INDEX public idx_res_dough_alloc_branch_date cafe_db
+3573; 1259 16873 INDEX public ix_audit_logs_id cafe_db
+3580; 1259 16913 INDEX public ix_bills_id cafe_db
+3492; 1259 16456 INDEX public ix_branches_id cafe_db
+3488; 1259 16442 INDEX public ix_customers_id cafe_db
+3489; 1259 16441 INDEX public ix_customers_phone cafe_db
+3616; 1259 17179 INDEX public ix_daily_production_rules_id cafe_db
+3617; 1259 17178 INDEX public ix_daily_production_rules_production_date cafe_db
+3549; 1259 16731 INDEX public ix_dining_sessions_id cafe_db
+3550; 1259 16732 INDEX public ix_dining_sessions_session_token cafe_db
+3586; 1259 16954 INDEX public ix_feedback_id cafe_db
+3504; 1259 16500 INDEX public ix_inventory_items_id cafe_db
+3505; 1259 16499 INDEX public ix_inventory_items_name cafe_db
+3506; 1259 16498 INDEX public ix_inventory_items_sku cafe_db
+3537; 1259 16670 INDEX public ix_inventory_transactions_id cafe_db
+3555; 1259 16754 INDEX public ix_item_capacity_rules_id cafe_db
+3593; 1259 17025 INDEX public ix_kitchen_orders_id cafe_db
+3559; 1259 16793 INDEX public ix_kitchen_printers_id cafe_db
+3532; 1259 16652 INDEX public ix_kitchens_id cafe_db
+3603; 1259 17112 INDEX public ix_kots_business_date cafe_db
+3604; 1259 17113 INDEX public ix_kots_id cafe_db
+3605; 1259 17111 INDEX public ix_kots_kot_number cafe_db
+3497; 1259 16484 INDEX public ix_menu_categories_id cafe_db
+3556; 1259 16775 INDEX public ix_menu_item_kitchen_mapping_id cafe_db
+3528; 1259 16635 INDEX public ix_menu_items_id cafe_db
+3529; 1259 16636 INDEX public ix_menu_items_name cafe_db
+3568; 1259 16854 INDEX public ix_notifications_id cafe_db
+3587; 1259 16980 INDEX public ix_order_items_id cafe_db
+3590; 1259 17002 INDEX public ix_order_status_history_id cafe_db
+3574; 1259 16891 INDEX public ix_orders_id cafe_db
+3575; 1259 16892 INDEX public ix_orders_order_number cafe_db
+3596; 1259 17043 INDEX public ix_payments_id cafe_db
+3597; 1259 17044 INDEX public ix_payments_idempotency_key cafe_db
+3477; 1259 16417 INDEX public ix_permissions_code cafe_db
+3478; 1259 16416 INDEX public ix_permissions_id cafe_db
+3600; 1259 17070 INDEX public ix_print_jobs_id cafe_db
+3565; 1259 16834 INDEX public ix_purchase_order_items_id cafe_db
+3538; 1259 16688 INDEX public ix_purchase_orders_id cafe_db
+3581; 1259 16935 INDEX public ix_recipe_items_id cafe_db
+3562; 1259 16811 INDEX public ix_recipes_id cafe_db
+3525; 1259 16612 INDEX public ix_reservation_capacity_rules_id cafe_db
+3621; 1259 17216 INDEX public ix_reservation_dough_allocations_id cafe_db
+3622; 1259 17215 INDEX public ix_reservation_dough_allocations_production_date cafe_db
+3520; 1259 16594 INDEX public ix_reservations_id cafe_db
+3521; 1259 16592 INDEX public ix_reservations_reservation_date cafe_db
+3522; 1259 16593 INDEX public ix_reservations_time_slot cafe_db
+3481; 1259 16429 INDEX public ix_roles_id cafe_db
+3507; 1259 16510 INDEX public ix_suppliers_id cafe_db
+3493; 1259 16470 INDEX public ix_system_settings_id cafe_db
+3494; 1259 16469 INDEX public ix_system_settings_key cafe_db
+3541; 1259 16707 INDEX public ix_table_qr_id cafe_db
+3542; 1259 16708 INDEX public ix_table_qr_qr_token cafe_db
+3517; 1259 16566 INDEX public ix_tables_id cafe_db
+3512; 1259 16548 INDEX public ix_users_email cafe_db
+3513; 1259 16546 INDEX public ix_users_id cafe_db
+3514; 1259 16547 INDEX public ix_users_username cafe_db
+3610; 1259 17144 INDEX public ix_verified_bank_credits_id cafe_db
+3611; 1259 17145 INDEX public ix_verified_bank_credits_utr cafe_db
+3649; 2606 16868 FK CONSTRAINT public audit_logs audit_logs_user_id_fkey cafe_db
+3651; 2606 16908 FK CONSTRAINT public bills bills_dining_session_id_fkey cafe_db
+3669; 2606 17173 FK CONSTRAINT public daily_production_rules daily_production_rules_branch_id_fkey cafe_db
+3639; 2606 16726 FK CONSTRAINT public dining_sessions dining_sessions_customer_id_fkey cafe_db
+3640; 2606 16721 FK CONSTRAINT public dining_sessions dining_sessions_table_id_fkey cafe_db
+3654; 2606 16949 FK CONSTRAINT public feedback feedback_dining_session_id_fkey cafe_db
+3636; 2606 16665 FK CONSTRAINT public inventory_transactions inventory_transactions_inventory_item_id_fkey cafe_db
+3641; 2606 16749 FK CONSTRAINT public item_capacity_rules item_capacity_rules_menu_item_id_fkey cafe_db
+3659; 2606 17020 FK CONSTRAINT public kitchen_orders kitchen_orders_kitchen_id_fkey cafe_db
+3660; 2606 17015 FK CONSTRAINT public kitchen_orders kitchen_orders_order_id_fkey cafe_db
+3644; 2606 16788 FK CONSTRAINT public kitchen_printers kitchen_printers_kitchen_id_fkey cafe_db
+3635; 2606 16647 FK CONSTRAINT public kitchens kitchens_branch_id_fkey cafe_db
+3665; 2606 17101 FK CONSTRAINT public kots kots_dining_session_id_fkey cafe_db
+3666; 2606 17106 FK CONSTRAINT public kots kots_order_id_fkey cafe_db
+3667; 2606 17096 FK CONSTRAINT public kots kots_table_id_fkey cafe_db
+3642; 2606 16770 FK CONSTRAINT public menu_item_kitchen_mapping menu_item_kitchen_mapping_kitchen_id_fkey cafe_db
+3643; 2606 16765 FK CONSTRAINT public menu_item_kitchen_mapping menu_item_kitchen_mapping_menu_item_id_fkey cafe_db
+3634; 2606 16630 FK CONSTRAINT public menu_items menu_items_category_id_fkey cafe_db
+3648; 2606 16849 FK CONSTRAINT public notifications notifications_recipient_id_fkey cafe_db
+3655; 2606 16975 FK CONSTRAINT public order_items order_items_menu_item_id_fkey cafe_db
+3656; 2606 16970 FK CONSTRAINT public order_items order_items_order_id_fkey cafe_db
+3657; 2606 16997 FK CONSTRAINT public order_status_history order_status_history_changed_by_user_id_fkey cafe_db
+3658; 2606 16992 FK CONSTRAINT public order_status_history order_status_history_order_id_fkey cafe_db
+3650; 2606 16886 FK CONSTRAINT public orders orders_dining_session_id_fkey cafe_db
+3661; 2606 17038 FK CONSTRAINT public payments payments_bill_id_fkey cafe_db
+3662; 2606 17060 FK CONSTRAINT public print_jobs print_jobs_kitchen_order_id_fkey cafe_db
+3663; 2606 17114 FK CONSTRAINT public print_jobs print_jobs_kot_id_fkey cafe_db
+3664; 2606 17065 FK CONSTRAINT public print_jobs print_jobs_printer_id_fkey cafe_db
+3646; 2606 16829 FK CONSTRAINT public purchase_order_items purchase_order_items_inventory_item_id_fkey cafe_db
+3647; 2606 16824 FK CONSTRAINT public purchase_order_items purchase_order_items_purchase_order_id_fkey cafe_db
+3637; 2606 16683 FK CONSTRAINT public purchase_orders purchase_orders_supplier_id_fkey cafe_db
+3652; 2606 16930 FK CONSTRAINT public recipe_items recipe_items_inventory_item_id_fkey cafe_db
+3653; 2606 16925 FK CONSTRAINT public recipe_items recipe_items_recipe_id_fkey cafe_db
+3645; 2606 16806 FK CONSTRAINT public recipes recipes_menu_item_id_fkey cafe_db
+3633; 2606 16607 FK CONSTRAINT public reservation_capacity_rules reservation_capacity_rules_branch_id_fkey cafe_db
+3670; 2606 17210 FK CONSTRAINT public reservation_dough_allocations reservation_dough_allocations_branch_id_fkey cafe_db
+3671; 2606 17205 FK CONSTRAINT public reservation_dough_allocations reservation_dough_allocations_reservation_id_fkey cafe_db
+3631; 2606 16582 FK CONSTRAINT public reservations reservations_branch_id_fkey cafe_db
+3632; 2606 16587 FK CONSTRAINT public reservations reservations_customer_id_fkey cafe_db
+3627; 2606 16523 FK CONSTRAINT public role_permissions role_permissions_permission_id_fkey cafe_db
+3628; 2606 16518 FK CONSTRAINT public role_permissions role_permissions_role_id_fkey cafe_db
+3638; 2606 16702 FK CONSTRAINT public table_qr table_qr_table_id_fkey cafe_db
+3630; 2606 16561 FK CONSTRAINT public tables tables_branch_id_fkey cafe_db
+3629; 2606 16541 FK CONSTRAINT public users users_role_id_fkey cafe_db
+3668; 2606 17139 FK CONSTRAINT public verified_bank_credits verified_bank_credits_claimed_reservation_id_fkey cafe_db
