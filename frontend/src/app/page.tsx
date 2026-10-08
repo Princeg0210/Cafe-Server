@@ -51,6 +51,7 @@ export default function Home() {
             className="text-5xl sm:text-7xl md:text-8xl font-serif font-extrabold text-[#FBF9F5] tracking-tight leading-none drop-shadow-lg"
           >
             JAADOO <span className="font-serif italic font-normal text-[#B85B43]">Trattoria</span>
+          </motion.h1>
 
 
             <motion.div
