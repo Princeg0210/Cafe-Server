@@ -1,21 +1,17 @@
-import datetime
 from decimal import Decimal
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
+from app.core.config import settings
+from app.utils.helpers import utc_now
 from app.models.table import DiningSession, Table
 from app.models.order import Order, OrderItem
 from app.models.billing import Bill, Payment
-from app.schemas.billing import PaymentCreate
-
-
-from app.core.config import settings
-from app.utils.helpers import utc_now
-
-
-from sqlalchemy.orm import selectinload
-from app.services.settings_service import SettingsService
 from app.models.reservation import Reservation
+from app.schemas.billing import PaymentCreate
+from app.services.settings_service import SettingsService
 
 
 class BillingService:
@@ -216,7 +212,6 @@ class BillingService:
             if table:
                 table.status = "Available"
 
-        from sqlalchemy.exc import IntegrityError
         try:
             await db.commit()
             await db.refresh(payment)

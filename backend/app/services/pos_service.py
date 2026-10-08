@@ -2,7 +2,7 @@ import datetime
 from decimal import Decimal
 from typing import List, Optional
 from collections import defaultdict
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status

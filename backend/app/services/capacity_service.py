@@ -46,10 +46,6 @@ from app.services.settings_service import SettingsService
 
 
 class CapacityService:
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
     @staticmethod
     async def _is_pizza_item(db: AsyncSession, menu_item_id: int) -> bool:
         """
@@ -60,7 +56,6 @@ class CapacityService:
         If no recipe exists AND the item has an active ItemCapacityRule, treat
         it as a pizza item (opt-in via capacity rule).
         """
-        # Check recipe for dough ingredients
         recipe_stmt = select(Recipe).where(Recipe.menu_item_id == menu_item_id)
         recipe_res = await db.execute(recipe_stmt)
         recipe = recipe_res.scalar_one_or_none()
@@ -80,10 +75,8 @@ class CapacityService:
                     or (ing.sku and ing.sku.upper().startswith("DOUGH"))
                 ):
                     return True
-            # Recipe exists but no dough ingredient → not a pizza item
             return False
 
-        # No recipe: fall back to ItemCapacityRule presence
         rule_stmt = select(ItemCapacityRule).where(
             ItemCapacityRule.menu_item_id == menu_item_id,
             ItemCapacityRule.is_active == True,
@@ -114,7 +107,7 @@ class CapacityService:
             rule = DailyProductionRule(
                 branch_id=branch_id,
                 production_date=production_date,
-                total_dough_limit=120,  # sensible default; overridden by ops
+                total_dough_limit=70,  # sensible default; overridden by ops
                 total_allocated_dough=0,
             )
             db.add(rule)
@@ -130,18 +123,6 @@ class CapacityService:
         ReservationDoughAllocations for this branch+date.
         remaining = initial_protected_qty - consumed_qty - released_qty
         """
-        stmt = (
-            select(
-                func.coalesce(
-                    func.sum(
-                        DailyProductionRule.total_dough_limit  # placeholder ref; real query below
-                    ),
-                    0,
-                )
-            )
-        )
-        # Direct SQL expression using func
-        from sqlalchemy import text
         raw = await db.execute(
             select(
                 func.coalesce(
@@ -159,10 +140,6 @@ class CapacityService:
             )
         )
         return int(raw.scalar() or 0)
-
-    # ------------------------------------------------------------------
-    # HOURLY OVEN CAPACITY — PRESERVED (Step 1 of capacity check)
-    # ------------------------------------------------------------------
 
     @staticmethod
     async def _check_hourly_oven_capacity(
@@ -312,10 +289,6 @@ class CapacityService:
                 )
             daily_rule.total_allocated_dough += quantity
 
-    # ------------------------------------------------------------------
-    # PUBLIC API — validate_and_allocate (called by OrderService)
-    # ------------------------------------------------------------------
-
     @staticmethod
     async def validate_and_allocate(
         db: AsyncSession,
@@ -327,21 +300,13 @@ class CapacityService:
     ) -> None:
         """
         Full capacity validation for a pizza/dough-consuming item.
-
-        Step 1: Hourly oven capacity (ItemCapacityRule) — preserved behaviour.
-        Step 2: Daily dough pool protection (DailyProductionRule) — new.
-
-        Non-pizza items (drinks, desserts, etc.) bypass Step 2 entirely.
-        If no ItemCapacityRule exists AND the item has no dough in its recipe,
-        only inventory BOM (handled separately) limits it.
+        Validates hourly oven capacity, then daily dough pool if item consumes dough.
         """
         if production_date is None:
             production_date = datetime.date.today()
 
-        # Step 1: Hourly oven capacity (unchanged existing logic)
         await CapacityService._check_hourly_oven_capacity(db, menu_item_id, quantity)
 
-        # Step 2: Daily dough pool — only for pizza/dough items
         is_pizza = await CapacityService._is_pizza_item(db, menu_item_id)
         if is_pizza:
             await CapacityService._check_daily_dough_capacity(
@@ -352,10 +317,6 @@ class CapacityService:
                 production_date=production_date,
                 reservation_id=reservation_id,
             )
-
-    # ------------------------------------------------------------------
-    # RESERVATION ALLOCATION — create / release
-    # ------------------------------------------------------------------
 
     @staticmethod
     async def create_reservation_dough_allocation(
@@ -369,12 +330,7 @@ class CapacityService:
         """
         Creates a protected dough allocation when a reservation is CONFIRMED.
         Idempotent: if one already exists for this reservation, returns it unchanged.
-
-        Protected qty:
-          If expected_pizza_count is set: use it directly.
-          Otherwise: ceil(guest_count * DEFAULT_RESERVATION_PIZZA_DEMAND_PER_GUEST)
         """
-        # Idempotency: don't double-allocate
         existing_stmt = select(ReservationDoughAllocation).where(
             ReservationDoughAllocation.reservation_id == reservation_id
         )
@@ -408,16 +364,8 @@ class CapacityService:
         reservation_id: int,
     ) -> Optional[ReservationDoughAllocation]:
         """
-        Releases unused protected capacity when a reservation reaches a terminal state.
-        Idempotent: safe to call multiple times — won't double-release.
-
-        Terminal states that trigger release:
-          CANCELLED, NO_SHOW, EXPIRED, COMPLETED
-
-        Operation:
-          unused = max(0, initial_protected_qty - consumed_qty - released_qty)
-          released_qty += unused
-          status = RELEASED
+        Releases unused protected capacity when a reservation reaches a terminal state
+        (CANCELLED, NO_SHOW, EXPIRED, COMPLETED). Idempotent.
         """
         stmt = (
             select(ReservationDoughAllocation)
@@ -431,7 +379,6 @@ class CapacityService:
         alloc = res.scalar_one_or_none()
 
         if not alloc:
-            # Already released, exhausted, or never created — idempotent no-op
             return None
 
         unused = max(
@@ -442,10 +389,6 @@ class CapacityService:
         alloc.status = "RELEASED"
         await db.flush()
         return alloc
-
-    # ------------------------------------------------------------------
-    # READONLY HELPERS — POS overview & legacy compat
-    # ------------------------------------------------------------------
 
     @staticmethod
     async def get_item_capacity(db: AsyncSession, menu_item_id: int) -> dict:

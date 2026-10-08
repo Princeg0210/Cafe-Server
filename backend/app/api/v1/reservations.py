@@ -2,12 +2,10 @@ import hmac
 import hashlib
 from typing import List, Optional
 from datetime import date
-from decimal import Decimal
-from fastapi import APIRouter, Depends, Query, Path, Header, Request, HTTPException, status
+from fastapi import APIRouter, Depends, Query, Path, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api import deps
-from app.api.deps import get_db, require_permission
+from app.api.deps import get_db, require_permission, get_current_user
 from app.core.config import settings
 from app.models.reservation import Reservation
 from app.models.user import User
@@ -22,10 +20,8 @@ from app.schemas.reservation import (
     ReservationVerifyUpiRequest,
     ReservationAssignTableRequest,
     BankWebhookPayload,
-    AndroidPaymentEventPayload,
     PaymentEventPayload,
     PolicySettingsUpdate,
-
 )
 from app.services.reservation_service import ReservationService
 from app.services.settings_service import SettingsService
@@ -39,7 +35,7 @@ def verify_device_auth(
     x_signature: Optional[str] = Header(None, alias="X-Signature"),
 ):
     """
-    Enforces authentication on the device payment listener / iPhone shortcut webhook.
+    Enforces authentication on the payment notification listener webhook.
     Accepts configured device token (via X-Device-Token or Authorization Bearer) or HMAC signature.
     """
     token_candidate = x_device_token
@@ -49,13 +45,13 @@ def verify_device_auth(
         else:
             token_candidate = authorization.strip()
 
-    valid_token = token_candidate and (
-        token_candidate == settings.ANDROID_DEVICE_TOKEN
-        or token_candidate == "test_device_token"
-        or token_candidate == "dev_token_jaadoo_android_phone_9460555743"
+    valid_token = bool(
+        token_candidate
+        and settings.ANDROID_DEVICE_TOKEN
+        and token_candidate == settings.ANDROID_DEVICE_TOKEN
     )
     valid_signature = False
-    if x_signature:
+    if x_signature and settings.ANDROID_DEVICE_SECRET:
         expected = hmac.new(
             settings.ANDROID_DEVICE_SECRET.encode("utf-8"),
             settings.MERCHANT_UPI_ID.encode("utf-8"),
@@ -95,29 +91,24 @@ async def verify_upi_payment(
 
 
 @router.post("/payment-event")
-@router.post("/device-payment-event")
 @router.post("/android-payment-event")
-async def receive_device_payment_event(
+async def receive_payment_event(
     payload: PaymentEventPayload,
     db: AsyncSession = Depends(get_db),
     _auth: None = Depends(verify_device_auth),
 ):
     """
-    Secure endpoint for café's iPhone Shortcut or registered Device payment listener.
-    Authenticated via HTTPS + X-Device-Token or Authorization Bearer.
+    Secure endpoint for payment notification events.
     Matches credit to pending reservation or marks PAYMENT_REVIEW_REQUIRED.
     """
-    effective_sms = payload.raw_sms or payload.msg or payload.text or payload.content or ""
-    effective_utr = payload.utr or ""
     return await ReservationService.process_android_payment_event(
         db=db,
-        event_id=payload.event_id or (f"evt-{effective_utr}" if effective_utr else None),
-        utr=effective_utr,
+        event_id=payload.event_id,
+        utr=payload.utr or "",
         amount=payload.amount,
         merchant_vpa=payload.merchant_vpa or settings.MERCHANT_UPI_ID,
         payer_vpa=payload.payer_vpa,
         event_timestamp=payload.event_timestamp,
-        raw_sms=effective_sms or payload.raw_sms,
     )
 
 
@@ -147,7 +138,7 @@ async def receive_bank_payment_webhook(
 async def staff_verify_payment(
     id: int,
     data: ReservationVerifyUpiRequest,
-    current_user: User = Depends(deps.get_current_user),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -166,7 +157,7 @@ async def staff_verify_payment(
 async def assign_table_to_reservation(
     id: int,
     data: ReservationAssignTableRequest,
-    current_user: User = Depends(deps.get_current_user),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -184,7 +175,7 @@ async def assign_table_to_reservation(
 @router.get("/pending-reviews")
 async def list_pending_payment_reviews(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(deps.get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Lists bank credits flagged with PAYMENT_REVIEW_REQUIRED for staff review in POS.

@@ -1,4 +1,3 @@
-import uuid
 import datetime
 import asyncio
 import secrets
@@ -8,11 +7,11 @@ from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
-from app.models.table import Table, TableQR, DiningSession
+from app.models.table import Table, DiningSession
 from app.services.table_service import TableService
 from app.models.menu import MenuItem
 from app.models.order import Order, OrderItem, OrderStatusHistory
-from app.models.kitchen import Kitchen, MenuItemKitchenMapping, KitchenOrder, PrintJob
+from app.models.kitchen import KitchenOrder, PrintJob
 from app.models.kot import KOT
 from app.schemas.order import OrderCreate
 from app.services.capacity_service import CapacityService
@@ -23,7 +22,6 @@ class OrderService:
     @staticmethod
     async def place_order(db: AsyncSession, data: OrderCreate) -> Order:
         try:
-            # Step 1: Validate QR Token and get DiningSession
             val = await TableService.validate_qr_token(db, data.qr_token)
 
             if data.session_token:
@@ -51,8 +49,6 @@ class OrderService:
                         detail="CLOSED_DINING_SESSION: Cannot place order for a closed dining session.",
                     )
 
-
-            # Mark session ACTIVE and table Occupied on first order
             if dining_session.status == "OPENED":
                 dining_session.status = "ACTIVE"
             
@@ -155,7 +151,7 @@ class OrderService:
                         detail=f"MENU_ITEM_NOT_FOUND: Menu item #{item_data.menu_item_id or item_data.name} is unavailable.",
                     )
 
-                # Step 2: Validate Production Capacity Limit (PIZZA_SOLD_OUT check)
+                # Validate production capacity and deduct inventory BOM
                 await CapacityService.validate_and_allocate(
                     db,
                     menu_item.id,
@@ -164,8 +160,6 @@ class OrderService:
                     production_date=production_date,
                     reservation_id=order_reservation_id,
                 )
-
-                # Step 3: Validate & Deduct BOM Ingredient Stock
                 await InventoryService.deduct_bom_stock(db, menu_item.id, item_data.quantity, order_number)
 
                 unit_price = Decimal(str(menu_item.price))
@@ -189,9 +183,7 @@ class OrderService:
                 )
                 db.add(order_item)
 
-                # Map item to Single Production Kitchen (Kitchen ID #1)
                 target_kitchen_id = 1
-
                 if target_kitchen_id not in kitchen_item_routes:
                     kitchen_item_routes[target_kitchen_id] = []
                 kitchen_item_routes[target_kitchen_id].append(
@@ -202,9 +194,8 @@ class OrderService:
                     }
                 )
 
-            # Generate Daily KOT Sequence with Concurrency-Safe Retry Loop
+            # Generate daily KOT sequence with concurrency retry loop
             today = today_date
-
             created_kitchen_orders = []
             created_print_jobs = []
             kot = None
@@ -239,7 +230,7 @@ class OrderService:
                         db.add(kot)
                         await db.flush()
 
-                        # Formulate Thermal Printer Ticket
+                        # Formulate thermal printer ticket
                         kot_lines = [
                             "================================",
                             "          JAADOO CAFE           ",
@@ -261,7 +252,6 @@ class OrderService:
                             "================================",
                         ])
 
-                        # Step 4: Create Thermal PrintJob for KOT
                         kot_print_job = PrintJob(
                             kot_id=kot.id,
                             ticket_content="\n".join(kot_lines),
@@ -276,7 +266,7 @@ class OrderService:
                         raise
                     await asyncio.sleep(0.005 * (attempt + 1))
 
-            # Step 5: Maintain kitchen orders for backward compatibility & routing
+            # Maintain kitchen orders for backward compatibility & routing
             for kitchen_id, routed_items in kitchen_item_routes.items():
                 k_order = KitchenOrder(
                     order_id=order.id,

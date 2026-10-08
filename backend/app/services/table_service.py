@@ -1,8 +1,7 @@
 import secrets
-import uuid
 import datetime
 from typing import Optional, List
-from sqlalchemy import select, update, or_, and_
+from sqlalchemy import select, or_, and_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession

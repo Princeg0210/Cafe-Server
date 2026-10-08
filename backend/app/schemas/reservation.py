@@ -154,16 +154,12 @@ class BankWebhookPayload(BaseModel):
 class PaymentEventPayload(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    event_id: Optional[str] = Field(None, example="evt-sms-887766")
-    utr: Optional[str] = Field(None, example="235745067878")
-    amount: Optional[Any] = Field(None, example=600.00)
-    merchant_vpa: Optional[str] = Field("9460555743-2@ybl")
+    event_id: Optional[str] = None
+    utr: Optional[str] = None
+    amount: Optional[Any] = None
+    merchant_vpa: Optional[str] = None
     payer_vpa: Optional[str] = None
     event_timestamp: Optional[datetime] = None
-    raw_sms: Optional[str] = Field(None, example="Rs. 600 credited to account ... UPI Ref 235745067878")
-    msg: Optional[str] = None
-    text: Optional[str] = None
-    content: Optional[str] = None
 
 
 AndroidPaymentEventPayload = PaymentEventPayload

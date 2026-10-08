@@ -33,7 +33,7 @@ def upgrade() -> None:
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('branch_id', sa.Integer(), nullable=False),
         sa.Column('production_date', sa.Date(), nullable=False),
-        sa.Column('total_dough_limit', sa.Integer(), nullable=False, server_default='120'),
+        sa.Column('total_dough_limit', sa.Integer(), nullable=False, server_default='70'),
         sa.Column(
             'total_allocated_dough',
             sa.Integer(),

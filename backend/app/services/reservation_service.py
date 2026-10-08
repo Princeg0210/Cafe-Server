@@ -839,16 +839,15 @@ class ReservationService:
     @staticmethod
     async def process_android_payment_event(
         db: AsyncSession,
-        event_id: str,
+        event_id: Optional[str],
         utr: str,
-        amount: Decimal,
+        amount: Any,
         merchant_vpa: str,
         payer_vpa: Optional[str] = None,
         event_timestamp: Optional[datetime.datetime] = None,
-        raw_sms: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Receives payment event from the café's Android phone listener.
+        Receives payment event from the registered payment listener.
         """
         return await PaymentVerificationService.process_android_payment_event(
             db=db,
@@ -858,7 +857,6 @@ class ReservationService:
             merchant_vpa=merchant_vpa,
             payer_vpa=payer_vpa,
             event_timestamp=event_timestamp,
-            raw_sms=raw_sms,
         )
 
     @staticmethod

@@ -149,15 +149,13 @@ class PaymentVerificationService:
     @staticmethod
     async def process_android_payment_event(
         db: AsyncSession,
-        event_id: str,
+        event_id: Optional[str],
         utr: str,
-        amount: Union[Decimal, float, str],
+        amount: Union[Decimal, float, str, None],
         merchant_vpa: str,
         payer_vpa: Optional[str] = None,
         event_timestamp: Optional[datetime.datetime] = None,
-        raw_sms: Optional[str] = None,
     ) -> Dict[str, Any]:
-        # Smart fallback: Parse 12-digit UTR and amount from raw SMS if passed
         clean_utr = utr.strip().replace(" ", "").replace("-", "") if utr else "UNKNOWN"
         try:
             if amount is not None and str(amount).strip() and str(amount).strip().lower() != "none":
@@ -167,31 +165,12 @@ class PaymentVerificationService:
         except Exception:
             dec_amount = Decimal("0.00")
 
-        # If clean_utr is not a standard 12-digit UTR or if raw_sms is provided, parse via regex
-        target_text = f"{utr or ''} {raw_sms or ''}"
-        import re
-        utr_regex = re.search(r'(?:Ref(?:\s*no)?|UTR|Txn(?:\s*id)?|UPI\s*Ref(?:\s*no)?)[\s/:]*([0-9]{12})\b', target_text, re.IGNORECASE)
-        if not utr_regex:
-            utr_regex = re.search(r'\b([0-9]{12})\b', target_text)
-        if utr_regex:
-            clean_utr = utr_regex.group(1)
-
-        if dec_amount <= 0:
-            amt_regex = re.search(r'(?:Rs\.?|INR|\u20b9)\s*([0-9]+(?:\.[0-9]{1,2})?)', target_text, re.IGNORECASE)
-            if amt_regex:
-                try:
-                    dec_amount = Decimal(amt_regex.group(1))
-                except Exception:
-                    pass
-
         now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
-
-
 
         # 1. Check idempotency by event_id or utr
         check_stmt = select(VerifiedBankCredit).where(
             or_(
-                VerifiedBankCredit.event_id == event_id,
+                VerifiedBankCredit.event_id == event_id if event_id else False,
                 func.lower(VerifiedBankCredit.utr) == clean_utr.lower(),
             )
         )
@@ -209,17 +188,15 @@ class PaymentVerificationService:
         # 2. Validate Merchant UPI ID
         is_valid_merchant = merchant_vpa.lower() == settings.MERCHANT_UPI_ID.lower()
         if not is_valid_merchant:
-            # Not café's merchant UPI account!
             credit = await PaymentVerificationService.record_verified_bank_credit(
                 db=db,
                 utr=clean_utr,
                 amount=dec_amount,
                 merchant_vpa=merchant_vpa,
-                provider_source="ANDROID_LISTENER",
+                provider_source="PAYMENT_EVENT",
                 payer_vpa=payer_vpa,
                 tx_status="PAYMENT_REVIEW_REQUIRED",
                 event_id=event_id,
-                raw_event_payload=raw_sms,
                 review_reason=f"INVALID_MERCHANT_VPA: Payment received on '{merchant_vpa}', expected '{settings.MERCHANT_UPI_ID}'.",
             )
             return {
@@ -266,11 +243,10 @@ class PaymentVerificationService:
                     utr=clean_utr,
                     amount=dec_amount,
                     merchant_vpa=merchant_vpa,
-                    provider_source="ANDROID_LISTENER",
+                    provider_source="PAYMENT_EVENT",
                     payer_vpa=payer_vpa,
                     tx_status="PAYMENT_REVIEW_REQUIRED",
                     event_id=event_id,
-                    raw_event_payload=raw_sms,
                     review_reason=f"AMBIGUOUS_MATCH: {len(candidates)} active reservations found waiting for ₹{dec_amount}. Staff must assign.",
                 )
                 return {
@@ -281,7 +257,6 @@ class PaymentVerificationService:
 
         # 5. Check if money arrived after HOLD expired
         if not matched_res:
-            # Check if there is an EXPIRED reservation with this UTR or matching amount in last 24h
             expired_stmt = select(Reservation).where(
                 Reservation.status == "EXPIRED",
                 or_(
@@ -297,11 +272,10 @@ class PaymentVerificationService:
                 utr=clean_utr,
                 amount=dec_amount,
                 merchant_vpa=merchant_vpa,
-                provider_source="ANDROID_LISTENER",
+                provider_source="PAYMENT_EVENT",
                 payer_vpa=payer_vpa,
                 tx_status="PAYMENT_REVIEW_REQUIRED",
                 event_id=event_id,
-                raw_event_payload=raw_sms,
                 review_reason=(
                     f"LATE_PAYMENT_OR_NO_MATCH: Money arrived for UTR '{clean_utr}' (₹{dec_amount}) but no active hold was found. "
                     f"Associated expired reservation: #{expired_res.id if expired_res else 'None'}."
@@ -321,11 +295,10 @@ class PaymentVerificationService:
                 utr=clean_utr,
                 amount=dec_amount,
                 merchant_vpa=merchant_vpa,
-                provider_source="ANDROID_LISTENER",
+                provider_source="PAYMENT_EVENT",
                 payer_vpa=payer_vpa,
                 tx_status="PAYMENT_REVIEW_REQUIRED",
                 event_id=event_id,
-                raw_event_payload=raw_sms,
                 review_reason=f"UNDERPAID: Received ₹{dec_amount}, required ₹{req_advance}.",
             )
             return {
@@ -340,11 +313,10 @@ class PaymentVerificationService:
             utr=clean_utr,
             amount=dec_amount,
             merchant_vpa=merchant_vpa,
-            provider_source="ANDROID_LISTENER",
+            provider_source="PAYMENT_EVENT",
             payer_vpa=payer_vpa,
             tx_status="SETTLED",
             event_id=event_id,
-            raw_event_payload=raw_sms,
         )
 
         credit.is_claimed = True

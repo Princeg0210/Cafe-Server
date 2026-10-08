@@ -31,7 +31,7 @@ class DailyProductionRule(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     branch_id: Mapped[int] = mapped_column(Integer, ForeignKey("branches.id", ondelete="CASCADE"), nullable=False)
     production_date: Mapped[datetime.date] = mapped_column(Date, nullable=False, index=True)
-    total_dough_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=120)
+    total_dough_limit: Mapped[int] = mapped_column(Integer, nullable=False, default=70)
     total_allocated_dough: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
