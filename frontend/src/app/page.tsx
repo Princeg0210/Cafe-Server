@@ -24,16 +24,21 @@ export default function Home() {
       <Navbar />
 
       {/* Contemporary Editorial Landing Hero Banner */}
-      <header className="relative min-h-[55vh] md:min-h-[64vh] flex items-center justify-center overflow-hidden mx-3 md:mx-6 mt-4 rounded-3xl shadow-xs border border-[#E4DCD0]">
-        <div className="absolute inset-0 z-0">
-          <Image
-            src="/hero-bg.jpg"
-            alt="Jaadoo Trattoria Artisanal Woodfired Pizza"
-            fill
-            className="object-cover object-center"
-            priority
-          />
-          <div className="absolute inset-0 bg-[#261C18]/65 bg-gradient-to-t from-[#261C18] via-[#261C18]/40 to-black/30" />
+      <header className="relative min-h-[55vh] md:min-h-[66vh] flex items-center justify-center overflow-hidden mx-3 md:mx-6 mt-4 rounded-3xl shadow-lg border border-[#E4DCD0] bg-[#261C18]">
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          {/* Subtle slow-motion background video with poster fallback */}
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            poster="/hero-bg.jpg"
+            className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000 brightness-90 contrast-105"
+          >
+            <source src="/hero-video.mp4" type="video/mp4" />
+          </video>
+          {/* Refined cinematic warm-dark tint overlay for text legibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#261C18]/90 via-[#261C18]/45 to-black/35" />
         </div>
         
         <div className="relative z-10 text-center px-6 py-12 max-w-4xl mx-auto">
