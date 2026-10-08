@@ -16,35 +16,42 @@ import TextZoomSplash from "@/components/TextZoomSplash";
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans relative">
-
+      
       {/* Site Load Pizza Zoom Intro Splash */}
       <TextZoomSplash autoPlay={true} />
 
       {/* Editorial Navbar */}
       <Navbar />
 
-      {/* Contemporary Editorial Landing Hero Banner */}
-      <header className="relative min-h-[55vh] md:min-h-[66vh] flex items-center justify-center overflow-hidden mx-3 md:mx-6 mt-4 rounded-3xl shadow-lg border border-[#E4DCD0] bg-[#261C18]">
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          {/* Subtle slow-motion background video with poster fallback */}
+      {/* Contemporary Editorial Landing Hero Banner with Background Video */}
+      <header className="relative min-h-[55vh] md:min-h-[64vh] flex items-center justify-center overflow-hidden mx-3 md:mx-6 mt-4 rounded-3xl shadow-xs border border-[#E4DCD0]">
+        <div className="absolute inset-0 z-0">
           <video
             autoPlay
             loop
             muted
             playsInline
             poster="/hero-bg.jpg"
-            className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000 brightness-90 contrast-105"
+            className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000"
           >
-            <source src="/hero-video.mp4" type="video/mp4" />
+            <source src="/hero-bg-video.mp4" type="video/mp4" />
           </video>
-          {/* Refined cinematic warm-dark tint overlay for text legibility */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#261C18]/90 via-[#261C18]/45 to-black/35" />
+          {/* Subtle minimal warm tint overlay to ensure perfect contrast without overpowering */}
+          <div className="absolute inset-0 bg-[#261C18]/55 bg-gradient-to-t from-[#261C18]/90 via-[#261C18]/40 to-black/35" />
         </div>
-
+        
         <div className="relative z-10 text-center px-6 py-12 max-w-4xl mx-auto">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="inline-flex items-center gap-2 bg-[#261C18]/85 text-[#FBF9F5] border border-[#B85B43]/50 px-4 py-1.5 rounded-full text-[11px] font-sans font-medium tracking-[0.2em] uppercase mb-4 shadow-md backdrop-blur-md"
+          >
+            <span className="w-2 h-2 rounded-full bg-[#4A5842] animate-pulse" />
+            <span>ARTISANAL WOOD-FIRED PIZZERIA • EST. 2024</span>
+          </motion.div>
 
-
-          <motion.h1
+          <motion.h1 
             initial={{ y: 15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.55 }}
@@ -52,8 +59,8 @@ export default function Home() {
           >
             JAADOO <span className="font-serif italic font-normal text-[#B85B43]">Trattoria</span>
           </motion.h1>
-
-          <motion.p
+          
+          <motion.p 
             initial={{ y: 15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.55 }}
@@ -62,7 +69,7 @@ export default function Home() {
             Artisanal Neapolitan Pizza • Mountain Arabica Coffee • Wild Tisanes
           </motion.p>
 
-          <motion.div
+          <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.5 }}
