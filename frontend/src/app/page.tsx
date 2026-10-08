@@ -11,10 +11,13 @@ import LocationBrewStation from "@/components/LocationBrewStation";
 import TanStorySection from "@/components/TanStorySection";
 import JaadooInstagramGrid from "@/components/JaadooInstagramGrid";
 import TanFooter from "@/components/TanFooter";
+import CinematicBrandIntro from "@/components/CinematicBrandIntro";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans relative">
+      {/* 1.35s Cinematic Brand Opening Sequence */}
+      <CinematicBrandIntro />
 
       {/* Editorial Navbar */}
       <Navbar />
