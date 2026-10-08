@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Utensils, ArrowRight, Calendar } from "lucide-react";
 import Image from "next/image";
@@ -14,6 +15,17 @@ import TanFooter from "@/components/TanFooter";
 import TextZoomSplash from "@/components/TextZoomSplash";
 
 export default function Home() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = true;
+      videoRef.current.play().catch(() => {
+        // Autoplay policy fallback handled gracefully
+      });
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans relative">
       
@@ -23,17 +35,24 @@ export default function Home() {
       {/* Editorial Navbar */}
       <Navbar />
 
-      {/* Contemporary Editorial Landing Hero Banner */}
+      {/* Contemporary Editorial Landing Hero Banner with Background Video */}
       <header className="relative min-h-[55vh] md:min-h-[64vh] flex items-center justify-center overflow-hidden mx-3 md:mx-6 mt-4 rounded-3xl shadow-xs border border-[#E4DCD0]">
         <div className="absolute inset-0 z-0">
-          <Image
-            src="/hero-bg.jpg"
-            alt="Jaadoo Trattoria Artisanal Woodfired Pizza"
-            fill
-            className="object-cover object-center"
-            priority
-          />
-          <div className="absolute inset-0 bg-[#261C18]/65 bg-gradient-to-t from-[#261C18] via-[#261C18]/40 to-black/30" />
+          <video
+            ref={videoRef}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            poster="/hero-bg.jpg"
+            className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000"
+          >
+            <source src="/hero-video.mp4" type="video/mp4" />
+            <source src="/hero-bg-video.mp4" type="video/mp4" />
+          </video>
+          {/* Subtle minimal warm tint overlay to ensure perfect contrast without overpowering */}
+          <div className="absolute inset-0 bg-[#261C18]/55 bg-gradient-to-t from-[#261C18]/90 via-[#261C18]/40 to-black/35" />
         </div>
         
         <div className="relative z-10 text-center px-6 py-12 max-w-4xl mx-auto">
