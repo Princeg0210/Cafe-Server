@@ -23,15 +23,19 @@ export default function TanFooter() {
         {/* Column 1: Brand & Identity */}
         <div className="md:col-span-5 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#B85B43] text-[#FBF9F5] flex items-center justify-center font-serif font-bold text-xl italic border border-[#E4DCD0]/30 shadow-xs">
-              J
+            <div className="relative w-11 h-11 rounded-full overflow-hidden bg-white border border-[#E4DCD0]/30 shadow-xs shrink-0">
+              <img
+                src="/jaadoo-logo-real.png"
+                alt="Jaadoo Logo"
+                className="w-full h-full object-contain p-0.5"
+              />
             </div>
             <div>
               <span className="font-serif font-bold text-2xl tracking-wide block leading-none text-[#FBF9F5]">
                 JAADOO <span className="font-serif italic text-[#B85B43] font-normal text-lg">Trattoria</span>
               </span>
               <span className="text-[10px] font-sans tracking-[0.25em] text-[#D8C7B5] uppercase font-medium">
-                CAFÉ & PIZZERIA • UDAIPUR · EST. 2024
+                CAFÉ · PIZZERIA · UDAIPUR · EST. 2024
               </span>
             </div>
           </div>
@@ -46,7 +50,7 @@ export default function TanFooter() {
             </Link>
             <span>•</span>
             <Link href="/terms" className="hover:text-stone-200 underline underline-offset-2 transition-colors">
-              Terms & Conditions
+              Terms and Conditions
             </Link>
           </div>
         </div>
@@ -54,7 +58,7 @@ export default function TanFooter() {
         {/* Column 2: Contacts & Quick Links */}
         <div className="md:col-span-3 space-y-3 font-sans">
           <h3 className="font-serif font-bold text-base text-[#FBF9F5] border-b border-[#E4DCD0]/20 pb-1 inline-block">
-            Explore & Contact
+            Explore and Contact
           </h3>
           <ul className="space-y-2 text-xs text-stone-300">
             <li className="font-mono text-stone-200">ciao@jaadooudaipur.com</li>
@@ -71,12 +75,12 @@ export default function TanFooter() {
             </li>
             <li>
               <Link href="/about" className="hover:text-[#B85B43] transition-colors font-medium text-stone-200">
-                Our Story & Heritage
+                Our Story and Heritage
               </Link>
             </li>
             <li>
               <Link href="/contact" className="hover:text-[#B85B43] transition-colors font-medium text-stone-200">
-                Brew Station & Location
+                Brew Station and Location
               </Link>
             </li>
             <li className="pt-1">
@@ -90,7 +94,7 @@ export default function TanFooter() {
         {/* Column 3: Newsletter */}
         <div className="md:col-span-4 space-y-3 font-sans">
           <h3 className="font-serif font-bold text-base text-[#FBF9F5] border-b border-[#E4DCD0]/20 pb-1 inline-block">
-            Newsletters & Events
+            Newsletters and Events
           </h3>
           <p className="text-xs text-stone-300">
             Register your email to receive updates on seasonal chef specials and acoustic evening sessions.

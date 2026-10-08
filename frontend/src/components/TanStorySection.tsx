@@ -12,45 +12,42 @@ export default function TanStorySection() {
         {/* Left Side: Photo */}
         <div className="lg:col-span-6 relative h-[320px] sm:h-[400px] md:h-[440px] rounded-lg overflow-hidden border border-[#E4DCD0]/80">
           <Image
-            src="/story-food.jpg"
-            alt="Jaadoo Trattoria Artisanal Panini & Pizza"
+            src="/jaadoo-margherita-lakeside.png"
+            alt="Jaadoo Trattoria Artisanal Lakeside Pizza"
             fill
             className="object-cover transition-transform duration-700 ease-out hover:scale-[1.02]"
           />
         </div>
 
-        {/* Right Side: Editorial Headline & Story */}
+        {/* Right Side: Editorial Headline and Story */}
         <div className="lg:col-span-6 space-y-5">
-          <div className="inline-flex items-center gap-2">
-            <span className="w-6 h-[1px] bg-[#B85B43]/60" />
-            <span className="text-xs font-serif tracking-[0.25em] text-[#B85B43] uppercase font-medium">
-              OUR HERITAGE
+          <div>
+            <span className="font-serif italic text-sm text-[#9E3E26] tracking-widest font-normal block mb-1">
+              La Nostra Storia · Est. 2023 · Udaipur
             </span>
-            <span className="w-6 h-[1px] bg-[#B85B43]/60" />
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-[#140E0A] leading-tight font-bold">
+              If It’s Magic, It’s Jaadoo
+            </h2>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-[#261C18] leading-tight font-normal">
-            If It’s Magic, It’s Jaadoo
-          </h2>
-
-          <div className="space-y-4 text-sm text-stone-700 font-sans leading-relaxed">
+          <div className="space-y-4 text-sm sm:text-base text-[#1A110B] font-sans leading-relaxed">
             <p>
-              In 2023, two friends—<strong className="text-[#261C18] font-semibold">Shivank Verma</strong> and <strong className="text-[#261C18] font-semibold">Nishant Mitthal</strong>—set out to build a genuine culinary retreat in Old City Udaipur honoring slow food principles.
+              In 2023, two friends—<strong className="text-[#140E0A] font-bold">Shivank Verma</strong> and <strong className="text-[#140E0A] font-bold">Nishant Mitthal</strong>—set out to build a genuine culinary retreat in Old City Udaipur honoring slow food principles.
             </p>
 
             <p>
-              <strong className="text-[#261C18] font-semibold">Jaadoo Trattoria</strong> celebrates the ritual of 48-hour natural sourdough fermentation using Italian Tipo 00 flour, San Marzano tomato passata, and fresh mozzarella Fior di Latte, paired with wild-harvested Himalayan tisanes.
+              <strong className="text-[#140E0A] font-bold">Jaadoo Trattoria</strong> celebrates the ritual of 48-hour natural sourdough fermentation using Italian Tipo 00 flour, San Marzano tomato passata, and fresh mozzarella Fior di Latte, paired with wild-harvested Himalayan tisanes.
             </p>
 
-            <p className="font-serif italic text-stone-600 text-sm pt-1">
+            <blockquote className="text-base sm:text-lg text-[#8F351F] font-serif font-semibold italic pt-2 pl-4 border-l-3 border-[#8F351F]/60">
               “A mindful pause between the aroma of wood-fired baking and panoramic views of Lake Pichola.”
-            </p>
+            </blockquote>
           </div>
 
           <div className="pt-3">
             <Link
               href="/about"
-              className="inline-block bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] px-7 py-3 rounded-lg font-serif text-xs uppercase tracking-[0.2em] transition-all shadow-xs active:scale-95"
+              className="inline-block bg-[#140E0A] hover:bg-[#8F351F] text-[#FAF8F5] px-8 py-3.5 rounded-lg font-sans font-bold text-xs uppercase tracking-[0.2em] transition-all shadow-sm active:scale-95"
             >
               DISCOVER OUR STORY
             </Link>
@@ -74,14 +71,14 @@ export default function TanStorySection() {
           {
             img: "/gallery-3.jpg",
             tagline: "LAKESIDE SUNSET",
-            sub: "Artisanal tiramisu & Lake Pichola views",
+            sub: "Artisanal tiramisu and Lake Pichola views",
           },
         ].map((item, idx) => (
           <motion.div
             key={idx}
             whileHover={{ y: -3 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="relative h-64 md:h-72 rounded-xl overflow-hidden shadow-xs group cursor-pointer border border-[#E4DCD0]"
+            className="relative h-64 md:h-72 rounded-xl border border-[#DDD3C4] overflow-hidden shadow-xs group cursor-pointer"
           >
             <Image
               src={item.img}
@@ -89,13 +86,13 @@ export default function TanStorySection() {
               fill
               className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1A120D]/90 via-[#1A120D]/30 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#120D0A]/95 via-[#120D0A]/40 to-transparent" />
             
-            <div className="absolute bottom-6 left-6 right-6 text-[#FBF9F5] text-center">
-              <h3 className="font-serif font-normal text-lg uppercase tracking-wider text-[#FBF9F5]">
+            <div className="absolute bottom-6 left-6 right-6 text-center">
+              <h3 className="font-serif font-bold text-lg uppercase tracking-wider text-white drop-shadow-md">
                 {item.tagline}
               </h3>
-              <p className="text-xs font-serif italic text-[#C88A48] mt-1">
+              <p className="text-xs font-sans font-semibold text-[#F4D3B4] mt-1.5 drop-shadow-sm tracking-wide">
                 {item.sub}
               </p>
             </div>

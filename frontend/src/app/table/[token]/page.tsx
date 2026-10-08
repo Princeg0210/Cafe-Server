@@ -21,16 +21,20 @@ import {
   Users,
   Clock,
   Sparkles,
+  CakeSlice,
+  Zap,
+  ShieldCheck,
+  HeartHandshake,
 } from "lucide-react";
 import { menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
 
 const categoryIcons: Record<string, React.ReactNode> = {
-  starters: <Utensils className="w-4 h-4 text-[#B85B43]" />,
-  primo: <Utensils className="w-4 h-4 text-[#B85B43]" />,
-  pizza: <Pizza className="w-4 h-4 text-[#B85B43]" />,
-  cakes: <Coffee className="w-4 h-4 text-[#B85B43]" />,
-  beverages: <Wine className="w-4 h-4 text-[#B85B43]" />,
-  "hot-drinks": <Coffee className="w-4 h-4 text-[#B85B43]" />,
+  starters: <Utensils className="w-4 h-4 text-[#9E3E26]" />,
+  primo: <Utensils className="w-4 h-4 text-[#9E3E26]" />,
+  pizza: <Pizza className="w-4 h-4 text-[#9E3E26]" />,
+  cakes: <CakeSlice className="w-4 h-4 text-[#9E3E26]" />,
+  beverages: <Wine className="w-4 h-4 text-[#9E3E26]" />,
+  "hot-drinks": <Coffee className="w-4 h-4 text-[#9E3E26]" />,
 };
 
 interface MenuItem {
@@ -417,8 +421,9 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
           <p className="text-sm text-gray-600 font-sans leading-relaxed">
             {qrErrorMessage || "This QR code is invalid, expired, or has rotated. Please scan the official QR code placed on your dining table."}
           </p>
-          <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200/80 text-xs text-amber-900 font-sans">
-            🔒 For guest security and bill isolation, direct table number URLs (such as /table/1) are not allowed.
+          <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200/80 text-xs text-amber-900 font-sans flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
+            <span>For guest security and bill isolation, direct table number URLs (such as /table/1) are not allowed.</span>
           </div>
           <div className="flex flex-col gap-3 pt-2">
             <a
@@ -482,8 +487,9 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                 <Clock className="w-4 h-4" />
               </div>
               <div>
-                <span className="font-condensed font-bold text-sm uppercase text-amber-950 block">
-                  ⚡ Quick Dine Session Active
+                <span className="font-condensed font-bold text-sm uppercase text-amber-950 flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-amber-950" />
+                  <span>Quick Dine Session Active</span>
                 </span>
                 <span className="text-xs text-amber-900">
                   Table reserved at {reservationNotice.time_slot} • Wrap up within{" "}
@@ -590,9 +596,10 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                     </div>
                     <button
                       onClick={handleAcceptQuickDine}
-                      className="whitespace-nowrap px-3.5 py-2 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold uppercase tracking-wider transition shadow-2xs"
+                      className="whitespace-nowrap px-3.5 py-2 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold uppercase tracking-wider transition shadow-2xs flex items-center gap-1.5"
                     >
-                      ⚡ Start Quick Dine
+                      <Zap className="w-3.5 h-3.5 text-white" />
+                      <span>Start Quick Dine</span>
                     </button>
                   </div>
                 )}
@@ -621,37 +628,38 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                 initial={{ scale: 0.92, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.92, opacity: 0 }}
-                className="relative w-full max-w-md rounded-3xl bg-[#FAF8F5] border border-[#E4DCD0] p-6 sm:p-7 shadow-2xl z-10 text-center space-y-4 max-h-[92vh] overflow-y-auto"
+                className="relative w-full max-w-md rounded-3xl bg-[#FAF8F5] border border-[#DDD3C4] p-6 sm:p-7 shadow-2xl z-10 text-center space-y-4 max-h-[92vh] overflow-y-auto"
               >
                 {/* Checkmark Badge */}
-                <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#4A5842]/15 border-2 border-[#4A5842] text-[#4A5842] mx-auto shadow-xs">
-                  <CheckCircle2 className="w-8 h-8 sm:w-9 sm:h-9 text-[#4A5842]" />
+                <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#1B3618]/15 border-2 border-[#1B3618] text-[#1B3618] mx-auto shadow-xs">
+                  <CheckCircle2 className="w-8 h-8 sm:w-9 sm:h-9 text-[#1B3618]" />
                 </div>
 
                 {/* Order ID Pill */}
                 <div>
-                  <span className="inline-block text-xs sm:text-sm font-mono tracking-widest text-[#B85B43] uppercase font-bold bg-[#B85B43]/10 px-4 py-1 rounded-full border border-[#B85B43]/30">
+                  <span className="inline-block text-xs sm:text-sm font-mono tracking-widest text-[#9E3E26] uppercase font-bold bg-[#9E3E26]/10 px-4 py-1 rounded-full border border-[#9E3E26]/30">
                     ORDER #{lastOrderNum || "CONFIRMED"} • DISPATCHED TO KITCHEN
                   </span>
                 </div>
 
                 {/* Main Headline */}
-                <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#261C18]">
+                <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#140E0A]">
                   Your Order is Sizzling in the Oven!
                 </h3>
 
                 {/* Warm Note Box - High Contrast, Large Readable Font */}
-                <div className="bg-[#F3ECE1] border-2 border-[#E2D4C3] rounded-2xl p-5 sm:p-6 text-center shadow-xs">
-                  <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/95 border border-[#DECFC0] text-xs font-sans font-bold uppercase tracking-wider text-[#B85B43] mb-3 shadow-2xs">
-                    <span>🤝 A WARM NOTE FROM OUR TEAM</span>
+                <div className="bg-[#F2ECE1] border border-[#DDD3C4] rounded-2xl p-5 sm:p-6 text-center shadow-xs">
+                  <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-md bg-white border border-[#DDD3C4] text-xs font-sans font-bold uppercase tracking-wider text-[#9E3E26] mb-3 shadow-2xs">
+                    <HeartHandshake className="w-4 h-4 text-[#9E3E26]" />
+                    <span>A WARM NOTE FROM OUR TEAM</span>
                   </div>
 
-                  <p className="font-serif text-sm sm:text-base text-[#261C18] leading-relaxed font-semibold">
+                  <p className="font-serif text-sm sm:text-base text-[#140E0A] leading-relaxed font-semibold">
                     “Please feel free to settle your bill at our reception counter whenever you wrap up. We invite you to pay at the counter not just for the bill, but because we genuinely love to meet, smile with, and thank the wonderful people who grace Jaadoo Café with their presence.”
                   </p>
 
-                  <p className="text-xs sm:text-sm font-sans font-medium text-[#4A5842] mt-3">
-                    🌿 You are never just a table number to us; you are our guest. Savor every bite!
+                  <p className="text-xs sm:text-sm font-sans font-medium text-[#1B3618] mt-3">
+                    You are never just a table number to us; you are our guest. Savor every bite!
                   </p>
                 </div>
 
@@ -717,22 +725,22 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
           ).map((category) => (
             <section id={category.id} key={category.id}>
               {/* Category Header */}
-              <div className="flex items-center gap-2 pb-2 mb-2 border-b border-[#EADFCF]">
-                <div className="w-6 h-6 rounded-full border border-[#E4DCD0] bg-[#FBF9F5] flex items-center justify-center text-[#B85B43] shrink-0">
-                  {categoryIcons[category.id] || <Utensils className="w-3 h-3 text-[#B85B43]" />}
+              <div className="flex items-center gap-2 pb-2.5 mb-2 border-b border-[#DDD3C4]">
+                <div className="w-7 h-7 rounded-full border border-[#DDD3C4] bg-[#FAF7F2] flex items-center justify-center text-[#9E3E26] shrink-0">
+                  {categoryIcons[category.id] || <Utensils className="w-3.5 h-3.5 text-[#9E3E26]" />}
                 </div>
-                <h2 className="text-sm font-serif font-bold text-[#261C18] uppercase tracking-wider">
+                <h2 className="text-sm sm:text-base font-serif font-bold text-[#140E0A] uppercase tracking-wider">
                   {category.name}
                 </h2>
                 {category.subtitle && (
-                  <span className="text-xs font-serif italic text-[#B85B43]">
+                  <span className="text-xs sm:text-sm font-sans font-semibold text-[#9E3E26]">
                     • {category.subtitle}
                   </span>
                 )}
               </div>
 
               {/* Menu Items */}
-              <div className="divide-y divide-[#EFE8DC]/80">
+              <div className="divide-y divide-[#E6DDD0]">
                 {category.items.map((item) => {
                   const qtyInCart = cart[item.id]?.qty || 0;
                   const itemMedia = ITEM_MEDIA_MAP[item.id];
@@ -745,14 +753,14 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                       onClick={() => {
                         if (qtyInCart === 0) updateCart(item, 1);
                       }}
-                      className={`group flex items-start sm:items-center justify-between py-2.5 px-2 rounded-xl transition-all cursor-pointer ${
+                      className={`group flex items-start sm:items-center justify-between py-3 px-2 sm:px-3 rounded-xl transition-all cursor-pointer ${
                         qtyInCart > 0
-                          ? "bg-[#F7F3EB] border border-[#E5DAC8]"
-                          : "hover:bg-[#F7F3EB]/70 border border-transparent"
+                          ? "bg-[#F4ECE0] border border-[#DDD3C4]"
+                          : "hover:bg-[#F2ECE1]/80 border border-transparent"
                       }`}
                     >
                       {/* Thumbnail */}
-                      <div className="w-11 h-11 rounded-full overflow-hidden border border-[#E4DCD0] shrink-0 bg-[#F6F3EC] flex items-center justify-center shadow-2xs mr-3 mt-0.5 sm:mt-0">
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-[#DDD3C4] shrink-0 bg-[#F0EAE0] flex items-center justify-center shadow-2xs mr-3 mt-0.5 sm:mt-0">
                         <img
                           src={imgUrl}
                           alt={item.name}
@@ -764,15 +772,15 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                       {/* Details */}
                       <div className="flex-1 min-w-0 pr-3">
                         {badge && (
-                          <span className="text-[9px] font-sans font-semibold uppercase tracking-wider text-stone-600 bg-[#EFECE4] px-1.5 py-0.5 rounded-full inline-block mb-0.5">
+                          <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#140E0A] bg-[#E5DEC3] px-2 py-0.5 rounded-full inline-block mb-1 border border-[#CCC2A5]">
                             {badge}
                           </span>
                         )}
-                        <h3 className="text-sm font-serif font-bold text-[#261C18] uppercase tracking-wide leading-snug group-hover:text-[#B85B43] transition-colors break-words whitespace-normal">
+                        <h3 className="text-sm font-serif font-bold text-[#140E0A] uppercase tracking-wide leading-snug group-hover:text-[#9E3E26] transition-colors break-words whitespace-normal">
                           {item.name}
                         </h3>
                         {item.description && (
-                          <p className="text-xs font-serif italic text-stone-500 mt-0.5 leading-relaxed break-words whitespace-normal">
+                          <p className="text-xs font-sans font-normal text-[#2B1D14] mt-1 leading-relaxed break-words whitespace-normal">
                             {item.description}
                           </p>
                         )}
@@ -780,7 +788,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
                       {/* Price & Add Controls */}
                       <div className="flex flex-col items-end shrink-0 pl-2 pt-0.5 sm:pt-0">
-                        <span className="text-sm font-serif font-bold text-[#261C18] text-right mb-1">
+                        <span className="text-base font-sans font-extrabold text-[#140E0A] text-right mb-1.5">
                           ₹{item.price}
                         </span>
 
@@ -790,18 +798,18 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                               e.stopPropagation();
                               updateCart(item, 1);
                             }}
-                            className="px-4 py-1 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-xs font-sans font-bold uppercase tracking-wider shadow-2xs transition-all"
+                            className="px-4 py-1.5 rounded-full bg-[#140E0A] hover:bg-[#9E3E26] text-[#FAF8F5] text-xs font-sans font-bold uppercase tracking-wider shadow-2xs transition-all"
                           >
                             ADD
                           </button>
                         ) : (
-                          <div className="flex items-center gap-1.5 bg-[#261C18] text-[#FBF9F5] rounded-full px-2 py-0.5 shadow-xs">
+                          <div className="flex items-center gap-1.5 bg-[#140E0A] text-[#FAF8F5] rounded-full px-2.5 py-1 shadow-xs">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 updateCart(item, -1);
                               }}
-                              className="w-5 h-5 rounded-full hover:bg-[#B85B43] flex items-center justify-center transition"
+                              className="w-5 h-5 rounded-full hover:bg-[#9E3E26] flex items-center justify-center transition"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -813,7 +821,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                                 e.stopPropagation();
                                 updateCart(item, 1);
                               }}
-                              className="w-5 h-5 rounded-full hover:bg-[#B85B43] flex items-center justify-center transition"
+                              className="w-5 h-5 rounded-full hover:bg-[#9E3E26] flex items-center justify-center transition"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -978,40 +986,40 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                   FETCHING LIVE BILL DETAILS...
                 </div>
               ) : (
-                <div className="py-5 space-y-4 font-mono text-xs text-[#261C18]">
-                  <div className="flex justify-between border-b border-[#E4DCD0] pb-2">
+                <div className="py-5 space-y-4 font-mono text-xs text-[#140E0A]">
+                  <div className="flex justify-between border-b border-[#DDD3C4] pb-2 font-bold">
                     <span>Session Status:</span>
-                    <span className="text-[#4A5842] font-bold">{billData?.status || "ACTIVE"}</span>
+                    <span className="text-[#1B3618] bg-[#E2EDDE] px-2 py-0.5 rounded border border-[#B5CEAE]">{billData?.status || "ACTIVE"}</span>
                   </div>
 
                   {/* Dispatched items */}
                   {billData?.items && billData.items.length > 0 ? (
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
                       {billData.items.map((it, idx) => (
-                        <div key={idx} className="flex justify-between items-start text-stone-600 text-[11px] gap-2">
+                        <div key={idx} className="flex justify-between items-start text-[#140E0A] font-medium text-xs gap-2">
                           <span className="flex-1 min-w-0 break-words whitespace-normal">
-                            {it.quantity}× {it.name}
+                            <strong className="font-bold">{it.quantity}×</strong> {it.name}
                           </span>
-                          <span className="font-bold text-[#261C18] shrink-0">₹{it.total}</span>
+                          <span className="font-extrabold text-[#140E0A] shrink-0">₹{it.total}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-stone-400 italic text-[11px] py-4 text-center">
+                    <div className="text-[#3B2C23] italic text-xs py-4 text-center font-sans">
                       No items ordered yet for this table.
                     </div>
                   )}
 
-                  <div className="border-t border-[#E4DCD0] pt-3 space-y-1">
-                    <div className="flex justify-between">
+                  <div className="border-t border-[#DDD3C4] pt-3 space-y-1.5 text-xs text-[#140E0A]">
+                    <div className="flex justify-between font-medium">
                       <span>Subtotal:</span>
-                      <span>₹{billData?.subtotal.toFixed(2) || "0.00"}</span>
+                      <span className="font-bold">₹{billData?.subtotal.toFixed(2) || "0.00"}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between font-medium">
                       <span>GST ({( (billData?.tax_rate || 0.05) * 100 ).toFixed(0)}%):</span>
-                      <span>₹{billData?.tax_amount.toFixed(2) || "0.00"}</span>
+                      <span className="font-bold">₹{billData?.tax_amount.toFixed(2) || "0.00"}</span>
                     </div>
-                    <div className="flex justify-between text-[#B85B43] font-bold text-base pt-2 border-t border-[#E4DCD0]">
+                    <div className="flex justify-between text-[#9E3E26] font-extrabold text-base pt-2.5 border-t border-[#DDD3C4]">
                       <span>GRAND TOTAL:</span>
                       <span>₹{billData?.grand_total.toFixed(2) || "0.00"}</span>
                     </div>

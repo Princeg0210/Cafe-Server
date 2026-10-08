@@ -7,87 +7,117 @@ export default function JaadooInstagramGrid() {
   const posts = [
     {
       id: 1,
-      image: "/insta-1.jpg",
+      image: "/jaadoo-pizza-twilight.png",
       type: "video",
-      alt: "Jaadoo Barista Team & Wood-Fired Pizza",
+      alt: "Wood-Fired Neapolitan Pizza at Twilight overlooking Lake Pichola",
+      overlayBrand: "WOODFIRED AT TWILIGHT",
+      overlaySub: "Lake Pichola Waterfront",
     },
     {
       id: 2,
-      image: "/gallery-2.jpg",
-      type: "carousel",
-      alt: "Jaadoo Trattoria Warm Interior Seating",
-      overlayLocation: "Old City, Udaipur",
+      image: "/jaadoo-margherita-lakeside.png",
+      type: "image",
+      alt: "Lakeside Margherita Bufala on Olive Wood Peel",
+      overlayBrand: "MARGHERITA CLASSICA",
+      overlaySub: "48h Sourdough Fermentation",
     },
     {
       id: 3,
-      image: "/gallery-3.jpg",
-      type: "video",
-      alt: "Cheering with Artisanal Brews",
+      image: "/jaadoo-pizza-prep.png",
+      type: "carousel",
+      alt: "Artisan Baker Shaping 48h Fermented Sourdough Base",
+      overlayTitle: "ARTISANAL FLOUR & CRAFT",
+      overlaySub: "Hand-stretched with Tipo 00 and San Marzano",
     },
     {
       id: 4,
-      image: "/gallery-1.jpg",
-      type: "carousel",
-      alt: "Postcard from Udaipur Artwork Wall",
-      overlayTitle: "POSTCARD FROM UDAIPUR",
-      overlaySub: "Found a new corner · Worth staying in",
+      image: "/jaadoo-focaccia-rosemary.png",
+      type: "image",
+      alt: "Freshly Baked Rosemary and Cherry Tomato Focaccia",
+      overlayBrand: "ROSEMARY FOCACCIA",
+      overlaySub: "Cold-Pressed Garlic Olive Oil",
     },
     {
       id: 5,
-      image: "/hero-bg.jpg",
-      type: "image",
-      alt: "Jaadoo Udaipur Coffee Bar Counter",
-      overlayBrand: "JAADOO UDAIPUR",
-      overlaySub: "Old City Lanes",
+      image: "/jaadoo-tiramisu-craft.jpg",
+      type: "carousel",
+      alt: "Authentic House Tiramisu and Mountain Espresso",
+      overlayBrand: "DOLCE TIRAMISU",
+      overlaySub: "Valrhona Cocoa & Arabica Extract",
     },
     {
       id: 6,
-      image: "/insta-6.jpg",
-      type: "carousel",
-      alt: "Guest enjoying tiramisu and reading book",
+      image: "/jaadoo-pizza-oven.jpg",
+      type: "video",
+      alt: "Blazing Wood-Fired Brick Dome Oven",
+      overlayBrand: "450°C WOOD OVEN",
+      overlaySub: "Baking in 90 Seconds",
     },
   ];
 
   return (
     <section className="my-16 bg-[#FBF9F5] rounded-xl border border-[#E4DCD0] shadow-xs overflow-hidden">
       {/* Instagram Profile Header */}
-      <div className="bg-white px-6 py-5 border-b border-[#E4DCD0] flex items-center justify-between">
+      <div className="bg-white px-5 sm:px-6 py-5 border-b border-[#E4DCD0] flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          {/* Avatar with Terracotta Ring */}
-          <div className="relative p-[2.5px] rounded-full bg-gradient-to-tr from-[#B85B43] via-[#c88a48] to-[#4A5842] shadow-xs">
-            <div className="w-14 h-14 rounded-full bg-[#261C18] flex items-center justify-center text-[#FBF9F5] border-2 border-white font-serif font-bold text-2xl italic">
-              J
-            </div>
-          </div>
+          {/* Avatar with Story Ring */}
+          <a
+            href="https://www.instagram.com/jaadoo_pizza_project/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative w-16 h-16 sm:w-18 sm:h-18 shrink-0 hover:scale-105 transition-transform"
+          >
+            <Image
+              src="/jaadoo-logo-ring.png"
+              alt="Jaadoo Pizza Project Official Logo"
+              fill
+              className="object-contain rounded-full drop-shadow-xs"
+              priority
+            />
+          </a>
 
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className="font-sans font-bold text-base text-[#261C18]">
-                jaadooudaipur
+              <a
+                href="https://www.instagram.com/jaadoo_pizza_project/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-sans font-bold text-base sm:text-lg text-[#140E0A] hover:underline"
+              >
+                jaadoo_pizza_project
+              </a>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 font-medium">
+                Verified Kitchen
               </span>
             </div>
-            <span className="font-serif font-bold text-sm text-[#261C18]">
-              JAADOO Udaipur
+            <span className="font-serif font-bold text-sm text-[#9E3E26]">
+              Jaadoo Pizza Project
             </span>
-            <div className="flex items-center gap-2 text-xs text-stone-500 font-sans mt-0.5">
-              <span><strong className="text-stone-800">28.5K</strong> followers</span>
+            <p className="text-xs text-stone-600 font-sans mt-0.5 hidden sm:block">
+              Artisanal Italian pizza · 32 Sitaphal ki gali, Ganesh Ghati, Udaipur
+            </p>
+            <div className="flex items-center gap-3 text-xs text-stone-600 font-sans mt-1">
+              <span><strong className="text-stone-900 font-semibold">161</strong> posts</span>
               <span>•</span>
-              <span><strong className="text-stone-800">620</strong> posts</span>
+              <span><strong className="text-stone-900 font-semibold">5,792</strong> followers</span>
+              <span>•</span>
+              <span><strong className="text-stone-900 font-semibold">154</strong> following</span>
             </div>
           </div>
         </div>
 
-        {/* Instagram Direct Link Icon */}
+        {/* Instagram Direct Link CTA Button */}
         <a
-          href="https://instagram.com"
+          href="https://www.instagram.com/jaadoo_pizza_project/"
           target="_blank"
           rel="noopener noreferrer"
-          className="p-2.5 rounded-full bg-[#F6F3EC] hover:bg-[#E4DCD0]/50 text-[#261C18] transition-colors border border-[#E4DCD0]"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#9E3E26] hover:bg-[#83321E] text-white text-xs sm:text-sm font-medium transition-colors shadow-xs"
           aria-label="Visit Instagram Profile"
         >
-          <svg className="w-6 h-6 fill-current text-[#B85B43]" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
             <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
           </svg>
+          <span>Follow @jaadoo_pizza_project</span>
         </a>
       </div>
 

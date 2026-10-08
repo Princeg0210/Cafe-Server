@@ -956,7 +956,7 @@ export default function POSDashboard() {
       alert("Staff session expired. Please sign in again.");
       return;
     }
-    if (!confirm("⚠️ Are you sure you want to RESET ALL POS SESSIONS?\n\nA PDF summary report will be generated and saved/printed automatically before resetting.")) {
+    if (!confirm("WARNING: Are you sure you want to RESET ALL POS SESSIONS?\n\nA PDF summary report will be generated and saved/printed automatically before resetting.")) {
       return;
     }
 

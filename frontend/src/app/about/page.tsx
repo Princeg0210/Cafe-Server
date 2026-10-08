@@ -24,18 +24,19 @@ export default function AboutPage() {
         <div className="absolute inset-0 bg-[#24150e]/60" />
         <div className="relative z-10 text-center px-6 max-w-3xl">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-2 bg-[#24150e]/80 text-[#c88a48] border border-[#c88a48]/50 px-4 py-1.5 rounded-full text-xs font-condensed font-bold uppercase tracking-widest mb-4 shadow-lg backdrop-blur-md"
+            className="mb-2"
           >
-            <Flame className="w-4 h-4 text-amber-500" />
-            <span>Craft & Heritage</span>
+            <span className="font-serif italic text-sm sm:text-base text-[#E8AA62] tracking-widest font-normal block">
+              — Capitolo Storico · Est. 2023 —
+            </span>
           </motion.div>
-          <h1 className="text-5xl md:text-7xl font-condensed font-extrabold text-white tracking-wider uppercase">
-            Our Story & Magic
+          <h1 className="text-4xl md:text-6xl font-serif font-bold text-white tracking-normal uppercase">
+            Our Story and Magic
           </h1>
-          <p className="text-gray-200 font-sans text-sm md:text-base mt-2">
-            Bringing authentic wood-fired Neapolitan culinary heritage & 100% Arabica roasts to Old City Udaipur.
+          <p className="text-stone-100 font-sans font-medium text-sm md:text-base mt-2 drop-shadow-sm">
+            Bringing authentic wood-fired Neapolitan culinary heritage and 100% Arabica roasts to Old City Udaipur.
           </p>
         </div>
       </section>
@@ -46,14 +47,14 @@ export default function AboutPage() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="bg-white rounded-3xl p-8 md:p-12 border border-[#e8ded2] shadow-md space-y-6 text-center"
+          className="bg-white rounded-3xl p-8 md:p-12 border border-[#DDD3C4] shadow-sm space-y-6 text-center"
         >
-          <Sparkles className="w-8 h-8 text-[#c88a48] mx-auto" />
-          <h2 className="text-3xl md:text-5xl font-condensed font-extrabold text-[#24150e] uppercase tracking-wide">
-            Woodfired Passion & Roasted Arabica
+          <Sparkles className="w-8 h-8 text-[#9E3E26] mx-auto" />
+          <h2 className="text-3xl md:text-5xl font-serif font-bold text-[#140E0A] tracking-tight">
+            Woodfired Passion and Roasted Arabica
           </h2>
-          <p className="text-gray-600 font-sans leading-relaxed text-sm md:text-base max-w-2xl mx-auto">
-            Nestled in the historic lanes near Gangaur Ghat, <strong className="text-[#24150e]">Jaadoo Udaipur</strong> was born out of a passion for 48-hour fermented Neapolitan crusts, artisanal Arabica roasts, and high-altitude Himalayan herb tisanes.
+          <p className="text-[#261A12] font-sans leading-relaxed text-base md:text-lg max-w-2xl mx-auto">
+            Nestled in the historic lanes near Gangaur Ghat, <strong className="text-[#140E0A] font-bold">Jaadoo Udaipur</strong> was born out of a passion for 48-hour fermented Neapolitan crusts, artisanal Arabica roasts, and high-altitude Himalayan herb tisanes.
           </p>
         </motion.div>
 
@@ -61,17 +62,17 @@ export default function AboutPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             {
-              icon: <Flame className="w-6 h-6 text-[#b91c1c]" />,
+              icon: <Flame className="w-6 h-6 text-[#9E3E26]" />,
               title: "48h Slow Fermentation",
               desc: "Our dough ferments for 48 hours creating a light, airy Neapolitan crust baked at 450°C.",
             },
             {
-              icon: <UtensilsCrossed className="w-6 h-6 text-[#c88a48]" />,
+              icon: <UtensilsCrossed className="w-6 h-6 text-[#9E3E26]" />,
               title: "100% Vegetarian Magic",
               desc: "All our pizzas, pastas, desserts, and brews are 100% vegetarian with rich vegan options.",
             },
             {
-              icon: <ShieldCheck className="w-6 h-6 text-emerald-600" />,
+              icon: <ShieldCheck className="w-6 h-6 text-[#1B3618]" />,
               title: "Himalayan Botanicals",
               desc: "Wild harvested rhododendron, spear mint, and tisane herbs sourced directly from Himalayan estates.",
             },
@@ -82,13 +83,13 @@ export default function AboutPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: idx * 0.1 }}
-              className="bg-white rounded-2xl p-6 border border-[#e8ded2] shadow-2xs text-center space-y-3"
+              className="bg-white rounded-2xl p-6 border border-[#DDD3C4] shadow-xs text-center space-y-3"
             >
-              <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto border border-[#e8ded2]">
+              <div className="w-12 h-12 bg-[#FAF7F2] rounded-full flex items-center justify-center mx-auto border border-[#DDD3C4]">
                 {pillar.icon}
               </div>
-              <h3 className="font-condensed font-bold text-xl text-[#24150e] uppercase tracking-wide">{pillar.title}</h3>
-              <p className="text-xs text-gray-500 leading-relaxed font-sans">{pillar.desc}</p>
+              <h3 className="font-serif font-bold text-lg text-[#140E0A] tracking-normal">{pillar.title}</h3>
+              <p className="text-xs sm:text-sm text-[#2B1D14] leading-relaxed font-sans font-normal">{pillar.desc}</p>
             </motion.div>
           ))}
         </div>

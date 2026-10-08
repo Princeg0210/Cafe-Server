@@ -1,19 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Cormorant_Garamond } from "next/font/google";
+import { Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
 import CookieConsent from "@/components/CookieConsent";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 
-const cormorant = Cormorant_Garamond({
+const playfair = Playfair_Display({
   variable: "--font-serif",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800", "900"],
   style: ["normal", "italic"],
   display: "swap",
 });
@@ -28,7 +28,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://cafe-piza.vercel.app"),
   title: {
-    default: "Jaadoo Udaipur | Woodfired Neapolitan Pizza & Artisanal Coffee",
+    default: "Jaadoo Udaipur | Woodfired Neapolitan Pizza · Artisanal Coffee",
     template: "%s | Jaadoo Udaipur",
   },
   description:
@@ -58,25 +58,25 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_IN",
     url: "https://cafe-piza.vercel.app",
-    siteName: "Jaadoo Trattoria & Pizzeria",
-    title: "Jaadoo Udaipur | Woodfired Neapolitan Pizza & Artisanal Coffee",
+    siteName: "Jaadoo Trattoria · Pizzeria",
+    title: "Jaadoo Udaipur | Woodfired Neapolitan Pizza · Artisanal Coffee",
     description:
       "48-hour slow fermentation Neapolitan pizza and specialty Arabica roasts in Old City Udaipur near Gangaur Ghat.",
     images: [
       {
-        url: "/hero-bg.jpg",
+        url: "/jaadoo-pizza-twilight.png",
         width: 1200,
         height: 630,
-        alt: "Jaadoo Udaipur Woodfired Neapolitan Pizza & Trattoria",
+        alt: "Jaadoo Udaipur Woodfired Neapolitan Pizza · Trattoria",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Jaadoo Udaipur | Woodfired Neapolitan Pizza & Artisanal Coffee",
+    title: "Jaadoo Udaipur | Woodfired Neapolitan Pizza · Artisanal Coffee",
     description:
       "Authentic wood-fired Neapolitan pizza and specialty Arabica roasts in Old City Udaipur.",
-    images: ["/hero-bg.jpg"],
+    images: ["/jaadoo-pizza-twilight.png"],
   },
   robots: {
     index: true,
@@ -90,8 +90,8 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/favicon.ico",
-    apple: "/favicon.ico",
+    icon: "/jaadoo-logo-circle.png",
+    apple: "/jaadoo-logo-circle.png",
   },
 };
 
@@ -103,7 +103,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body
-        className={`${plusJakarta.variable} ${cormorant.variable} antialiased selection:bg-[#B85B43]/20 bg-[#F8F5F0] text-[#261C18] min-h-screen flex flex-col justify-between`}
+        className={`${plusJakarta.variable} ${playfair.variable} antialiased selection:bg-[#B85B43]/20 bg-[#F8F5F0] text-[#140E0A] min-h-screen flex flex-col justify-between`}
       >
         <div className="flex-1">
           {children}

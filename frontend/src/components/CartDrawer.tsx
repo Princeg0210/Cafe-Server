@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ShoppingBag, Plus, Minus, Trash2, CheckCircle2, MessageSquare, Utensils, CreditCard } from "lucide-react";
+import { X, ShoppingBag, Plus, Minus, Trash2, CheckCircle2, MessageSquare, Utensils, CreditCard, HeartHandshake } from "lucide-react";
 import { MenuItem, MENU_ITEM_ID_MAP } from "@/data/menu";
 import PaymentModal from "./PaymentModal";
 
@@ -139,13 +139,14 @@ export default function CartDrawer({
 
                       <div className="bg-[#F6F3EC] border-2 border-[#E2D4C3] rounded-2xl p-5 text-center my-3 shadow-xs">
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-[#DECFC0] text-xs font-sans font-bold uppercase tracking-wider text-[#B85B43] mb-2.5 shadow-2xs">
-                          <span>🤝 A Warm Note From Our Team</span>
+                          <HeartHandshake className="w-4 h-4 text-[#B85B43]" />
+                          <span>A Warm Note From Our Team</span>
                         </div>
                         <p className="font-serif text-sm sm:text-base text-[#261C18] leading-relaxed font-semibold">
                           “Please feel free to settle your bill at our reception counter whenever you wrap up. We invite you to pay at the counter not just for the bill, but because we genuinely love to meet, smile with, and thank the wonderful people who grace Jaadoo Café with their presence!”
                         </p>
                         <p className="text-xs font-sans font-medium text-[#4A5842] mt-2.5">
-                          🌿 You are never just a table number to us — you are our guest. Savor every bite!
+                          You are never just a table number to us — you are our guest. Savor every bite!
                         </p>
                       </div>
 

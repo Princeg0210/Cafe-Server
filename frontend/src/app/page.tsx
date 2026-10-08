@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Utensils, ArrowRight, Calendar } from "lucide-react";
+import { Utensils, ArrowRight, Calendar, MapPin, Flame, Leaf } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -50,53 +50,60 @@ export default function Home() {
 
         <div className="relative z-10 text-left px-6 sm:px-12 md:px-16 py-12 max-w-3xl">
           
-          {/* Eyebrow with gold accent lines */}
+          {/* Authentic Italian editorial eyebrow */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08, duration: 0.45, ease: "easeOut" }}
-            className="inline-flex items-center gap-3 mb-4"
+            className="mb-4"
           >
-            <span className="w-8 md:w-12 h-[1px] bg-[#C88A48]/80" />
-            <span className="text-xs md:text-sm font-serif uppercase tracking-[0.35em] text-[#C88A48] font-medium">
-              EXPERIENCE
+            <span className="text-xs md:text-sm font-serif uppercase tracking-[0.35em] text-[#E8AA62] font-semibold">
+              EST. 2023 · UDAIPUR OLD CITY · LAKE PICHOLA
             </span>
-            <span className="w-8 md:w-12 h-[1px] bg-[#C88A48]/80" />
           </motion.div>
 
-          {/* Luxury Serif Headline: 12px -> 0 translateY, 0 -> 1 opacity, 500ms ease-out */}
+          {/* Luxury Serif Headline - High Contrast Pure White */}
           <motion.h1
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
-            className="text-4xl sm:text-6xl md:text-7xl font-serif font-light text-white tracking-tight uppercase leading-[1.08] drop-shadow-2xl"
+            className="text-4xl sm:text-6xl md:text-7xl font-serif font-bold text-white tracking-tight uppercase leading-[1.06] drop-shadow-2xl"
           >
-            JAADOO GOURMET <br />
-            <span className="font-normal text-stone-100">WOOD-FIRED PIZZERIA</span>
+            <span className="text-white block font-bold drop-shadow-2xl">JAADOO GOURMET</span>
+            <span className="font-extrabold text-[#FBF9F5] drop-shadow-lg">WOOD-FIRED PIZZERIA</span>
           </motion.h1>
 
-          {/* Refined Subtitle */}
+          {/* Refined High-Contrast Subtitle (Clean & Highly Legible) */}
           <motion.p
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.28, duration: 0.5, ease: "easeOut" }}
-            className="mt-4 text-sm sm:text-base md:text-lg font-serif italic text-stone-300 font-light tracking-wide max-w-xl leading-relaxed"
+            className="mt-5 text-base sm:text-lg md:text-xl font-sans font-normal text-stone-100 max-w-2xl leading-relaxed drop-shadow-md"
           >
-            Discover An Artisanal Gastronomic Experience That Transports You To The Heart Of Italy, Crafted With Lake Pichola Views.
+            Discover an artisanal gastronomic experience that transports you to the heart of Italy, crafted with 48-hour fermented sourdough and panoramic Lake Pichola views.
           </motion.p>
 
-          {/* Attributes */}
+          {/* Anti-AI Editorial Feature Band (Clean Typography & Icons, No Generic Pills or Emojis) */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.38, duration: 0.5, ease: "easeOut" }}
-            className="mt-4 flex flex-wrap items-center gap-2.5 sm:gap-4 text-[11px] font-sans font-medium tracking-[0.2em] text-[#C88A48] uppercase"
+            className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 pt-5 border-t border-white/15"
           >
-            <span>Udaipur Old City</span>
-            <span>•</span>
-            <span>48h Slow Fermentation</span>
-            <span>•</span>
-            <span>100% Vegetarian</span>
+            <div className="inline-flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-sans font-medium">
+              <MapPin className="w-4 h-4 text-[#E8AA62] shrink-0" />
+              <span>Gangaur Ghat Waterfront</span>
+            </div>
+            <span className="hidden sm:inline text-white/30">•</span>
+            <div className="inline-flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-sans font-medium">
+              <Flame className="w-4 h-4 text-[#E8AA62] shrink-0" />
+              <span>48h Natural Fermentation</span>
+            </div>
+            <span className="hidden sm:inline text-white/30">•</span>
+            <div className="inline-flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-sans font-medium">
+              <Leaf className="w-4 h-4 text-[#E8AA62] shrink-0" />
+              <span>100% Pure Vegetarian</span>
+            </div>
           </motion.div>
 
           {/* Action Buttons */}
@@ -108,7 +115,7 @@ export default function Home() {
           >
             <Link
               href="/menu"
-              className="inline-flex items-center gap-2.5 border border-[#C88A48]/90 bg-black/45 hover:bg-[#C88A48] text-[#FBF9F5] hover:text-[#120D0A] px-8 py-3.5 rounded-lg font-serif text-xs tracking-[0.25em] uppercase transition-all duration-300 backdrop-blur-md shadow-lg active:scale-95"
+              className="inline-flex items-center gap-2.5 border-2 border-[#E8AA62] bg-black/60 hover:bg-[#E8AA62] text-white hover:text-[#120D0A] px-8 py-3.5 rounded-xl font-sans text-xs sm:text-sm font-bold tracking-[0.2em] uppercase transition-all duration-300 backdrop-blur-md shadow-xl active:scale-95"
             >
               <Utensils className="w-4 h-4" />
               <span>EXPLORE MENU</span>
@@ -117,7 +124,7 @@ export default function Home() {
 
             <Link
               href="/book-table"
-              className="inline-flex items-center gap-2.5 bg-[#C88A48] hover:bg-[#D49856] text-[#120D0A] px-8 py-3.5 rounded-lg font-serif text-xs font-bold tracking-[0.25em] uppercase transition-all duration-300 shadow-xl active:scale-95"
+              className="inline-flex items-center gap-2.5 bg-[#C88A48] hover:bg-[#DE9B52] text-[#120D0A] px-8 py-3.5 rounded-xl font-sans text-xs sm:text-sm font-extrabold tracking-[0.2em] uppercase transition-all duration-300 shadow-2xl active:scale-95"
             >
               <Calendar className="w-4 h-4" />
               <span>BOOK A TABLE</span>

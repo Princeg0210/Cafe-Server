@@ -18,19 +18,19 @@ export interface MenuCategory {
 }
 
 export const ITEM_MEDIA_MAP: Record<string, { image_url: string; badge: string }> = {
-  s1: { image_url: "https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&w=400&q=80", badge: "FRESHLY BAKED" },
+  s1: { image_url: "/jaadoo-focaccia-rosemary.png", badge: "FRESHLY BAKED" },
   s2: { image_url: "https://images.unsplash.com/photo-1541529086526-db283c563270?auto=format&fit=crop&w=400&q=80", badge: "HANDCRAFTED" },
-  p1: { image_url: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=400&q=80", badge: "OVEN BAKED" },
-  pz1: { image_url: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80", badge: "DAIRY-FREE" },
-  pz2: { image_url: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=400&q=80", badge: "NEAPOLITAN CLASSIC" },
+  p1: { image_url: "/jaadoo-pizza-prep.png", badge: "OVEN BAKED" },
+  pz1: { image_url: "/jaadoo-pizza-twilight.png", badge: "DAIRY-FREE" },
+  pz2: { image_url: "/jaadoo-margherita-lakeside.png", badge: "NEAPOLITAN CLASSIC" },
   pz3: { image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=400&q=80", badge: "MEDITERRANEAN" },
   pz4: { image_url: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=400&q=80", badge: "VEGETARIAN" },
-  pz5: { image_url: "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=400&q=80", badge: "SEASONAL" },
+  pz5: { image_url: "/jaadoo-margherita-board.jpg", badge: "SEASONAL" },
   pz6: { image_url: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80", badge: "CHEF CHOICE" },
   pz7: { image_url: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=400&q=80", badge: "SOPIA BASE" },
   pz8: { image_url: "https://images.unsplash.com/photo-1594007654729-407eedc4be65?auto=format&fit=crop&w=400&q=80", badge: "ITALA BASE" },
   pz9: { image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=400&q=80", badge: "LOCAL SPECIAL" },
-  c1: { image_url: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&w=400&q=80", badge: "HOUSE MADE" },
+  c1: { image_url: "/jaadoo-tiramisu-craft.jpg", badge: "HOUSE MADE" },
   c2: { image_url: "https://images.unsplash.com/photo-1560008511-11c63416e52d?auto=format&fit=crop&w=400&q=80", badge: "CITRUS GLAZE" },
   b1: { image_url: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=400&q=80", badge: "CHILLED" },
   b2: { image_url: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?auto=format&fit=crop&w=400&q=80", badge: "DIGESTIVE" },
@@ -76,7 +76,7 @@ export const menuData: MenuCategory[] = [
   {
     id: 'starters',
     name: 'STARTERS',
-    subtitle: 'Freshly Baked Breads & Artisanal Starters',
+    subtitle: 'Freshly Baked Breads and Artisanal Starters',
     items: [
       { 
         id: 's1', 
@@ -139,7 +139,7 @@ export const menuData: MenuCategory[] = [
   {
     id: 'cakes',
     name: 'CAKES',
-    subtitle: 'Artisanal House Pastries & Gelato',
+    subtitle: 'Artisanal House Pastries and Gelato',
     items: [
       { id: 'c1', name: 'CLASSIC TIRAMISU', description: 'contains free-range eggs', price: 250, details: 'Traditional Italian tiramisu with espresso-soaked ladyfingers & mascarpone (contains free-range eggs).', tags: ['House Made', 'Arabica Coffee'], badge: 'HOUSE MADE', image_url: ITEM_MEDIA_MAP.c1.image_url, prepTime: 'Ready' },
       { id: 'c2', name: 'COCONUT ICE CREAM WITH BITTER ORANGE SAUCE', description: 'Artisanal coconut ice cream served with bitter orange sauce', price: 200, details: 'House-churned coconut ice cream topped with warm bitter orange sauce reduction.', tags: ['Refreshing', 'Citrus Glaze'], badge: 'CITRUS GLAZE', image_url: ITEM_MEDIA_MAP.c2.image_url, prepTime: 'Ready' },
@@ -148,7 +148,7 @@ export const menuData: MenuCategory[] = [
   {
     id: 'beverages',
     name: 'BEVERAGES',
-    subtitle: 'Chilled Drinks & Refreshments',
+    subtitle: 'Chilled Drinks and Refreshments',
     items: [
       { id: 'b1', name: 'FRESH LIME SODA', description: 'Key lime juice, sparkling soda water, fresh garden mint', price: 100, details: 'Freshly squeezed Key lime juice with sparkling soda water & fresh mint leaves.', tags: ['Chilled', 'Fresh Mint'], badge: 'CHILLED', image_url: ITEM_MEDIA_MAP.b1.image_url, prepTime: '5 mins' },
       { id: 'b2', name: 'LEMON GINGER SODA', description: 'House ginger reduction, fresh lemon juice, chilled soda water', price: 150, details: 'House ginger reduction brewed with fresh lemon juice and chilled soda.', tags: ['Digestive', 'House Brew'], badge: 'DIGESTIVE', image_url: ITEM_MEDIA_MAP.b2.image_url, prepTime: '5 mins' },
@@ -161,7 +161,7 @@ export const menuData: MenuCategory[] = [
   {
     id: 'hot-drinks',
     name: 'HOT DRINKS',
-    subtitle: '100% Mountain Arabica Roasts & Himalayan Herbal Infusions',
+    subtitle: '100% Mountain Arabica Roasts and Himalayan Herbal Infusions',
     items: [
       { id: 'h1', name: 'ESPRESSO', description: '100% mountain Arabica roast with rich crema', price: 150, details: 'Double shot of 100% Arabica mountain bean roast with thick caramel crema.', tags: ['100% Arabica', 'Espresso Extract'], badge: '100% ARABICA', image_url: ITEM_MEDIA_MAP.h1.image_url, prepTime: '3 mins' },
       { id: 'h2', name: 'RHODODENDRON MINT & THYME TISANE', description: 'Wild red rhododendron petals, garden mint & thyme', price: 150, details: 'Wild Himalayan red rhododendron petals blended with garden mint and soothing thyme.', tags: ['Mountain Herbs', 'Caffeine-Free'], badge: 'MOUNTAIN HERBS', image_url: ITEM_MEDIA_MAP.h2.image_url, prepTime: '5 mins' },

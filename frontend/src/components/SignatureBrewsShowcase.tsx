@@ -42,17 +42,14 @@ export default function SignatureBrewsShowcase({ onAddToCart }: SignatureBrewsSh
   return (
     <section className="my-20">
       <div className="flex flex-col items-center text-center mb-12">
-        <div className="inline-flex items-center gap-2 mb-3">
-          <span className="w-6 h-[1px] bg-[#B85B43]/60" />
-          <span className="text-xs font-serif tracking-[0.25em] text-[#B85B43] uppercase font-medium">
-            SPECIALTY BOTANICALS
-          </span>
-          <span className="w-6 h-[1px] bg-[#B85B43]/60" />
-        </div>
-        <h2 className="text-3xl md:text-5xl font-serif text-[#261C18] font-normal tracking-tight">
-          Himalayan Tisanes & Wild Ferments
+        <span className="font-serif italic text-sm text-[#9E3E26] tracking-widest font-normal">
+          Capitolo I · Dalle Vette Alle Botti
+        </span>
+        <h2 className="text-3xl md:text-5xl font-serif text-[#140E0A] font-bold tracking-tight mt-1">
+          Himalayan Tisanes and Wild Ferments
         </h2>
-        <p className="text-stone-600 font-serif italic text-sm mt-2 max-w-xl">
+        <div className="w-12 h-0.5 bg-[#9E3E26] my-3" />
+        <p className="text-[#241711] font-sans font-normal text-sm md:text-base max-w-xl leading-relaxed">
           Crafted with wild harvested botanicals from high-altitude estates and slow natural fermentations.
         </p>
       </div>
@@ -63,39 +60,39 @@ export default function SignatureBrewsShowcase({ onAddToCart }: SignatureBrewsSh
             key={brew.id}
             whileHover={{ y: -3 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="bg-[#FBF9F5] rounded-xl p-7 border border-[#E4DCD0] shadow-xs hover:border-[#B85B43]/50 transition-all flex flex-col justify-between relative overflow-hidden group"
+            className="bg-[#FAF7F2] rounded-xl p-7 border border-[#DDD3C4] shadow-xs hover:border-[#9E3E26]/60 transition-all flex flex-col justify-between relative overflow-hidden group"
           >
             {/* Fine terracotta top border highlight */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-[#B85B43]/80 group-hover:bg-[#B85B43] transition-colors" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-[#9E3E26] group-hover:bg-[#852C16] transition-colors" />
 
             <div>
               <div className="flex items-center justify-between gap-2 mb-3">
-                <span className="text-[10px] font-sans font-semibold uppercase tracking-widest text-[#4A5842] bg-[#4A5842]/10 px-2.5 py-1 rounded-md border border-[#4A5842]/20">
-                  Specialty Brew
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#1B3618]">
+                  · BOTANICAL BREW ·
                 </span>
-                <span className="text-base font-serif font-bold text-[#261C18]">
+                <span className="text-xl font-sans font-extrabold text-[#140E0A]">
                   ₹{brew.price}
                 </span>
               </div>
 
-              <h3 className="font-serif font-bold text-xl text-[#261C18] leading-snug group-hover:text-[#B85B43] transition-colors mb-2">
+              <h3 className="font-serif font-bold text-lg md:text-xl text-[#140E0A] leading-snug group-hover:text-[#9E3E26] transition-colors mb-2.5">
                 {brew.name}
               </h3>
 
-              <p className="text-xs text-stone-600 font-sans italic leading-relaxed mb-3">
+              <p className="text-sm text-[#261A12] font-sans font-medium leading-relaxed mb-3">
                 {brew.description}
               </p>
 
-              <p className="text-[11px] text-stone-500 font-sans leading-normal mb-4">
+              <div className="text-xs text-[#3E2D22] font-sans leading-relaxed mb-4 bg-[#F2EDE2] p-3 rounded-lg border border-[#E2D7C5]">
                 {brew.details}
-              </p>
+              </div>
             </div>
 
-            <div className="flex flex-wrap gap-1.5 mt-auto">
+            <div className="flex flex-wrap gap-2 mt-auto pt-2">
               {brew.tags?.map((t, idx) => (
                 <span
                   key={idx}
-                  className="text-[10px] font-medium uppercase bg-[#F6F3EC] text-[#261C18]/80 px-2 py-0.5 rounded border border-[#E4DCD0]"
+                  className="text-[11px] font-sans font-semibold text-[#8F351F] bg-[#8F351F]/8 px-2 py-0.5 rounded border border-[#8F351F]/20"
                 >
                   {t}
                 </span>

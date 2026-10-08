@@ -122,9 +122,9 @@ export default function TextZoomSplash({
             <div className="flex items-center gap-2 text-[10px] text-amber-200/70 font-sans tracking-[0.2em] font-semibold uppercase">
               <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />
               <span>WOOD-FIRED PIZZAS</span>
-              <span>⚡</span>
+              <span>·</span>
               <span>ARTISANAL COFFEE</span>
-              <span>⚡</span>
+              <span>·</span>
               <span>TISANES</span>
             </div>
           </motion.div>
