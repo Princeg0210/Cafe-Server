@@ -1,146 +1,115 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Utensils, Coffee, Pizza, Croissant, Cake } from "lucide-react";
+import { motion } from "framer-motion";
 
 const showcaseCategories = [
+  {
+    id: "pizza",
+    title: "WOOD-FIRED PIZZAS",
+    sub: "48-Hour Naturally Fermented Dough",
+    image: "/hero-bg.jpg",
+    featured: true,
+  },
   {
     id: "starters",
     title: "ARTISANAL BAKERY",
     sub: "Rosemary Focaccia & House Tarts",
     image: "/story-food.jpg",
-    icon: <Croissant className="w-8 h-8 text-[#FBF9F5]" />,
-  },
-  {
-    id: "pizza",
-    title: "WOOD-FIRED PIZZAS",
-    sub: "48h Natural Dough Fermentation",
-    image: "/hero-bg.jpg",
-    icon: <Pizza className="w-8 h-8 text-[#FBF9F5]" />,
+    featured: false,
   },
   {
     id: "primo",
-    title: "ALL DAY MAINS & PASTA",
-    sub: "Hand-Rolled Cannelloni & Small Plates",
+    title: "HAND-CRAFTED MAINS",
+    sub: "Rolled Cannelloni & Small Plates",
     image: "/gallery-2.jpg",
-    icon: <Utensils className="w-8 h-8 text-[#FBF9F5]" />,
+    featured: false,
   },
   {
     id: "beverages",
     title: "INSPIRED BEVERAGES",
-    sub: "Himalayan Tisanes & Kombuchas",
+    sub: "Mountain Arabica & Wild Tisanes",
     image: "/gallery-3.jpg",
-    icon: <Coffee className="w-8 h-8 text-[#FBF9F5]" />,
+    featured: false,
   },
   {
     id: "cakes",
-    title: "CAKES",
-    sub: "Classic Tiramisu & Coconut Ice Cream",
+    title: "DOLCI & DESSERTS",
+    sub: "Classic Tiramisu & Gelato",
     image: "/insta-6.jpg",
-    icon: <Cake className="w-8 h-8 text-[#FBF9F5]" />,
+    featured: false,
   },
 ];
 
 export default function MorphingCardsShowcase() {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "end start"],
-  });
-
-  // Scroll morphing transforms
-  const rotateY1 = useTransform(scrollYProgress, [0, 0.5, 1], [-25, 0, 15]);
-  const rotateY5 = useTransform(scrollYProgress, [0, 0.5, 1], [15, 0, -25]);
-  const scaleCenter = useTransform(scrollYProgress, [0, 0.5, 1], [0.92, 1.05, 0.95]);
-
   return (
-    <section ref={containerRef} className="my-20 relative py-14 overflow-hidden">
-      {/* Torn-Paper Texture Background Strip matching user reference image */}
-      <div className="absolute inset-0 bg-[#F6F3EC] border-y border-[#E4DCD0] opacity-90 z-0">
-        <div className="absolute inset-0 bg-[radial-gradient(#E4DCD0_1px,transparent_1px)] [background-size:16px_16px] opacity-40" />
-      </div>
-
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6">
+    <section className="my-24 relative py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         
         {/* Section Header */}
-        <div className="text-center mb-10">
-          <span className="text-xs font-sans font-semibold tracking-[0.25em] text-[#4A5842] uppercase bg-[#4A5842]/10 px-4 py-1.5 rounded-full border border-[#4A5842]/20 inline-block mb-2">
-            ESPLORA LE NOSTRE SPECIALITÀ
-          </span>
-          <h2 className="text-3xl md:text-5xl font-serif font-bold text-[#261C18]">
-            Crafted Culinary Offerings
+        <div className="text-center max-w-2xl mx-auto mb-14">
+          <div className="inline-flex items-center gap-2 mb-3">
+            <span className="w-6 h-[1px] bg-[#B85B43]/60" />
+            <span className="text-xs font-serif tracking-[0.25em] text-[#B85B43] uppercase font-medium">
+              OUR CULINARY CHAPTERS
+            </span>
+            <span className="w-6 h-[1px] bg-[#B85B43]/60" />
+          </div>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-serif text-[#261C18] tracking-tight font-normal">
+            Artisanal Craft & Tradition
           </h2>
-          <p className="text-xs md:text-sm font-serif italic text-stone-600 mt-1">
-            Tap any category to explore our complete menu selections
+          <p className="text-sm font-serif italic text-stone-600 mt-2">
+            Every dish rooted in slow fermentation, fresh mountain botanicals, and classic Italian technique.
           </p>
         </div>
 
-        {/* 3D Morphing Perspective Container */}
-        <div className="perspective-[1200px] overflow-x-auto pb-8 pt-4 no-scrollbar">
-          <div className="flex items-center justify-start md:justify-center gap-5 min-w-max px-4">
-            {showcaseCategories.map((cat, idx) => {
-              let customRotateY = rotateY1;
-              if (idx >= 3) customRotateY = rotateY5;
+        {/* Editorial Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          {showcaseCategories.map((cat, idx) => {
+            const isWide = idx === 0;
+            return (
+              <motion.div
+                key={cat.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.5, delay: idx * 0.08 }}
+                className={isWide ? "md:col-span-3 lg:col-span-4" : "md:col-span-3 lg:col-span-2"}
+              >
+                <Link
+                  href="/menu"
+                  className="group block relative h-80 sm:h-96 rounded-xl overflow-hidden border border-[#E4DCD0]/90 bg-[#1E1714] shadow-sm hover:shadow-md transition-shadow duration-300"
+                >
+                  <Image
+                    src={cat.image}
+                    alt={cat.title}
+                    fill
+                    className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+                  />
 
-              return (
-                <Link key={cat.id} href="/menu">
-                  <motion.div
-                    style={{
-                      rotateY: idx === 0 || idx === 4 ? customRotateY : 0,
-                      scale: idx === 2 ? scaleCenter : 1,
-                    }}
-                    whileHover={{
-                      scale: 1.06,
-                      rotateY: 0,
-                      y: -8,
-                      transition: { type: "spring", stiffness: 350, damping: 22 },
-                    }}
-                    className="relative w-64 h-96 sm:w-72 sm:h-[420px] rounded-3xl overflow-hidden shadow-lg border border-[#E4DCD0] group cursor-pointer transform-gpu bg-[#261C18]"
-                  >
-                    {/* Background Image */}
-                    <Image
-                      src={cat.image}
-                      alt={cat.title}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-                    />
+                  {/* Dark Vignette Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1E1714]/90 via-[#1E1714]/30 to-transparent transition-opacity duration-300 group-hover:opacity-90" />
 
-                    {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#261C18] via-[#261C18]/40 to-transparent opacity-85 group-hover:opacity-75 transition-opacity" />
-
-                    {/* Fine terracotta top border highlight */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-[#B85B43] group-hover:h-1.5 transition-all" />
-
-                    {/* Card Content & Icon Overlay (Matching user reference image layout) */}
-                    <div className="absolute inset-x-0 bottom-8 p-6 text-center text-[#FBF9F5] flex flex-col items-center justify-end h-full">
-                      {/* Floating Icon */}
-                      <div className="mb-4 p-3 rounded-2xl bg-black/40 backdrop-blur-md border border-white/20 group-hover:bg-[#B85B43] group-hover:scale-110 transition-all shadow-md">
-                        {cat.icon}
-                      </div>
-
-                      {/* Title */}
-                      <h3 className="font-serif font-extrabold text-xl sm:text-2xl tracking-wider text-[#FBF9F5] uppercase drop-shadow-md group-hover:text-[#B85B43] transition-colors">
-                        {cat.title}
-                      </h3>
-
-                      {/* Subtitle */}
-                      <p className="text-xs font-serif italic text-stone-300 mt-1 opacity-90">
-                        {cat.sub}
-                      </p>
-
-                      <span className="mt-3 text-[10px] font-sans font-semibold tracking-widest text-[#B85B43] uppercase opacity-0 group-hover:opacity-100 transition-opacity">
-                        Explore Category →
-                      </span>
-                    </div>
-                  </motion.div>
+                  {/* Caption Content */}
+                  <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8 flex flex-col justify-end text-left">
+                    <span className="text-[10px] font-sans font-medium tracking-[0.2em] text-[#C88A48] uppercase mb-1">
+                      DISCOVER
+                    </span>
+                    <h3 className="font-serif text-xl sm:text-2xl text-white tracking-wide uppercase font-normal group-hover:text-[#F3D7B5] transition-colors">
+                      {cat.title}
+                    </h3>
+                    <p className="text-xs font-serif italic text-stone-300 mt-1 opacity-90">
+                      {cat.sub}
+                    </p>
+                    <span className="mt-3 text-[11px] font-serif tracking-wider text-[#C88A48] inline-flex items-center gap-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                      View Menu Selection →
+                    </span>
+                  </div>
                 </Link>
-              );
-            })}
-          </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>

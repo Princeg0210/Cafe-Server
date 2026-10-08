@@ -30,8 +30,8 @@ export default function TanFooter() {
               <span className="font-serif font-bold text-2xl tracking-wide block leading-none text-[#FBF9F5]">
                 JAADOO <span className="font-serif italic text-[#B85B43] font-normal text-lg">Trattoria</span>
               </span>
-              <span className="text-[9px] font-sans tracking-[0.25em] text-emerald-400 uppercase font-semibold">
-                CAFÉ & PIZZERIA • UDAIPUR EST. 2024
+              <span className="text-[10px] font-sans tracking-[0.25em] text-[#D8C7B5] uppercase font-medium">
+                CAFÉ & PIZZERIA • UDAIPUR · EST. 2024
               </span>
             </div>
           </div>
@@ -97,7 +97,7 @@ export default function TanFooter() {
           </p>
 
           {subscribed ? (
-            <div className="bg-[#4A5842]/40 border border-emerald-500/40 text-emerald-200 p-2.5 rounded-xl text-xs font-semibold text-center font-sans">
+            <div className="bg-[#4A5842]/40 border border-emerald-500/40 text-emerald-200 p-2.5 rounded-lg text-xs font-semibold text-center font-sans">
               Grazie! Thank you for subscribing.
             </div>
           ) : (
@@ -110,11 +110,11 @@ export default function TanFooter() {
                 placeholder="Email address..."
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full text-xs px-3.5 py-2.5 rounded-full border border-[#E4DCD0]/20 bg-[#1C1512] text-[#FBF9F5] placeholder-stone-400 focus:outline-hidden focus:border-[#B85B43] font-sans"
+                className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-[#E4DCD0]/20 bg-[#1C1512] text-[#FBF9F5] placeholder-stone-400 focus:outline-hidden focus:border-[#B85B43] font-sans"
               />
               <button
                 type="submit"
-                className="bg-[#B85B43] hover:bg-[#A84E38] text-[#FBF9F5] px-5 py-2.5 rounded-full font-sans font-semibold text-xs uppercase tracking-wider transition-all shadow-xs shrink-0 border border-[#E4DCD0]/20 active:scale-95"
+                className="bg-[#B85B43] hover:bg-[#A84E38] text-[#FBF9F5] px-5 py-2.5 rounded-lg font-sans font-semibold text-xs uppercase tracking-wider transition-all shadow-xs shrink-0 border border-[#E4DCD0]/20 active:scale-95"
               >
                 Send
               </button>

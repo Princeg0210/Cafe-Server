@@ -49,7 +49,7 @@ export default function JaadooInstagramGrid() {
   ];
 
   return (
-    <section className="my-16 bg-[#FBF9F5] rounded-3xl border border-[#E4DCD0] shadow-xs overflow-hidden">
+    <section className="my-16 bg-[#FBF9F5] rounded-xl border border-[#E4DCD0] shadow-xs overflow-hidden">
       {/* Instagram Profile Header */}
       <div className="bg-white px-6 py-5 border-b border-[#E4DCD0] flex items-center justify-between">
         <div className="flex items-center gap-4">

@@ -11,14 +11,10 @@ import LocationBrewStation from "@/components/LocationBrewStation";
 import TanStorySection from "@/components/TanStorySection";
 import JaadooInstagramGrid from "@/components/JaadooInstagramGrid";
 import TanFooter from "@/components/TanFooter";
-import TextZoomSplash from "@/components/TextZoomSplash";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans relative">
-
-      {/* Site Load Pizza Zoom Intro Splash */}
-      <TextZoomSplash autoPlay={true} />
 
       {/* Editorial Navbar */}
       <Navbar />
@@ -121,55 +117,55 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Landing Page Sections with Scroll Morphing Animations */}
+      {/* Main Landing Page Sections */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 mt-12">
 
         {/* Feature 1: Specialty Beverage Highlights */}
         <motion.div
-          initial={{ opacity: 0, y: 30, scale: 0.98 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <SignatureBrewsShowcase />
         </motion.div>
 
-        {/* Feature 2: Interactive 3D Morphing Cards Showcase */}
+        {/* Feature 2: Editorial Culinary Showcase */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <MorphingCardsShowcase />
         </motion.div>
 
         {/* Feature 3: Story & Heritage Section */}
         <motion.div
-          initial={{ opacity: 0, y: 35, scale: 0.98 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <TanStorySection />
         </motion.div>
 
         {/* Feature 4: Recreated Instagram Feed Grid */}
         <motion.div
-          initial={{ opacity: 0, y: 35 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <JaadooInstagramGrid />
         </motion.div>
 
         {/* Feature 5: Location & Station Finder */}
         <motion.div
-          initial={{ opacity: 0, y: 35, scale: 0.98 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <LocationBrewStation />
         </motion.div>

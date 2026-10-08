@@ -40,17 +40,20 @@ const signatureBrews: MenuItem[] = [
 
 export default function SignatureBrewsShowcase({ onAddToCart }: SignatureBrewsShowcaseProps) {
   return (
-    <section className="my-16">
-      <div className="flex flex-col items-center text-center mb-10">
-        <div className="inline-flex items-center gap-2 bg-[#4A5842]/10 text-[#4A5842] px-4 py-1 rounded-full text-xs font-sans font-semibold uppercase tracking-widest mb-3 border border-[#4A5842]/20">
-          <Sparkles className="w-3.5 h-3.5 text-[#B85B43]" />
-          <span>Specialty Beverage Highlights</span>
+    <section className="my-20">
+      <div className="flex flex-col items-center text-center mb-12">
+        <div className="inline-flex items-center gap-2 mb-3">
+          <span className="w-6 h-[1px] bg-[#B85B43]/60" />
+          <span className="text-xs font-serif tracking-[0.25em] text-[#B85B43] uppercase font-medium">
+            SPECIALTY BOTANICALS
+          </span>
+          <span className="w-6 h-[1px] bg-[#B85B43]/60" />
         </div>
-        <h2 className="text-3xl md:text-5xl font-serif font-bold text-[#261C18]">
-          Signature Himalayan Tisanes & Kombuchas
+        <h2 className="text-3xl md:text-5xl font-serif text-[#261C18] font-normal tracking-tight">
+          Himalayan Tisanes & Wild Ferments
         </h2>
-        <p className="text-stone-600 font-sans text-xs md:text-sm mt-2 max-w-xl">
-          Crafted with wild harvested botanicals from high-altitude estates & slow fermentations.
+        <p className="text-stone-600 font-serif italic text-sm mt-2 max-w-xl">
+          Crafted with wild harvested botanicals from high-altitude estates and slow natural fermentations.
         </p>
       </div>
 
@@ -58,9 +61,9 @@ export default function SignatureBrewsShowcase({ onAddToCart }: SignatureBrewsSh
         {signatureBrews.map((brew) => (
           <motion.div
             key={brew.id}
-            whileHover={{ y: -4 }}
-            transition={{ type: "spring", stiffness: 350, damping: 25 }}
-            className="bg-[#FBF9F5] rounded-2xl p-6 border border-[#E4DCD0] shadow-xs hover:shadow-lg hover:border-[#B85B43]/50 transition-all flex flex-col justify-between relative overflow-hidden group"
+            whileHover={{ y: -3 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="bg-[#FBF9F5] rounded-xl p-7 border border-[#E4DCD0] shadow-xs hover:border-[#B85B43]/50 transition-all flex flex-col justify-between relative overflow-hidden group"
           >
             {/* Fine terracotta top border highlight */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-[#B85B43]/80 group-hover:bg-[#B85B43] transition-colors" />
