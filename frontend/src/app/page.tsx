@@ -38,7 +38,7 @@ export default function Home() {
             muted
             playsInline
             poster="/hero-bg.jpg"
-            className="w-full h-full object-cover object-center brightness-[0.82] contrast-110"
+            className="w-full h-full object-cover object-center brightness-[0.88] contrast-110"
           >
             <source src="/hero-video.mp4" type="video/mp4" />
             <source src="/hero-bg-video.mp4" type="video/mp4" />
