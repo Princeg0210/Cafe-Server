@@ -33,12 +33,12 @@ export default function Home() {
             muted
             playsInline
             poster="/hero-bg.jpg"
-            className="w-full h-full object-cover object-center"
+            className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000 brightness-90 contrast-105"
           >
             <source src="/hero-video.mp4" type="video/mp4" />
           </video>
           {/* Refined cinematic warm-dark tint overlay for text legibility */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#261C18]/85 via-[#261C18]/35 to-black/25" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#261C18]/90 via-[#261C18]/45 to-black/35" />
         </div>
 
         <div className="relative z-10 text-center px-6 py-12 max-w-4xl mx-auto">
