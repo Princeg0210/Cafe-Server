@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Utensils, ArrowRight, Calendar } from "lucide-react";
 import Image from "next/image";
@@ -15,112 +14,82 @@ import TanFooter from "@/components/TanFooter";
 import TextZoomSplash from "@/components/TextZoomSplash";
 
 export default function Home() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = true;
-      videoRef.current.play().catch(() => {
-        // Autoplay policy fallback handled gracefully
-      });
-    }
-  }, []);
-
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans relative">
-      
+
       {/* Site Load Pizza Zoom Intro Splash */}
       <TextZoomSplash autoPlay={true} />
 
       {/* Editorial Navbar */}
       <Navbar />
 
-      {/* Contemporary Editorial Landing Hero Banner with Background Video */}
-      <header className="relative min-h-[55vh] md:min-h-[64vh] flex items-center justify-center overflow-hidden mx-3 md:mx-6 mt-4 rounded-3xl shadow-xs border border-[#E4DCD0]">
-        <div className="absolute inset-0 z-0">
+      {/* Contemporary Editorial Landing Hero Banner */}
+      <header className="relative min-h-[55vh] md:min-h-[66vh] flex items-center justify-center overflow-hidden mx-3 md:mx-6 mt-4 rounded-3xl shadow-lg border border-[#E4DCD0] bg-[#261C18]">
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          {/* Subtle slow-motion background video with poster fallback */}
           <video
-            ref={videoRef}
             autoPlay
             loop
             muted
             playsInline
-            preload="auto"
             poster="/hero-bg.jpg"
-            className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000"
+            className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000 brightness-90 contrast-105"
           >
             <source src="/hero-video.mp4" type="video/mp4" />
-            <source src="/hero-bg-video.mp4" type="video/mp4" />
           </video>
-          {/* Subtle minimal warm tint overlay to ensure perfect contrast without overpowering */}
-          <div className="absolute inset-0 bg-[#261C18]/55 bg-gradient-to-t from-[#261C18]/90 via-[#261C18]/40 to-black/35" />
+          {/* Refined cinematic warm-dark tint overlay for text legibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#261C18]/90 via-[#261C18]/45 to-black/35" />
         </div>
-        
-        <div className="relative z-10 text-center px-6 py-12 max-w-4xl mx-auto">
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="inline-flex items-center gap-2 bg-[#261C18]/85 text-[#FBF9F5] border border-[#B85B43]/50 px-4 py-1.5 rounded-full text-[11px] font-sans font-medium tracking-[0.2em] uppercase mb-4 shadow-md backdrop-blur-md"
-          >
-            <span className="w-2 h-2 rounded-full bg-[#4A5842] animate-pulse" />
-            <span>ARTISANAL WOOD-FIRED PIZZERIA • EST. 2024</span>
-          </motion.div>
 
-          <motion.h1 
+        <div className="relative z-10 text-center px-6 py-12 max-w-4xl mx-auto">
+
+
+          <motion.h1
             initial={{ y: 15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.55 }}
             className="text-5xl sm:text-7xl md:text-8xl font-serif font-extrabold text-[#FBF9F5] tracking-tight leading-none drop-shadow-lg"
           >
             JAADOO <span className="font-serif italic font-normal text-[#B85B43]">Trattoria</span>
-          </motion.h1>
-          
-          <motion.p 
-            initial={{ y: 15, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.55 }}
-            className="mt-3 text-sm md:text-base font-serif italic text-stone-200 tracking-wide max-w-xl mx-auto"
-          >
-            Artisanal Neapolitan Pizza • Mountain Arabica Coffee • Wild Tisanes
-          </motion.p>
 
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className="mt-3 flex items-center justify-center gap-3 text-[10px] font-sans font-semibold tracking-widest text-[#E4DCD0] uppercase"
-          >
-            <span>Udaipur Old City</span>
-            <span>•</span>
-            <span>48h Slow Fermentation</span>
-            <span>•</span>
-            <span>100% Vegetarian</span>
-          </motion.div>
 
-          {/* Primary Action Buttons */}
-          <motion.div
-            initial={{ y: 15, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.55 }}
-            className="mt-8 flex flex-wrap items-center justify-center gap-4"
-          >
-            <Link
-              href="/menu"
-              className="inline-flex items-center gap-2.5 bg-[#B85B43] hover:bg-[#A84E38] text-[#FBF9F5] px-8 py-3.5 rounded-full font-sans font-semibold text-xs tracking-widest uppercase transition-all shadow-lg active:scale-95 border border-[#E4DCD0]/30"
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="mt-3 flex items-center justify-center gap-3 text-[10px] font-sans font-semibold tracking-widest text-[#E4DCD0] uppercase"
             >
-              <Utensils className="w-4 h-4" />
-              <span>EXPLORE OUR MENU</span>
-              <ArrowRight className="w-4 h-4 ml-1" />
-            </Link>
+              <span>Udaipur Old City</span>
+              <span>•</span>
+              <span>48h Slow Fermentation</span>
+              <span>•</span>
+              <span>100% Vegetarian</span>
+            </motion.div>
 
-            <Link
-              href="/book-table"
-              className="inline-flex items-center gap-2.5 bg-[#261C18]/90 hover:bg-[#261C18] text-[#FBF9F5] px-7 py-3.5 rounded-full font-sans font-semibold text-xs tracking-widest uppercase transition-all backdrop-blur-md border border-[#E4DCD0]/30 shadow-md active:scale-95"
+            {/* Primary Action Buttons */}
+            <motion.div
+              initial={{ y: 15, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.55 }}
+              className="mt-8 flex flex-wrap items-center justify-center gap-4"
             >
-              <Calendar className="w-4 h-4 text-[#B85B43]" />
-              <span>BOOK A TABLE</span>
-            </Link>
-          </motion.div>
+              <Link
+                href="/menu"
+                className="inline-flex items-center gap-2.5 bg-[#B85B43] hover:bg-[#A84E38] text-[#FBF9F5] px-8 py-3.5 rounded-full font-sans font-semibold text-xs tracking-widest uppercase transition-all shadow-lg active:scale-95 border border-[#E4DCD0]/30"
+              >
+                <Utensils className="w-4 h-4" />
+                <span>EXPLORE OUR MENU</span>
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </Link>
+
+              <Link
+                href="/book-table"
+                className="inline-flex items-center gap-2.5 bg-[#261C18]/90 hover:bg-[#261C18] text-[#FBF9F5] px-7 py-3.5 rounded-full font-sans font-semibold text-xs tracking-widest uppercase transition-all backdrop-blur-md border border-[#E4DCD0]/30 shadow-md active:scale-95"
+              >
+                <Calendar className="w-4 h-4 text-[#B85B43]" />
+                <span>BOOK A TABLE</span>
+              </Link>
+            </motion.div>
         </div>
       </header>
 
