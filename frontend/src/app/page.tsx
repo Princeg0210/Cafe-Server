@@ -16,7 +16,7 @@ import TextZoomSplash from "@/components/TextZoomSplash";
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans relative">
-      
+
       {/* Site Load Pizza Zoom Intro Splash */}
       <TextZoomSplash autoPlay={true} />
 
@@ -40,19 +40,11 @@ export default function Home() {
           {/* Refined cinematic warm-dark tint overlay for text legibility */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#261C18]/90 via-[#261C18]/45 to-black/35" />
         </div>
-        
-        <div className="relative z-10 text-center px-6 py-12 max-w-4xl mx-auto">
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="inline-flex items-center gap-2 bg-[#261C18]/85 text-[#FBF9F5] border border-[#B85B43]/50 px-4 py-1.5 rounded-full text-[11px] font-sans font-medium tracking-[0.2em] uppercase mb-4 shadow-md backdrop-blur-md"
-          >
-            <span className="w-2 h-2 rounded-full bg-[#4A5842] animate-pulse" />
-            <span>ARTISANAL WOOD-FIRED PIZZERIA • EST. 2024</span>
-          </motion.div>
 
-          <motion.h1 
+        <div className="relative z-10 text-center px-6 py-12 max-w-4xl mx-auto">
+
+
+          <motion.h1
             initial={{ y: 15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.55 }}
@@ -60,8 +52,8 @@ export default function Home() {
           >
             JAADOO <span className="font-serif italic font-normal text-[#B85B43]">Trattoria</span>
           </motion.h1>
-          
-          <motion.p 
+
+          <motion.p
             initial={{ y: 15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.55 }}
@@ -70,7 +62,7 @@ export default function Home() {
             Artisanal Neapolitan Pizza • Mountain Arabica Coffee • Wild Tisanes
           </motion.p>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4, duration: 0.5 }}
