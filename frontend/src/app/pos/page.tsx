@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Clock,
@@ -15,11 +15,9 @@ import {
   Flame,
   Check,
   RotateCw,
-  Sparkles,
   Volume2,
   VolumeX,
   ArrowLeft,
-  ChevronRight,
   ChevronDown,
   Lock,
   LogOut,
@@ -30,6 +28,10 @@ import {
   X,
   Phone,
   Mail,
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
 } from "lucide-react";
 
 interface SessionItem {
@@ -183,9 +185,9 @@ export const getTableFloor = (tableIdOrNum: number | string) => {
     typeof tableIdOrNum === "number"
       ? tableIdOrNum
       : parseInt(String(tableIdOrNum).replace(/\D/g, ""), 10) || 1;
-  if (num <= 4) return { floor: 1, name: "Floor 1", short: "Floor 1" };
-  if (num <= 8) return { floor: 2, name: "Floor 2", short: "Floor 2" };
-  return { floor: 3, name: "Floor 3", short: "Floor 3" };
+  if (num <= 4) return { floor: 1, name: "Floor 1", short: "F1" };
+  if (num <= 8) return { floor: 2, name: "Floor 2", short: "F2" };
+  return { floor: 3, name: "Floor 3", short: "F3" };
 };
 
 export default function POSDashboard() {
@@ -223,6 +225,7 @@ export default function POSDashboard() {
   const [doughCapacity, setDoughCapacity] = useState<DailyDoughCapacity | null>(null);
   const [isLoadingDoughCapacity, setIsLoadingDoughCapacity] = useState(false);
 
+  // Clock
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -291,7 +294,7 @@ export default function POSDashboard() {
     return process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
   };
 
-  // Global user interaction listener to unlock AudioContext for real-time order alerts
+  // AudioContext unlock
   useEffect(() => {
     const unlockAudio = () => {
       try {
@@ -334,29 +337,27 @@ export default function POSDashboard() {
       }
 
       const now = ctx.currentTime;
-      // Tone 1: High crisp ding (880Hz / A5)
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
       osc1.type = "sine";
       osc1.frequency.setValueAtTime(880, now);
-      gain1.gain.setValueAtTime(0.45, now);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      gain1.gain.setValueAtTime(0.4, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
       osc1.connect(gain1);
       gain1.connect(ctx.destination);
       osc1.start(now);
-      osc1.stop(now + 0.35);
+      osc1.stop(now + 0.3);
 
-      // Tone 2: Cheerful bell chime (1318.5Hz / E6)
       const osc2 = ctx.createOscillator();
       const gain2 = ctx.createGain();
       osc2.type = "sine";
-      osc2.frequency.setValueAtTime(1318.51, now + 0.12);
-      gain2.gain.setValueAtTime(0.5, now + 0.12);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+      osc2.frequency.setValueAtTime(1318.51, now + 0.1);
+      gain2.gain.setValueAtTime(0.45, now + 0.1);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
       osc2.connect(gain2);
       gain2.connect(ctx.destination);
-      osc2.start(now + 0.12);
-      osc2.stop(now + 0.65);
+      osc2.start(now + 0.1);
+      osc2.stop(now + 0.6);
     } catch {}
   };
 
@@ -457,9 +458,7 @@ export default function POSDashboard() {
   };
 
   const [selectedDate, setSelectedDate] = useState<string>(() => getLocalDateString(0));
-
   const isTodaySelected = selectedDate === getLocalDateString(0);
-
   const isFutureDateSelected = selectedDate > getLocalDateString(0);
 
   const fetchData = async (overrideToken?: string, dateStr?: string) => {
@@ -596,7 +595,6 @@ export default function POSDashboard() {
     const apiBase = getApiBase();
     try {
       if (action === "VERIFY") {
-        // Find matching pending reservation if any
         const match = reservations.find(
           (r) =>
             (r.payment_reference && r.payment_reference.toLowerCase() === utr.toLowerCase()) ||
@@ -700,14 +698,14 @@ export default function POSDashboard() {
             const data = JSON.parse(event.data);
             if (data.event === "KOT_CREATED" || data.event === "KOT_UPDATED") {
               const cleanTable = data.table_number ? data.table_number.replace(/^table\s*/i, "").trim() : "";
-              setLastNotification(`New KOT ${data.kot_number} received for Table ${cleanTable}!`);
+              setLastNotification(`New KOT ${data.kot_number} received for Table ${cleanTable}`);
               playChime();
-              setTimeout(() => setLastNotification(null), 6000);
+              setTimeout(() => setLastNotification(null), 5000);
               fetchData();
             } else if (data.event === "SESSION_CLOSED") {
               const cleanTable = data.table_number ? data.table_number.replace(/^table\s*/i, "").trim() : "";
-              setLastNotification(`Table ${cleanTable || data.table_id} settled & marked Available.`);
-              setTimeout(() => setLastNotification(null), 6000);
+              setLastNotification(`Table ${cleanTable || data.table_id} settled.`);
+              setTimeout(() => setLastNotification(null), 5000);
               fetchData();
               fetchReservations();
             }
@@ -755,11 +753,11 @@ export default function POSDashboard() {
       return;
     }
     const session = tableOverviews.flatMap((t) => t.sessions).find((s) => s.session_id === sessionId);
-    let confirmMsg = `Settle bill & close dining session for Table ${tableNumber}?`;
+    let confirmMsg = `Settle bill and close session for Table ${tableNumber}?`;
     if (session && session.reservation_deposit_paid && Number(session.reservation_deposit_paid) > 0) {
       confirmMsg += `\n\nBill Total: ₹${session.gross_amount || session.total_amount}\nReservation Credit: -₹${session.reservation_credit}\nAmount Due: ₹${session.net_amount_due}`;
     }
-    confirmMsg += `\n\nThis will mark the table as Available for new customers.`;
+    confirmMsg += `\n\nThis will mark the table as Available for walk-in guests.`;
     if (!confirm(confirmMsg)) {
       return;
     }
@@ -774,7 +772,6 @@ export default function POSDashboard() {
         },
       });
 
-      // Fallback to settle by table_id if session not found by ID
       if (!res.ok && tableId) {
         res = await fetch(`${apiBase}/api/v1/pos/tables/${tableId}/settle`, {
           method: "POST",
@@ -787,14 +784,14 @@ export default function POSDashboard() {
 
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || `Table ${tableNumber} settled & session closed successfully. Table is now Available.`);
+        alert(data.message || `Table ${tableNumber} settled successfully.`);
         await Promise.all([fetchData(), fetchReservations()]);
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Cannot settle table: ${err.detail || "Server returned " + res.status}`);
+        alert(`Cannot settle table: ${err.detail || "Server error"}`);
       }
     } catch {
-      alert("Network error: Could not reach café backend server. Please check your connection.");
+      alert("Network error: Could not reach café backend server.");
     } finally {
       setClosingSessionIds((prev) => ({ ...prev, [sessionId]: false }));
     }
@@ -813,27 +810,29 @@ export default function POSDashboard() {
       <head>
         <title>JAADOO POS Reset Report - ${reportDate}</title>
         <style>
-          body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #261C18; padding: 30px; background: #fff; }
-          .header { text-align: center; border-bottom: 2px solid #261C18; padding-bottom: 15px; margin-bottom: 20px; }
-          .header h1 { margin: 0; font-size: 24px; font-weight: bold; letter-spacing: 1px; }
-          .header p { margin: 5px 0 0 0; font-size: 12px; color: #666; }
-          .badge { display: inline-block; background: #261C18; color: #fff; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-top: 8px; }
-          .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
-          .card { background: #f9f7f4; border: 1px solid #e4dcd0; padding: 12px; border-radius: 8px; text-align: center; }
-          .card .title { font-size: 10px; text-transform: uppercase; color: #666; font-weight: bold; }
-          .card .val { font-size: 18px; font-weight: bold; color: #B85B43; margin-top: 4px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
-          th { background: #261C18; color: #fff; text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; }
-          td { border-bottom: 1px solid #eee; padding: 8px 12px; }
-          tr:nth-child(even) { background: #faf9f7; }
-          .section-title { font-size: 14px; font-weight: bold; margin-top: 25px; margin-bottom: 8px; text-transform: uppercase; border-left: 4px solid #B85B43; padding-left: 8px; }
-          .footer { margin-top: 40px; text-align: center; font-size: 10px; color: #888; border-top: 1px solid #ddd; padding-top: 10px; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #261C18; padding: 24px; background: #fff; line-height: 1.4; }
+          .header { text-align: left; border-bottom: 2px solid #261C18; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-end; }
+          .header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+          .header p { margin: 4px 0 0 0; font-size: 11px; color: #666; }
+          .badge { font-size: 11px; font-weight: 600; color: #555; }
+          .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+          .card { background: #FAF8F5; border: 1px solid #E4DCD0; padding: 10px; border-radius: 6px; }
+          .card .title { font-size: 9px; text-transform: uppercase; color: #777; font-weight: 600; letter-spacing: 0.5px; }
+          .card .val { font-size: 16px; font-weight: 700; color: #261C18; margin-top: 2px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
+          th { background: #261C18; color: #fff; text-align: left; padding: 6px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+          td { border-bottom: 1px solid #eee; padding: 6px 10px; }
+          tr:nth-child(even) { background: #FAF9F7; }
+          .section-title { font-size: 12px; font-weight: 700; margin-top: 20px; margin-bottom: 6px; text-transform: uppercase; border-left: 3px solid #B85B43; padding-left: 6px; }
+          .footer { margin-top: 30px; text-align: center; font-size: 9px; color: #888; border-top: 1px solid #ddd; padding-top: 8px; }
         </style>
       </head>
       <body>
         <div class="header">
-          <h1>JAADOO TRATTORIA • POS RESET REPORT</h1>
-          <p>Udaipur Old City • Automated Session Backup</p>
+          <div>
+            <h1>JAADOO TRATTORIA • POS OPERATIONAL REPORT</h1>
+            <p>Old City Udaipur • Session Reset Summary</p>
+          </div>
           <div class="badge">Date: ${reportDate} | Generated: ${printTime}</div>
         </div>
 
@@ -879,8 +878,8 @@ export default function POSDashboard() {
           htmlContent += `
             <tr>
               <td><strong>Table #${tbl.table_number}</strong></td>
-              <td><span style="color: #059669; font-weight: bold;">ACTIVE</span></td>
-              <td>#${s.session_seq} (${s.session_token.slice(0, 8)}...)</td>
+              <td><span style="color: #2e7d32; font-weight: bold;">ACTIVE</span></td>
+              <td>#${s.session_seq}</td>
               <td>${new Date(s.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
               <td>${s.items_count} items</td>
               <td><strong>₹${s.total_amount}</strong></td>
@@ -891,14 +890,14 @@ export default function POSDashboard() {
     });
 
     if (activeCount === 0) {
-      htmlContent += `<tr><td colspan="6" style="text-align:center; color:#888; padding: 15px;">No active sessions found at the time of reset.</td></tr>`;
+      htmlContent += `<tr><td colspan="6" style="text-align:center; color:#888; padding: 12px;">No active sessions found at the time of reset.</td></tr>`;
     }
 
     htmlContent += `
           </tbody>
         </table>
 
-        <div class="section-title">All Live KOT Tickets (${kots.length})</div>
+        <div class="section-title">Live KOT Tickets (${kots.length})</div>
         <table>
           <thead>
             <tr>
@@ -931,8 +930,7 @@ export default function POSDashboard() {
         </table>
 
         <div class="footer">
-          This report was automatically generated prior to performing a POS session reset.<br>
-          JAADOO TRATTORIA (Jazz & Blues Hospitality LLP) • ${reportDate}
+          JAADOO TRATTORIA • Operational POS System • ${reportDate}
         </div>
 
         <script>
@@ -956,20 +954,17 @@ export default function POSDashboard() {
       alert("Staff session expired. Please sign in again.");
       return;
     }
-    if (!confirm("WARNING: Are you sure you want to RESET ALL POS SESSIONS?\n\nA PDF summary report will be generated and saved/printed automatically before resetting.")) {
+    if (!confirm("Are you sure you want to RESET ALL POS SESSIONS?\n\nA PDF summary report will be generated and printed automatically.")) {
       return;
     }
 
     setIsResettingAll(true);
-
-    // 1. First automatically generate and trigger PDF download/print report
     try {
       generatePDFReport();
     } catch (e) {
       console.error("PDF generation warning:", e);
     }
 
-    // 2. Perform API reset
     const apiBase = getApiBase();
     try {
       const res = await fetch(`${apiBase}/api/v1/pos/sessions/reset-all`, {
@@ -981,7 +976,7 @@ export default function POSDashboard() {
       });
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || "Session report saved! All active table sessions have been reset and tables set to Available.");
+        alert(data.message || "All active table sessions reset. Tables are now Available.");
         await Promise.all([fetchData(), fetchReservations()]);
       } else {
         const err = await res.json().catch(() => ({}));
@@ -1005,7 +1000,6 @@ export default function POSDashboard() {
     if (expandedSessions[session.session_id] !== undefined) {
       return expandedSessions[session.session_id];
     }
-    // Auto-expand active sessions that have orders so cashier sees them immediately
     return session.is_active && session.items_count > 0;
   };
 
@@ -1015,49 +1009,56 @@ export default function POSDashboard() {
     return true;
   });
 
+  // Calculate Operational Summary Metrics from existing data
+  const activeTablesCount = tableOverviews.filter((t) => t.active_session_count > 0).length;
+  const openKotsCount = kots.filter((k) => k.status !== "COMPLETED").length;
+  const totalSalesToday = kots.reduce((sum, k) => sum + (k.total_amount || 0), 0);
+  
+  // Needs Attention Items from existing data
+  const failedKots = kots.filter((k) => k.printed_status === "FAILED");
+  const arrivedUnseatedRes = reservations.filter((r) => r.status.toUpperCase() === "ARRIVED");
+  const needsAttentionCount = failedKots.length + pendingReviews.length + arrivedUnseatedRes.length;
+
   // 1. Initial Checking Screen
   if (isAuthChecking) {
     return (
-      <div className="min-h-screen bg-[#F8F5F0] flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-12 h-12 border-3 border-[#261C18] border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="font-condensed text-xl font-bold uppercase tracking-wider text-[#261C18]">
-          Verifying Staff POS Terminal Access...
+      <div className="min-h-screen bg-[#FBF9F5] flex flex-col items-center justify-center p-6 text-center text-[#261C18]">
+        <div className="w-8 h-8 border-2 border-[#261C18] border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs uppercase tracking-widest font-semibold text-stone-600">
+          Loading JAADOO POS...
         </p>
       </div>
     );
   }
 
-  // 2. Staff Authentication Modal / Gate (Requirement 1 & 5)
+  // 2. Staff Authentication Gate
   if (!posToken) {
     return (
-      <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans flex flex-col justify-between p-6">
-        <div className="max-w-md mx-auto my-auto w-full bg-white rounded-3xl p-8 sm:p-10 border border-[#E4DCD0] shadow-2xl space-y-6">
-          <div className="text-center space-y-2">
-            <div className="w-14 h-14 rounded-full bg-[#261C18] flex items-center justify-center text-[#FBF9F5] border border-[#B85B43]/50 mx-auto shadow-md">
-              <Lock className="w-6 h-6 text-[#B85B43]" />
+      <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans flex flex-col justify-between p-4 sm:p-6">
+        <div className="max-w-sm mx-auto my-auto w-full bg-white rounded-lg p-6 sm:p-8 border border-[#E4DCD0] shadow-sm space-y-5">
+          <div className="text-left space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#261C18] text-[#FBF9F5] text-[10px] font-semibold uppercase tracking-wider mb-1">
+              <ShieldCheck className="w-3 h-3 text-[#B85B43]" />
+              <span>Staff Terminal</span>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B85B43]/10 text-[#B85B43] text-xs font-semibold uppercase tracking-widest">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Staff Authentication Required</span>
-            </div>
-            <h1 className="font-serif font-extrabold text-3xl text-[#261C18]">
+            <h1 className="font-serif font-bold text-2xl text-[#261C18]">
               JAADOO <span className="italic font-normal text-[#B85B43]">POS</span>
             </h1>
             <p className="text-xs text-stone-500 font-sans">
-              Enter authorized cashier or manager credentials to open the live terminal.
+              Enter authorized credentials to access live restaurant operations.
             </p>
           </div>
 
           {loginError && (
-            <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 flex items-center gap-2">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
               <span>{loginError}</span>
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-3.5">
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 font-sans">
+              <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-1">
                 Username
               </label>
               <input
@@ -1066,12 +1067,12 @@ export default function POSDashboard() {
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
                 placeholder="e.g. Jaadoo"
-                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 focus:outline-hidden focus:border-[#B85B43] bg-gray-50/50 font-sans"
+                className="w-full text-xs p-2.5 rounded-md border border-stone-200 focus:outline-hidden focus:border-[#B85B43] bg-stone-50/50 font-sans"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 font-sans">
+              <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-1">
                 Password
               </label>
               <input
@@ -1079,32 +1080,32 @@ export default function POSDashboard() {
                 required
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="Enter POS password"
-                className="w-full text-sm p-3.5 rounded-xl border border-gray-200 focus:outline-hidden focus:border-[#B85B43] bg-gray-50/50 font-sans"
+                placeholder="Enter password"
+                className="w-full text-xs p-2.5 rounded-md border border-stone-200 focus:outline-hidden focus:border-[#B85B43] bg-stone-50/50 font-sans"
               />
             </div>
 
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full bg-[#261C18] hover:bg-[#B85B43] disabled:opacity-50 text-white py-3.5 rounded-2xl font-condensed font-bold text-lg uppercase tracking-wider transition-colors shadow-md flex items-center justify-center gap-2"
+              className="w-full bg-[#261C18] hover:bg-[#B85B43] disabled:opacity-50 text-white py-2.5 rounded-md font-sans font-semibold text-xs uppercase tracking-wider transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer mt-2"
             >
               {isLoggingIn ? (
                 <>
-                  <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Verifying Credentials...</span>
+                  <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Authenticating...</span>
                 </>
               ) : (
-                "Authenticate POS Terminal"
+                "Sign In to Terminal"
               )}
             </button>
           </form>
 
-          <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-stone-500 font-sans">
+          <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-500">
             <Link href="/" className="hover:text-[#261C18] flex items-center gap-1">
-              <ArrowLeft className="w-3.5 h-3.5" /> Return to Website
+              <ArrowLeft className="w-3 h-3" /> Website
             </Link>
-            <span>Role: Cashier / POS</span>
+            <span>JAADOO Trattoria • POS</span>
           </div>
         </div>
       </div>
@@ -1119,9 +1120,7 @@ export default function POSDashboard() {
       return true;
     })
     .sort((a, b) => {
-      if (sortOrder === "asc") {
-        return a.sequence_number - b.sequence_number;
-      }
+      if (sortOrder === "asc") return a.sequence_number - b.sequence_number;
       return b.sequence_number - a.sequence_number;
     });
 
@@ -1130,317 +1129,167 @@ export default function POSDashboard() {
     return r.status.toUpperCase() === resFilter;
   });
 
-  const currentDateDisplay = summary?.business_date || new Date().toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).toUpperCase();
-
   return (
-    <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans selection:bg-[#B85B43]/20">
-      {/* Top Editorial Bar */}
-      <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0] shadow-xs px-4 sm:px-8 py-3.5">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          {/* Header Brand */}
+    <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans antialiased">
+      
+      {/* 1. COMPACT OPERATIONAL HEADER */}
+      <header className="sticky top-0 z-40 bg-[#FBF9F5] border-b border-[#E4DCD0] px-4 sm:px-6 py-2.5 shadow-2xs">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+          
+          {/* Brand & Live Indicator */}
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-full bg-[#261C18] flex items-center justify-center text-[#FBF9F5] border border-[#B85B43]/40 group-hover:border-[#B85B43] transition-all shadow-xs">
-                <span className="font-serif italic font-bold text-lg text-[#B85B43]">J</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-serif font-extrabold text-xl leading-none text-[#261C18]">
-                  JAADOO <span className="font-serif italic font-normal text-lg text-[#B85B43]">POS</span>
-                </span>
-                <span className="text-[9px] font-sans tracking-[0.2em] text-[#4A5842] uppercase font-semibold mt-0.5 flex items-center gap-1.5">
-                  <span className={`h-2 w-2 rounded-full ${isConnected ? "bg-[#4A5842] animate-pulse" : "bg-rose-500"}`} />
-                  {isConnected ? "Live POS Active" : "Reconnecting..."}
-                </span>
-              </div>
+            <Link href="/" className="flex items-center gap-2 group">
+              <span className="font-serif font-bold text-lg text-[#261C18] tracking-tight">
+                JAADOO <span className="font-serif italic font-normal text-[#B85B43]">POS</span>
+              </span>
             </Link>
 
+            <span className="h-4 w-[1px] bg-stone-300 mx-0.5" />
 
+            <div className="flex items-center gap-1.5 text-[11px] font-sans font-medium text-stone-700">
+              <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-600" : "bg-rose-500"}`} />
+              <span className="uppercase tracking-wider font-semibold">
+                {selectedDate === getLocalDateString(0) ? "LIVE" : "ARCHIVE"}
+              </span>
+              <span className="text-stone-400">•</span>
+              <span className="font-mono text-stone-600">{selectedDate}</span>
+            </div>
 
             {currentTime && (
-              <span className="hidden md:flex px-2.5 py-1 rounded-full text-[10px] font-mono font-bold tracking-wider bg-[#261C18] text-[#FBF9F5] border border-[#B85B43]/40 shadow-xs items-center gap-1.5">
-                <Clock className="w-3 h-3 text-[#B85B43]" />
+              <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-mono text-stone-500 ml-1">
+                <Clock className="w-3 h-3 text-stone-400" />
                 <span>{currentTime}</span>
               </span>
             )}
           </div>
 
-          {/* Real-time Order Popup Notification */}
+          {/* Real-time Order Popup */}
           {lastNotification && (
-            <div className="animate-in fade-in slide-in-from-top-2 duration-300 bg-[#261C18] text-[#FBF9F5] px-4 py-2 rounded-full text-xs font-medium flex items-center gap-2 shadow-md border border-[#B85B43]/40">
-              <Sparkles className="w-3.5 h-3.5 text-[#B85B43] animate-spin" />
-              <span>{lastNotification}</span>
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#261C18] text-[#FBF9F5] text-xs font-medium border border-stone-700">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="truncate max-w-xs">{lastNotification}</span>
             </div>
           )}
 
-          <div className="flex items-center gap-2.5">
-            {/* Tab Selectors */}
-            <div className="flex items-center bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
+          {/* Navigation Tabs & Staff Controls */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-[#ECE6DC] p-0.5 rounded-lg text-xs font-medium border border-[#E4DCD0]">
               <button
                 onClick={() => setActiveTab("tables")}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-medium transition-all ${
+                className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${
                   activeTab === "tables"
-                    ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
-                    : "text-[#261C18]/70 hover:text-[#261C18]"
+                    ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
+                    : "text-stone-700 hover:text-[#261C18]"
                 }`}
               >
-                <UtensilsCrossed className="w-3.5 h-3.5" />
-                <span>Tables & Sessions ({tableOverviews.length})</span>
+                Tables ({activeTablesCount}/{tableOverviews.length})
               </button>
               <button
                 onClick={() => setActiveTab("kots")}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-medium transition-all ${
+                className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${
                   activeTab === "kots"
-                    ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
-                    : "text-[#261C18]/70 hover:text-[#261C18]"
+                    ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
+                    : "text-stone-700 hover:text-[#261C18]"
                 }`}
               >
-                <Receipt className="w-3.5 h-3.5" />
-                <span>Live Tickets ({kots.length})</span>
+                KOTs ({kots.length})
               </button>
               <button
                 onClick={() => setActiveTab("reservations")}
-                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full font-medium transition-all ${
+                className={`px-3 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
                   activeTab === "reservations"
-                    ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
-                    : "text-[#261C18]/70 hover:text-[#261C18]"
+                    ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
+                    : "text-stone-700 hover:text-[#261C18]"
                 }`}
               >
-                <Calendar className="w-3.5 h-3.5" />
-                <span>Reservations ({reservations.length})</span>
+                <span>Bookings</span>
+                <span className="text-[10px] opacity-80">({reservations.length})</span>
+                {pendingReviews.length > 0 && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 ml-0.5" />
+                )}
               </button>
             </div>
 
-            {/* Authenticated Staff Indicator */}
-            <div className="hidden md:flex items-center gap-1.5 text-xs font-medium text-stone-600 bg-stone-100 border border-stone-200 px-3 py-1.5 rounded-full">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>{staffUser?.username || "cashier"}</span>
-              <span className="text-[10px] text-stone-400">({staffUser?.role?.name || "Cashier"})</span>
+            {/* Staff User */}
+            <div className="hidden lg:flex items-center gap-1.5 text-xs text-stone-600 px-2 py-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+              <span className="font-semibold text-stone-800">{staffUser?.username || "Staff"}</span>
             </div>
 
+            {/* Audio Toggle */}
             <button
               onClick={() => {
                 const next = !soundEnabled;
                 setSoundEnabled(next);
-                if (next) {
-                  setTimeout(playChime, 60);
-                }
+                if (next) setTimeout(playChime, 50);
               }}
-              className={`p-2 rounded-full border transition-colors cursor-pointer ${
+              className={`p-1.5 rounded-md border text-xs cursor-pointer ${
                 soundEnabled
                   ? "bg-[#261C18] border-[#261C18] text-[#FBF9F5]"
-                  : "bg-[#F6F3EC] border-[#E4DCD0] text-stone-500"
+                  : "bg-white border-[#E4DCD0] text-stone-500"
               }`}
-              title={soundEnabled ? "Mute New KOT Chime (Sound ON)" : "Enable Sound Chime (Sound OFF)"}
+              title={soundEnabled ? "Audio chime ON" : "Audio chime OFF"}
             >
               {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
             </button>
 
+            {/* Refresh */}
             <button
               onClick={() => {
                 fetchData();
                 fetchReservations();
+                fetchPendingReviews();
               }}
               disabled={isRefreshing || isRefreshingRes}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#B85B43] hover:bg-[#A84E38] text-[#FBF9F5] text-xs font-semibold uppercase tracking-wider transition-all shadow-xs disabled:opacity-50"
+              className="p-1.5 rounded-md bg-white hover:bg-stone-100 text-stone-700 border border-[#E4DCD0] text-xs cursor-pointer disabled:opacity-50"
+              title="Refresh Data"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isRefreshingRes ? "animate-spin" : ""}`} />
-              Refresh
             </button>
 
-            {/* Terminal Lock / Sign Out */}
+            {/* Lock */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-medium transition-colors"
-              title="Lock POS Terminal"
+              className="p-1.5 rounded-md bg-white hover:bg-red-50 text-red-700 border border-red-200 text-xs cursor-pointer"
+              title="Lock Terminal"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Lock</span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-8">
-        {/* Editorial Hero Banner: TODAY'S OPERATIONS */}
-        <section className="relative overflow-hidden rounded-3xl bg-[#261C18] text-[#FBF9F5] border border-[#E4DCD0]/30 p-6 sm:p-9 shadow-md">
-          <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-80 h-80 bg-[#B85B43]/15 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
-            <div>
-              <div className="inline-flex items-center gap-2 bg-[#4A5842]/25 text-[#FBF9F5] border border-[#4A5842]/50 px-3 py-1 rounded-full text-[10px] font-sans font-semibold tracking-[0.2em] uppercase mb-2">
-                <span className={`w-1.5 h-1.5 rounded-full ${isTodaySelected ? "bg-[#4A5842] animate-pulse" : isFutureDateSelected ? "bg-amber-400" : "bg-stone-400"}`} />
-                <span>
-                  {isTodaySelected
-                    ? "LIVE TODAY OPERATIONS"
-                    : isFutureDateSelected
-                    ? `FUTURE DATE PLANNING • ${selectedDate}`
-                    : `HISTORICAL READ-ONLY ARCHIVE • ${selectedDate}`}
-                </span>
-              </div>
-              <h2 className="text-sm font-serif italic text-stone-300">
-                {isTodaySelected
-                  ? "Real-time Operations & Active Table Sessions"
-                  : isFutureDateSelected
-                  ? "Upcoming Reservations & Scheduled Bookings"
-                  : "Historical Business Day Archive (Read-Only)"}
-              </h2>
-              <div className="flex items-baseline gap-4 mt-1">
-                <span className="text-5xl sm:text-7xl font-sans font-extrabold tracking-tight text-[#FBF9F5]">
-                  {summary ? String(summary.total_kots).padStart(2, "0") : String(kots.length).padStart(2, "0")}
-                </span>
-                <span className="font-serif italic font-normal text-lg sm:text-2xl text-[#B85B43]">
-                  {isTodaySelected ? "ORDERS TODAY" : isFutureDateSelected ? "UPCOMING ORDERS" : "HISTORICAL KOTS"}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
-              <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
-                <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
-                  <Users className="w-3.5 h-3.5 text-[#B85B43]" />
-                  Tables Served
-                </div>
-                <div className="text-2xl font-sans font-bold text-[#FBF9F5]">
-                  {summary?.tables_served || 0}
-                </div>
-              </div>
-
-              <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
-                <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
-                  <UtensilsCrossed className="w-3.5 h-3.5 text-[#4A5842]" />
-                  Total Items
-                </div>
-                <div className="text-2xl font-sans font-bold text-[#FBF9F5]">
-                  {summary?.total_items || 0}
-                </div>
-              </div>
-
-              <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
-                <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
-                  <Receipt className="w-3.5 h-3.5 text-amber-400" />
-                  Avg KOT Value
-                </div>
-                <div className="text-2xl font-sans font-bold text-amber-300">
-                  ₹{summary?.avg_kot_value ? Math.round(summary.avg_kot_value) : 0}
-                </div>
-              </div>
-
-              <div className="bg-[#1C1512]/90 border border-[#E4DCD0]/15 rounded-2xl p-4 min-w-[130px] shadow-2xs">
-                <div className="flex items-center gap-1.5 text-[11px] text-stone-400 mb-1 font-sans">
-                  <Flame className="w-3.5 h-3.5 text-[#B85B43]" />
-                  Peak Hour
-                </div>
-                <div className="text-lg font-sans font-bold text-[#FBF9F5] truncate">
-                  {summary?.peak_hour || "N/A"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Compact Daily Pizza Dough Capacity Bar */}
-          <div className="mt-5 p-4 bg-[#1C1512]/95 border border-amber-500/20 rounded-2xl shadow-inner relative z-10">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  <Flame className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-sans font-bold uppercase tracking-wider text-amber-300">
-                      DAILY PIZZA CAPACITY
-                    </span>
-                    {isLoadingDoughCapacity ? (
-                      <span className="text-[10px] text-stone-400 flex items-center gap-1">
-                        <RefreshCw className="w-3 h-3 animate-spin" /> Loading...
-                      </span>
-                    ) : doughCapacity?.walk_in_available === 0 ? (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-900/60 text-red-300 border border-red-500/30">
-                        WALK-IN EXHAUSTED
-                      </span>
-                    ) : doughCapacity?.total_dough_limit != null ? (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-900/60 text-emerald-300 border border-emerald-500/30">
-                        OPERATIONAL
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-800 text-stone-400 border border-stone-700">
-                        NO RULE SET
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] font-serif italic text-stone-400 mt-0.5">
-                    Real-time dough pool protection (Source: Kitchen Backend)
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-4 gap-2 sm:gap-4 font-sans text-center">
-                <div className="bg-[#261C18] px-3 py-2 rounded-xl border border-stone-700/50">
-                  <div className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Total</div>
-                  <div className="text-base sm:text-lg font-extrabold text-[#FBF9F5]">
-                    {doughCapacity?.total_dough_limit ?? "—"}
-                  </div>
-                </div>
-
-                <div className="bg-[#261C18] px-3 py-2 rounded-xl border border-stone-700/50">
-                  <div className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Used</div>
-                  <div className="text-base sm:text-lg font-extrabold text-amber-300">
-                    {doughCapacity?.total_allocated_dough ?? 0}
-                  </div>
-                </div>
-
-                <div className="bg-[#261C18] px-3 py-2 rounded-xl border border-stone-700/50">
-                  <div className="text-[10px] uppercase tracking-wider text-blue-300/80 font-semibold">Protected</div>
-                  <div className="text-base sm:text-lg font-extrabold text-blue-300">
-                    {doughCapacity?.total_active_protected ?? 0}
-                  </div>
-                </div>
-
-                <div className={`px-3 py-2 rounded-xl border ${
-                  (doughCapacity?.walk_in_available ?? 0) > 0
-                    ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-300"
-                    : "bg-red-950/40 border-red-500/30 text-red-300"
-                }`}>
-                  <div className="text-[10px] uppercase tracking-wider opacity-80 font-semibold">Walk-In Available</div>
-                  <div className="text-base sm:text-lg font-extrabold">
-                    {doughCapacity?.walk_in_available ?? "—"}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Dedicated Operations Date Control Bar */}
-          <div className="mt-6 pt-5 border-t border-[#E4DCD0]/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="flex items-center gap-2 text-xs font-sans font-bold uppercase tracking-wider text-amber-200">
-                <Calendar className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Operational Date:</span>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
+        
+        {/* 2. SUMMARY METRICS & OPERATIONAL DATE BAR */}
+        <section className="space-y-3">
+          
+          {/* Operational Date Controller (Compact) */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 bg-white p-3 rounded-lg border border-[#E4DCD0] text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-sans font-bold uppercase text-stone-600 tracking-wider text-[11px]">
+                OPERATIONS DATE:
               </span>
-
-              {/* Main Calendar Input */}
-              <div className="flex items-center gap-2 bg-[#1C1512] px-3.5 py-1.5 rounded-xl border-2 border-[#B85B43] shadow-md hover:border-[#D97055] transition-colors">
+              
+              <div className="flex items-center gap-1.5 bg-[#F6F3EC] px-2.5 py-1 rounded-md border border-[#E4DCD0]">
+                <Calendar className="w-3.5 h-3.5 text-[#B85B43]" />
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-transparent text-sm font-mono font-bold text-white focus:outline-none cursor-pointer [color-scheme:dark]"
-                  title="Choose any business date"
+                  className="bg-transparent font-mono font-bold text-xs text-[#261C18] focus:outline-hidden cursor-pointer"
                 />
               </div>
 
-              {/* Quick 1-Click Date Switchers */}
-              <div className="flex items-center gap-1 bg-[#1C1512]/90 p-1 rounded-xl border border-[#E4DCD0]/20 text-xs">
+              {/* Quick Switchers */}
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(0))}
-                  className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md font-semibold text-[11px] transition-colors cursor-pointer ${
                     isTodaySelected
-                      ? "bg-[#B85B43] text-white shadow-xs"
-                      : "text-stone-300 hover:text-white hover:bg-stone-800"
+                      ? "bg-[#261C18] text-white"
+                      : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
                   }`}
                 >
                   Today
@@ -1448,10 +1297,10 @@ export default function POSDashboard() {
                 <button
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(-1))}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${
                     selectedDate === getLocalDateString(-1)
-                      ? "bg-[#B85B43] text-white shadow-xs font-bold"
-                      : "text-stone-300 hover:text-white hover:bg-stone-800"
+                      ? "bg-[#261C18] text-white font-semibold"
+                      : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
                   }`}
                 >
                   Yesterday
@@ -1459,10 +1308,10 @@ export default function POSDashboard() {
                 <button
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(-2))}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${
                     selectedDate === getLocalDateString(-2)
-                      ? "bg-[#B85B43] text-white shadow-xs font-bold"
-                      : "text-stone-300 hover:text-white hover:bg-stone-800"
+                      ? "bg-[#261C18] text-white font-semibold"
+                      : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
                   }`}
                 >
                   2 Days Ago
@@ -1470,10 +1319,10 @@ export default function POSDashboard() {
                 <button
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(1))}
-                  className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${
                     selectedDate === getLocalDateString(1)
-                      ? "bg-[#B85B43] text-white shadow-xs font-bold"
-                      : "text-stone-300 hover:text-white hover:bg-stone-800"
+                      ? "bg-[#261C18] text-white font-semibold"
+                      : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
                   }`}
                 >
                   Tomorrow
@@ -1481,152 +1330,335 @@ export default function POSDashboard() {
               </div>
             </div>
 
-            {/* Active Shift Indicator & Return Button */}
-            <div className="flex items-center gap-3">
-              <div className="text-xs font-sans text-stone-300 flex items-center gap-2">
-                <span>Active Date:</span>
-                <span className="font-mono font-bold text-amber-300 text-sm bg-[#1C1512] px-2.5 py-1 rounded-lg border border-[#E4DCD0]/20">
-                  {selectedDate}
-                </span>
-                {isTodaySelected ? (
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-900/90 text-emerald-300 border border-emerald-500/40 uppercase">
-                    Live Shift
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-900/90 text-amber-300 border border-amber-500/40 uppercase">
-                    {isFutureDateSelected ? "Future Booking" : "Historical"}
-                  </span>
-                )}
-              </div>
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
+                isTodaySelected
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                  : isFutureDateSelected
+                  ? "bg-blue-50 text-blue-800 border-blue-200"
+                  : "bg-stone-100 text-stone-700 border-stone-200"
+              }`}>
+                {isTodaySelected ? "Live Shift" : isFutureDateSelected ? "Future Booking" : "History Archive"}
+              </span>
 
               {!isTodaySelected && (
                 <button
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(0))}
-                  className="text-xs font-bold px-3.5 py-1.5 rounded-full bg-[#B85B43] hover:bg-[#A84E38] text-white transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-                  title="Return to today's live shift"
+                  className="inline-flex items-center gap-1 text-[11px] text-[#B85B43] font-semibold hover:underline cursor-pointer"
                 >
-                  <RotateCw className="w-3.5 h-3.5" />
+                  <RotateCw className="w-3 h-3" />
                   <span>Return to Today</span>
                 </button>
               )}
             </div>
           </div>
+
+          {/* 4 Primary Summary Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            
+            {/* Metric 1: Active Tables */}
+            <div className="bg-white p-4 rounded-lg border border-[#E4DCD0] shadow-2xs">
+              <div className="text-[11px] font-sans uppercase tracking-wider font-semibold text-stone-500 flex items-center justify-between">
+                <span>ACTIVE TABLES</span>
+                <Users className="w-3.5 h-3.5 text-stone-400" />
+              </div>
+              <div className="text-2xl font-bold font-sans text-[#261C18] mt-1.5 flex items-baseline gap-1.5">
+                <span>{activeTablesCount}</span>
+                <span className="text-xs font-normal text-stone-400 font-sans">/ {tableOverviews.length} total</span>
+              </div>
+            </div>
+
+            {/* Metric 2: Open KOTs */}
+            <div className="bg-white p-4 rounded-lg border border-[#E4DCD0] shadow-2xs">
+              <div className="text-[11px] font-sans uppercase tracking-wider font-semibold text-stone-500 flex items-center justify-between">
+                <span>OPEN KOTS</span>
+                <Receipt className="w-3.5 h-3.5 text-stone-400" />
+              </div>
+              <div className="text-2xl font-bold font-sans text-[#261C18] mt-1.5 flex items-baseline gap-1.5">
+                <span>{openKotsCount}</span>
+                <span className="text-xs font-normal text-stone-400 font-sans">({kots.length} total)</span>
+              </div>
+            </div>
+
+            {/* Metric 3: Today's Sales */}
+            <div className="bg-white p-4 rounded-lg border border-[#E4DCD0] shadow-2xs">
+              <div className="text-[11px] font-sans uppercase tracking-wider font-semibold text-stone-500 flex items-center justify-between">
+                <span>TODAY&apos;S SALES</span>
+                <TrendingUp className="w-3.5 h-3.5 text-[#4A5842]" />
+              </div>
+              <div className="text-2xl font-bold font-sans text-[#261C18] mt-1.5">
+                ₹{totalSalesToday.toLocaleString("en-IN")}
+              </div>
+            </div>
+
+            {/* Metric 4: Needs Attention */}
+            <div className={`p-4 rounded-lg border shadow-2xs ${
+              needsAttentionCount > 0
+                ? "bg-amber-50/70 border-amber-300"
+                : "bg-white border-[#E4DCD0]"
+            }`}>
+              <div className="text-[11px] font-sans uppercase tracking-wider font-semibold flex items-center justify-between text-stone-500">
+                <span className={needsAttentionCount > 0 ? "text-amber-900 font-bold" : ""}>NEEDS ATTENTION</span>
+                <AlertTriangle className={`w-3.5 h-3.5 ${needsAttentionCount > 0 ? "text-amber-600" : "text-stone-400"}`} />
+              </div>
+              <div className={`text-2xl font-bold font-sans mt-1.5 ${needsAttentionCount > 0 ? "text-amber-800" : "text-stone-600"}`}>
+                {needsAttentionCount}
+              </div>
+            </div>
+          </div>
         </section>
 
-        {/* ================= TAB 1: TABLE SESSIONS HIERARCHY ================= */}
-        {activeTab === "tables" && (
-          <div className="space-y-6">
-            {/* Filter and Overview Controls */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-[#E4DCD0] shadow-xs">
-              <div>
-                <h3 className="text-lg font-serif font-bold text-[#261C18]">
-                  Dining Tables & Session History
-                </h3>
-                <p className="text-xs font-serif italic text-stone-500 mt-0.5">
-                  Click any table session arrow to inspect ordered items, prices, and 1-tap settle bills
-                </p>
+        {/* 3. DAILY PIZZA CAPACITY (Restrained Operational Component) */}
+        <section className="bg-white p-4 rounded-lg border border-[#E4DCD0] shadow-2xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Flame className="w-4 h-4 text-[#B85B43]" />
+              <h3 className="text-xs font-sans font-bold uppercase tracking-wider text-[#261C18]">
+                DAILY PIZZA CAPACITY
+              </h3>
+              {isLoadingDoughCapacity ? (
+                <span className="text-[10px] text-stone-400 flex items-center gap-1">
+                  <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Loading...
+                </span>
+              ) : doughCapacity?.total_dough_limit == null ? (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200">
+                  NO RULE SET
+                </span>
+              ) : (doughCapacity.walk_in_available ?? 0) === 0 ? (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-red-50 text-red-700 border border-red-200">
+                  WALK-IN EXHAUSTED
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  OPERATIONAL
+                </span>
+              )}
+            </div>
+
+            {doughCapacity?.total_dough_limit != null && (
+              <span className="text-xs font-sans text-stone-600">
+                <strong>{doughCapacity.total_allocated_dough}</strong> / {doughCapacity.total_dough_limit} used
+              </span>
+            )}
+          </div>
+
+          {/* Progress Bar & Breakdown */}
+          {doughCapacity?.total_dough_limit != null ? (
+            <div className="space-y-2">
+              {/* Progress Bar */}
+              <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden flex">
+                <div
+                  style={{
+                    width: `${Math.min(100, ((doughCapacity.total_allocated_dough) / (doughCapacity.total_dough_limit || 1)) * 100)}%`,
+                  }}
+                  className="bg-amber-600 transition-all duration-300"
+                  title="Allocated / Used"
+                />
+                <div
+                  style={{
+                    width: `${Math.min(100, ((doughCapacity.total_active_protected) / (doughCapacity.total_dough_limit || 1)) * 100)}%`,
+                  }}
+                  className="bg-blue-600 transition-all duration-300"
+                  title="Protected for Reservations"
+                />
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              {/* Breakdown metrics */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 text-xs font-sans pt-1">
+                <div className="bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
+                  <div className="text-[10px] text-stone-500 uppercase font-semibold">Allocated Used</div>
+                  <div className="font-bold text-[#261C18] text-sm mt-0.5">
+                    {doughCapacity.total_allocated_dough}
+                  </div>
+                </div>
+
+                <div className="bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
+                  <div className="text-[10px] text-blue-800 uppercase font-semibold">Protected (Res.)</div>
+                  <div className="font-bold text-blue-900 text-sm mt-0.5">
+                    {doughCapacity.total_active_protected}
+                  </div>
+                </div>
+
+                <div className={`p-2 rounded-md border ${
+                  (doughCapacity.walk_in_available ?? 0) > 0
+                    ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
+                    : "bg-red-50/50 border-red-200 text-red-900"
+                }`}>
+                  <div className="text-[10px] uppercase font-semibold opacity-80">Walk-In Available</div>
+                  <div className="font-bold text-sm mt-0.5">
+                    {doughCapacity.walk_in_available ?? 0}
+                  </div>
+                </div>
+
+                <div className="hidden sm:block bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
+                  <div className="text-[10px] text-stone-500 uppercase font-semibold">Total Dough Limit</div>
+                  <div className="font-bold text-[#261C18] text-sm mt-0.5">
+                    {doughCapacity.total_dough_limit}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-stone-500 font-sans italic">
+              Standard kitchen dough limits apply.
+            </p>
+          )}
+        </section>
+
+        {/* 4. NEEDS ATTENTION COMPACT SECTION (if any exist) */}
+        {needsAttentionCount > 0 && (
+          <section className="bg-amber-50/80 border border-amber-300 p-4 rounded-lg space-y-3">
+            <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+              <div className="flex items-center gap-2 text-amber-900 font-sans font-bold text-xs uppercase tracking-wider">
+                <AlertTriangle className="w-4 h-4 text-amber-700" />
+                <span>OPERATIONAL ATTENTION REQUIRED ({needsAttentionCount})</span>
+              </div>
+              <span className="text-[10px] font-semibold text-amber-800 uppercase">
+                Action Items
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {/* Failed Print KOTs */}
+              {failedKots.map((kot) => (
+                <div key={kot.id} className="bg-white p-3 rounded-md border border-amber-200 text-xs flex items-center justify-between gap-2 shadow-2xs">
+                  <div>
+                    <span className="font-bold text-stone-900">{kot.kot_number}</span>
+                    <span className="text-stone-500 ml-1.5">• Table {kot.table_number}</span>
+                    <p className="text-[11px] text-red-700 font-medium mt-0.5">Thermal print job failed</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRetryPrint(kot.id)}
+                    disabled={retryingIds[kot.id]}
+                    className="px-2.5 py-1 rounded-md bg-rose-700 hover:bg-rose-800 text-white font-semibold text-[11px] uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer shrink-0"
+                  >
+                    {retryingIds[kot.id] ? "Printing..." : "Retry Print"}
+                  </button>
+                </div>
+              ))}
+
+              {/* Pending Payment Reviews */}
+              {pendingReviews.map((rev) => (
+                <div key={rev.credit_id} className="bg-white p-3 rounded-md border border-amber-200 text-xs space-y-2 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-stone-900">Bank Credit #{rev.credit_id}</span>
+                    <span className="font-bold text-[#261C18]">₹{rev.amount}</span>
+                  </div>
+                  <p className="text-[11px] text-stone-600 font-mono truncate">UTR: {rev.utr}</p>
+                  <div className="flex items-center gap-1.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleReviewAction(rev.credit_id, rev.utr, "VERIFY")}
+                      className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-1 rounded-md text-[11px] font-semibold uppercase tracking-wider transition-colors cursor-pointer"
+                    >
+                      Verify
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleReviewAction(rev.credit_id, rev.utr, "REJECT")}
+                      className="px-2.5 py-1 border border-stone-200 hover:bg-red-50 text-red-700 rounded-md text-[11px] font-semibold transition-colors cursor-pointer"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Arrived Unseated Guests */}
+              {arrivedUnseatedRes.map((res) => (
+                <div key={res.id} className="bg-white p-3 rounded-md border border-amber-200 text-xs flex items-center justify-between gap-2 shadow-2xs">
+                  <div>
+                    <span className="font-bold text-stone-900">{res.customer?.name || "Guest"}</span>
+                    <span className="text-stone-500 ml-1.5">• {res.guest_count} Guests</span>
+                    <p className="text-[11px] text-amber-800 font-medium mt-0.5">Arrived • Waiting for seating</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!res.table_id) setAssigningTableRes(res);
+                      else handleUpdateReservationStatus(res.id, "SEATED");
+                    }}
+                    className="px-2.5 py-1 rounded-md bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-[11px] uppercase tracking-wider transition-colors cursor-pointer shrink-0"
+                  >
+                    {res.table_id ? "Seat" : "Assign"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ================= TAB 1: ACTIVE TABLES (PRIMARY OPERATIONAL SECTION) ================= */}
+        {activeTab === "tables" && (
+          <section className="space-y-4">
+            
+            {/* Table Controls Bar */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-3.5 rounded-lg border border-[#E4DCD0]">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-serif font-bold text-[#261C18]">
+                  Active Tables
+                </h2>
+                <span className="text-xs text-stone-500 font-sans">
+                  ({tableOverviews.length} physical tables)
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {/* Reset All Action */}
                 <button
                   type="button"
                   onClick={handleResetAllSessions}
                   disabled={isResettingAll}
-                  className="px-3.5 py-1.5 rounded-full bg-rose-700 hover:bg-rose-800 text-white text-xs font-sans font-semibold flex items-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
-                  title="Reset all active table sessions & mark tables as available"
+                  className="px-3 py-1.5 rounded-md bg-stone-100 hover:bg-rose-50 text-stone-700 hover:text-rose-700 border border-stone-200 font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                  title="Generate session report and reset all table sessions"
                 >
-                  <RotateCw className={`w-3.5 h-3.5 ${isResettingAll ? "animate-spin" : ""}`} />
-                  <span>{isResettingAll ? "Resetting..." : "Reset All Sessions"}</span>
+                  <span className="flex items-center gap-1">
+                    <RotateCw className={`w-3 h-3 ${isResettingAll ? "animate-spin" : ""}`} />
+                    <span>{isResettingAll ? "Resetting..." : "Reset All Sessions"}</span>
+                  </span>
                 </button>
 
-                {(() => {
-                  const totalSettledToday = tableOverviews.reduce(
-                    (acc, t) => acc + t.sessions.filter((s) => !s.is_active).length,
-                    0
-                  );
-                  const anyPastOpened =
-                    isTodaySelected &&
-                    tableOverviews.length > 0 &&
-                    tableOverviews.some((t) => showClosedToday[t.table_id]);
-
-                  if (!isTodaySelected || totalSettledToday === 0) return null;
-
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const nextState = !anyPastOpened;
-                        const updated: Record<number, boolean> = {};
-                        tableOverviews.forEach((t) => {
-                          updated[t.table_id] = nextState;
-                        });
-                        setShowClosedToday(updated);
-                      }}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-sans font-semibold flex items-center gap-1.5 transition-all shadow-xs border ${
-                        anyPastOpened
-                          ? "bg-[#261C18] text-white border-[#261C18] hover:bg-stone-800"
-                          : "bg-white text-[#B85B43] border-[#B85B43]/40 hover:bg-[#B85B43]/10"
-                      }`}
-                      title={
-                        anyPastOpened
-                          ? "Close past sessions on all tables"
-                          : "View past sessions across all tables"
-                      }
-                    >
-                      {anyPastOpened ? (
-                        <>
-                          <XCircle className="w-3.5 h-3.5 text-stone-300" />
-                          <span>Close All Past Sessions</span>
-                        </>
-                      ) : (
-                        <>
-                          <Clock className="w-3.5 h-3.5 text-[#B85B43]" />
-                          <span>Past Sessions Today ({totalSettledToday})</span>
-                        </>
-                      )}
-                    </button>
-                  );
-                })()}
-
-                <div className="flex items-center gap-1 bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
+                {/* Filter Selector */}
+                <div className="flex items-center bg-[#F6F3EC] p-0.5 rounded-md border border-[#E4DCD0]">
                   {(["all", "active", "available"] as const).map((mode) => (
                     <button
                       key={mode}
                       onClick={() => setTableFilter(mode)}
-                      className={`px-3.5 py-1.5 rounded-full capitalize font-medium transition-all ${
+                      className={`px-2.5 py-1 rounded-sm capitalize font-medium transition-colors cursor-pointer ${
                         tableFilter === mode
-                          ? "bg-[#B85B43] text-[#FBF9F5] font-semibold shadow-xs"
-                          : "text-[#261C18]/70 hover:text-[#261C18]"
+                          ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
+                          : "text-stone-700 hover:text-[#261C18]"
                       }`}
                     >
                       {mode === "all"
-                        ? `All Tables (${tableOverviews.length})`
+                        ? `All (${tableOverviews.length})`
                         : mode === "active"
-                        ? `Occupied (${tableOverviews.filter((t) => t.active_session_count > 0).length})`
-                        : `Available (${tableOverviews.filter((t) => t.active_session_count === 0).length})`}
+                        ? `Occupied (${activeTablesCount})`
+                        : `Available (${tableOverviews.length - activeTablesCount})`}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* List of All Tables */}
+            {/* Tables Grid Layout */}
             {filteredTables.length === 0 ? (
-              <div className="text-center py-16 px-4 bg-white rounded-3xl border border-[#E4DCD0] shadow-xs space-y-3">
-                <UtensilsCrossed className="w-12 h-12 text-stone-300 mx-auto stroke-[1.5]" />
-                <h4 className="text-lg font-serif font-bold text-[#261C18]">No Tables Found</h4>
-                <p className="text-xs font-serif italic text-stone-500 max-w-sm mx-auto">
+              <div className="text-center py-12 px-4 bg-white rounded-lg border border-[#E4DCD0] space-y-2">
+                <UtensilsCrossed className="w-8 h-8 text-stone-300 mx-auto" />
+                <h4 className="text-sm font-semibold text-[#261C18]">No Tables Found</h4>
+                <p className="text-xs text-stone-500">
                   {tableFilter === "active"
                     ? "No tables currently have active dining sessions."
-                    : "No tables available in the current filter."}
+                    : "No tables match current filter."}
                 </p>
               </div>
             ) : (
-              <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredTables.map((tbl) => {
                   const cleanTableNumber = tbl.table_number.replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
-                  const displayTableName = `Table ${cleanTableNumber || tbl.table_id}`;
+                  const displayTableName = `TABLE ${cleanTableNumber.padStart(2, "0") || tbl.table_id}`;
                   const activeSessions = tbl.sessions.filter((s) => s.is_active);
                   const settledSessions = tbl.sessions.filter((s) => !s.is_active);
                   const showHistory = !!showClosedToday[tbl.table_id];
@@ -1634,310 +1666,123 @@ export default function POSDashboard() {
                     ? (showHistory ? tbl.sessions : activeSessions)
                     : tbl.sessions;
 
+                  const isOccupied = tbl.active_session_count > 0;
+                  const activeSession = activeSessions[0];
+
                   return (
                     <div
                       key={tbl.table_id}
-                      className={`bg-white rounded-3xl border transition-all duration-200 overflow-hidden shadow-xs ${
-                        tbl.active_session_count > 0
-                          ? "border-amber-300 ring-1 ring-amber-400/25 shadow-sm"
+                      className={`bg-white rounded-lg border transition-all overflow-hidden flex flex-col justify-between ${
+                        isOccupied
+                          ? "border-amber-400/80 shadow-xs"
                           : "border-[#E4DCD0]"
                       }`}
                     >
-                      {/* Table Header Bar */}
-                      <div className="bg-[#FAF8F5] px-6 py-4 border-b border-[#E4DCD0]/70 flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
+                      {/* Card Top Header */}
+                      <div className={`p-4 border-b ${
+                        isOccupied ? "bg-[#FAF7F2] border-amber-200/70" : "bg-[#FAF8F5] border-[#E4DCD0]/60"
+                      }`}>
+                        <div className="flex items-start justify-between gap-2">
                           <div>
-                            <div className="flex flex-wrap items-baseline gap-2.5 sm:gap-3">
-                              <span className="font-serif font-black text-2xl sm:text-3xl lg:text-4xl text-[#261C18] tracking-tight">
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-mono font-bold text-xl text-[#261C18]">
                                 {displayTableName}
                               </span>
-                              <span className="font-sans font-bold text-lg sm:text-2xl text-[#B85B43]">
+                              <span className="text-xs font-semibold text-[#B85B43]">
                                 • {getTableFloor(cleanTableNumber || tbl.table_id).name}
                               </span>
-                              <span className="text-xs sm:text-sm text-stone-500 font-sans font-medium">
-                                ({tbl.capacity} Seats)
-                              </span>
                             </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              {tbl.active_session_count > 0 ? (
-                                <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-emerald-800">
-                                  <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                                  Currently Occupied ({tbl.active_session_count} Active Session)
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-stone-500">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
-                                  Table Available
-                                </span>
-                              )}
+                            <div className="text-xs text-stone-500 font-sans mt-0.5">
+                              {tbl.capacity} Seats • {tbl.total_sessions_today} {tbl.total_sessions_today === 1 ? "session" : "sessions"} today
                             </div>
                           </div>
-                        </div>
 
-                        <div className="flex flex-wrap items-center gap-2 text-xs font-sans text-stone-500">
-                          <span className="bg-white px-3.5 py-1.5 rounded-full border border-[#E4DCD0] font-medium shadow-2xs">
-                            {tbl.total_sessions_today} {tbl.total_sessions_today === 1 ? "Session" : "Sessions"} Today
-                          </span>
-
-                          {/* Per-Table Past Sessions Toggle & Close Button */}
-                          {isTodaySelected && settledSessions.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setShowClosedToday((prev) => ({
-                                  ...prev,
-                                  [tbl.table_id]: !prev[tbl.table_id],
-                                }))
-                              }
-                              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-sans font-semibold transition-all border shadow-2xs cursor-pointer ${
-                                showHistory
-                                  ? "bg-[#261C18] text-white border-[#261C18] hover:bg-stone-800"
-                                  : "bg-white text-[#B85B43] border-[#B85B43]/40 hover:bg-[#B85B43]/10"
-                              }`}
-                              title={
-                                showHistory
-                                  ? "Close past sessions list for this table"
-                                  : "View past settled sessions for this table"
-                              }
-                            >
-                              {showHistory ? (
-                                <>
-                                  <XCircle className="w-3.5 h-3.5 text-stone-300" />
-                                  <span>Close Past ({settledSessions.length})</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Clock className="w-3.5 h-3.5 text-[#B85B43]" />
-                                  <span>Past Sessions ({settledSessions.length})</span>
-                                  <ChevronDown className="w-3.5 h-3.5" />
-                                </>
-                              )}
-                            </button>
-                          )}
+                          <div>
+                            {isOccupied ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                                OCCUPIED
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium uppercase tracking-wider bg-stone-100 text-stone-600 border border-stone-200">
+                                AVAILABLE
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      {/* Sessions Listed Under This Table */}
-                      <div className="p-4 sm:p-6 space-y-3">
-                        {visibleSessions.length === 0 ? (
-                          <div className="py-6 px-4 rounded-2xl bg-stone-50/70 border border-dashed border-stone-200 text-center space-y-2">
-                            <p className="text-xs text-stone-500 font-serif italic">
-                              No active dining sessions on {displayTableName} right now. Ready for walk-in guests.
-                            </p>
-                            {isTodaySelected && settledSessions.length > 0 && (
+                      {/* Card Body: Session Info & Running Bill */}
+                      <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                        {isOccupied && activeSession ? (
+                          <div className="space-y-2.5">
+                            <div className="flex items-center justify-between text-xs font-sans">
+                              <span className="text-stone-500">
+                                Opened: <strong>{new Date(activeSession.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong>
+                              </span>
+                              <span className="font-semibold text-stone-700">
+                                {activeSession.items_count} {activeSession.items_count === 1 ? "item" : "items"} ordered
+                              </span>
+                            </div>
+
+                            {activeSession.customer_name && (
+                              <div className="text-xs text-stone-700 font-medium">
+                                Guest: {activeSession.customer_name}
+                              </div>
+                            )}
+
+                            {/* Running Bill Total Box */}
+                            <div className="p-3 bg-[#FAF8F5] rounded-md border border-[#E4DCD0] flex items-center justify-between">
+                              <div>
+                                <span className="text-[10px] uppercase font-semibold text-stone-500 block">
+                                  Running Bill
+                                </span>
+                                <span className="text-xl font-bold font-sans text-[#261C18]">
+                                  ₹{activeSession.total_amount}
+                                </span>
+                              </div>
+
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setShowClosedToday((prev) => ({
-                                    ...prev,
-                                    [tbl.table_id]: true,
-                                  }))
-                                }
-                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#B85B43] hover:underline pt-1 cursor-pointer"
+                                onClick={() => toggleSession(activeSession.session_id)}
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-[#B85B43] hover:underline cursor-pointer"
                               >
-                                <span>
-                                  View {settledSessions.length} Past Settled {settledSessions.length === 1 ? "Session" : "Sessions"} Today
-                                </span>
-                                <ChevronDown className="w-3.5 h-3.5" />
+                                <span>{isSessionExpanded(activeSession) ? "Hide Details" : "View Items →"}</span>
                               </button>
+                            </div>
+
+                            {/* Expandable Items List */}
+                            {isSessionExpanded(activeSession) && (
+                              <div className="pt-2 border-t border-stone-100 space-y-1.5">
+                                {activeSession.items.map((item, idx) => (
+                                  <div key={idx} className="flex items-center justify-between text-xs py-1 border-b border-stone-100 last:border-none">
+                                    <span className="text-stone-800">
+                                      <strong className="text-[#261C18]">{item.quantity}×</strong> {item.name}
+                                    </span>
+                                    <span className="font-semibold text-stone-700">₹{item.subtotal}</span>
+                                  </div>
+                                ))}
+                              </div>
                             )}
                           </div>
                         ) : (
-                          <div className="space-y-3">
-                            {/* Prominent Dismissible Banner when viewing Past Sessions */}
-                            {showHistory && settledSessions.length > 0 && (
-                              <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-amber-50/80 border border-amber-200/90 text-xs text-[#261C18]">
-                                <span className="font-medium flex items-center gap-2">
-                                  <Clock className="w-3.5 h-3.5 text-[#B85B43]" />
-                                  Showing {settledSessions.length} past settled {settledSessions.length === 1 ? "session" : "sessions"} from today
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setShowClosedToday((prev) => ({
-                                      ...prev,
-                                      [tbl.table_id]: false,
-                                    }))
-                                  }
-                                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-stone-700 hover:text-red-700 bg-white hover:bg-red-50 border border-stone-300 hover:border-red-300 px-2.5 py-1 rounded-lg transition-colors shadow-2xs cursor-pointer"
-                                >
-                                  <XCircle className="w-3.5 h-3.5 text-red-500" />
-                                  <span>Close Past Sessions</span>
-                                </button>
-                              </div>
-                            )}
-                              {visibleSessions.map((sess) => {
-                                const isExpanded = isSessionExpanded(sess);
-                                const isClosing = closingSessionIds[sess.session_id];
+                          <div className="py-6 text-center text-xs text-stone-400 italic">
+                            Table is clean and ready for seating.
+                          </div>
+                        )}
 
-                                return (
-                                  <div
-                                    key={sess.session_id}
-                                    className={`rounded-2xl border transition-all ${
-                                      sess.is_active
-                                        ? "bg-amber-50/30 border-amber-200 hover:border-amber-300"
-                                        : "bg-stone-50/50 border-stone-200 hover:border-stone-300 opacity-80"
-                                    }`}
-                                  >
-                                  {/* Session Line Header */}
-                                  <div
-                                    onClick={() => toggleSession(sess.session_id)}
-                                    className="px-4 py-3.5 flex flex-wrap items-center justify-between gap-3 cursor-pointer select-none"
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      {/* Expand/Collapse Arrow */}
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          toggleSession(sess.session_id);
-                                        }}
-                                        className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors shadow-2xs"
-                                        title={isExpanded ? "Collapse item list" : "Expand ordered items"}
-                                      >
-                                        <ChevronDown
-                                          className={`w-4 h-4 transition-transform duration-200 ${
-                                            isExpanded ? "rotate-0" : "-rotate-90"
-                                          }`}
-                                        />
-                                      </button>
-
-                                      {/* Session Sequence & Table */}
-                                      <div className="flex flex-wrap items-baseline gap-2">
-                                        <span className="font-serif font-bold text-base sm:text-lg text-[#261C18]">
-                                          {displayTableName}
-                                        </span>
-                                        <span className="font-sans font-semibold text-sm text-[#B85B43]">
-                                          • {getTableFloor(cleanTableNumber || tbl.table_id).name}
-                                        </span>
-                                        <span className="text-xs font-mono font-medium text-stone-500">
-                                          (Session #{sess.session_seq})
-                                        </span>
-                                        {sess.is_active ? (
-                                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                                            Active Session
-                                          </span>
-                                        ) : (
-                                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-700 bg-stone-200/80 px-2.5 py-0.5 rounded-full border border-stone-300">
-                                            <Check className="w-3 h-3 text-stone-500" />
-                                            Bill Settled
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      {/* Timestamp & Guest Name */}
-                                      <div className="hidden sm:flex items-center gap-2 text-xs text-stone-500 font-sans">
-                                        <span>Date: {selectedDate}</span>
-                                        <span>• Opened {new Date(sess.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                                        {sess.closed_at && (
-                                          <span>• Settled {new Date(sess.closed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                                        )}
-                                        {sess.customer_name && (
-                                          <span className="text-stone-700 font-medium">• Guest: {sess.customer_name}</span>
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    {/* Right Side: Totals & Settle Action */}
-                                    <div className="flex items-center gap-3">
-                                      <div className="text-right">
-                                        <div className="text-sm font-bold text-[#261C18] font-sans">
-                                          ₹{sess.total_amount}
-                                        </div>
-                                        <div className="text-[11px] text-stone-500 font-sans">
-                                          {sess.items_count} {sess.items_count === 1 ? "item" : "items"} ordered
-                                        </div>
-                                      </div>
-
-                                      {sess.is_active && isTodaySelected ? (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleCloseSession(sess.session_id, cleanTableNumber, tbl.table_id);
-                                          }}
-                                          disabled={isClosing}
-                                          className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-sans font-semibold flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
-                                        >
-                                          <CheckCircle2 className="w-3.5 h-3.5" />
-                                          <span>{isClosing ? "Closing..." : "Settle Table"}</span>
-                                        </button>
-                                      ) : (
-                                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                          {sess.is_active ? "Active" : "Settled"}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Collapsible Ordered Items Breakdown (Shown via arrow) */}
-                                  {isExpanded && (
-                                    <div className="px-5 pb-4 pt-1 border-t border-stone-200/70 bg-white rounded-b-2xl animate-in fade-in slide-in-from-top-1 duration-150">
-                                      <div className="text-[11px] font-sans font-semibold text-stone-400 uppercase tracking-wider mb-2 pt-2">
-                                        Ordered Items in {displayTableName} — Session #{sess.session_seq}
-                                      </div>
-
-                                      {sess.items.length === 0 ? (
-                                        <p className="text-xs text-stone-400 font-sans italic py-2">
-                                          No items ordered yet in this session.
-                                        </p>
-                                      ) : (
-                                        <div className="divide-y divide-stone-100">
-                                          {sess.items.map((item, idx) => (
-                                            <div key={idx} className="py-2.5 flex items-center justify-between text-xs font-sans">
-                                              <div className="flex items-center gap-2.5">
-                                                <span className="w-6 h-6 rounded-md bg-stone-100 text-stone-800 font-bold flex items-center justify-center text-xs">
-                                                  {item.quantity}×
-                                                </span>
-                                                <div>
-                                                  <span className="font-semibold text-[#261C18]">{item.name}</span>
-                                                  {item.special_instructions && (
-                                                    <div className="text-[11px] text-amber-700 italic">
-                                                      Note: {item.special_instructions}
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              </div>
-                                              <div className="flex items-center gap-4 text-stone-600">
-                                                <span className="text-[11px] text-stone-400">@ ₹{item.unit_price}</span>
-                                                <span className="font-bold text-[#261C18] min-w-[50px] text-right">₹{item.subtotal}</span>
-                                              </div>
-                                            </div>
-                                          ))}
-
-                                          {/* Session Item Summary Footer */}
-                                          <div className="pt-3 mt-1 flex items-center justify-between text-xs font-sans font-bold text-[#261C18]">
-                                            <span>Total Bill for Session #{sess.session_seq}</span>
-                                            <span className="text-base text-[#B85B43]">₹{sess.total_amount}</span>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-
-                            {/* Bottom Close Button when viewing Past Sessions */}
-                            {showHistory && settledSessions.length > 0 && (
-                              <div className="pt-2 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setShowClosedToday((prev) => ({
-                                      ...prev,
-                                      [tbl.table_id]: false,
-                                    }))
-                                  }
-                                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-[#261C18] bg-stone-100 hover:bg-stone-200 px-4 py-1.5 rounded-full border border-stone-300 transition-colors shadow-2xs cursor-pointer"
-                                >
-                                  <XCircle className="w-3.5 h-3.5 text-stone-500" />
-                                  <span>Close Past Sessions View</span>
-                                </button>
-                              </div>
-                            )}
+                        {/* Settle Action Button */}
+                        {isOccupied && activeSession && isTodaySelected && (
+                          <div className="pt-3 border-t border-stone-100">
+                            <button
+                              type="button"
+                              onClick={() => handleCloseSession(activeSession.session_id, cleanTableNumber, tbl.table_id)}
+                              disabled={closingSessionIds[activeSession.session_id]}
+                              className="w-full bg-[#261C18] hover:bg-[#B85B43] text-white py-2 rounded-md font-sans font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>{closingSessionIds[activeSession.session_id] ? "Settling..." : "Settle Table"}</span>
+                            </button>
                           </div>
                         )}
                       </div>
@@ -1946,396 +1791,254 @@ export default function POSDashboard() {
                 })}
               </div>
             )}
-          </div>
+          </section>
         )}
 
         {/* ================= TAB 2: LIVE KOT TICKETS ================= */}
         {activeTab === "kots" && (
-          <>
-            {/* 2-Column Main Workspace */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* Left Column: NEW KOTS Live Feed (7 Cols) */}
-              <div className="lg:col-span-7 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E4DCD0] pb-3.5">
-                  <div>
-                    <h3 className="text-2xl font-serif font-bold text-[#261C18] flex items-center gap-2.5">
-                      <span>NEW KOTS</span>
-                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#E4DCD0]/60 text-[#261C18] font-sans font-medium">
-                        <span className="font-bold">{filteredKots.length}</span> Tickets
-                      </span>
-                    </h3>
-                    <p className="text-xs font-serif italic text-stone-500 mt-0.5">Live real-time thermal ticket flow</p>
-                  </div>
-
-                  {/* Controls: Sort and Status Filters */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* 1 to N Sort Switcher */}
-                    <div className="flex items-center gap-1 bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
-                      <button
-                        onClick={() => setSortOrder("asc")}
-                        className={`px-3 py-1 rounded-full font-medium transition-all ${
-                          sortOrder === "asc"
-                            ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
-                            : "text-[#261C18]/70 hover:text-[#261C18]"
-                        }`}
-                      >
-                        1 → N (Count)
-                      </button>
-                      <button
-                        onClick={() => setSortOrder("desc")}
-                        className={`px-3 py-1 rounded-full font-medium transition-all ${
-                          sortOrder === "desc"
-                            ? "bg-[#261C18] text-[#FBF9F5] font-semibold shadow-xs"
-                            : "text-[#261C18]/70 hover:text-[#261C18]"
-                        }`}
-                      >
-                        Latest First
-                      </button>
-                    </div>
-
-                    {/* Filter Pills */}
-                    <div className="flex items-center gap-1 bg-[#F6F3EC] p-1 rounded-full border border-[#E4DCD0] text-xs">
-                      {(["all", "failed", "printed", "pending"] as const).map((t) => (
-                        <button
-                          key={t}
-                          onClick={() => setFilter(t)}
-                          className={`px-3 py-1 rounded-full capitalize font-medium transition-all ${
-                            filter === t
-                              ? "bg-[#B85B43] text-[#FBF9F5] font-semibold shadow-xs"
-                              : "text-[#261C18]/70 hover:text-[#261C18]"
-                          }`}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            {/* Left Column: Tickets Flow (7 Cols) */}
+            <div className="lg:col-span-7 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 bg-white p-3.5 rounded-lg border border-[#E4DCD0]">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-[#261C18]">
+                    LIVE KOT TICKETS ({filteredKots.length})
+                  </h3>
                 </div>
 
-                {/* KOT Cards List */}
-                {filteredKots.length === 0 ? (
-                  <div className="text-center py-16 px-4 bg-white rounded-3xl border border-[#E4DCD0] shadow-xs space-y-3">
-                    <Printer className="w-12 h-12 text-stone-300 mx-auto stroke-[1.5]" />
-                    <h4 className="text-lg font-serif font-bold text-[#261C18]">No Active KOT Tickets</h4>
-                    <p className="text-xs font-serif italic text-stone-500 max-w-sm mx-auto">
-                      All kitchen orders have been dispatched or printed. New incoming table orders will automatically appear here.
-                    </p>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  {/* Sort */}
+                  <div className="flex items-center bg-[#F6F3EC] p-0.5 rounded-md border border-[#E4DCD0]">
+                    <button
+                      onClick={() => setSortOrder("asc")}
+                      className={`px-2 py-0.5 rounded-sm transition-colors cursor-pointer ${
+                        sortOrder === "asc" ? "bg-[#261C18] text-white font-semibold" : "text-stone-600"
+                      }`}
+                    >
+                      1 → N
+                    </button>
+                    <button
+                      onClick={() => setSortOrder("desc")}
+                      className={`px-2 py-0.5 rounded-sm transition-colors cursor-pointer ${
+                        sortOrder === "desc" ? "bg-[#261C18] text-white font-semibold" : "text-stone-600"
+                      }`}
+                    >
+                      Latest
+                    </button>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredKots.map((kot) => {
-                      const cleanTableNumber = kot.table_number ? kot.table_number.replace(/^table\s*/i, "").trim() : "";
-                      return (
-                        <div
-                          key={kot.id}
-                          className="bg-white rounded-3xl border border-[#E4DCD0] p-5 shadow-xs hover:shadow-md transition-shadow relative overflow-hidden"
-                        >
-                          <div className="flex items-start justify-between gap-4 border-b border-[#E4DCD0]/60 pb-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-2xl bg-[#261C18] text-[#FBF9F5] flex flex-col items-center justify-center font-sans font-extrabold shadow-xs">
-                                <span className="text-[10px] text-stone-400 font-sans uppercase">No.</span>
-                                <span className="text-base text-[#FBF9F5] leading-none">{kot.sequence_number}</span>
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-sans font-bold text-lg text-[#261C18]">
-                                    {kot.kot_number}
-                                  </span>
-                                  <span className="text-xs px-2 py-0.5 rounded-full bg-stone-100 border border-stone-200 text-stone-600 font-sans font-medium">
-                                    {kot.order_number}
-                                  </span>
-                                </div>
-                                <div className="text-xs text-stone-500 flex items-center gap-1.5 font-sans mt-0.5">
-                                  <Calendar className="w-3.5 h-3.5 text-stone-400" />
-                                  <span>{kot.business_date || selectedDate}</span>
-                                  <span>•</span>
-                                  <Clock className="w-3.5 h-3.5 text-stone-400" />
-                                  <span>{new Date(kot.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                                </div>
-                              </div>
-                            </div>
 
-                            <div className="text-right flex flex-col items-end gap-1">
-                              <div className="flex items-baseline gap-2">
-                                <span className="font-mono font-black text-xl sm:text-2xl text-[#261C18] tracking-tight">
-                                  Table {cleanTableNumber.padStart(2, "0") || kot.table_id}
-                                </span>
-                                <span className="font-sans font-bold text-sm sm:text-base text-[#B85B43]">
-                                  • {getTableFloor(cleanTableNumber || kot.table_id).name}
-                                </span>
-                              </div>
-                              <div className="mt-1">
-                                {kot.printed_status === "PRINTED" ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                                    <Check className="w-3 h-3" /> Printed
-                                  </span>
-                                ) : kot.printed_status === "FAILED" ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-                                    <AlertCircle className="w-3 h-3" /> Failed
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                                    <RotateCw className="w-3 h-3 animate-spin" /> Pending
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Ticket Items */}
-                          <div className="py-3 divide-y divide-gray-100">
-                            {kot.items.map((item, idx) => (
-                              <div key={idx} className="py-2 flex items-center justify-between text-sm font-sans">
-                                <div className="flex items-center gap-2">
-                                  <span className="w-6 h-6 rounded-md bg-stone-100 text-stone-800 font-bold flex items-center justify-center text-xs">
-                                    {item.quantity}×
-                                  </span>
-                                  <span className="font-medium text-[#261C18]">{item.name}</span>
-                                </div>
-                                <span className="font-semibold text-stone-700">₹{item.subtotal}</span>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Footer Actions: Print Retry & Settle Table */}
-                          <div className="pt-3 border-t border-[#E4DCD0]/60 flex items-center justify-between gap-3">
-                            <div className="text-xs font-sans text-stone-500">
-                              <span>Total: </span>
-                              <span className="font-bold text-[#261C18] text-sm">₹{kot.total_amount}</span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {kot.printed_status === "FAILED" && (
-                                <button
-                                  onClick={() => handleRetryPrint(kot.id)}
-                                  disabled={retryingIds[kot.id]}
-                                  className="px-3 py-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-sans font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50"
-                                >
-                                  <Printer className="w-3.5 h-3.5" />
-                                  <span>{retryingIds[kot.id] ? "Printing..." : "Retry Print"}</span>
-                                </button>
-                              )}
-
-                              {kot.status === "COMPLETED" ? (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                                  <Check className="w-3.5 h-3.5" /> Table Settled
-                                </span>
-                              ) : (
-                                <button
-                                  onClick={() => handleCloseSession(kot.dining_session_id, cleanTableNumber, kot.table_id)}
-                                  disabled={closingSessionIds[kot.dining_session_id]}
-                                  className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-sans font-semibold flex items-center gap-1 transition-colors shadow-2xs disabled:opacity-50"
-                                >
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  <span>{closingSessionIds[kot.dining_session_id] ? "Closing..." : "Settle Table"}</span>
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  {/* Filter */}
+                  <div className="flex items-center bg-[#F6F3EC] p-0.5 rounded-md border border-[#E4DCD0]">
+                    {(["all", "failed", "printed", "pending"] as const).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setFilter(t)}
+                        className={`px-2.5 py-0.5 rounded-sm capitalize transition-colors cursor-pointer ${
+                          filter === t ? "bg-[#B85B43] text-white font-semibold" : "text-stone-600"
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Right Column: Analytics & Operations Summary (5 Cols) */}
-              <div className="lg:col-span-5 space-y-6">
-                <div className="bg-white rounded-3xl border border-[#E4DCD0] p-6 shadow-xs space-y-6">
-                  <div>
-                    <h3 className="text-xl font-serif font-bold text-[#261C18] flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-[#B85B43]" />
-                      <span>Item Volume Summary</span>
-                    </h3>
-                    <p className="text-xs font-serif italic text-stone-500 mt-0.5">Top dispatched menu items today</p>
-                  </div>
-
-                  <div className="space-y-3">
-                    {summary?.item_summary && summary.item_summary.length > 0 ? (
-                      summary.item_summary.slice(0, 8).map((it, i) => (
-                        <div key={i} className="flex items-center justify-between text-xs font-sans py-1.5 border-b border-gray-100 last:border-none">
-                          <span className="text-[#261C18] font-medium">{it.name}</span>
-                          <span className="px-2.5 py-0.5 rounded-full bg-stone-100 font-bold text-stone-800">
-                            {it.quantity} orders
-                          </span>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-stone-400 font-sans italic">No items dispatched yet today.</p>
-                    )}
-                  </div>
+              {/* Tickets List */}
+              {filteredKots.length === 0 ? (
+                <div className="text-center py-12 px-4 bg-white rounded-lg border border-[#E4DCD0] space-y-2">
+                  <Printer className="w-8 h-8 text-stone-300 mx-auto" />
+                  <h4 className="text-sm font-semibold text-[#261C18]">No Active Tickets</h4>
+                  <p className="text-xs text-stone-500">
+                    Incoming kitchen orders will appear here automatically.
+                  </p>
                 </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredKots.map((kot) => {
+                    const cleanTableNumber = kot.table_number ? kot.table_number.replace(/^table\s*/i, "").trim() : "";
+                    return (
+                      <div
+                        key={kot.id}
+                        className="bg-white rounded-lg border border-[#E4DCD0] p-4 shadow-2xs space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-2.5">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-sm text-[#261C18]">
+                                {kot.kot_number}
+                              </span>
+                              <span className="text-[11px] px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 font-mono">
+                                Table {cleanTableNumber || kot.table_id}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-stone-500 font-sans mt-0.5">
+                              {new Date(kot.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                          </div>
 
-                <div className="bg-white rounded-3xl border border-[#E4DCD0] p-6 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-sans tracking-[0.2em] text-[#B85B43] font-semibold">
-                      TODAY vs YESTERDAY
+                          <div>
+                            {kot.printed_status === "PRINTED" ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                <Check className="w-3 h-3 text-emerald-600" /> Printed
+                              </span>
+                            ) : kot.printed_status === "FAILED" ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-800 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                                <AlertCircle className="w-3 h-3 text-rose-600" /> Print Failed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                <RotateCw className="w-3 h-3 animate-spin text-amber-600" /> Pending
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Items */}
+                        <div className="divide-y divide-stone-100 text-xs font-sans">
+                          {kot.items.map((item, idx) => (
+                            <div key={idx} className="py-1.5 flex items-center justify-between">
+                              <span className="text-[#261C18]">
+                                <strong>{item.quantity}×</strong> {item.name}
+                              </span>
+                              <span className="font-semibold text-stone-700">₹{item.subtotal}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
+                          <span className="text-stone-600 font-semibold">
+                            Total: <strong className="text-[#261C18]">₹{kot.total_amount}</strong>
+                          </span>
+
+                          <div className="flex items-center gap-2">
+                            {kot.printed_status === "FAILED" && (
+                              <button
+                                onClick={() => handleRetryPrint(kot.id)}
+                                disabled={retryingIds[kot.id]}
+                                className="px-2.5 py-1 rounded-md bg-rose-700 hover:bg-rose-800 text-white text-[11px] font-semibold uppercase tracking-wider transition-colors cursor-pointer"
+                              >
+                                {retryingIds[kot.id] ? "Printing..." : "Retry Print"}
+                              </button>
+                            )}
+
+                            {kot.status !== "COMPLETED" && (
+                              <button
+                                onClick={() => handleCloseSession(kot.dining_session_id, cleanTableNumber, kot.table_id)}
+                                disabled={closingSessionIds[kot.dining_session_id]}
+                                className="px-2.5 py-1 rounded-md bg-[#261C18] hover:bg-[#B85B43] text-white text-[11px] font-semibold uppercase tracking-wider transition-colors cursor-pointer"
+                              >
+                                {closingSessionIds[kot.dining_session_id] ? "Settling..." : "Settle Table"}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: Volume Analytics (5 Cols) */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="bg-white p-4 rounded-lg border border-[#E4DCD0] shadow-2xs space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#261C18] border-b border-stone-100 pb-2">
+                  DISPATCH VOLUME SUMMARY
+                </h4>
+                <div className="space-y-2 text-xs">
+                  {summary?.item_summary && summary.item_summary.length > 0 ? (
+                    summary.item_summary.slice(0, 8).map((it, i) => (
+                      <div key={i} className="flex items-center justify-between py-1 border-b border-stone-100 last:border-none">
+                        <span className="text-stone-800 font-medium">{it.name}</span>
+                        <span className="font-bold text-[#261C18]">{it.quantity} orders</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-stone-400 italic">No orders dispatched today.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-lg border border-[#E4DCD0] shadow-2xs space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#261C18] border-b border-stone-100 pb-2">
+                  TODAY vs YESTERDAY
+                </h4>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between py-1.5 px-2 bg-[#FAF8F5] rounded-md">
+                    <span>KOTs</span>
+                    <span className="font-bold">
+                      {summary?.comparison?.today?.kots || 0} <span className="text-stone-400 font-normal">| {summary?.comparison?.yesterday?.kots || 0}</span>
                     </span>
-                    <span className="text-xs font-serif italic text-stone-400">Today | Yest</span>
                   </div>
-
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
-                      <span className="text-[#261C18] font-sans">KOTs</span>
-                      <span className="font-sans font-bold text-[#261C18]">
-                        {summary?.comparison?.today?.kots || 0}
-                        <span className="text-stone-300 font-sans font-normal mx-2">|</span>
-                        <span className="text-stone-400 font-normal">{summary?.comparison?.yesterday?.kots || 0}</span>
-                      </span>
-                    </div>
-                    <div className="flex justify-between py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
-                      <span className="text-[#261C18] font-sans">Pizzas</span>
-                      <span className="font-sans font-bold text-[#261C18]">
-                        {summary?.comparison?.today?.pizzas || 0}
-                        <span className="text-stone-300 font-sans font-normal mx-2">|</span>
-                        <span className="text-stone-400 font-normal">{summary?.comparison?.yesterday?.pizzas || 0}</span>
-                      </span>
-                    </div>
-                    <div className="flex justify-between py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
-                      <span className="text-[#261C18] font-sans">Pasta</span>
-                      <span className="font-sans font-bold text-[#261C18]">
-                        {summary?.comparison?.today?.pasta || 0}
-                        <span className="text-stone-300 font-sans font-normal mx-2">|</span>
-                        <span className="text-stone-400 font-normal">{summary?.comparison?.yesterday?.pasta || 0}</span>
-                      </span>
-                    </div>
-                    <div className="flex justify-between py-2 px-3 rounded-xl bg-white border border-[#E4DCD0]/70">
-                      <span className="text-[#261C18] font-sans">Beverages</span>
-                      <span className="font-sans font-bold text-[#261C18]">
-                        {summary?.comparison?.today?.beverages || 0}
-                        <span className="text-stone-300 font-sans font-normal mx-2">|</span>
-                        <span className="text-stone-400 font-normal">{summary?.comparison?.yesterday?.beverages || 0}</span>
-                      </span>
-                    </div>
+                  <div className="flex justify-between py-1.5 px-2 bg-[#FAF8F5] rounded-md">
+                    <span>Pizzas</span>
+                    <span className="font-bold">
+                      {summary?.comparison?.today?.pizzas || 0} <span className="text-stone-400 font-normal">| {summary?.comparison?.yesterday?.pizzas || 0}</span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1.5 px-2 bg-[#FAF8F5] rounded-md">
+                    <span>Pasta</span>
+                    <span className="font-bold">
+                      {summary?.comparison?.today?.pasta || 0} <span className="text-stone-400 font-normal">| {summary?.comparison?.yesterday?.pasta || 0}</span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1.5 px-2 bg-[#FAF8F5] rounded-md">
+                    <span>Beverages</span>
+                    <span className="font-bold">
+                      {summary?.comparison?.today?.beverages || 0} <span className="text-stone-400 font-normal">| {summary?.comparison?.yesterday?.beverages || 0}</span>
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
-          </>
+          </div>
         )}
 
-        {/* ================= TAB 2: TABLE RESERVATIONS (OPTION A) ================= */}
+        {/* ================= TAB 3: RESERVATIONS ================= */}
         {activeTab === "reservations" && (
-          <div className="space-y-6">
-            {/* Reservations Header Banner */}
-            <section className="relative overflow-hidden rounded-3xl bg-[#261C18] text-[#FBF9F5] border border-[#E4DCD0]/30 p-6 sm:p-8 shadow-md">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <div className="inline-flex items-center gap-2 bg-[#B85B43]/20 text-[#FBF9F5] border border-[#B85B43]/50 px-3 py-1 rounded-full text-[10px] font-sans font-semibold tracking-[0.2em] uppercase mb-2">
-                    <Calendar className="w-3.5 h-3.5 text-[#B85B43]" />
-                    <span>TABLE RESERVATION DESK</span>
-                  </div>
-                  <h2 className="text-3xl sm:text-4xl font-serif font-extrabold">
-                    Guest Reservations ({reservations.length})
-                  </h2>
-                  <p className="text-xs font-serif italic text-stone-300 mt-1">
-                    Real-time bookings from website with guest details, table seating & arrival controls
-                  </p>
-                </div>
+          <section className="space-y-4">
+            
+            {/* Header & Filter */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-3.5 rounded-lg border border-[#E4DCD0]">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[#261C18]">
+                GUEST RESERVATIONS ({reservations.length})
+              </h3>
 
-                {/* Filter Pills */}
-                <div className="flex flex-wrap items-center gap-1.5 bg-[#1C1512] p-1.5 rounded-2xl border border-white/10 text-xs">
-                  {(["all", "CONFIRMED", "ARRIVED", "SEATED", "COMPLETED", "CANCELLED"] as const).map((st) => (
-                    <button
-                      key={st}
-                      onClick={() => setResFilter(st)}
-                      className={`px-3 py-1.5 rounded-xl capitalize font-medium transition-all ${
-                        resFilter === st
-                          ? "bg-[#B85B43] text-white font-bold shadow-xs"
-                          : "text-stone-300 hover:text-white"
-                      }`}
-                    >
-                      {st.toLowerCase()}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex flex-wrap items-center gap-1 bg-[#F6F3EC] p-0.5 rounded-md border border-[#E4DCD0] text-xs">
+                {(["all", "CONFIRMED", "ARRIVED", "SEATED", "COMPLETED", "CANCELLED"] as const).map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setResFilter(st)}
+                    className={`px-2.5 py-1 rounded-sm capitalize transition-colors cursor-pointer ${
+                      resFilter === st
+                        ? "bg-[#261C18] text-white font-semibold"
+                        : "text-stone-600 hover:text-stone-900"
+                    }`}
+                  >
+                    {st.toLowerCase()}
+                  </button>
+                ))}
               </div>
-            </section>
+            </div>
 
-            {/* PENDING RESERVATION PAYMENTS (Requirement 16) */}
-            {pendingReviews.length > 0 && (
-              <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                    </span>
-                    <h3 className="font-serif font-bold text-lg text-amber-950 uppercase tracking-wide">
-                      PENDING RESERVATION PAYMENTS ({pendingReviews.length})
-                    </h3>
-                  </div>
-                  <span className="text-xs font-sans font-bold bg-amber-200/80 text-amber-900 px-3 py-1 rounded-full">
-                    Action Required
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {pendingReviews.map((rev) => (
-                    <div key={rev.credit_id} className="bg-white rounded-2xl p-4 border border-amber-200 shadow-xs space-y-2.5">
-                      <div className="flex items-center justify-between text-xs border-b border-gray-100 pb-2">
-                        <span className="font-bold text-stone-800">Bank Credit #{rev.credit_id}</span>
-                        <span className="font-mono text-stone-500">
-                          {new Date(rev.verified_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </div>
-                      <div className="text-xs space-y-1 text-stone-700">
-                        <div className="flex justify-between">
-                          <span className="text-stone-500">Payment Event:</span>
-                          <span className="font-semibold text-emerald-700">Received</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-stone-500">Amount:</span>
-                          <span className="font-extrabold text-base text-[#261C18]">₹{rev.amount}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-stone-500">UTR / Ref:</span>
-                          <span className="font-mono font-bold text-stone-800">{rev.utr}</span>
-                        </div>
-                        <div className="text-[11px] text-amber-800 bg-amber-50 p-1.5 rounded-lg border border-amber-200">
-                          Reason: {rev.review_reason}
-                        </div>
-                      </div>
-                      <div className="pt-2 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleReviewAction(rev.credit_id, rev.utr, "VERIFY")}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                        >
-                          Verify & Confirm
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleReviewAction(rev.credit_id, rev.utr, "REJECT")}
-                          className="px-3 py-2 border border-stone-200 hover:bg-red-50 text-red-700 rounded-xl text-xs font-sans font-semibold transition-colors cursor-pointer"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Reservations List */}
+            {/* Reservations Grid */}
             {filteredReservations.length === 0 ? (
-              <div className="text-center py-16 px-4 bg-white rounded-3xl border border-[#E4DCD0] shadow-xs space-y-3">
-                <Calendar className="w-12 h-12 text-stone-300 mx-auto stroke-[1.5]" />
-                <h4 className="text-lg font-serif font-bold text-[#261C18]">No Reservations Found</h4>
-                <p className="text-xs font-serif italic text-stone-500 max-w-sm mx-auto">
-                  {resFilter === "all"
-                    ? "No online table bookings have been received yet."
-                    : `No reservations with status '${resFilter}' exist.`}
-                </p>
+              <div className="text-center py-12 px-4 bg-white rounded-lg border border-[#E4DCD0] space-y-2">
+                <Calendar className="w-8 h-8 text-stone-300 mx-auto" />
+                <h4 className="text-sm font-semibold text-[#261C18]">No Reservations Found</h4>
+                <p className="text-xs text-stone-500">No bookings exist in this view.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 {filteredReservations.map((res) => {
                   const cust = res.customer;
                   const isCurrentUpdating = updatingResId === res.id;
                   const st = res.status.toUpperCase();
 
-                  const statusColor =
+                  const statusBadge =
                     st === "CONFIRMED"
                       ? "bg-blue-50 text-blue-800 border-blue-200"
                       : st === "ARRIVED"
@@ -2343,92 +2046,57 @@ export default function POSDashboard() {
                       : st === "SEATED"
                       ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                       : st === "COMPLETED"
-                      ? "bg-gray-100 text-gray-700 border-gray-200"
+                      ? "bg-stone-100 text-stone-700 border-stone-200"
                       : "bg-rose-50 text-rose-800 border-rose-200";
 
                   return (
                     <div
                       key={res.id}
-                      className="bg-white rounded-3xl border border-[#E4DCD0] p-5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between space-y-4"
+                      className="bg-white rounded-lg border border-[#E4DCD0] p-4 shadow-2xs space-y-3 flex flex-col justify-between"
                     >
-                      {/* Top Row: Ref & Status Badge */}
-                      <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
-                        <div>
-                          <span className="text-[11px] font-sans font-bold text-stone-400 uppercase tracking-wider block">
-                            Booking Ref
-                          </span>
-                          <span className="font-sans font-extrabold text-base text-[#261C18]">
-                            #RES-{String(res.id).padStart(4, "0")}
-                          </span>
-                        </div>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-sans font-bold uppercase tracking-wider border ${statusColor}`}>
-                          {res.status}
-                        </span>
-                      </div>
-
-                      {/* Guest Details */}
-                      <div className="space-y-2 text-xs font-sans text-stone-700">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-[#B85B43] shrink-0" />
-                          <span className="font-bold text-sm text-[#261C18]">{cust?.name || "Guest"}</span>
-                          <span className="px-2 py-0.5 rounded-full bg-stone-100 text-[11px] font-semibold text-stone-600">
-                            {res.guest_count} {res.guest_count === 1 ? "Guest" : "Guests"}
+                      <div className="space-y-2.5">
+                        <div className="flex items-start justify-between border-b border-stone-100 pb-2">
+                          <div>
+                            <span className="font-mono font-bold text-sm text-[#261C18]">
+                              #RES-{String(res.id).padStart(4, "0")}
+                            </span>
+                            <div className="text-[11px] text-stone-500 mt-0.5">
+                              {res.reservation_date} • {res.time_slot}
+                            </div>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${statusBadge}`}>
+                            {res.status}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 text-stone-600">
-                          <Phone className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                          <span>{cust?.phone || "N/A"}</span>
-                        </div>
+                        {/* Guest details */}
+                        <div className="text-xs space-y-1.5 text-stone-700">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-sm text-[#261C18]">{cust?.name || "Guest"}</span>
+                            <span className="text-stone-500 font-semibold">{res.guest_count} Guests</span>
+                          </div>
 
-                        {cust?.email && (
-                          <div className="flex items-center gap-2 text-stone-600">
-                            <Mail className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                            <span className="truncate">{cust.email}</span>
+                          <div className="text-stone-500 text-[11px]">
+                            {cust?.phone || "No phone"}
                           </div>
-                        )}
 
-                        <div className="p-3 bg-[#F8F5F0] rounded-2xl border border-[#E4DCD0] space-y-1 mt-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-stone-500 font-medium">Date:</span>
-                            <span className="font-bold text-[#261C18]">{res.reservation_date}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-stone-500 font-medium">Time Slot:</span>
-                            <span className="font-bold text-[#B85B43]">{res.time_slot}</span>
-                          </div>
                           {res.advance_amount !== undefined && Number(res.advance_amount) > 0 && (
-                            <div className="flex items-center justify-between text-xs pt-1.5 border-t border-[#E4DCD0]/70">
-                              <span className="text-stone-500 font-medium">Deposit Paid (₹200/guest):</span>
-                              <span className="font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md text-[11px]">
-                                ₹{Number(res.advance_amount).toFixed(0)} ({res.payment_method || "UPI"})
-                              </span>
+                            <div className="text-[11px] text-emerald-800 bg-emerald-50 p-1.5 rounded-md border border-emerald-200 font-medium">
+                              Deposit Paid: ₹{Number(res.advance_amount).toFixed(0)} ({res.payment_method || "UPI"})
                             </div>
                           )}
-                          {res.payment_reference && (
-                            <div className="flex items-center justify-between text-[10px] text-stone-500 pt-0.5">
-                              <span>Ref / UTR:</span>
-                              <span className="font-mono text-stone-600 truncate max-w-[150px]">{res.payment_reference}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center justify-between text-xs pt-1 border-t border-[#E4DCD0]/70">
-                            <span className="text-stone-500 font-medium">Assigned Table:</span>
+
+                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-stone-100">
+                            <span className="text-stone-500">Table:</span>
                             {res.table_name || res.table_id ? (
-                              <span className="font-bold text-[#261C18] bg-stone-100 px-2 py-0.5 rounded-md text-[11px] flex items-center gap-1">
-                                <span>{res.table_name || `Table ${res.table_id}`}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => setAssigningTableRes(res)}
-                                  className="text-[10px] text-[#B85B43] hover:underline ml-1"
-                                >
-                                  (Change)
-                                </button>
+                              <span className="font-bold text-[#261C18]">
+                                {res.table_name || `Table ${res.table_id}`}
                               </span>
                             ) : (
                               <button
                                 type="button"
                                 onClick={() => setAssigningTableRes(res)}
-                                className="text-[11px] font-bold text-[#B85B43] bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-md cursor-pointer transition-colors"
+                                className="text-[#B85B43] font-semibold hover:underline cursor-pointer"
                               >
                                 + Assign Table
                               </button>
@@ -2437,30 +2105,21 @@ export default function POSDashboard() {
                         </div>
                       </div>
 
-                      {/* Action Controls based on State Machine */}
-                      <div className="pt-2 border-t border-gray-100 flex items-center gap-2">
+                      {/* Workflow state controls */}
+                      <div className="pt-2 border-t border-stone-100 flex items-center gap-1.5">
                         {st === "CONFIRMED" && (
                           <>
                             <button
                               onClick={() => handleUpdateReservationStatus(res.id, "ARRIVED")}
                               disabled={isCurrentUpdating}
-                              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
+                              className="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-1.5 rounded-md text-[11px] font-semibold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer"
                             >
-                              <UserCheck className="w-3.5 h-3.5" />
-                              <span>Arrived</span>
+                              Arrived
                             </button>
-                            {!res.table_id && (
-                              <button
-                                onClick={() => setAssigningTableRes(res)}
-                                className="px-2.5 py-2 border border-stone-200 text-stone-700 hover:bg-stone-50 rounded-xl text-xs font-sans font-semibold transition-colors cursor-pointer"
-                              >
-                                Assign
-                              </button>
-                            )}
                             <button
                               onClick={() => handleUpdateReservationStatus(res.id, "CANCELLED")}
                               disabled={isCurrentUpdating}
-                              className="px-3 py-2 border border-red-200 text-red-700 hover:bg-red-50 rounded-xl text-xs font-sans font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                              className="px-2.5 py-1.5 border border-red-200 text-red-700 hover:bg-red-50 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -2468,45 +2127,31 @@ export default function POSDashboard() {
                         )}
 
                         {st === "ARRIVED" && (
-                          <>
-                            <button
-                              onClick={() => {
-                                if (!res.table_id) {
-                                  setAssigningTableRes(res);
-                                } else {
-                                  handleUpdateReservationStatus(res.id, "SEATED");
-                                }
-                              }}
-                              disabled={isCurrentUpdating}
-                              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>{res.table_id ? "Seat Table" : "Assign & Seat Table"}</span>
-                            </button>
-                            <button
-                              onClick={() => handleUpdateReservationStatus(res.id, "CANCELLED")}
-                              disabled={isCurrentUpdating}
-                              className="px-3 py-2 border border-red-200 text-red-700 hover:bg-red-50 rounded-xl text-xs font-sans font-semibold transition-colors disabled:opacity-50 cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                          </>
+                          <button
+                            onClick={() => {
+                              if (!res.table_id) setAssigningTableRes(res);
+                              else handleUpdateReservationStatus(res.id, "SEATED");
+                            }}
+                            disabled={isCurrentUpdating}
+                            className="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-1.5 rounded-md text-[11px] font-semibold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer"
+                          >
+                            {res.table_id ? "Seat Table" : "Assign & Seat"}
+                          </button>
                         )}
 
                         {st === "SEATED" && (
                           <button
                             onClick={() => handleUpdateReservationStatus(res.id, "COMPLETED")}
                             disabled={isCurrentUpdating}
-                            className="w-full bg-[#261C18] hover:bg-[#B85B43] text-white py-2 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                            className="w-full bg-[#261C18] hover:bg-[#B85B43] text-white py-1.5 rounded-md text-[11px] font-semibold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer"
                           >
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Complete Dining</span>
+                            Complete
                           </button>
                         )}
 
                         {(st === "COMPLETED" || st === "CANCELLED") && (
-                          <span className="w-full text-center text-xs text-stone-400 font-sans italic py-1">
-                            {st === "COMPLETED" ? "Booking Completed" : "Booking Cancelled"}
+                          <span className="w-full text-center text-xs text-stone-400 italic">
+                            {st === "COMPLETED" ? "Completed" : "Cancelled"}
                           </span>
                         )}
                       </div>
@@ -2515,48 +2160,43 @@ export default function POSDashboard() {
                 })}
               </div>
             )}
-          </div>
+          </section>
         )}
 
-        {/* Assign Table Modal (Requirement 11) */}
+        {/* Modal: Assign Table */}
         {assigningTableRes && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div className="bg-white rounded-3xl w-full max-w-md p-6 border border-[#E4DCD0] shadow-2xl space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                <h3 className="font-serif font-bold text-xl text-[#261C18]">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-2xs">
+            <div className="bg-white rounded-lg w-full max-w-md p-5 border border-[#E4DCD0] shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+                <h3 className="font-serif font-bold text-base text-[#261C18]">
                   Assign Physical Table
                 </h3>
                 <button
                   type="button"
                   onClick={() => setAssigningTableRes(null)}
-                  className="p-1 rounded-full hover:bg-gray-100 text-gray-500 cursor-pointer"
+                  className="p-1 rounded-md hover:bg-stone-100 text-stone-500 cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl text-xs space-y-1">
+              <div className="p-3 bg-[#FAF8F5] border border-[#E4DCD0] rounded-md text-xs space-y-1">
                 <p>
                   <strong>Reservation:</strong> #RES-{String(assigningTableRes.id).padStart(4, "0")} • {assigningTableRes.customer?.name}
                 </p>
                 <p>
-                  <strong>Party Size:</strong> {assigningTableRes.guest_count} Guests • {assigningTableRes.reservation_date} at {assigningTableRes.time_slot}
+                  <strong>Party Size:</strong> {assigningTableRes.guest_count} Guests • {assigningTableRes.time_slot}
                 </p>
-                {assigningTableRes.advance_amount && (
-                  <p className="text-emerald-800 font-bold">
-                    Deposit Paid: ₹{assigningTableRes.advance_amount}
-                  </p>
-                )}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-stone-700 uppercase tracking-wider block font-sans">
-                  Select Physical Table:
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider block">
+                  Select Table:
                 </label>
                 <select
                   value={selectedAssignTableId}
                   onChange={(e) => setSelectedAssignTableId(Number(e.target.value))}
-                  className="w-full text-sm p-3 rounded-xl border border-gray-300 bg-gray-50 font-sans focus:outline-hidden focus:border-[#B85B43]"
+                  className="w-full text-xs p-2.5 rounded-md border border-stone-300 bg-stone-50 font-sans focus:outline-hidden focus:border-[#B85B43]"
                 >
                   {tableOverviews.map((tbl) => {
                     const fl = getTableFloor(tbl.table_number || tbl.table_id);
@@ -2573,14 +2213,14 @@ export default function POSDashboard() {
                 <button
                   type="button"
                   onClick={() => handleAssignTable(assigningTableRes.id, selectedAssignTableId)}
-                  className="flex-1 bg-[#261C18] hover:bg-[#B85B43] text-white py-3 rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition-colors shadow-xs cursor-pointer"
+                  className="flex-1 bg-[#261C18] hover:bg-[#B85B43] text-white py-2.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Confirm Table Assignment
                 </button>
                 <button
                   type="button"
                   onClick={() => setAssigningTableRes(null)}
-                  className="px-4 py-3 border border-gray-200 hover:bg-gray-100 text-stone-700 rounded-xl text-xs font-sans font-semibold transition-colors cursor-pointer"
+                  className="px-3 py-2.5 border border-stone-200 hover:bg-stone-100 text-stone-700 rounded-md text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
