@@ -136,6 +136,7 @@ export default function AdminPortal() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [isSavingItem, setIsSavingItem] = useState(false);
   const [isCreatingItem, setIsCreatingItem] = useState(false);
   const [newItemData, setNewItemData] = useState({ name: "", category_id: 1, description: "", price: 350 });
 
@@ -290,7 +291,9 @@ export default function AdminPortal() {
 
   // Update menu item
   const handleSaveMenuItem = async (item: MenuItem) => {
+    if (!item) return;
     const apiBase = getApiBase();
+    setIsSavingItem(true);
     try {
       const res = await fetch(`${apiBase}/api/v1/menu/items/${item.id}`, {
         method: "PUT",
@@ -302,15 +305,22 @@ export default function AdminPortal() {
           name: item.name,
           description: item.description,
           price: Number(item.price),
-          is_available: item.is_available,
+          is_available: Boolean(item.is_available),
         }),
       });
       if (res.ok) {
-        setMenuItems((prev) => prev.map((i) => (i.id === item.id ? item : i)));
+        setMenuItems((prev) =>
+          prev.map((i) => (i.id === item.id ? { ...i, ...item, price: Number(item.price) } : i))
+        );
         setEditingItem(null);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed to update item: ${err.detail || res.statusText || "Server error"}`);
       }
-    } catch {
-      alert("Failed to update menu item.");
+    } catch (e: any) {
+      alert(`Network error updating menu item: ${e?.message || e}`);
+    } finally {
+      setIsSavingItem(false);
     }
   };
 
@@ -1090,7 +1100,11 @@ export default function AdminPortal() {
       <AnimatePresence>
         {editingItem && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-            <motion.div
+            <motion.form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveMenuItem(editingItem);
+              }}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -1099,6 +1113,7 @@ export default function AdminPortal() {
               <div className="flex items-center justify-between border-b border-[#3A2A20] pb-3">
                 <h3 className="text-base font-serif font-bold text-white">Edit Menu Item</h3>
                 <button
+                  type="button"
                   onClick={() => setEditingItem(null)}
                   className="text-stone-400 hover:text-white text-lg p-1 cursor-pointer"
                 >
@@ -1111,6 +1126,7 @@ export default function AdminPortal() {
                   <label className="font-semibold text-stone-400 block mb-1">Item Name</label>
                   <input
                     type="text"
+                    required
                     value={editingItem.name}
                     onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
                     className="w-full bg-[#120D0A] border border-[#3A2A20] focus:border-[#E8AA62] rounded-lg p-2.5 text-stone-100 outline-none"
@@ -1131,6 +1147,8 @@ export default function AdminPortal() {
                   <label className="font-semibold text-stone-400 block mb-1">Price (₹ INR)</label>
                   <input
                     type="number"
+                    required
+                    step="1"
                     value={editingItem.price}
                     onChange={(e) => setEditingItem({ ...editingItem, price: Number(e.target.value) })}
                     className="w-full bg-[#120D0A] border border-[#3A2A20] focus:border-[#E8AA62] rounded-lg p-2.5 text-stone-100 outline-none"
@@ -1147,14 +1165,21 @@ export default function AdminPortal() {
                   Cancel
                 </button>
                 <button
-                  type="button"
-                  onClick={() => handleSaveMenuItem(editingItem)}
-                  className="px-5 py-2 rounded-lg bg-[#B85B43] hover:bg-[#C86A52] text-white text-xs font-bold uppercase tracking-wider cursor-pointer"
+                  type="submit"
+                  disabled={isSavingItem}
+                  className="px-5 py-2 rounded-lg bg-[#B85B43] hover:bg-[#C86A52] text-white text-xs font-bold uppercase tracking-wider disabled:opacity-50 cursor-pointer flex items-center gap-2"
                 >
-                  Save Changes
+                  {isSavingItem ? (
+                    <>
+                      <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
                 </button>
               </div>
-            </motion.div>
+            </motion.form>
           </div>
         )}
       </AnimatePresence>
