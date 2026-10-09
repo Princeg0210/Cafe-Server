@@ -150,11 +150,21 @@ export default function AdminPortal() {
 
   // Base API resolution
   const getApiBase = () => {
-    if (typeof window === "undefined") return "http://127.0.0.1:8000";
-    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-      return "http://127.0.0.1:8000";
+    if (typeof window !== "undefined") {
+      const h = window.location.hostname;
+      const isLocal =
+        h === "localhost" ||
+        h === "127.0.0.1" ||
+        h.startsWith("192.168.") ||
+        h.startsWith("10.") ||
+        h.endsWith(".local");
+
+      if (isLocal) {
+        return `http://${h}:8000`;
+      }
+      return process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
     }
-    return process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-production.up.railway.app";
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   };
 
   // Check stored token
