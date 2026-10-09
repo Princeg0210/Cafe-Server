@@ -31,14 +31,14 @@ export default function Home() {
             muted
             playsInline
             poster="/hero-bg.jpg"
-            className="w-full h-full object-cover object-center brightness-[0.88] contrast-110"
+            className="w-full h-full object-cover object-center brightness-105 contrast-105"
           >
             <source src="/hero-video.mp4" type="video/mp4" />
             <source src="/hero-bg-video.mp4" type="video/mp4" />
           </video>
-          {/* Luxury dark vignette overlay - deeper on left for optimal text contrast */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/92 via-black/65 to-black/30" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#120D0A] via-transparent to-black/45" />
+          {/* Refined luminous overlay - balanced for maximum brightness while keeping text crisp */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/20" />
         </motion.div>
 
         <div className="relative z-10 text-left px-6 sm:px-12 md:px-16 py-12 max-w-3xl">
