@@ -192,6 +192,13 @@ async def on_startup():
                 await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS provider_source VARCHAR(50) DEFAULT 'ANDROID_LISTENER'"))
                 await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'SETTLED'"))
 
+            try:
+                await conn.execute(text("UPDATE tables SET table_number = 'Table 1' WHERE id IN (1, 4, 7, 9, 11)"))
+                await conn.execute(text("UPDATE tables SET table_number = 'Table 2' WHERE id IN (2, 5, 8, 10, 12)"))
+                await conn.execute(text("UPDATE tables SET table_number = 'Table 3' WHERE id IN (3, 6, 13)"))
+            except Exception:
+                pass
+
         logger.info("Database schema initialized successfully.")
 
         async with AsyncSessionLocal() as db:

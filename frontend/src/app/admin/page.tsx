@@ -152,12 +152,14 @@ interface TableOverview {
   active_session_count: number;
   floor_number?: number;
   floor_name?: string;
+  floor_table_num?: number;
 }
 
 interface KOTRecord {
   id: number;
   kot_number: string;
   table_number: string;
+  table_id?: number;
   status: string;
   printed_status: string;
   total_amount: number | string;
@@ -441,11 +443,13 @@ export default function AdminPortal() {
         if (Array.isArray(tData)) {
           setTables(
             tData.map((t: any) => {
-              const fl = getTableFloor(t.table_number || t.id);
+              const fl = getTableFloor(t.id, t.floor_number);
+              const relNum = t.floor_table_num || fl.floor_table_num;
               return {
                 id: t.id,
-                table_number: t.table_number,
-                capacity: t.capacity,
+                table_number: `Table ${relNum}`,
+                floor_table_num: relNum,
+                capacity: t.capacity || fl.capacity,
                 qr_token: t.qr_token || `qr_sec_${t.id}`,
                 is_active: t.status !== "Maintenance",
                 active_session_count: t.status === "Occupied" ? 1 : 0,
@@ -592,7 +596,8 @@ export default function AdminPortal() {
       const targetTbl = (opTableOverviews.length > 0 ? opTableOverviews : tables).find(
         (t) => (t.table_id || t.id) === tableId
       );
-      const tblNum = targetTbl?.table_number || String(tableId);
+      const floorInfo = getTableFloor(tableId, targetTbl?.floor_number);
+      const floorTableNum = targetTbl?.floor_table_num || floorInfo.floor_table_num;
       const res = await fetch(`${apiBase}/api/v1/reservations/${reservationId}/assign-table`, {
         method: "POST",
         headers: {
@@ -601,8 +606,8 @@ export default function AdminPortal() {
         },
         body: JSON.stringify({
           table_id: tableId,
-          table_name: `Table ${tblNum.replace(/^table\s*/i, "")}`,
-          floor_number: getTableFloor(tblNum).floor,
+          table_name: `Table ${floorTableNum}`,
+          floor_number: floorInfo.floor,
         }),
       });
       if (res.ok) {
@@ -1012,7 +1017,8 @@ export default function AdminPortal() {
   const filteredTables = useMemo(() => {
     const baseList = tables.length > 0 ? tables : RESTAURANT_TABLES.map((rt) => ({
       id: rt.id,
-      table_number: rt.table_number.replace(/^table\s*/i, ""),
+      table_number: `Table ${rt.floor_table_num}`,
+      floor_table_num: rt.floor_table_num,
       capacity: rt.capacity,
       qr_token: rt.qr_token,
       is_active: true,
@@ -1046,12 +1052,13 @@ export default function AdminPortal() {
     if (opTableOverviews.length > 0) return opTableOverviews;
     if (tables.length > 0) {
       return tables.map((t) => {
-        const cleanNum = (t.table_number || "").replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
-        const fl = getTableFloor(cleanNum || t.id);
+        const fl = getTableFloor(t.id, t.floor_number);
+        const relNum = t.floor_table_num || fl.floor_table_num;
         return {
           table_id: t.id,
-          table_number: t.table_number,
-          capacity: t.capacity || 4,
+          table_number: `Table ${relNum}`,
+          floor_table_num: relNum,
+          capacity: t.capacity || fl.capacity || 4,
           floor_number: t.floor_number || fl.floor,
           floor_name: t.floor_name || fl.name,
           active_session_count: t.is_occupied ? 1 : 0,
@@ -1063,6 +1070,7 @@ export default function AdminPortal() {
     return RESTAURANT_TABLES.map((rt) => ({
       table_id: rt.id,
       table_number: rt.table_number,
+      floor_table_num: rt.floor_table_num,
       capacity: rt.capacity,
       floor_number: rt.floor,
       floor_name: rt.floor_name,
@@ -1831,50 +1839,79 @@ export default function AdminPortal() {
                     )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredOpTables.map((tbl) => {
-                      const cleanTableNumber = (tbl.table_number || "").replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
-                      const displayTableName = `TABLE ${cleanTableNumber.padStart(2, "0") || tbl.table_id}`;
-                      const floorInfo = tbl.floor_number ? RESTAURANT_FLOORS.find((f) => f.id === tbl.floor_number) : getTableFloor(tbl.table_id);
-                      const floorDisplayName = tbl.floor_name || floorInfo?.name || "Ground floor";
-                      const isOccupied = (tbl.active_session_count || 0) > 0;
-                      const activeSessions = (tbl.sessions || []).filter((s: any) => s.is_active);
-                      const currentSession = activeSessions[0] || (tbl.sessions && tbl.sessions[0]);
-
-                      // Match any active booking for this table on selected date (matching POS)
-                      const bookedReservation = displayOpReservations.find((r) => {
-                        const matchId = r.table_id && (r.table_id === tbl.table_id || r.table_id === parseInt(cleanTableNumber, 10));
-                        const matchName = r.table_name && (
-                          r.table_name.toLowerCase().includes(`table ${cleanTableNumber}`.toLowerCase()) ||
-                          r.table_name.toLowerCase() === (tbl.table_number || "").toLowerCase()
-                        );
-                        const isActive = ["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"].includes(r.status?.toUpperCase() || "");
-                        return (matchId || matchName) && isActive;
-                      });
+                  <div className="space-y-6">
+                    {(opFloorFilter === "all"
+                      ? RESTAURANT_FLOORS.filter((f) => !f.isComingSoon)
+                      : RESTAURANT_FLOORS.filter((f) => f.id === opFloorFilter)
+                    ).map((floor) => {
+                      const floorTables = filteredOpTables.filter(
+                        (tbl) => (tbl.floor_number || getTableFloor(tbl.table_id).floor) === floor.id
+                      );
+                      if (floorTables.length === 0) return null;
 
                       return (
-                        <div
-                          key={tbl.table_id}
-                          className={`rounded-2xl border p-4.5 space-y-3.5 transition-all shadow-sm ${
-                            isOccupied
-                              ? "bg-[#FFFDF9] border-amber-300 ring-1 ring-amber-200"
-                              : "bg-[#FFFDF9] border-[#E6DCCF]"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-2.5">
-                            <div>
-                              <div className="flex items-baseline gap-2">
-                                <h4 className="font-sans font-extrabold text-base text-[#241A14]">
-                                  {displayTableName}
-                                </h4>
-                                <span className="text-xs font-semibold text-[#B85B43]">
-                                  • {floorDisplayName}
-                                </span>
-                              </div>
-                              <span className="text-[11px] text-[#7A6A5E]">
-                                {tbl.capacity} Seats Physical Capacity
+                        <div key={floor.id} className="space-y-3">
+                          <div className="flex items-center justify-between bg-[#F8F5F0] px-4 py-2.5 rounded-xl border border-[#E4DCD0] shadow-2xs">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full bg-[#B85B43]" />
+                              <h3 className="font-serif font-bold text-sm text-[#241A14]">
+                                Floor {floor.id}: {floor.name}
+                              </h3>
+                              <span className="text-xs text-[#7A6A5E] font-sans">
+                                ({floorTables.length} {floorTables.length === 1 ? "Table" : "Tables"})
                               </span>
                             </div>
+                            <span className="text-xs text-[#7A6A5E] font-sans hidden sm:inline">
+                              {floor.desc}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {floorTables.map((tbl) => {
+                              const floorInfo = tbl.floor_number ? RESTAURANT_FLOORS.find((f) => f.id === tbl.floor_number) : getTableFloor(tbl.table_id);
+                              const floorDetail = getTableFloor(tbl.table_id, tbl.floor_number);
+                              const floorTableNum = tbl.floor_table_num || floorDetail.floor_table_num;
+                              const displayTableName = `TABLE ${String(floorTableNum).padStart(2, "0")}`;
+                              const floorDisplayName = tbl.floor_name || floorInfo?.name || floorDetail.name;
+                              const isOccupied = (tbl.active_session_count || 0) > 0;
+                              const activeSessions = (tbl.sessions || []).filter((s: any) => s.is_active);
+                              const currentSession = activeSessions[0] || (tbl.sessions && tbl.sessions[0]);
+
+                              // Match any active booking for this table on selected date (matching POS)
+                              const bookedReservation = displayOpReservations.find((r) => {
+                                const matchId = r.table_id === tbl.table_id;
+                                const matchName = r.table_name && (
+                                  (r.table_name.toLowerCase().replace(/\s+/g, "") === `table${floorTableNum}` ||
+                                   r.table_name.toLowerCase().replace(/\s+/g, "") === `table${tbl.table_id}`) &&
+                                  (!r.floor_number || r.floor_number === (tbl.floor_number || floorDetail.floor))
+                                );
+                                const isActive = ["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"].includes(r.status?.toUpperCase() || "");
+                                return (matchId || matchName) && isActive;
+                              });
+
+                              return (
+                                <div
+                                  key={tbl.table_id}
+                                  className={`rounded-2xl border p-4.5 space-y-3.5 transition-all shadow-sm ${
+                                    isOccupied
+                                      ? "bg-[#FFFDF9] border-amber-300 ring-1 ring-amber-200"
+                                      : "bg-[#FFFDF9] border-[#E6DCCF]"
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-2.5">
+                                    <div>
+                                      <div className="flex items-baseline gap-2">
+                                        <h4 className="font-sans font-extrabold text-base text-[#241A14]">
+                                          {displayTableName}
+                                        </h4>
+                                        <span className="text-xs font-semibold text-[#B85B43]">
+                                          • {floorDisplayName}
+                                        </span>
+                                      </div>
+                                      <span className="text-[11px] text-[#7A6A5E]">
+                                        {tbl.capacity || floorDetail.capacity} Seats Physical Capacity
+                                      </span>
+                                    </div>
                             <span
                               className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
                                 isOccupied
@@ -1985,11 +2022,15 @@ export default function AdminPortal() {
                               <p className="text-[11px] text-[#A8988B]">Table is free for reservations or walk-ins.</p>
                             </div>
                           )}
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               </div>
             )}
 
@@ -2197,7 +2238,10 @@ export default function AdminPortal() {
                                 {k.kot_number || `#KOT-${k.id}`}
                               </td>
                               <td className="p-4 font-bold text-[#241A14]">
-                                {k.table_number || `Table ${k.table_id}`}
+                                {(() => {
+                                  const kFl = getTableFloor(k.table_id || k.table_number);
+                                  return `Table #${kFl.floor_table_num} (${kFl.short})`;
+                                })()}
                               </td>
                               <td className="p-4 text-[#665448]">
                                 {k.created_at
@@ -2726,52 +2770,56 @@ export default function AdminPortal() {
 
             {/* Tables Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredTables.map((tbl) => (
-                <div
-                  key={tbl.id}
-                  className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm space-y-4 hover:border-[#B85B43] transition-all group"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-base font-sans font-bold text-[#241A14] block">
-                        Table #{tbl.table_number.replace(/^table\s*/i, "")}
-                      </span>
-                      <span className="text-[11px] font-semibold text-[#B85B43]">
-                        {tbl.floor_name || getTableFloor(tbl.id).name}
+              {filteredTables.map((tbl) => {
+                const floorDetail = getTableFloor(tbl.id, tbl.floor_number);
+                const relativeNum = floorDetail.floor_table_num;
+                return (
+                  <div
+                    key={tbl.id}
+                    className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm space-y-4 hover:border-[#B85B43] transition-all group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-base font-sans font-bold text-[#241A14] block">
+                          Table #{relativeNum}
+                        </span>
+                        <span className="text-[11px] font-semibold text-[#B85B43]">
+                          {tbl.floor_name || floorDetail.name}
+                        </span>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#FAF0E1] text-[#B85B43] font-mono text-[10px] font-bold">
+                        {tbl.capacity || floorDetail.capacity} Seats
                       </span>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#FAF0E1] text-[#B85B43] font-mono text-[10px] font-bold">
-                      {tbl.capacity} Seats
-                    </span>
-                  </div>
 
-                  <div className="p-3 bg-[#FAF7F0] rounded-xl border border-[#E8DFC9] space-y-1">
-                    <span className="text-[10px] uppercase font-bold text-[#8C7A6D] block">QR Token:</span>
-                    <span className="text-xs font-mono text-[#4A392F] truncate block font-semibold">
-                      {tbl.qr_token}
-                    </span>
-                  </div>
+                    <div className="p-3 bg-[#FAF7F0] rounded-xl border border-[#E8DFC9] space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-[#8C7A6D] block">QR Token:</span>
+                      <span className="text-xs font-mono text-[#4A392F] truncate block font-semibold">
+                        {tbl.qr_token}
+                      </span>
+                    </div>
 
-                  <div className="flex items-center gap-2 pt-2 border-t border-[#F0E8DC]">
-                    <button
-                      onClick={() => handleOpenTableQr(tbl.table_number, tbl.qr_token)}
-                      className="flex-1 bg-[#B85B43] hover:bg-[#A34B34] text-white py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                    >
-                      <QrCode className="w-3.5 h-3.5" />
-                      <span>View Printable QR</span>
-                    </button>
+                    <div className="flex items-center gap-2 pt-2 border-t border-[#F0E8DC]">
+                      <button
+                        onClick={() => handleOpenTableQr(`Table ${relativeNum} (${floorDetail.name})`, tbl.qr_token)}
+                        className="flex-1 bg-[#B85B43] hover:bg-[#A34B34] text-white py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        <span>View Printable QR</span>
+                      </button>
 
-                    <Link
-                      href={`/table/${tbl.qr_token}`}
-                      target="_blank"
-                      className="bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#4A392F] p-2 rounded-xl transition-colors"
-                      title="Test Tabletop Ordering"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </Link>
+                      <Link
+                        href={`/table/${tbl.qr_token}`}
+                        target="_blank"
+                        className="bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#4A392F] p-2 rounded-xl transition-colors"
+                        title="Test Tabletop Ordering"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -2816,7 +2864,12 @@ export default function AdminPortal() {
                       kots.map((k) => (
                         <tr key={k.id} className="hover:bg-[#FAF7F0] transition-colors">
                           <td className="p-4 font-bold font-mono text-[#241A14]">{k.kot_number}</td>
-                          <td className="p-4 font-bold text-[#B85B43]">Table #{k.table_number}</td>
+                          <td className="p-4 font-bold text-[#B85B43]">
+                            {(() => {
+                              const kFl = getTableFloor(k.table_id || k.table_number);
+                              return `Table #${kFl.floor_table_num} (${kFl.short})`;
+                            })()}
+                          </td>
                           <td className="p-4">
                             <span
                               className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
@@ -3306,9 +3359,15 @@ export default function AdminPortal() {
             <div className="bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
               <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-3">
                 <div>
-                  <h3 className="text-xl font-sans font-extrabold text-[#241A14]">
-                    Table {selectedOpTable.table_number?.replace(/^table\s*/i, "")} Session Details
-                  </h3>
+                  {(() => {
+                    const selFloor = getTableFloor(selectedOpTable.table_id || selectedOpTable.table_number, selectedOpTable.floor_number);
+                    const selNum = selectedOpTable.floor_table_num || selFloor.floor_table_num;
+                    return (
+                      <h3 className="text-xl font-sans font-extrabold text-[#241A14]">
+                        Table {selNum} ({selectedOpTable.floor_name || selFloor.name}) Session Details
+                      </h3>
+                    );
+                  })()}
                   <p className="text-xs text-[#7A6A5E] mt-0.5">
                     Operations Date: {opDate} • {selectedOpTable.session?.guest_count || selectedOpTable.capacity} Guests
                   </p>
@@ -3407,13 +3466,13 @@ export default function AdminPortal() {
                   className="w-full text-xs p-2.5 rounded-xl border border-[#E0D4C2] bg-[#FAF7F0] text-[#241A14] font-sans focus:outline-hidden focus:border-[#B85B43]"
                 >
                   {displayTableOverviews.map((tbl) => {
-                    const cleanNum = (tbl.table_number || "").replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
-                    const fl = tbl.floor_number ? RESTAURANT_FLOORS.find((f) => f.id === tbl.floor_number) : getTableFloor(tbl.table_id);
-                    const floorName = tbl.floor_name || fl?.name || "Ground floor";
+                    const fl = getTableFloor(tbl.table_id, tbl.floor_number);
+                    const relativeNum = tbl.floor_table_num || fl.floor_table_num;
+                    const floorName = tbl.floor_name || fl.name;
                     const isOccupied = (tbl.active_session_count || 0) > 0;
                     return (
                       <option key={tbl.table_id} value={tbl.table_id}>
-                        Table {cleanNum || tbl.table_id} ({floorName} • {tbl.capacity} Seats) — {isOccupied ? "Occupied" : "Available"}
+                        Table {relativeNum} ({floorName} • {tbl.capacity || fl.capacity} Seats) — {isOccupied ? "Occupied" : "Available"}
                       </option>
                     );
                   })}

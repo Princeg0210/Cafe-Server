@@ -37,6 +37,24 @@ class Table(Base):
         return 6
 
     @property
+    def floor_table_num(self) -> int:
+        if self.id:
+            if self.id <= 3: return self.id
+            if self.id <= 6: return self.id - 3
+            if self.id <= 8: return self.id - 6
+            if self.id <= 10: return self.id - 8
+            if self.id <= 13: return self.id - 10
+            return 1
+        digits = "".join(filter(str.isdigit, str(self.table_number)))
+        num = int(digits) if digits else 1
+        if num <= 3: return num
+        if num <= 6: return num - 3
+        if num <= 8: return num - 6
+        if num <= 10: return num - 8
+        if num <= 13: return num - 10
+        return 1
+
+    @property
     def floor_name(self) -> str:
         names = {
             1: "Ground floor",

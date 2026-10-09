@@ -82,6 +82,7 @@ interface TableOverview {
   sessions: TableSession[];
   floor_number?: number;
   floor_name?: string;
+  floor_table_num?: number;
 }
 
 interface KOTItem {
@@ -634,6 +635,8 @@ export default function POSDashboard() {
     const apiBase = getApiBase();
     try {
       const targetTbl = tableOverviews.find((t) => t.table_id === tableId);
+      const floorInfo = getTableFloor(tableId, targetTbl?.floor_number);
+      const floorTableNum = targetTbl?.floor_table_num || floorInfo.floor_table_num;
       const res = await fetch(`${apiBase}/api/v1/reservations/${reservationId}/assign-table`, {
         method: "POST",
         headers: {
@@ -642,8 +645,8 @@ export default function POSDashboard() {
         },
         body: JSON.stringify({
           table_id: tableId,
-          table_name: targetTbl?.table_number ? `Table ${targetTbl.table_number}` : `Table ${tableId}`,
-          floor_number: getTableFloor(targetTbl?.table_number || tableId).floor,
+          table_name: `Table ${floorTableNum}`,
+          floor_number: floorInfo.floor,
         }),
       });
       if (res.ok) {
@@ -698,14 +701,14 @@ export default function POSDashboard() {
           try {
             const data = JSON.parse(event.data);
             if (data.event === "KOT_CREATED" || data.event === "KOT_UPDATED") {
-              const cleanTable = data.table_number ? data.table_number.replace(/^table\s*/i, "").trim() : "";
-              setLastNotification(`New KOT ${data.kot_number} received for Table ${cleanTable}`);
+              const tableFl = getTableFloor(data.table_id || data.table_number);
+              setLastNotification(`New KOT ${data.kot_number} received for Table ${tableFl.floor_table_num} (${tableFl.name})`);
               playChime();
               setTimeout(() => setLastNotification(null), 5000);
               fetchData();
             } else if (data.event === "SESSION_CLOSED") {
-              const cleanTable = data.table_number ? data.table_number.replace(/^table\s*/i, "").trim() : "";
-              setLastNotification(`Table ${cleanTable || data.table_id} settled.`);
+              const tableFl = getTableFloor(data.table_id || data.table_number);
+              setLastNotification(`Table ${tableFl.floor_table_num} (${tableFl.name}) settled.`);
               setTimeout(() => setLastNotification(null), 5000);
               fetchData();
               fetchReservations();
@@ -873,12 +876,14 @@ export default function POSDashboard() {
 
     let activeCount = 0;
     tableOverviews.forEach((tbl) => {
+      const fl = getTableFloor(tbl.table_id, tbl.floor_number);
+      const relativeNum = tbl.floor_table_num || fl.floor_table_num;
       tbl.sessions.forEach((s) => {
         if (s.is_active) {
           activeCount++;
           htmlContent += `
             <tr>
-              <td><strong>Table #${tbl.table_number}</strong></td>
+              <td><strong>Table #${relativeNum} (${fl.name})</strong></td>
               <td><span style="color: #2e7d32; font-weight: bold;">ACTIVE</span></td>
               <td>#${s.session_seq}</td>
               <td>${new Date(s.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
@@ -914,10 +919,11 @@ export default function POSDashboard() {
     `;
 
     kots.forEach((kot) => {
+      const kotFl = getTableFloor(kot.table_id || kot.table_number);
       htmlContent += `
         <tr>
           <td><strong>${kot.kot_number}</strong></td>
-          <td>${kot.table_number}</td>
+          <td>Table #${kotFl.floor_table_num} (${kotFl.name})</td>
           <td>${kot.status}</td>
           <td>${new Date(kot.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
           <td>${kot.items_count}</td>
@@ -1463,23 +1469,26 @@ export default function POSDashboard() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
               {/* Failed Print KOTs */}
-              {failedKots.map((kot) => (
-                <div key={kot.id} className="bg-white p-3 rounded-md border border-amber-200 text-xs flex items-center justify-between gap-2 shadow-2xs">
-                  <div>
-                    <span className="font-bold text-stone-900">{kot.kot_number}</span>
-                    <span className="text-stone-500 ml-1.5">• Table {kot.table_number}</span>
-                    <p className="text-[11px] text-red-700 font-medium mt-0.5">Thermal print job failed</p>
+              {failedKots.map((kot) => {
+                const kotFl = getTableFloor(kot.table_id || kot.table_number);
+                return (
+                  <div key={kot.id} className="bg-white p-3 rounded-md border border-amber-200 text-xs flex items-center justify-between gap-2 shadow-2xs">
+                    <div>
+                      <span className="font-bold text-stone-900">{kot.kot_number}</span>
+                      <span className="text-stone-500 ml-1.5">• Table {kotFl.floor_table_num} ({kotFl.short})</span>
+                      <p className="text-[11px] text-red-700 font-medium mt-0.5">Thermal print job failed</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRetryPrint(kot.id)}
+                      disabled={retryingIds[kot.id]}
+                      className="px-2.5 py-1 rounded-md bg-rose-700 hover:bg-rose-800 text-white font-semibold text-[11px] uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer shrink-0"
+                    >
+                      {retryingIds[kot.id] ? "Printing..." : "Retry Print"}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRetryPrint(kot.id)}
-                    disabled={retryingIds[kot.id]}
-                    className="px-2.5 py-1 rounded-md bg-rose-700 hover:bg-rose-800 text-white font-semibold text-[11px] uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer shrink-0"
-                  >
-                    {retryingIds[kot.id] ? "Printing..." : "Retry Print"}
-                  </button>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Pending Payment Reviews */}
               {pendingReviews.map((rev) => (
@@ -1642,57 +1651,86 @@ export default function POSDashboard() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredTables.map((tbl) => {
-                  const cleanTableNumber = tbl.table_number.replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
-                  const displayTableName = `TABLE ${cleanTableNumber.padStart(2, "0") || tbl.table_id}`;
-                  const activeSessions = tbl.sessions.filter((s) => s.is_active);
-                  const settledSessions = tbl.sessions.filter((s) => !s.is_active);
-                  const showHistory = !!showClosedToday[tbl.table_id];
-                  const visibleSessions = isTodaySelected
-                    ? (showHistory ? tbl.sessions : activeSessions)
-                    : tbl.sessions;
-
-                  const isOccupied = tbl.active_session_count > 0;
-                  const activeSession = activeSessions[0];
-
-                  // Match any active booking for this table
-                  const bookedReservation = reservations.find((r) => {
-                    const matchId = r.table_id && (r.table_id === tbl.table_id || r.table_id === parseInt(cleanTableNumber, 10));
-                    const matchName = r.table_name && (
-                      r.table_name.toLowerCase().includes(`table ${cleanTableNumber}`.toLowerCase()) ||
-                      r.table_name.toLowerCase() === tbl.table_number.toLowerCase()
-                    );
-                    const isActive = ["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"].includes(r.status?.toUpperCase() || "");
-                    return (matchId || matchName) && isActive;
-                  });
+              <div className="space-y-6">
+                {(floorFilter === "all"
+                  ? RESTAURANT_FLOORS.filter((f) => !f.isComingSoon)
+                  : RESTAURANT_FLOORS.filter((f) => f.id === floorFilter)
+                ).map((floor) => {
+                  const floorTables = filteredTables.filter(
+                    (tbl) => (tbl.floor_number || getTableFloor(tbl.table_id).floor) === floor.id
+                  );
+                  if (floorTables.length === 0) return null;
 
                   return (
-                    <div
-                      key={tbl.table_id}
-                      className={`bg-white rounded-lg border transition-all overflow-hidden flex flex-col justify-between ${isOccupied
-                        ? "border-amber-400/80 shadow-xs"
-                        : "border-[#E4DCD0]"
-                        }`}
-                    >
-                      {/* Card Top Header */}
-                      <div className={`p-4 border-b ${isOccupied ? "bg-[#FAF7F2] border-amber-200/70" : "bg-[#FAF8F5] border-[#E4DCD0]/60"
-                        }`}>
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="flex items-baseline gap-2">
-                              <span className="font-mono font-bold text-xl text-[#261C18]">
-                                {displayTableName}
-                              </span>
-                              <span className="text-xs font-semibold text-[#B85B43]">
-                                • {tbl.floor_name || getTableFloor(tbl.table_id).name}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-stone-500 font-sans">
-                                {tbl.capacity} Seats
-                              </span>
-                              <span className="text-stone-300">•</span>
+                    <div key={floor.id} className="space-y-3">
+                      <div className="flex items-center justify-between bg-[#F8F5F0] px-4 py-2.5 rounded-lg border border-[#E4DCD0] shadow-2xs">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#B85B43]" />
+                          <h3 className="font-serif font-bold text-sm text-[#261C18]">
+                            Floor {floor.id}: {floor.name}
+                          </h3>
+                          <span className="text-xs text-stone-500 font-sans">
+                            ({floorTables.length} {floorTables.length === 1 ? "Table" : "Tables"})
+                          </span>
+                        </div>
+                        <span className="text-xs text-stone-500 font-sans hidden sm:inline">
+                          {floor.desc}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {floorTables.map((tbl) => {
+                          const floorInfo = getTableFloor(tbl.table_id, tbl.floor_number);
+                          const floorTableNum = tbl.floor_table_num || floorInfo.floor_table_num;
+                          const displayTableName = `TABLE ${String(floorTableNum).padStart(2, "0")}`;
+                          const activeSessions = tbl.sessions.filter((s) => s.is_active);
+                          const settledSessions = tbl.sessions.filter((s) => !s.is_active);
+                          const showHistory = !!showClosedToday[tbl.table_id];
+                          const visibleSessions = isTodaySelected
+                            ? (showHistory ? tbl.sessions : activeSessions)
+                            : tbl.sessions;
+
+                          const isOccupied = tbl.active_session_count > 0;
+                          const activeSession = activeSessions[0];
+
+                          // Match any active booking for this table
+                          const bookedReservation = reservations.find((r) => {
+                            const matchId = r.table_id === tbl.table_id;
+                            const matchName = r.table_name && (
+                              (r.table_name.toLowerCase().replace(/\s+/g, "") === `table${floorTableNum}` ||
+                               r.table_name.toLowerCase().replace(/\s+/g, "") === `table${tbl.table_id}`) &&
+                              (!r.floor_number || r.floor_number === floorInfo.floor)
+                            );
+                            const isActive = ["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"].includes(r.status?.toUpperCase() || "");
+                            return (matchId || matchName) && isActive;
+                          });
+
+                          return (
+                            <div
+                              key={tbl.table_id}
+                              className={`bg-white rounded-lg border transition-all overflow-hidden flex flex-col justify-between ${isOccupied
+                                ? "border-amber-400/80 shadow-xs"
+                                : "border-[#E4DCD0]"
+                                }`}
+                            >
+                              {/* Card Top Header */}
+                              <div className={`p-4 border-b ${isOccupied ? "bg-[#FAF7F2] border-amber-200/70" : "bg-[#FAF8F5] border-[#E4DCD0]/60"
+                                }`}>
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <div className="flex items-baseline gap-2">
+                                      <span className="font-mono font-bold text-xl text-[#261C18]">
+                                        {displayTableName}
+                                      </span>
+                                      <span className="text-xs font-semibold text-[#B85B43]">
+                                        • {floorInfo.name}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-xs text-stone-500 font-sans">
+                                        {tbl.capacity || floorInfo.capacity} Seats
+                                      </span>
+                                      <span className="text-stone-300">•</span>
                               {/* Clickable Session Button to show previous sessions of that table */}
                               <button
                                 type="button"
@@ -1900,7 +1938,7 @@ export default function POSDashboard() {
                           <div className="pt-3 border-t border-stone-100">
                             <button
                               type="button"
-                              onClick={() => handleCloseSession(activeSession.session_id, cleanTableNumber, tbl.table_id)}
+                              onClick={() => handleCloseSession(activeSession.session_id, `Table ${floorTableNum} (${floorInfo.name})`, tbl.table_id)}
                               disabled={closingSessionIds[activeSession.session_id]}
                               className="w-full bg-[#261C18] hover:bg-[#B85B43] text-white py-2 rounded-md font-sans font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
                             >
@@ -1914,7 +1952,11 @@ export default function POSDashboard() {
                   );
                 })}
               </div>
-            )}
+            </div>
+          );
+        })}
+      </div>
+    )}
           </section>
         )}
 
@@ -1978,7 +2020,7 @@ export default function POSDashboard() {
               ) : (
                 <div className="space-y-3">
                   {filteredKots.map((kot) => {
-                    const cleanTableNumber = kot.table_number ? kot.table_number.replace(/^table\s*/i, "").trim() : "";
+                    const kotFl = getTableFloor(kot.table_id || kot.table_number);
                     return (
                       <div
                         key={kot.id}
@@ -1991,7 +2033,7 @@ export default function POSDashboard() {
                                 {kot.kot_number}
                               </span>
                               <span className="text-[11px] px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 font-mono">
-                                Table {cleanTableNumber || kot.table_id}
+                                Table {kotFl.floor_table_num} • {kotFl.name}
                               </span>
                             </div>
                             <div className="text-[11px] text-stone-500 font-sans mt-0.5">
@@ -2047,7 +2089,7 @@ export default function POSDashboard() {
 
                             {kot.status !== "COMPLETED" && (
                               <button
-                                onClick={() => handleCloseSession(kot.dining_session_id, cleanTableNumber, kot.table_id)}
+                                onClick={() => handleCloseSession(kot.dining_session_id, `Table ${kotFl.floor_table_num} (${kotFl.name})`, kot.table_id)}
                                 disabled={closingSessionIds[kot.dining_session_id]}
                                 className="px-2.5 py-1 rounded-md bg-[#261C18] hover:bg-[#B85B43] text-white text-[11px] font-semibold uppercase tracking-wider transition-colors cursor-pointer"
                               >
@@ -2326,10 +2368,11 @@ export default function POSDashboard() {
                   className="w-full text-xs p-2.5 rounded-md border border-stone-300 bg-stone-50 font-sans focus:outline-hidden focus:border-[#B85B43]"
                 >
                   {tableOverviews.map((tbl) => {
-                    const fl = getTableFloor(tbl.table_number || tbl.table_id);
+                    const fl = getTableFloor(tbl.table_id, tbl.floor_number);
+                    const relativeNum = tbl.floor_table_num || fl.floor_table_num;
                     return (
                       <option key={tbl.table_id} value={tbl.table_id}>
-                        Table {tbl.table_number} ({fl.name} • {tbl.capacity} Seats) — {tbl.status}
+                        Table {relativeNum} ({fl.name} • {tbl.capacity || fl.capacity} Seats) — {tbl.status}
                       </option>
                     );
                   })}

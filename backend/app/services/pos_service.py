@@ -571,7 +571,7 @@ class POSService:
             results.append(
                 TableOverviewResponse(
                     table_id=tbl.id,
-                    table_number=tbl.table_number,
+                    table_number=f"Table {tbl.floor_table_num}",
                     capacity=tbl.capacity,
                     status=table_status,
                     active_session_count=active_count,
@@ -579,6 +579,7 @@ class POSService:
                     sessions=session_details,
                     floor_number=tbl.floor_number,
                     floor_name=tbl.floor_name,
+                    floor_table_num=tbl.floor_table_num,
                 )
             )
 

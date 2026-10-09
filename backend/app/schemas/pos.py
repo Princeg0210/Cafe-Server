@@ -108,3 +108,4 @@ class TableOverviewResponse(BaseModel):
     sessions: List[TableSessionDetail] = []
     floor_number: Optional[int] = 1
     floor_name: Optional[str] = "Ground floor"
+    floor_table_num: Optional[int] = 1
