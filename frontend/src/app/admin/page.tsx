@@ -1238,7 +1238,7 @@ export default function AdminPortal() {
                     <span className="p-1.5 rounded-lg bg-[#B85B43]/10 text-[#B85B43]">
                       <SlidersHorizontal className="w-5 h-5" />
                     </span>
-                    <h2 className="text-lg font-serif font-bold text-[#241A14]">Operations Command Center</h2>
+                    <h2 className="text-lg font-sans font-bold text-[#241A14]">Operations Command Center</h2>
                   </div>
                   <p className="text-xs text-[#7A6A5E] mt-1">
                     Check tables booked on any date, verify live & historical sales, monitor open KOTs, and audit dough capacity.
@@ -1463,7 +1463,7 @@ export default function AdminPortal() {
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#FFFDF9] p-3.5 rounded-xl border border-[#E4DCD0]">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-serif font-bold text-[#241A14]">
+                    <h3 className="text-sm font-sans font-bold text-[#241A14]">
                       Cafe Floor Layout & Dining Sessions
                     </h3>
                     <span className="text-xs text-[#7A6A5E]">
@@ -1622,8 +1622,8 @@ export default function AdminPortal() {
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#FFFDF9] p-3.5 rounded-xl border border-[#E4DCD0]">
                   <div>
-                    <h3 className="text-sm font-serif font-bold text-[#241A14]">
-                      Table Bookings for {opDate}
+                    <h3 className="text-sm font-sans font-bold text-[#241A14]">
+                      Table Bookings for <span className="font-mono">{opDate}</span>
                     </h3>
                     <p className="text-xs text-[#7A6A5E]">
                       {filteredOpReservations.length} bookings recorded for this date
@@ -1710,7 +1710,7 @@ export default function AdminPortal() {
 
                             <div className="text-xs space-y-2 text-[#4A392F]">
                               <div className="flex items-center justify-between">
-                                <span className="font-serif font-bold text-sm text-[#241A14]">{custName}</span>
+                                <span className="font-sans font-bold text-sm text-[#241A14]">{custName}</span>
                                 <span className="font-bold text-[#665448]">{res.party_size || res.guest_count} Guests</span>
                               </div>
 
@@ -1781,8 +1781,8 @@ export default function AdminPortal() {
               <div className="space-y-4">
                 <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
                   <div className="p-4 border-b border-[#E6DCCF] flex items-center justify-between bg-[#F3EDE2]">
-                    <h3 className="text-sm font-serif font-bold text-[#241A14]">
-                      KOT Kitchen Tickets on {opDate}
+                    <h3 className="text-sm font-sans font-bold text-[#241A14]">
+                      KOT Kitchen Tickets on <span className="font-mono">{opDate}</span>
                     </h3>
                     <span className="text-xs font-bold text-[#B85B43]">
                       Total Sales: ₹{Number(opSalesTotal || 0).toLocaleString("en-IN")}
