@@ -32,7 +32,6 @@ import {
   Sparkles,
   Eye,
   EyeOff,
-  Radio,
   Check,
 } from "lucide-react";
 import Link from "next/link";
@@ -644,13 +643,9 @@ export default function AdminPortal() {
             <h1 className="text-base font-serif font-extrabold tracking-wide text-[#241A14]">
               JAADOO • THE PIZZA PROJECT
             </h1>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="mt-0.5">
               <span className="text-[10px] uppercase font-extrabold tracking-[0.22em] text-[#B85B43]">
                 Owner Executive Portal
-              </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.2 rounded-full">
-                <Radio className="w-2.5 h-2.5 animate-pulse text-emerald-600" />
-                Live Sync Active
               </span>
             </div>
           </div>
