@@ -1358,7 +1358,7 @@ export default function AdminPortal() {
                   <span>ACTIVE TABLES</span>
                   <Users className="w-4 h-4 text-[#8C7A6D]" />
                 </div>
-                <div className="text-2xl font-serif font-extrabold text-[#241A14] mt-2 flex items-baseline gap-2">
+                <div className="text-2xl font-extrabold font-sans text-[#241A14] mt-2 flex items-baseline gap-2">
                   <span>{opActiveTablesCount}</span>
                   <span className="text-xs font-normal text-[#8C7A6D] font-sans">
                     / {opTableOverviews.length} total
@@ -1375,7 +1375,7 @@ export default function AdminPortal() {
                   <span>OPEN KOTS</span>
                   <Receipt className="w-4 h-4 text-[#8C7A6D]" />
                 </div>
-                <div className="text-2xl font-serif font-extrabold text-[#241A14] mt-2 flex items-baseline gap-2">
+                <div className="text-2xl font-extrabold font-sans text-[#241A14] mt-2 flex items-baseline gap-2">
                   <span>{opOpenKotsCount}</span>
                   <span className="text-xs font-normal text-[#8C7A6D] font-sans">
                     ({opKots.length} total tickets)
@@ -1392,7 +1392,7 @@ export default function AdminPortal() {
                   <span>OPERATIONS SALES</span>
                   <TrendingUp className="w-4 h-4 text-[#4A5842]" />
                 </div>
-                <div className="text-2xl font-serif font-extrabold text-[#241A14] mt-2">
+                <div className="text-2xl font-extrabold font-sans text-[#241A14] mt-2">
                   ₹{Number(opSalesTotal || 0).toLocaleString("en-IN")}
                 </div>
                 <p className="text-[11px] text-[#7A6A5E] mt-1">
@@ -1406,7 +1406,7 @@ export default function AdminPortal() {
                   <span>DOUGH CAPACITY</span>
                   <Flame className="w-4 h-4 text-[#B85B43]" />
                 </div>
-                <div className="text-2xl font-serif font-extrabold text-[#241A14] mt-2 flex items-baseline gap-2">
+                <div className="text-2xl font-extrabold font-sans text-[#241A14] mt-2 flex items-baseline gap-2">
                   <span>{opDough?.walk_in_available ?? "—"}</span>
                   <span className="text-xs font-normal text-[#8C7A6D] font-sans">
                     walk-in units
@@ -1519,7 +1519,7 @@ export default function AdminPortal() {
                         >
                           <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-2.5">
                             <div>
-                              <h4 className="font-serif font-extrabold text-base text-[#241A14]">
+                              <h4 className="font-sans font-extrabold text-base text-[#241A14]">
                                 {displayTableName}
                               </h4>
                               <span className="text-[11px] text-[#7A6A5E]">
@@ -2170,7 +2170,7 @@ export default function AdminPortal() {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-base font-serif font-bold text-[#241A14] block">
+                      <span className="text-base font-sans font-bold text-[#241A14] block">
                         Table #{tbl.table_number}
                       </span>
                       <span className="text-[11px] font-semibold text-[#B85B43]">
@@ -2519,7 +2519,7 @@ export default function AdminPortal() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <h3 className="text-xl font-serif font-extrabold uppercase tracking-wider text-[#241A14]">
+                <h3 className="text-xl font-sans font-extrabold uppercase tracking-wider text-[#241A14]">
                   Table #{qrModalTable.number}
                 </h3>
                 <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#B85B43] mt-0.5">
@@ -2589,7 +2589,7 @@ export default function AdminPortal() {
             <div className="bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
               <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-3">
                 <div>
-                  <h3 className="text-xl font-serif font-extrabold text-[#241A14]">
+                  <h3 className="text-xl font-sans font-extrabold text-[#241A14]">
                     Table {selectedOpTable.table_number?.replace(/^table\s*/i, "")} Session Details
                   </h3>
                   <p className="text-xs text-[#7A6A5E] mt-0.5">
