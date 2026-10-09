@@ -71,7 +71,7 @@ export default function CinematicBrandIntro({
               JAADOO
             </h1>
             <span className="font-serif italic font-normal text-2xl sm:text-3xl md:text-4xl text-[#C88A48] mt-2 tracking-wide">
-              Trattoria
+              The Pizza Project
             </span>
 
             {/* Subtle Divider */}
@@ -79,7 +79,7 @@ export default function CinematicBrandIntro({
 
             {/* Supporting Subtext */}
             <p className="font-sans text-[10px] sm:text-xs tracking-[0.35em] text-[#D8C7B5] uppercase font-medium">
-              CAFFÈ • PIZZERIA • UDAIPUR
+              ARTISANAL PIZZERIA • UDAIPUR
             </p>
           </motion.div>
         </motion.div>

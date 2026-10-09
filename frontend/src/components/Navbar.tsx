@@ -38,10 +38,10 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
             </div>
             <div className="flex flex-col justify-center min-w-0">
               <span className="font-serif font-extrabold text-xl sm:text-2xl leading-tight tracking-wide text-[#140E0A] truncate">
-                JAADOO <span className="font-serif italic font-normal text-base sm:text-lg text-[#9E3E26] ml-0.5">Trattoria</span>
+                JAADOO <span className="font-serif italic font-normal text-base sm:text-lg text-[#9E3E26] ml-0.5">The Pizza Project</span>
               </span>
               <span className="text-[10px] font-sans tracking-[0.22em] text-[#3B2C23] uppercase font-bold leading-none mt-0.5">
-                CAFÉ · PIZZERIA · UDAIPUR
+                ARTISANAL PIZZERIA · UDAIPUR
               </span>
             </div>
           </Link>

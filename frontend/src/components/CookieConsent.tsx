@@ -38,7 +38,7 @@ export default function CookieConsent() {
         </div>
         <div className="space-y-2 text-xs text-stone-300 font-sans leading-relaxed">
           <p className="font-serif font-bold text-sm text-[#FBF9F5]">
-            Privacy & Dining Experience
+            Privacy and Dining Experience
           </p>
           <p>
             We use essential local storage to remember your table ordering session and preferences. We do not track personal profiles across third-party networks. Learn more in our{" "}

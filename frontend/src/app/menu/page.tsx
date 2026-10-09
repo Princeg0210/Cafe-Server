@@ -47,10 +47,10 @@ export default function MenuPage() {
             — ESTRATTO DAL MENU · LA CARTA —
           </span>
           <h1 className="text-3xl sm:text-5xl font-serif font-bold text-white tracking-tight">
-            Jaadoo Trattoria Menu
+            Jaadoo - The Pizza Project Menu
           </h1>
           <p className="text-stone-300 font-sans font-medium text-xs sm:text-sm mt-2 max-w-xl mx-auto leading-relaxed">
-            Wood-Fired Neapolitan Pizzas · 48h Natural Fermentation · Mountain Arabica & Tisanes
+            Wood-Fired Neapolitan Pizzas · 48h Natural Fermentation · Mountain Arabica and Tisanes
           </p>
         </div>
       </section>

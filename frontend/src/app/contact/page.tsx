@@ -44,7 +44,7 @@ export default function ContactPage() {
         >
           <div className="inline-flex items-center gap-2 text-[#9E3E26] text-xs font-sans font-bold uppercase tracking-[0.22em] mb-2.5">
             <Mail className="w-3.5 h-3.5 text-[#9E3E26]" />
-            <span>Get in Touch • Jaadoo Trattoria</span>
+            <span>Get in Touch • Jaadoo - The Pizza Project</span>
           </div>
           <h1 className="text-3xl md:text-5xl font-serif font-bold text-[#140E0A] tracking-tight">
             Contact Us

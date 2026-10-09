@@ -39,7 +39,7 @@ export default function PrivacyPolicyPage() {
             Privacy Policy
           </h1>
           <p className="text-xs sm:text-sm text-stone-500 font-serif italic mt-2">
-            Last Updated: September 2026 • Effective for Jaadoo Trattoria (Jazz & Blues Hospitality LLP [PLACEHOLDER])
+            Last Updated: September 2026 • Effective for Jaadoo - The Pizza Project (Jazz and Blues Hospitality LLP)
           </p>
         </header>
 
@@ -51,11 +51,11 @@ export default function PrivacyPolicyPage() {
               1. Information We Collect
             </h2>
             <p>
-              When you interact with our dining and reservation systems at <strong>Jaadoo Trattoria</strong> (operated by <strong>Jazz & Blues Hospitality LLP [PLACEHOLDER]</strong>), we collect minimal essential information necessary to serve you:
+              When you interact with our dining and reservation systems at <strong>Jaadoo - The Pizza Project</strong> (operated by <strong>Jazz and Blues Hospitality LLP</strong>), we collect minimal essential information necessary to serve you:
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-stone-600">
               <li><strong>Reservation Details:</strong> Name, contact phone number, email address (optional), guest count, requested date, and time slot.</li>
-              <li><strong>Dining & Order Activity:</strong> Table session tokens, ordered menu items, timestamps, and dietary preferences specified during table ordering.</li>
+              <li><strong>Dining and Order Activity:</strong> Table session tokens, ordered menu items, timestamps, and dietary preferences specified during table ordering.</li>
               <li><strong>Payment Verification References:</strong> Bank UPI Transaction Reference (UTR) or payment reference numbers provided to verify table deposit credits. We do <em>not</em> store banking passwords, UPI PINs, or raw credit/debit card credentials.</li>
             </ul>
           </section>
@@ -87,13 +87,13 @@ export default function PrivacyPolicyPage() {
           <section className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E4DCD0] shadow-2xs space-y-3">
             <h2 className="text-lg sm:text-xl font-serif font-bold text-[#261C18] flex items-center gap-2.5">
               <Mail className="w-4 h-4 text-[#4A5842]" />
-              4. Contact & Privacy Inquiries
+              4. Contact and Privacy Inquiries
             </h2>
             <p>
               If you have any questions regarding our privacy practices or wish to request data correction/deletion, please contact our management team:
             </p>
             <div className="bg-[#F8F5F0] p-4 rounded-xl border border-[#E4DCD0] text-xs font-mono space-y-1 text-stone-800">
-              <p><strong>Entity:</strong> Jaadoo Trattoria (Jazz & Blues Hospitality LLP [PLACEHOLDER])</p>
+              <p><strong>Entity:</strong> Jaadoo - The Pizza Project (Jazz and Blues Hospitality LLP)</p>
               <p><strong>Address:</strong> 32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur, Rajasthan 313001, India</p>
               <p><strong>Email:</strong> privacy@jaadooudaipur.com [PLACEHOLDER]</p>
               <p><strong>Phone:</strong> +91 98290 12345 [PLACEHOLDER]</p>

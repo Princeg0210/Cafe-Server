@@ -26,7 +26,7 @@ export default function JaadooInstagramGrid() {
       image: "/jaadoo-pizza-prep.png",
       type: "carousel",
       alt: "Artisan Baker Shaping 48h Fermented Sourdough Base",
-      overlayTitle: "ARTISANAL FLOUR & CRAFT",
+      overlayTitle: "ARTISANAL FLOUR AND CRAFT",
       overlaySub: "Hand-stretched with Tipo 00 and San Marzano",
     },
     {
@@ -43,7 +43,7 @@ export default function JaadooInstagramGrid() {
       type: "carousel",
       alt: "Authentic House Tiramisu and Mountain Espresso",
       overlayBrand: "DOLCE TIRAMISU",
-      overlaySub: "Valrhona Cocoa & Arabica Extract",
+      overlaySub: "Valrhona Cocoa and Arabica Extract",
     },
     {
       id: 6,
@@ -153,7 +153,7 @@ export default function JaadooInstagramGrid() {
             {post.overlayTitle && (
               <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center p-4">
                 <span className="text-[10px] font-sans text-stone-200 tracking-[0.2em] uppercase mb-1">
-                  think About Good Food & Coffee
+                  think About Good Food and Coffee
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-sans font-extrabold text-white tracking-wider uppercase drop-shadow-lg leading-tight">
                   {post.overlayTitle}

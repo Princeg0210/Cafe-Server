@@ -11,16 +11,16 @@ interface SignatureBrewsShowcaseProps {
 const signatureBrews: MenuItem[] = [
   {
     id: "h2",
-    name: "HIMALAYAN RHODODENDRON & THYME TISANE",
+    name: "HIMALAYAN RHODODENDRON AND THYME TISANE",
     price: 150,
-    description: "Wild Himalayan red rhododendron petals brewed with garden mint & thyme.",
-    details: "Hand-picked wild petals from high-altitude Himalayan valleys. Rich in antioxidants & naturally caffeine-free.",
+    description: "Wild Himalayan red rhododendron petals brewed with garden mint and thyme.",
+    details: "Hand-picked wild petals from high-altitude Himalayan valleys. Rich in antioxidants and naturally caffeine-free.",
     tags: ["Wild Harvested", "Caffeine-Free"],
     prepTime: "5 mins",
   },
   {
     id: "h3",
-    name: "ROSEHIP & SPEARMINT TISANE",
+    name: "ROSEHIP AND SPEARMINT TISANE",
     price: 150,
     description: "Vitamin C rich wild rosehip husks infused with spear mint.",
     details: "Sun-dried wild rosehips brewed hot with crisp mountain mint leaves for a tangy herbal elixir.",

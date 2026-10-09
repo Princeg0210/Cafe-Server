@@ -93,7 +93,7 @@ export default function LocationBrewStation() {
         </div>
         <div className="w-full h-80 sm:h-96 relative">
           <iframe
-            title="Jaadoo Trattoria Location Map"
+            title="Jaadoo - The Pizza Project Location Map"
             src="https://maps.google.com/maps?q=32+Sitaphal+ki+gali+Ganesh+Ghati+Old+City+Udaipur+Rajasthan&t=&z=16&ie=UTF8&iwloc=&output=embed"
             width="100%"
             height="100%"

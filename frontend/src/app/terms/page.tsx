@@ -33,13 +33,13 @@ export default function TermsConditionsPage() {
         <header className="border-b border-[#E4DCD0] pb-8 mb-10">
           <div className="inline-flex items-center gap-2 bg-[#B85B43]/10 text-[#B85B43] px-3.5 py-1 rounded-full text-xs font-mono font-semibold uppercase tracking-wider mb-3">
             <Scale className="w-3.5 h-3.5" />
-            <span>Dining & Booking Terms</span>
+            <span>Dining and Booking Terms</span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-serif font-extrabold text-[#261C18] tracking-tight">
-            Terms & Conditions
+            Terms and Conditions
           </h1>
           <p className="text-xs sm:text-sm text-stone-500 font-serif italic mt-2">
-            Last Updated: September 2026 • Jaadoo Trattoria (Jazz & Blues Hospitality LLP [PLACEHOLDER])
+            Last Updated: September 2026 • Jaadoo - The Pizza Project (Jazz and Blues Hospitality LLP)
           </p>
         </header>
 
@@ -49,7 +49,7 @@ export default function TermsConditionsPage() {
           <section className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E4DCD0] shadow-2xs space-y-3">
             <h2 className="text-lg sm:text-xl font-serif font-bold text-[#261C18] flex items-center gap-2.5">
               <Receipt className="w-4 h-4 text-[#B85B43]" />
-              1. Table Reservations & Advance Deposit
+              1. Table Reservations and Advance Deposit
             </h2>
             <p>
               To ensure fair access to seating and protect daily small-batch Neapolitan pizza dough production:
@@ -78,7 +78,7 @@ export default function TermsConditionsPage() {
           <section className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E4DCD0] shadow-2xs space-y-3">
             <h2 className="text-lg sm:text-xl font-serif font-bold text-[#261C18] flex items-center gap-2.5">
               <Utensils className="w-4 h-4 text-[#B85B43]" />
-              3. QR Table Ordering & Dining Experience
+              3. QR Table Ordering and Dining Experience
             </h2>
             <p>
               When seated at our café in Old City Udaipur:
@@ -93,10 +93,10 @@ export default function TermsConditionsPage() {
           <section className="bg-white rounded-2xl p-6 sm:p-8 border border-[#E4DCD0] shadow-2xs space-y-3">
             <h2 className="text-lg sm:text-xl font-serif font-bold text-[#261C18] flex items-center gap-2.5">
               <AlertCircle className="w-4 h-4 text-[#4A5842]" />
-              4. Governing Law & Dispute Resolution
+              4. Governing Law and Dispute Resolution
             </h2>
             <p>
-              These Terms & Conditions are governed by and construed in accordance with the laws of India. Any legal proceedings or disputes arising from café services shall be subject to the exclusive jurisdiction of the competent courts in Udaipur, Rajasthan, India [PLACEHOLDER].
+              These Terms and Conditions are governed by and construed in accordance with the laws of India. Any legal proceedings or disputes arising from café services shall be subject to the exclusive jurisdiction of the competent courts in Udaipur, Rajasthan, India.
             </p>
           </section>
         </div>

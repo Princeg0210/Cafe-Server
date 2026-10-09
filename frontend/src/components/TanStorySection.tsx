@@ -36,7 +36,7 @@ export default function TanStorySection() {
             </p>
 
             <p>
-              <strong className="text-[#140E0A] font-bold">Jaadoo Trattoria</strong> celebrates the ritual of 48-hour natural sourdough fermentation using Italian Tipo 00 flour, San Marzano tomato passata, and fresh mozzarella Fior di Latte, paired with wild-harvested Himalayan tisanes.
+              <strong className="text-[#140E0A] font-bold">Jaadoo - The Pizza Project</strong> celebrates the ritual of 48-hour natural sourdough fermentation using Italian Tipo 00 flour, San Marzano tomato passata, and fresh mozzarella Fior di Latte, paired with wild-harvested Himalayan tisanes.
             </p>
 
             <blockquote className="text-base sm:text-lg text-[#8F351F] font-serif font-semibold italic pt-2 pl-4 border-l-3 border-[#8F351F]/60">

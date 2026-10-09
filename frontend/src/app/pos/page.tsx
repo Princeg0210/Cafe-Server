@@ -830,8 +830,8 @@ export default function POSDashboard() {
       <body>
         <div class="header">
           <div>
-            <h1>JAADOO TRATTORIA • POS OPERATIONAL REPORT</h1>
-            <p>Old City Udaipur • Session Reset Summary</p>
+            <h1>JAADOO • THE PIZZA PROJECT • POS OPERATIONAL REPORT</h1>
+            <p>32 Sitaphal ki gali, Ganesh Ghati, Udaipur • Session Reset Summary</p>
           </div>
           <div class="badge">Date: ${reportDate} | Generated: ${printTime}</div>
         </div>
@@ -930,7 +930,7 @@ export default function POSDashboard() {
         </table>
 
         <div class="footer">
-          JAADOO TRATTORIA • Operational POS System • ${reportDate}
+          JAADOO • The Pizza Project • Operational POS System • ${reportDate}
         </div>
 
         <script>
@@ -1105,7 +1105,7 @@ export default function POSDashboard() {
             <Link href="/" className="hover:text-[#261C18] flex items-center gap-1">
               <ArrowLeft className="w-3 h-3" /> Website
             </Link>
-            <span>JAADOO Trattoria • POS</span>
+            <span>JAADOO • The Pizza Project • POS</span>
           </div>
         </div>
       </div>
