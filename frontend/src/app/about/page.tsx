@@ -54,7 +54,7 @@ export default function AboutPage() {
             Woodfired Passion and Roasted Arabica
           </h2>
           <p className="text-[#261A12] font-sans leading-relaxed text-base md:text-lg max-w-2xl mx-auto">
-            Nestled in the historic lanes near Gangaur Ghat, <strong className="text-[#140E0A] font-bold">Jaadoo Udaipur</strong> was born out of a passion for 48-hour fermented Neapolitan crusts, artisanal Arabica roasts, and high-altitude Himalayan herb tisanes.
+            Nestled at 32 Sitaphal ki gali in the historic lanes of Ganesh Ghati, <strong className="text-[#140E0A] font-bold">Jaadoo Udaipur</strong> was born out of a passion for 48-hour Neapolitan crusts, artisanal Arabica roasts, and high-altitude Himalayan herb tisanes.
           </p>
         </motion.div>
 

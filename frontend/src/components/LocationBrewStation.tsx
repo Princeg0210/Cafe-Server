@@ -9,7 +9,7 @@ export default function LocationBrewStation() {
         <div>
           <div className="inline-flex items-center gap-2 text-[#9E3E26] text-xs font-sans font-bold uppercase tracking-widest mb-2">
             <MapPin className="w-3.5 h-3.5 text-[#9E3E26]" />
-            <span>Old City Udaipur • Gangaur Ghat</span>
+            <span>Old City Udaipur • Ganesh Ghati</span>
           </div>
           <h2 className="text-3xl md:text-5xl font-serif font-bold text-[#140E0A]">
             Find Us in Old City, Udaipur
@@ -17,7 +17,7 @@ export default function LocationBrewStation() {
         </div>
 
         <a
-          href="https://maps.google.com/?q=Gangaur+Ghat+Udaipur"
+          href="https://maps.google.com/?q=32+Sitaphal+ki+gali+Ganesh+Ghati+Old+City+Udaipur"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center gap-2 bg-[#140E0A] hover:bg-[#8F351F] text-[#FAF8F5] px-6 py-3 rounded-lg font-sans font-bold text-xs tracking-wider uppercase transition-all shadow-xs self-start md:self-auto border border-[#140E0A]"
@@ -36,10 +36,10 @@ export default function LocationBrewStation() {
             <h4 className="font-serif font-bold text-lg text-[#140E0A]">Station Address</h4>
           </div>
           <p className="text-sm text-[#1A120B] leading-relaxed font-sans font-medium">
-            Near Gangaur Ghat, Old City Lanes, Udaipur, Rajasthan 313001.
+            32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur, Rajasthan 313001.
           </p>
           <p className="text-xs text-[#3E2C20] font-sans font-normal pt-1.5 border-t border-[#DDD3C4]/60">
-            2-minute walk from historic Lake Pichola waterfront.
+            Heritage lanes of Ganesh Ghati near Lake Pichola.
           </p>
         </div>
 
@@ -79,10 +79,10 @@ export default function LocationBrewStation() {
         <div className="bg-[#E4DCD0] px-4 py-2.5 flex items-center justify-between border-b border-[#DDD3C4]">
           <div className="flex items-center gap-2 text-xs font-sans font-bold uppercase tracking-wider text-[#140E0A]">
             <MapPin className="w-3.5 h-3.5 text-[#9E3E26]" />
-            <span>Live Map — Gangaur Ghat, Udaipur</span>
+            <span>Live Map — Ganesh Ghati, Udaipur</span>
           </div>
           <a
-            href="https://maps.google.com/?q=Gangaur+Ghat+Udaipur"
+            href="https://maps.google.com/?q=32+Sitaphal+ki+gali+Ganesh+Ghati+Old+City+Udaipur"
             target="_blank"
             rel="noopener noreferrer"
             className="text-[11px] font-sans font-bold text-[#9E3E26] hover:underline flex items-center gap-1"
@@ -94,7 +94,7 @@ export default function LocationBrewStation() {
         <div className="w-full h-80 sm:h-96 relative">
           <iframe
             title="Jaadoo Trattoria Location Map"
-            src="https://maps.google.com/maps?q=Gangaur+Ghat+Old+City+Udaipur+Rajasthan&t=&z=16&ie=UTF8&iwloc=&output=embed"
+            src="https://maps.google.com/maps?q=32+Sitaphal+ki+gali+Ganesh+Ghati+Old+City+Udaipur+Rajasthan&t=&z=16&ie=UTF8&iwloc=&output=embed"
             width="100%"
             height="100%"
             style={{ border: 0 }}

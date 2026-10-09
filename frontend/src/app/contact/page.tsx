@@ -72,7 +72,7 @@ export default function ContactPage() {
                   <div>
                     <h4 className="font-bold text-[#140E0A] text-base">Address</h4>
                     <p className="text-[#261A12] text-sm mt-0.5 leading-relaxed">
-                      Old City, Near Gangaur Ghat, Udaipur, Rajasthan 313001
+                      32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur, Rajasthan 313001
                     </p>
                   </div>
                 </div>

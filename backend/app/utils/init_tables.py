@@ -34,9 +34,11 @@ async def ensure_default_tables(db: AsyncSession) -> None:
     branch_res = await db.execute(select(Branch))
     branch = branch_res.scalar_one_or_none()
     if not branch:
-        branch = Branch(name="Jaadoo Udaipur", address="Chandpole, Udaipur", phone="+919876543210")
+        branch = Branch(name="Jaadoo Udaipur", address="32 Sitaphal ki gali, Ganesh Ghati, Udaipur", phone="+919876543210")
         db.add(branch)
         await db.flush()
+    else:
+        branch.address = "32 Sitaphal ki gali, Ganesh Ghati, Udaipur"
 
     for dt in DEFAULT_TABLES:
         # Check if table exists by ID or by table_number

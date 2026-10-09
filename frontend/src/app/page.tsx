@@ -85,7 +85,7 @@ export default function Home() {
           >
             <div className="inline-flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-sans font-medium">
               <MapPin className="w-4 h-4 text-[#E8AA62] shrink-0" />
-              <span>Gangaur Ghat Waterfront</span>
+              <span>32 Sitaphal ki gali, Ganesh Ghati</span>
             </div>
             <span className="hidden sm:inline text-white/30">•</span>
             <div className="inline-flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-sans font-medium">
@@ -95,7 +95,7 @@ export default function Home() {
             <span className="hidden sm:inline text-white/30">•</span>
             <div className="inline-flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-sans font-medium">
               <Leaf className="w-4 h-4 text-[#E8AA62] shrink-0" />
-              <span>100% Pure Vegetarian</span>
+              <span>100% Vegetarian Pizzas</span>
             </div>
           </motion.div>
 

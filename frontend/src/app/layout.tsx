@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     "Neapolitan Pizza Rajasthan",
     "Artisanal Coffee Udaipur",
     "Best Cafe Old City Udaipur",
-    "Gangaur Ghat Italian Pizzeria",
+    "Ganesh Ghati Italian Pizzeria",
     "Table Booking Udaipur Cafe",
   ],
   authors: [{ name: "Jaadoo Trattoria" }],
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     siteName: "Jaadoo Trattoria · Pizzeria",
     title: "Jaadoo Udaipur | Woodfired Neapolitan Pizza · Artisanal Coffee",
     description:
-      "48-hour slow fermentation Neapolitan pizza and specialty Arabica roasts in Old City Udaipur near Gangaur Ghat.",
+      "48-hour slow fermentation Neapolitan pizza and specialty Arabica roasts at 32 Sitaphal ki gali, Ganesh Ghati, Old City Udaipur.",
     images: [
       {
         url: "/jaadoo-pizza-twilight.png",

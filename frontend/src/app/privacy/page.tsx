@@ -94,7 +94,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="bg-[#F8F5F0] p-4 rounded-xl border border-[#E4DCD0] text-xs font-mono space-y-1 text-stone-800">
               <p><strong>Entity:</strong> Jaadoo Trattoria (Jazz & Blues Hospitality LLP [PLACEHOLDER])</p>
-              <p><strong>Address:</strong> Near Gangaur Ghat, Old City, Udaipur, Rajasthan 313001, India [PLACEHOLDER]</p>
+              <p><strong>Address:</strong> 32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur, Rajasthan 313001, India</p>
               <p><strong>Email:</strong> privacy@jaadooudaipur.com [PLACEHOLDER]</p>
               <p><strong>Phone:</strong> +91 98290 12345 [PLACEHOLDER]</p>
             </div>

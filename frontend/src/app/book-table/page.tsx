@@ -188,7 +188,7 @@ export default function BookTablePage() {
 
   const handleShareSummary = () => {
     if (!activeBooking) return;
-    const text = `Jaadoo Café Reservation Confirmed!\nBooking Ref: ${activeBooking.id}\nGuest: ${activeBooking.name} (${activeBooking.guests} Guests)\nDate: ${activeBooking.date} at ${activeBooking.time}\nSeating: ${activeBooking.seatingZone}\nLocation: Gangaur Ghat, Old City, Udaipur`;
+    const text = `Jaadoo Café Reservation Confirmed!\nBooking Ref: ${activeBooking.id}\nGuest: ${activeBooking.name} (${activeBooking.guests} Guests)\nDate: ${activeBooking.date} at ${activeBooking.time}\nSeating: ${activeBooking.seatingZone}\nLocation: 32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
       setCopiedLink(true);
@@ -205,7 +205,7 @@ export default function BookTablePage() {
     const details = encodeURIComponent(
       `Table Reservation at Jaadoo Café Trattoria.\nRef: ${activeBooking.id}\nParty: ${activeBooking.guests} Guests\nSeating: ${activeBooking.seatingZone}`
     );
-    const location = encodeURIComponent("Jaadoo Trattoria, Near Gangaur Ghat, Old City, Udaipur, Rajasthan");
+    const location = encodeURIComponent("Jaadoo Trattoria, 32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur, Rajasthan");
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
       "Dinner at Jaadoo Café Udaipur"
     )}&dates=${startIso}/${endIso}&details=${details}&location=${location}`;
@@ -219,7 +219,7 @@ export default function BookTablePage() {
         {/* Anti-AI Editorial Header */}
         <div className="text-center mb-10">
           <span className="font-serif italic text-sm text-[#9E3E26] tracking-widest font-normal block mb-1">
-            Prenotazione Tavoli · Est. 2023 · Gangaur Ghat
+            Prenotazione Tavoli · Est. 2023 · Ganesh Ghati
           </span>
           <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#140E0A] tracking-tight">
             Reserve Your Table
@@ -329,7 +329,7 @@ export default function BookTablePage() {
                 <div className="p-4 bg-[#F2EDE2] rounded-xl border border-[#DDD3C4] text-xs font-sans text-[#241711] leading-relaxed flex items-start gap-2.5">
                   <MapPin className="w-4 h-4 text-[#9E3E26] shrink-0 mt-0.5" />
                   <p>
-                    <strong>Arrival Note:</strong> Located 2 minutes from Gangaur Ghat. Park at Chandpole Gate and enjoy the 3-minute stroll through the historic lanes. Tables are held for 15 minutes past your reserved time.
+                    <strong>Arrival Note:</strong> Located at 32 Sitaphal ki gali, Ganesh Ghati. Park at Chandpole Gate and enjoy the 3-minute stroll through the historic lanes. Tables are held for 15 minutes past your reserved time.
                   </p>
                 </div>
 

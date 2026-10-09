@@ -22,13 +22,13 @@ export default function LocationPage() {
           >
             <div className="inline-flex items-center gap-2 text-[#9E3E26] text-xs font-sans font-bold uppercase tracking-[0.22em] mb-2.5">
               <MapPin className="w-3.5 h-3.5 text-[#9E3E26]" />
-              <span>Old City • Lake Pichola Waterfront</span>
+              <span>Old City • Ganesh Ghati</span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-serif font-bold text-[#140E0A] tracking-tight">
               Location & Directions
             </h1>
             <p className="text-[#3B2C23] text-sm sm:text-base mt-3 font-sans leading-relaxed">
-              Tucked away in the historic heritage lanes of Gangaur Ghat, overlooking the gentle waters of Lake Pichola.
+              Tucked away at 32 Sitaphal ki gali in the historic heritage lanes of Ganesh Ghati, Old City Udaipur.
             </p>
           </motion.div>
 
@@ -44,10 +44,10 @@ export default function LocationPage() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-[#9E3E26] font-bold">
                   <Footprints className="w-4 h-4" />
-                  <span>From Jagdish Temple</span>
+                  <span>From Jagdish Temple / Chandpole</span>
                 </div>
                 <p className="text-xs text-[#3B2C23] leading-relaxed">
-                  Head down the main Gangaur Ghat road for 150 meters towards the lake. Jaadoo Trattoria is nestled on the left right before the ghat steps.
+                  Stroll through the scenic Old City lanes towards Ganesh Ghati. Turn into Sitaphal ki gali (House No. 32).
                 </p>
               </div>
 
@@ -57,17 +57,17 @@ export default function LocationPage() {
                   <span>By Auto / Cab</span>
                 </div>
                 <p className="text-xs text-[#3B2C23] leading-relaxed">
-                  Ask the driver to drop you at <strong className="font-semibold text-[#140E0A]">Chandpole Parking</strong> or <strong className="font-semibold text-[#140E0A]">Jagdish Chowk</strong>. Four-wheelers cannot enter narrow ghat lanes.
+                  Ask the driver to drop you at <strong className="font-semibold text-[#140E0A]">Chandpole Parking</strong> or <strong className="font-semibold text-[#140E0A]">Jagdish Chowk</strong>. Four-wheelers cannot enter narrow heritage lanes.
                 </p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-[#9E3E26] font-bold">
                   <Landmark className="w-4 h-4" />
-                  <span>From Bagore Ki Haveli</span>
+                  <span>Near Gangaur Ghat Waterfront</span>
                 </div>
                 <p className="text-xs text-[#3B2C23] leading-relaxed">
-                  Just a 1-minute leisurely stroll across the Gangaur Ghat plaza. Perfect for dinner after attending the evening Dharohar cultural show.
+                  Just a 2-minute walk from the lake ghats and Bagore Ki Haveli. Perfect for a cozy dining stop after lake sightseeing.
                 </p>
               </div>
             </div>
