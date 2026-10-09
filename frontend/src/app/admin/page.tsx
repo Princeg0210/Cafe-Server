@@ -41,6 +41,8 @@ import {
   UtensilsCrossed,
   Flame,
   CheckCircle2,
+  UserCheck,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -121,6 +123,9 @@ interface Reservation {
   customer_phone: string;
   party_size: number;
   booking_date: string;
+  reservation_date?: string;
+  guest_count?: number;
+  customer?: { name?: string; phone?: string; email?: string };
   time_slot: string;
   status: string;
   advance_amount: number | string;
@@ -139,6 +144,7 @@ interface TableOverview {
   capacity: number;
   qr_token: string;
   is_active: boolean;
+  is_occupied?: boolean;
   active_session_count: number;
   floor_number?: number;
   floor_name?: string;
@@ -180,6 +186,7 @@ export default function AdminPortal() {
   const [opDate, setOpDate] = useState<string>(() => getLocalDateString(0));
   const [opSubTab, setOpSubTab] = useState<"tables" | "bookings" | "kots">("tables");
   const [opTableFilter, setOpTableFilter] = useState<"all" | "active" | "available">("all");
+  const [opFloorFilter, setOpFloorFilter] = useState<number | "all">("all");
   const [opResFilter, setOpResFilter] = useState<string>("all");
   const [opResSearch, setOpResSearch] = useState<string>("");
   const [opSummary, setOpSummary] = useState<any>(null);
@@ -189,6 +196,8 @@ export default function AdminPortal() {
   const [opDough, setOpDough] = useState<any>(null);
   const [isOpLoading, setIsOpLoading] = useState(false);
   const [selectedOpTable, setSelectedOpTable] = useState<any | null>(null);
+  const [opAssigningRes, setOpAssigningRes] = useState<any | null>(null);
+  const [selectedAssignTableId, setSelectedAssignTableId] = useState<number>(1);
 
   const isOpToday = opDate === getLocalDateString(0);
   const isOpFuture = opDate > getLocalDateString(0);
@@ -251,6 +260,24 @@ export default function AdminPortal() {
       return process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
     }
     return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  };
+
+  const getWsBase = () => {
+    if (typeof window !== "undefined") {
+      const h = window.location.hostname;
+      const isLocal =
+        h === "localhost" ||
+        h === "127.0.0.1" ||
+        h.startsWith("192.168.") ||
+        h.startsWith("10.") ||
+        h.endsWith(".local");
+
+      if (isLocal) {
+        return `ws://${h}:8000`;
+      }
+      return process.env.NEXT_PUBLIC_WS_URL || "wss://cafe-piza-api.onrender.com";
+    }
+    return process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
   };
 
   // Check stored token
@@ -453,11 +480,11 @@ export default function AdminPortal() {
     }
   }, [token, fetchData]);
 
-  // Fetch Operations Data for target date
+  // Fetch Operations Data for target date (silent mode prevents loading flash on background sync)
   const fetchOperationsData = useCallback(
-    async (targetDate?: string) => {
+    async (targetDate?: string, silent = false) => {
       if (!token) return;
-      setIsOpLoading(true);
+      if (!silent) setIsOpLoading(true);
       const target = targetDate || opDate;
       const apiBase = getApiBase();
       const headers = { Authorization: `Bearer ${token}` };
@@ -468,7 +495,7 @@ export default function AdminPortal() {
           fetch(`${apiBase}/api/v1/pos/table-sessions${dateParam}`, { headers }),
           fetch(`${apiBase}/api/v1/pos/kots${dateParam}`, { headers }),
           fetch(`${apiBase}/api/v1/pos/daily-dough-capacity${target ? `?target_date=${target}` : ""}`, { headers }),
-          fetch(`${apiBase}/api/v1/reservations?branch_id=1${target ? `&reservation_date=${target}` : ""}`, { headers }),
+          fetch(`${apiBase}/api/v1/reservations${target ? `?reservation_date=${target}` : ""}`, { headers }),
         ]);
 
         if (sumRes.ok) {
@@ -494,7 +521,7 @@ export default function AdminPortal() {
       } catch (err) {
         console.warn("Operations data fetch error:", err);
       } finally {
-        setIsOpLoading(false);
+        if (!silent) setIsOpLoading(false);
       }
     },
     [token, opDate]
@@ -506,10 +533,30 @@ export default function AdminPortal() {
     }
   }, [token, opDate, fetchOperationsData]);
 
+  // Handle seating and reservation status update with live session check-in
   const handleUpdateOpReservationStatus = async (resId: number, newStatus: string) => {
     if (!token) return;
     const apiBase = getApiBase();
     try {
+      if (newStatus === "SEATED") {
+        const targetRes = (opReservations.length > 0 ? opReservations : reservations).find((r) => r.id === resId);
+        if (targetRes && targetRes.table_id) {
+          const checkinRes = await fetch(`${apiBase}/api/v1/reservations/${resId}/checkin`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ table_id: targetRes.table_id }),
+          });
+          if (checkinRes.ok) {
+            showToast(`Reservation #${resId} checked in & seated at Table #${targetRes.table_id}`);
+            await Promise.all([fetchOperationsData(opDate, true), fetchData(true)]);
+            return;
+          }
+        }
+      }
+
       const res = await fetch(`${apiBase}/api/v1/reservations/${resId}/status`, {
         method: "PATCH",
         headers: {
@@ -520,7 +567,7 @@ export default function AdminPortal() {
       });
       if (res.ok) {
         showToast(`Reservation #${resId} marked as ${newStatus}`);
-        fetchOperationsData(opDate);
+        await Promise.all([fetchOperationsData(opDate, true), fetchData(true)]);
       } else {
         showToast(`Failed to update reservation #${resId}`);
       }
@@ -529,53 +576,124 @@ export default function AdminPortal() {
     }
   };
 
-  // Real-time WebSocket connection for live sync + background poll
+  // Assign table to reservation from Operations view
+  const handleAssignOpTable = async (reservationId: number, tableId: number) => {
+    if (!token) return;
+    const apiBase = getApiBase();
+    try {
+      const targetTbl = (opTableOverviews.length > 0 ? opTableOverviews : tables).find(
+        (t) => (t.table_id || t.id) === tableId
+      );
+      const tblNum = targetTbl?.table_number || String(tableId);
+      const res = await fetch(`${apiBase}/api/v1/reservations/${reservationId}/assign-table`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          table_id: tableId,
+          table_name: `Table ${tblNum.replace(/^table\s*/i, "")}`,
+          floor_number: getTableFloor(tblNum).floor,
+        }),
+      });
+      if (res.ok) {
+        showToast(`Table assigned to Reservation #${reservationId}`);
+        setOpAssigningRes(null);
+        await Promise.all([fetchOperationsData(opDate, true), fetchData(true)]);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(`Cannot assign table: ${err.detail || "Server error"}`);
+      }
+    } catch {
+      showToast("Error assigning table");
+    }
+  };
+
+  // Real-time multi-channel WebSocket connection for live sync + background poll
   useEffect(() => {
-    let ws: WebSocket | null = null;
+    const wsBase = getWsBase();
+    const channels = ["pos", "tables", "menu", "admin"];
+    const sockets: WebSocket[] = [];
+    let isCleanedUp = false;
     let reconnectTimeout: any = null;
 
-    const connectWS = () => {
-      try {
-        const apiBase = getApiBase();
-        const wsProto = apiBase.startsWith("https") ? "wss" : "ws";
-        const wsHost = apiBase.replace(/^https?:\/\//, "");
-        ws = new WebSocket(`${wsProto}://${wsHost}/ws/menu`);
+    const connectAll = () => {
+      if (isCleanedUp) return;
+      channels.forEach((ch) => {
+        try {
+          const ws = new WebSocket(`${wsBase}/ws/${ch}`);
+          sockets.push(ws);
 
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === "MENU_UPDATED") {
-              fetchMenuData();
-              showToast(`Live Update: ${data.name || "Menu"} was modified`);
-            }
-          } catch {}
-        };
+          ws.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.type === "PONG") return;
 
-        ws.onclose = () => {
-          reconnectTimeout = setTimeout(connectWS, 4000);
-        };
-      } catch {
-        reconnectTimeout = setTimeout(connectWS, 6000);
-      }
+              // Menu modifications
+              if (data.type === "MENU_UPDATED") {
+                fetchMenuData();
+                showToast(`Live Update: ${data.name || "Menu"} was modified`);
+              }
+
+              // Kitchen / KOT / Order / Session / Reservation events from POS or system
+              if (
+                data.event === "KOT_CREATED" ||
+                data.event === "KOT_UPDATED" ||
+                data.event === "SESSION_CLOSED" ||
+                data.event === "SESSIONS_RESET" ||
+                data.event === "ORDER_CREATED" ||
+                data.event === "RESERVATION_CREATED" ||
+                data.event === "RESERVATION_UPDATED" ||
+                data.event === "TABLE_UPDATED" ||
+                data.type === "RESERVATION_CREATED" ||
+                data.type === "RESERVATION_UPDATED"
+              ) {
+                // Silently refresh operations and dashboard data
+                fetchOperationsData(opDate, true);
+                fetchData(true);
+              }
+            } catch {}
+          };
+        } catch {}
+      });
     };
 
-    connectWS();
+    connectAll();
 
-    // Background polling fallback every 8 seconds for 100% guarantee
-    const interval = setInterval(() => {
+    // Reconnection check
+    const checkConnection = () => {
+      const anyOpen = sockets.some((s) => s.readyState === WebSocket.OPEN);
+      if (!anyOpen && !isCleanedUp) {
+        sockets.forEach((s) => {
+          try { s.close(); } catch {}
+        });
+        sockets.length = 0;
+        reconnectTimeout = setTimeout(connectAll, 4000);
+      }
+    };
+    const healthInterval = setInterval(checkConnection, 10000);
+
+    // Guaranteed background polling fallback every 6 seconds for 100% fresh data
+    const pollInterval = setInterval(() => {
       if (token) {
         fetchData(true);
+        fetchOperationsData(opDate, true);
       } else {
         fetchMenuData();
       }
-    }, 8000);
+    }, 6000);
 
     return () => {
-      if (ws) ws.close();
+      isCleanedUp = true;
+      sockets.forEach((s) => {
+        try { s.close(); } catch {}
+      });
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      clearInterval(interval);
+      clearInterval(healthInterval);
+      clearInterval(pollInterval);
     };
-  }, [token, fetchData]);
+  }, [token, opDate, fetchData, fetchOperationsData, fetchMenuData]);
 
   // Login handler
   const handleLogin = async (e: React.FormEvent) => {
@@ -807,22 +925,70 @@ export default function AdminPortal() {
     return opKots.filter((k) => k.status !== "SERVED" && k.status !== "CANCELLED").length;
   }, [opKots]);
 
+  // Unified display data with fallback to ensure tables and bookings always show live
+  const displayTableOverviews = useMemo(() => {
+    if (opTableOverviews.length > 0) return opTableOverviews;
+    if (tables.length > 0) {
+      return tables.map((t) => {
+        const cleanNum = (t.table_number || "").replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
+        const fl = getTableFloor(cleanNum || t.id);
+        return {
+          table_id: t.id,
+          table_number: t.table_number,
+          capacity: t.capacity || 4,
+          floor_number: t.floor_number || fl.floor,
+          floor_name: t.floor_name || fl.name,
+          active_session_count: t.is_occupied ? 1 : 0,
+          total_sessions_today: 0,
+          sessions: [],
+        };
+      });
+    }
+    return RESTAURANT_TABLES.map((rt) => ({
+      table_id: rt.id,
+      table_number: rt.table_number,
+      capacity: rt.capacity,
+      floor_number: rt.floor,
+      floor_name: rt.floor_name,
+      active_session_count: 0,
+      total_sessions_today: 0,
+      sessions: [],
+    }));
+  }, [opTableOverviews, tables]);
+
+  const displayOpReservations = useMemo(() => {
+    if (opReservations.length > 0) return opReservations;
+    if (reservations.length > 0) {
+      return reservations.filter((r) => !opDate || r.reservation_date === opDate || r.booking_date === opDate);
+    }
+    return [];
+  }, [opReservations, reservations, opDate]);
+
   const opActiveTablesCount = useMemo(() => {
-    return opTableOverviews.filter((t) => (t.active_session_count || 0) > 0).length;
-  }, [opTableOverviews]);
+    return displayTableOverviews.filter((t) => (t.active_session_count || 0) > 0).length;
+  }, [displayTableOverviews]);
 
   const filteredOpTables = useMemo(() => {
+    let list = displayTableOverviews;
+    if (opFloorFilter !== "all") {
+      list = list.filter((tbl) => {
+        const cleanTableNumber = (tbl.table_number || "").replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
+        const floorInfo = getTableFloor(cleanTableNumber || tbl.table_id);
+        const floorNum = tbl.floor_number || floorInfo.floor;
+        return floorNum === Number(opFloorFilter);
+      });
+    }
     if (opTableFilter === "active") {
-      return opTableOverviews.filter((t) => (t.active_session_count || 0) > 0);
+      return list.filter((t) => (t.active_session_count || 0) > 0);
     }
     if (opTableFilter === "available") {
-      return opTableOverviews.filter((t) => (t.active_session_count || 0) === 0);
+      return list.filter((t) => (t.active_session_count || 0) === 0);
     }
-    return opTableOverviews;
-  }, [opTableOverviews, opTableFilter]);
+    return list;
+  }, [displayTableOverviews, opFloorFilter, opTableFilter]);
 
   const filteredOpReservations = useMemo(() => {
-    return opReservations.filter((r) => {
+    return displayOpReservations.filter((r) => {
       const matchesFilter = opResFilter === "all" || r.status?.toUpperCase() === opResFilter.toUpperCase();
       const searchLower = opResSearch.trim().toLowerCase();
       const matchesSearch =
@@ -833,7 +999,7 @@ export default function AdminPortal() {
         String(r.id).includes(searchLower);
       return matchesFilter && matchesSearch;
     });
-  }, [opReservations, opResFilter, opResSearch]);
+  }, [displayOpReservations, opResFilter, opResSearch]);
 
   // ---------------------------------------------------------------------------
   // AUTH LOGIN SCREEN - WARM BEIGE ARTISANAL THEME
@@ -1361,7 +1527,7 @@ export default function AdminPortal() {
                 <div className="text-2xl font-extrabold font-sans text-[#241A14] mt-2 flex items-baseline gap-2">
                   <span>{opActiveTablesCount}</span>
                   <span className="text-xs font-normal text-[#8C7A6D] font-sans">
-                    / {opTableOverviews.length} total
+                    / {displayTableOverviews.length} total
                   </span>
                 </div>
                 <p className="text-[11px] text-[#7A6A5E] mt-1">
@@ -1429,7 +1595,7 @@ export default function AdminPortal() {
                     : "bg-[#FFFDF9] text-[#665448] hover:text-[#241A14] hover:bg-[#F3EDE2] border border-[#E4DCD0]"
                 }`}
               >
-                Floor Tables & Sessions ({opTableOverviews.length})
+                Floor Tables & Sessions ({displayTableOverviews.length})
               </button>
               <button
                 type="button"
@@ -1442,7 +1608,7 @@ export default function AdminPortal() {
               >
                 <span>Table Bookings on {opDate}</span>
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-[#B85B43] text-white">
-                  {opReservations.length}
+                  {displayOpReservations.length}
                 </span>
               </button>
               <button
@@ -1461,7 +1627,7 @@ export default function AdminPortal() {
             {/* SUB-VIEW 1: FLOOR TABLES & SESSIONS ON SELECTED DATE */}
             {opSubTab === "tables" && (
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#FFFDF9] p-3.5 rounded-xl border border-[#E4DCD0]">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-[#FFFDF9] p-3.5 rounded-xl border border-[#E4DCD0]">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-sans font-bold text-[#241A14]">
                       Cafe Floor Layout & Dining Sessions
@@ -1471,25 +1637,57 @@ export default function AdminPortal() {
                     </span>
                   </div>
 
-                  <div className="flex items-center bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
-                    {(["all", "active", "available"] as const).map((mode) => (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Floor Filter Tabs matching POS */}
+                    <div className="flex flex-wrap items-center bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
                       <button
-                        key={mode}
                         type="button"
-                        onClick={() => setOpTableFilter(mode)}
-                        className={`px-3 py-1 rounded-md capitalize font-bold transition-colors cursor-pointer ${
-                          opTableFilter === mode
+                        onClick={() => setOpFloorFilter("all")}
+                        className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer ${
+                          opFloorFilter === "all"
                             ? "bg-[#261C18] text-white shadow-xs"
                             : "text-[#665448] hover:text-[#241A14]"
                         }`}
                       >
-                        {mode === "all"
-                          ? `All (${opTableOverviews.length})`
-                          : mode === "active"
-                          ? `Occupied (${opActiveTablesCount})`
-                          : `Available (${opTableOverviews.length - opActiveTablesCount})`}
+                        All Floors
                       </button>
-                    ))}
+                      {RESTAURANT_FLOORS.filter((f) => !f.isComingSoon).map((fl) => (
+                        <button
+                          key={fl.id}
+                          type="button"
+                          onClick={() => setOpFloorFilter(fl.id)}
+                          className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer ${
+                            opFloorFilter === fl.id
+                              ? "bg-[#261C18] text-white shadow-xs"
+                              : "text-[#665448] hover:text-[#241A14]"
+                          }`}
+                        >
+                          {fl.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Occupancy Filter */}
+                    <div className="flex items-center bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
+                      {(["all", "active", "available"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setOpTableFilter(mode)}
+                          className={`px-3 py-1 rounded-md capitalize font-bold transition-colors cursor-pointer ${
+                            opTableFilter === mode
+                              ? "bg-[#261C18] text-white shadow-xs"
+                              : "text-[#665448] hover:text-[#241A14]"
+                          }`}
+                        >
+                          {mode === "all"
+                            ? `All (${displayTableOverviews.length})`
+                            : mode === "active"
+                            ? `Occupied (${opActiveTablesCount})`
+                            : `Available (${displayTableOverviews.length - opActiveTablesCount})`}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -1502,11 +1700,24 @@ export default function AdminPortal() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredOpTables.map((tbl) => {
-                      const cleanTableNumber = tbl.table_number.replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
+                      const cleanTableNumber = (tbl.table_number || "").replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
                       const displayTableName = `TABLE ${cleanTableNumber.padStart(2, "0") || tbl.table_id}`;
+                      const floorInfo = getTableFloor(cleanTableNumber || tbl.table_id);
+                      const floorDisplayName = tbl.floor_name || floorInfo.name;
                       const isOccupied = (tbl.active_session_count || 0) > 0;
                       const activeSessions = (tbl.sessions || []).filter((s: any) => s.is_active);
                       const currentSession = activeSessions[0] || (tbl.sessions && tbl.sessions[0]);
+
+                      // Match any active booking for this table on selected date (matching POS)
+                      const bookedReservation = displayOpReservations.find((r) => {
+                        const matchId = r.table_id && (r.table_id === tbl.table_id || r.table_id === parseInt(cleanTableNumber, 10));
+                        const matchName = r.table_name && (
+                          r.table_name.toLowerCase().includes(`table ${cleanTableNumber}`.toLowerCase()) ||
+                          r.table_name.toLowerCase() === (tbl.table_number || "").toLowerCase()
+                        );
+                        const isActive = ["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"].includes(r.status?.toUpperCase() || "");
+                        return (matchId || matchName) && isActive;
+                      });
 
                       return (
                         <div
@@ -1519,9 +1730,14 @@ export default function AdminPortal() {
                         >
                           <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-2.5">
                             <div>
-                              <h4 className="font-sans font-extrabold text-base text-[#241A14]">
-                                {displayTableName}
-                              </h4>
+                              <div className="flex items-baseline gap-2">
+                                <h4 className="font-sans font-extrabold text-base text-[#241A14]">
+                                  {displayTableName}
+                                </h4>
+                                <span className="text-xs font-semibold text-[#B85B43]">
+                                  • {floorDisplayName}
+                                </span>
+                              </div>
                               <span className="text-[11px] text-[#7A6A5E]">
                                 {tbl.capacity} Seats Physical Capacity
                               </span>
@@ -1536,6 +1752,33 @@ export default function AdminPortal() {
                               {isOccupied ? "Occupied" : "Available"}
                             </span>
                           </div>
+
+                          {/* Booked Reservation Banner matching POS */}
+                          {bookedReservation && (
+                            <div className="p-2.5 bg-[#FAF0E1] border border-[#E8DFC9] rounded-xl text-xs space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-[#9E3E26] flex items-center gap-1 uppercase tracking-wider text-[10px]">
+                                  <UserCheck className="w-3.5 h-3.5 text-[#9E3E26]" />
+                                  Reserved Guest
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                                  bookedReservation.status === "SEATED"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : bookedReservation.status === "ARRIVED"
+                                    ? "bg-amber-100 text-amber-800"
+                                    : "bg-blue-100 text-blue-800"
+                                }`}>
+                                  {bookedReservation.status}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-stone-900 font-semibold text-xs">
+                                <span className="truncate">{bookedReservation.customer_name || bookedReservation.customer?.name || "Guest"}</span>
+                                <span className="text-[11px] font-mono text-stone-600 shrink-0 ml-1">
+                                  {bookedReservation.time_slot} ({bookedReservation.guest_count || bookedReservation.party_size}p)
+                                </span>
+                              </div>
+                            </div>
+                          )}
 
                           {currentSession ? (
                             <div className="space-y-2.5 text-xs">
@@ -1740,6 +1983,18 @@ export default function AdminPortal() {
 
                           {/* Action Buttons */}
                           <div className="flex items-center gap-2 pt-2 border-t border-[#F0E8DC]">
+                            {!res.table_id && st !== "CANCELLED" && st !== "COMPLETED" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpAssigningRes(res);
+                                  setSelectedAssignTableId(displayTableOverviews[0]?.table_id || 1);
+                                }}
+                                className="py-1.5 px-3 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#B85B43] border border-[#E0D4C2] font-bold text-xs transition-colors cursor-pointer shadow-xs"
+                              >
+                                Assign Table
+                              </button>
+                            )}
                             {st !== "SEATED" && st !== "COMPLETED" && st !== "CANCELLED" && (
                               <button
                                 type="button"
@@ -2644,6 +2899,78 @@ export default function AdminPortal() {
                   className="px-4 py-2 rounded-xl bg-[#261C18] text-white text-xs font-bold cursor-pointer"
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Table Assignment Modal for Operations Bookings */}
+        {opAssigningRes && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-[#FFFDF9] rounded-2xl border border-[#E4DCD0] shadow-2xl p-6 max-w-md w-full space-y-4">
+              <div className="flex items-center justify-between border-b border-[#F0E8DC] pb-3">
+                <h3 className="font-sans font-bold text-base text-[#241A14] flex items-center gap-2">
+                  <UtensilsCrossed className="w-4 h-4 text-[#B85B43]" />
+                  Assign Table to Reservation
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setOpAssigningRes(null)}
+                  className="text-stone-400 hover:text-[#241A14] cursor-pointer"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-3 bg-[#FAF7F0] rounded-xl border border-[#E0D4C2] text-xs space-y-1 text-[#4A392F]">
+                <p>
+                  <strong>Reservation:</strong> #RES-{String(opAssigningRes.id).padStart(4, "0")} • {opAssigningRes.customer_name || opAssigningRes.customer?.name || "Guest"}
+                </p>
+                <p>
+                  <strong>Party Size:</strong> {opAssigningRes.guest_count || opAssigningRes.party_size} Guests • {opAssigningRes.time_slot}
+                </p>
+                <p>
+                  <strong>Date:</strong> {opAssigningRes.reservation_date || opDate}
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-[#4A392F] uppercase tracking-wider block">
+                  Select Table:
+                </label>
+                <select
+                  value={selectedAssignTableId}
+                  onChange={(e) => setSelectedAssignTableId(Number(e.target.value))}
+                  className="w-full text-xs p-2.5 rounded-xl border border-[#E0D4C2] bg-[#FAF7F0] text-[#241A14] font-sans focus:outline-hidden focus:border-[#B85B43]"
+                >
+                  {displayTableOverviews.map((tbl) => {
+                    const cleanNum = (tbl.table_number || "").replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
+                    const fl = getTableFloor(cleanNum || tbl.table_id);
+                    const isOccupied = (tbl.active_session_count || 0) > 0;
+                    return (
+                      <option key={tbl.table_id} value={tbl.table_id}>
+                        Table {cleanNum || tbl.table_id} ({fl.name} • {tbl.capacity} Seats) — {isOccupied ? "Occupied" : "Available"}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleAssignOpTable(opAssigningRes.id, selectedAssignTableId)}
+                  className="flex-1 bg-[#261C18] hover:bg-[#B85B43] text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-xs"
+                >
+                  Confirm Table Assignment
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpAssigningRes(null)}
+                  className="px-4 py-2.5 border border-[#E0D4C2] hover:bg-[#FAF7F0] text-[#665448] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Cancel
                 </button>
               </div>
             </div>

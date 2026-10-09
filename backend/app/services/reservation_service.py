@@ -38,6 +38,26 @@ ALLOWED_STATE_TRANSITIONS = {
 
 class ReservationService:
     @staticmethod
+    async def _broadcast_reservation_event(reservation: Reservation, event_type: str = "RESERVATION_UPDATED"):
+        try:
+            from app.api.websocket import ws_manager
+            payload = {
+                "event": event_type,
+                "id": reservation.id,
+                "status": reservation.status,
+                "table_id": reservation.table_id,
+                "table_name": reservation.table_name,
+                "reservation_date": str(reservation.reservation_date) if reservation.reservation_date else None,
+                "time_slot": reservation.time_slot,
+                "guest_count": reservation.guest_count,
+            }
+            await ws_manager.broadcast("pos", payload)
+            await ws_manager.broadcast("tables", payload)
+            await ws_manager.broadcast("admin", payload)
+        except Exception:
+            pass
+
+    @staticmethod
     async def check_capacity(
         db: AsyncSession, branch_id: int, reservation_date: datetime.date, time_slot: str, new_guests: int
     ) -> bool:
@@ -164,7 +184,9 @@ class ReservationService:
         res = await db.execute(
             select(Reservation).options(selectinload(Reservation.customer)).where(Reservation.id == reservation.id)
         )
-        return res.scalar_one()
+        saved = res.scalar_one()
+        await ReservationService._broadcast_reservation_event(saved, "RESERVATION_CREATED")
+        return saved
 
     @staticmethod
     async def update_reservation_status(db: AsyncSession, reservation_id: int, new_status: str) -> Reservation:
@@ -204,7 +226,9 @@ class ReservationService:
         res = await db.execute(
             select(Reservation).options(selectinload(Reservation.customer)).where(Reservation.id == reservation.id)
         )
-        return res.scalar_one()
+        saved = res.scalar_one()
+        await ReservationService._broadcast_reservation_event(saved, "RESERVATION_UPDATED")
+        return saved
 
     @staticmethod
     async def update_reservation(db: AsyncSession, reservation_id: int, data: ReservationUpdate) -> Reservation:
@@ -365,7 +389,9 @@ class ReservationService:
         res = await db.execute(
             select(Reservation).options(selectinload(Reservation.customer)).where(Reservation.id == reservation.id)
         )
-        return res.scalar_one()
+        saved = res.scalar_one()
+        await ReservationService._broadcast_reservation_event(saved, "RESERVATION_UPDATED")
+        return saved
 
     @staticmethod
     async def checkin_reservation(
@@ -422,7 +448,9 @@ class ReservationService:
         res = await db.execute(
             select(Reservation).options(selectinload(Reservation.customer)).where(Reservation.id == reservation.id)
         )
-        return res.scalar_one()
+        saved = res.scalar_one()
+        await ReservationService._broadcast_reservation_event(saved, "RESERVATION_UPDATED")
+        return saved
 
     @staticmethod
     async def auto_release_expired_no_shows(db: AsyncSession) -> int:
@@ -719,6 +747,7 @@ class ReservationService:
         except Exception:
             pass
 
+        await ReservationService._broadcast_reservation_event(reservation, "RESERVATION_UPDATED")
         return reservation
 
     @staticmethod
