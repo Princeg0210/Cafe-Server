@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import QRCode from "qrcode";
+import { menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
 
 interface DashboardMetrics {
   total_revenue: number;
@@ -79,6 +80,31 @@ interface MenuCategory {
   id: number;
   name: string;
 }
+
+const INITIAL_CATEGORIES: MenuCategory[] = [
+  { id: 1, name: "STARTERS" },
+  { id: 2, name: "PRIMO" },
+  { id: 3, name: "WOOD-FIRED NEAPOLITAN PIZZAS" },
+  { id: 4, name: "CAKES" },
+  { id: 5, name: "BEVERAGES" },
+  { id: 6, name: "HOT DRINKS" },
+];
+
+const INITIAL_MENU_ITEMS: MenuItem[] = menuData.flatMap((c, catIdx) =>
+  c.items.map((item, itemIdx) => {
+    const backendId = MENU_ITEM_ID_MAP[item.id] || (catIdx + 1) * 100 + itemIdx + 1;
+    return {
+      id: backendId,
+      category_id: catIdx + 1,
+      name: item.name,
+      description: item.description || "",
+      price: item.price,
+      tax_rate: "5.00",
+      is_available: true,
+      is_active: true,
+    };
+  })
+);
 
 interface Reservation {
   id: number;
@@ -133,9 +159,9 @@ export default function AdminPortal() {
   const [topItems, setTopItems] = useState<TopItem[]>([]);
   const [reservationSummary, setReservationSummary] = useState<any>(null);
 
-  // Menu Data
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [categories, setCategories] = useState<MenuCategory[]>([]);
+  // Menu Data - Pre-populated so admin UI is NEVER blank or empty
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(INITIAL_MENU_ITEMS);
+  const [categories, setCategories] = useState<MenuCategory[]>(INITIAL_CATEGORIES);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isSavingItem, setIsSavingItem] = useState(false);
   const [isCreatingItem, setIsCreatingItem] = useState(false);
@@ -191,70 +217,180 @@ export default function AdminPortal() {
     }
   }, []);
 
+  // Fetch menu data independently (works with or without token)
+  const fetchMenuData = useCallback(async () => {
+    const apiBase = getApiBase();
+    try {
+      const [catRes, itemRes] = await Promise.all([
+        fetch(`${apiBase}/api/v1/menu/categories`),
+        fetch(`${apiBase}/api/v1/menu/items`),
+      ]);
+      if (catRes.ok) {
+        const catData = await catRes.json();
+        if (Array.isArray(catData) && catData.length > 0) {
+          setCategories(catData);
+        }
+      }
+      if (itemRes.ok) {
+        const dbItems = await itemRes.json();
+        if (Array.isArray(dbItems) && dbItems.length > 0) {
+          // Merge db items with INITIAL_MENU_ITEMS so no item is ever lost
+          const dbMap = new Map<number, any>();
+          const dbMapByName = new Map<string, any>();
+          dbItems.forEach((it: any) => {
+            if (it.id) dbMap.set(Number(it.id), it);
+            if (it.name) dbMapByName.set(it.name.trim().toLowerCase(), it);
+          });
+
+          setMenuItems((prev) => {
+            const baseList = prev.length > 0 ? prev : INITIAL_MENU_ITEMS;
+            const updatedList = baseList.map((item) => {
+              const matched = dbMap.get(item.id) || dbMapByName.get(item.name.trim().toLowerCase());
+              if (matched) {
+                return {
+                  ...item,
+                  id: Number(matched.id) || item.id,
+                  category_id: Number(matched.category_id) || item.category_id,
+                  price: Number(matched.price),
+                  description: matched.description || item.description,
+                  is_available: Boolean(matched.is_available),
+                  is_active: matched.is_active !== undefined ? Boolean(matched.is_active) : true,
+                };
+              }
+              return item;
+            });
+
+            // Also append any new items from DB not present in initial list
+            const existingIds = new Set(updatedList.map((i) => i.id));
+            dbItems.forEach((it: any) => {
+              if (!existingIds.has(Number(it.id))) {
+                updatedList.push({
+                  id: Number(it.id),
+                  category_id: Number(it.category_id),
+                  name: it.name,
+                  description: it.description || "",
+                  price: Number(it.price),
+                  tax_rate: it.tax_rate || "5.00",
+                  is_available: Boolean(it.is_available),
+                  is_active: it.is_active !== undefined ? Boolean(it.is_active) : true,
+                });
+              }
+            });
+
+            return updatedList;
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Live menu sync fallback:", err);
+    }
+  }, []);
+
   // Fetch all dashboard data
   const fetchData = useCallback(async (silent = false) => {
-    if (!token) return;
     if (!silent) setIsLoading(true);
     const apiBase = getApiBase();
 
+    // 1. Always sync menu
+    await fetchMenuData();
+
+    if (!token) {
+      if (!silent) setIsLoading(false);
+      return;
+    }
+
+    // 2. Analytics Dashboard (Protected)
     try {
-      // 1. Analytics Dashboard
       const anaRes = await fetch(`${apiBase}/api/v1/analytics/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (anaRes.ok) {
         const data = await anaRes.json();
-        setMetrics(data.metrics);
-        setSalesHistory(data.sales_history || []);
-        setPaymentBreakdown(data.payment_breakdown || {});
-        setTopItems(data.top_items || []);
-        setReservationSummary(data.reservation_summary || {});
+        if (data.metrics) setMetrics(data.metrics);
+        if (data.sales_history) setSalesHistory(data.sales_history || []);
+        if (data.payment_breakdown) setPaymentBreakdown(data.payment_breakdown || {});
+        if (data.top_items) setTopItems(data.top_items || []);
+        if (data.reservation_summary) setReservationSummary(data.reservation_summary || {});
       }
+    } catch (err) {
+      console.warn("Analytics fetch error:", err);
+    }
 
-      // 2. Menu Items & Categories
-      const [catRes, itemRes] = await Promise.all([
-        fetch(`${apiBase}/api/v1/menu/categories`),
-        fetch(`${apiBase}/api/v1/menu/items`),
-      ]);
-      if (catRes.ok) setCategories(await catRes.json());
-      if (itemRes.ok) setMenuItems(await itemRes.json());
-
-      // 3. Reservations
+    // 3. Reservations (Protected)
+    try {
       const rRes = await fetch(`${apiBase}/api/v1/reservations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (rRes.ok) setReservations(await rRes.json());
+      if (rRes.ok) {
+        const rData = await rRes.json();
+        if (Array.isArray(rData)) {
+          setReservations(
+            rData.map((r: any) => ({
+              id: r.id,
+              customer_name: r.customer?.name || "Guest",
+              customer_phone: r.customer?.phone || "",
+              party_size: r.guest_count || 2,
+              booking_date: r.reservation_date || "",
+              time_slot: r.time_slot || "",
+              status: r.status || "CONFIRMED",
+              advance_amount: r.advance_amount || 0,
+              payment_status: r.payment_status || "PAID",
+              upi_utr: r.upi_utr || "",
+              special_requests: r.special_requests || "",
+            }))
+          );
+        }
+      }
+    } catch (err) {
+      console.warn("Reservations fetch error:", err);
+    }
 
-      // 4. Tables
+    // 4. Tables (Protected)
+    try {
       const tRes = await fetch(`${apiBase}/api/v1/tables`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (tRes.ok) {
         const tData = await tRes.json();
-        setTables(
-          tData.map((t: any) => ({
-            id: t.id,
-            table_number: t.table_number,
-            capacity: t.capacity,
-            qr_token: t.qr_token || `qr_sec_${t.id}`,
-            is_active: t.is_active,
-            active_session_count: 0,
-          }))
-        );
+        if (Array.isArray(tData)) {
+          setTables(
+            tData.map((t: any) => ({
+              id: t.id,
+              table_number: t.table_number,
+              capacity: t.capacity,
+              qr_token: t.qr_token || `qr_sec_${t.id}`,
+              is_active: t.status !== "Maintenance",
+              active_session_count: t.status === "Occupied" ? 1 : 0,
+            }))
+          );
+        }
       }
+    } catch (err) {
+      console.warn("Tables fetch error:", err);
+    }
 
-      // 5. KOTs / Ledger
-      const kRes = await fetch(`${apiBase}/api/v1/pos/kots/live`, {
+    // 5. KOTs / Ledger (Protected)
+    try {
+      const kRes = await fetch(`${apiBase}/api/v1/pos/kots`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (kRes.ok) setKots(await kRes.json());
+      if (kRes.ok) {
+        const kData = await kRes.json();
+        if (Array.isArray(kData)) setKots(kData);
+      }
     } catch (err) {
-      console.error("Admin data fetch error:", err);
+      console.warn("KOTs fetch error:", err);
     } finally {
       if (!silent) setIsLoading(false);
     }
-  }, [token]);
+  }, [token, fetchMenuData]);
 
+  // Initial menu sync on mount
+  useEffect(() => {
+    fetchMenuData();
+  }, [fetchMenuData]);
+
+  // Trigger full dashboard fetch when token is ready
   useEffect(() => {
     if (token) {
       fetchData();
@@ -263,8 +399,6 @@ export default function AdminPortal() {
 
   // Real-time WebSocket connection for live sync + background poll
   useEffect(() => {
-    if (!token) return;
-
     let ws: WebSocket | null = null;
     let reconnectTimeout: any = null;
 
@@ -279,7 +413,7 @@ export default function AdminPortal() {
           try {
             const data = JSON.parse(event.data);
             if (data.type === "MENU_UPDATED") {
-              fetchData(true);
+              fetchMenuData();
               showToast(`Live Update: ${data.name || "Menu"} was modified`);
             }
           } catch {}
@@ -297,7 +431,11 @@ export default function AdminPortal() {
 
     // Background polling fallback every 8 seconds for 100% guarantee
     const interval = setInterval(() => {
-      fetchData(true);
+      if (token) {
+        fetchData(true);
+      } else {
+        fetchMenuData();
+      }
     }, 8000);
 
     return () => {
@@ -971,47 +1109,57 @@ export default function AdminPortal() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F0E8DC]">
-                    {filteredMenuItems.map((item) => {
-                      const category = categories.find((c) => c.id === item.category_id);
-                      return (
-                        <tr key={item.id} className="hover:bg-[#FAF7F0] transition-colors">
-                          <td className="p-4 font-bold text-[#241A14]">{item.name}</td>
-                          <td className="p-4">
-                            <span className="px-2.5 py-1 rounded-md bg-[#FAF0E1] text-[10px] text-[#B85B43] font-bold uppercase tracking-wider">
-                              {category?.name || "General"}
-                            </span>
-                          </td>
-                          <td className="p-4 text-[#665448] max-w-xs truncate">{item.description || "—"}</td>
-                          <td className="p-4 font-extrabold text-[#B85B43] text-sm">₹{item.price}</td>
-                          <td className="p-4">
-                            <button
-                              onClick={() => handleToggleItemAvailability(item)}
-                              className={`px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
-                                item.is_available
-                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200"
-                                  : "bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200"
-                              }`}
-                            >
-                              <span
-                                className={`w-2 h-2 rounded-full ${
-                                  item.is_available ? "bg-emerald-600" : "bg-rose-600"
+                    {filteredMenuItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="text-center py-12 text-[#8C7A6D]">
+                          <Utensils className="w-8 h-8 mx-auto mb-2 opacity-40 text-[#B85B43]" />
+                          <p className="font-semibold text-sm text-[#4A392F]">No menu items matching your filter</p>
+                          <p className="text-[11px] text-[#A8988B] mt-1">Try adjusting your search query or selecting &quot;All Categories&quot;</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredMenuItems.map((item) => {
+                        const category = categories.find((c) => c.id === item.category_id);
+                        return (
+                          <tr key={item.id} className="hover:bg-[#FAF7F0] transition-colors">
+                            <td className="p-4 font-bold text-[#241A14]">{item.name}</td>
+                            <td className="p-4">
+                              <span className="px-2.5 py-1 rounded-md bg-[#FAF0E1] text-[10px] text-[#B85B43] font-bold uppercase tracking-wider">
+                                {category?.name || "General"}
+                              </span>
+                            </td>
+                            <td className="p-4 text-[#665448] max-w-xs truncate">{item.description || "—"}</td>
+                            <td className="p-4 font-extrabold text-[#B85B43] text-sm">₹{item.price}</td>
+                            <td className="p-4">
+                              <button
+                                onClick={() => handleToggleItemAvailability(item)}
+                                className={`px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
+                                  item.is_available
+                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200"
+                                    : "bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200"
                                 }`}
-                              />
-                              <span>{item.is_available ? "In Stock (Available)" : "86'd (Sold Out)"}</span>
-                            </button>
-                          </td>
-                          <td className="p-4 text-right space-x-2">
-                            <button
-                              onClick={() => setEditingItem(item)}
-                              className="inline-flex items-center gap-1 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#241A14] text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Edit3 className="w-3.5 h-3.5 text-[#B85B43]" />
-                              <span>Edit Rate</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                              >
+                                <span
+                                  className={`w-2 h-2 rounded-full ${
+                                    item.is_available ? "bg-emerald-600" : "bg-rose-600"
+                                  }`}
+                                />
+                                <span>{item.is_available ? "In Stock (Available)" : "86'd (Sold Out)"}</span>
+                              </button>
+                            </td>
+                            <td className="p-4 text-right space-x-2">
+                              <button
+                                onClick={() => setEditingItem(item)}
+                                className="inline-flex items-center gap-1 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#241A14] text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 text-[#B85B43]" />
+                                <span>Edit Rate</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
