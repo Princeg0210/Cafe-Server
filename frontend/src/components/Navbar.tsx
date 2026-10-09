@@ -22,49 +22,52 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
 
   return (
     <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0]/80">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-6">
         
-        {/* Editorial Brand Logo */}
-        <Link href="/" className="flex items-center gap-3 group shrink-0 min-w-0">
-          <div className="relative w-10 h-10 rounded-full overflow-hidden bg-white border border-[#9E3E26]/40 group-hover:border-[#9E3E26] transition-all shrink-0 shadow-xs">
-            <img
-              src="/jaadoo-logo-real.png"
-              alt="Jaadoo Logo"
-              className="w-full h-full object-contain p-0.5"
-            />
-          </div>
-          <div className="flex flex-col justify-center min-w-0">
-            <span className="font-serif font-extrabold text-xl sm:text-2xl leading-tight tracking-wide text-[#140E0A] truncate">
-              JAADOO <span className="font-serif italic font-normal text-base sm:text-lg text-[#9E3E26] ml-0.5">Trattoria</span>
-            </span>
-            <span className="text-[10px] font-sans tracking-[0.22em] text-[#3B2C23] uppercase font-bold leading-none mt-0.5">
-              CAFÉ · PIZZERIA · UDAIPUR
-            </span>
-          </div>
-        </Link>
+        {/* Left Side: Brand Logo + Typographic Navigation */}
+        <div className="flex items-center gap-8 lg:gap-12 min-w-0">
+          {/* Editorial Brand Logo */}
+          <Link href="/" className="flex items-center gap-3 group shrink-0 min-w-0">
+            <div className="relative w-10 h-10 rounded-full overflow-hidden bg-white border border-[#9E3E26]/40 group-hover:border-[#9E3E26] transition-all shrink-0 shadow-xs">
+              <img
+                src="/jaadoo-logo-real.png"
+                alt="Jaadoo Logo"
+                className="w-full h-full object-contain p-0.5"
+              />
+            </div>
+            <div className="flex flex-col justify-center min-w-0">
+              <span className="font-serif font-extrabold text-xl sm:text-2xl leading-tight tracking-wide text-[#140E0A] truncate">
+                JAADOO <span className="font-serif italic font-normal text-base sm:text-lg text-[#9E3E26] ml-0.5">Trattoria</span>
+              </span>
+              <span className="text-[10px] font-sans tracking-[0.22em] text-[#3B2C23] uppercase font-bold leading-none mt-0.5">
+                CAFÉ · PIZZERIA · UDAIPUR
+              </span>
+            </div>
+          </Link>
 
-        {/* Desktop Typographic Navigation */}
-        <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`text-xs font-sans font-bold tracking-[0.18em] uppercase transition-colors relative py-1 ${
-                  isActive
-                    ? "text-[#140E0A]"
-                    : "text-[#3B2C23] hover:text-[#9E3E26]"
-                }`}
-              >
-                {link.name}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#9E3E26]" />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+          {/* Desktop Typographic Navigation (Left-Aligned next to Logo) */}
+          <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`text-xs font-sans font-bold tracking-[0.18em] uppercase transition-colors relative py-1 ${
+                    isActive
+                      ? "text-[#140E0A]"
+                      : "text-[#3B2C23] hover:text-[#9E3E26]"
+                  }`}
+                >
+                  {link.name}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#9E3E26]" />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
 
         {/* Right Actions: Table Badge + Cart / Bill */}
         <div className="flex items-center gap-3 shrink-0">
@@ -93,7 +96,7 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
       </div>
 
       {/* Mobile Navigation */}
-      <div className="md:hidden flex items-center justify-center gap-5 bg-[#FAF7F2] border-t border-[#DDD3C4] px-4 py-2.5 overflow-x-auto no-scrollbar">
+      <div className="md:hidden flex items-center justify-start gap-6 bg-[#FAF7F2] border-t border-[#DDD3C4] px-5 py-2.5 overflow-x-auto no-scrollbar">
         {navLinks.map((link) => {
           const isActive = pathname === link.href;
           return (

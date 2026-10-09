@@ -2,28 +2,21 @@
 
 import { motion } from "framer-motion";
 import { Utensils, ArrowRight, Calendar, MapPin, Flame, Leaf } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import SignatureBrewsShowcase from "@/components/SignatureBrewsShowcase";
-import MorphingCardsShowcase from "@/components/MorphingCardsShowcase";
-import LocationBrewStation from "@/components/LocationBrewStation";
-import TanStorySection from "@/components/TanStorySection";
-import JaadooInstagramGrid from "@/components/JaadooInstagramGrid";
-import TanFooter from "@/components/TanFooter";
 import CinematicBrandIntro from "@/components/CinematicBrandIntro";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans relative">
+    <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans flex flex-col justify-between">
       {/* 1.35s Cinematic Brand Opening Sequence */}
       <CinematicBrandIntro />
 
-      {/* Editorial Navbar */}
+      {/* Editorial Navbar with Left-Aligned Links */}
       <Navbar />
 
-      {/* Luxury Fine Dining Hero Screen */}
-      <header className="relative min-h-[70vh] sm:min-h-[78vh] md:min-h-[84vh] flex items-center justify-start overflow-hidden mx-3 md:mx-6 mt-3 rounded-2xl shadow-2xl border border-[#3A281E]/60 bg-[#120D0A]">
+      {/* Single-Screen Fine Dining Hero Screen */}
+      <header className="relative flex-1 min-h-[calc(100vh-5.5rem)] flex items-center justify-start overflow-hidden mx-3 md:mx-6 my-3 rounded-2xl shadow-2xl border border-[#3A281E]/60 bg-[#120D0A]">
         {/* Animated Hero Media: 1.04 -> 1.00 scale, 0.85 -> 1 opacity, 700ms ease-out */}
         <motion.div
           initial={{ scale: 1.04, opacity: 0.85 }}
@@ -83,7 +76,7 @@ export default function Home() {
             Discover an artisanal gastronomic experience that transports you to the heart of Italy, crafted with 48-hour fermented sourdough and panoramic Lake Pichola views.
           </motion.p>
 
-          {/* Anti-AI Editorial Feature Band (Clean Typography & Icons, No Generic Pills or Emojis) */}
+          {/* Anti-AI Editorial Feature Band */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -132,63 +125,6 @@ export default function Home() {
           </motion.div>
         </div>
       </header>
-
-      {/* Main Landing Page Sections */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 mt-12">
-
-        {/* Feature 1: Specialty Beverage Highlights */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        >
-          <SignatureBrewsShowcase />
-        </motion.div>
-
-        {/* Feature 2: Editorial Culinary Showcase */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        >
-          <MorphingCardsShowcase />
-        </motion.div>
-
-        {/* Feature 3: Story & Heritage Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        >
-          <TanStorySection />
-        </motion.div>
-
-        {/* Feature 4: Recreated Instagram Feed Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        >
-          <JaadooInstagramGrid />
-        </motion.div>
-
-        {/* Feature 5: Location & Station Finder */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        >
-          <LocationBrewStation />
-        </motion.div>
-      </main>
-
-      {/* Editorial Footer */}
-      <TanFooter />
     </div>
   );
 }
