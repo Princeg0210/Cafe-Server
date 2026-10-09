@@ -839,7 +839,7 @@ export default function POSDashboard() {
         <div class="grid">
           <div class="card">
             <div class="title">Total Revenue</div>
-            <div class="val">₹${kots.reduce((sum, k) => sum + k.total_amount, 0)}</div>
+            <div class="val">₹${kots.reduce((sum, k) => sum + (Number(k.total_amount) || 0), 0).toLocaleString("en-IN")}</div>
           </div>
           <div class="card">
             <div class="title">Total KOTs</div>
@@ -882,7 +882,7 @@ export default function POSDashboard() {
               <td>#${s.session_seq}</td>
               <td>${new Date(s.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
               <td>${s.items_count} items</td>
-              <td><strong>₹${s.total_amount}</strong></td>
+              <td><strong>₹${Number(s.total_amount || 0).toLocaleString("en-IN")}</strong></td>
             </tr>
           `;
         }
@@ -920,7 +920,7 @@ export default function POSDashboard() {
           <td>${kot.status}</td>
           <td>${new Date(kot.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
           <td>${kot.items_count}</td>
-          <td><strong>₹${kot.total_amount}</strong></td>
+          <td><strong>₹${Number(kot.total_amount || 0).toLocaleString("en-IN")}</strong></td>
         </tr>
       `;
     });
@@ -1012,7 +1012,7 @@ export default function POSDashboard() {
   // Calculate Operational Summary Metrics from existing data
   const activeTablesCount = tableOverviews.filter((t) => t.active_session_count > 0).length;
   const openKotsCount = kots.filter((k) => k.status !== "COMPLETED").length;
-  const totalSalesToday = kots.reduce((sum, k) => sum + (k.total_amount || 0), 0);
+  const totalSalesToday = kots.reduce((sum, k) => sum + (Number(k.total_amount) || 0), 0);
   
   // Needs Attention Items from existing data
   const failedKots = kots.filter((k) => k.printed_status === "FAILED");
@@ -1771,7 +1771,7 @@ export default function POSDashboard() {
                                   Running Bill
                                 </span>
                                 <span className="text-xl font-bold font-sans text-[#261C18]">
-                                  ₹{activeSession.total_amount}
+                                  ₹{Number(activeSession.total_amount || 0).toLocaleString("en-IN")}
                                 </span>
                               </div>
 
@@ -1842,7 +1842,7 @@ export default function POSDashboard() {
                                         Session #{pastSess.session_seq}
                                       </span>
                                       <span className="font-bold text-[#261C18]">
-                                        ₹{pastSess.total_amount}
+                                        ₹{Number(pastSess.total_amount || 0).toLocaleString("en-IN")}
                                       </span>
                                     </div>
 
@@ -2012,7 +2012,7 @@ export default function POSDashboard() {
                         {/* Footer */}
                         <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
                           <span className="text-stone-600 font-semibold">
-                            Total: <strong className="text-[#261C18]">₹{kot.total_amount}</strong>
+                            Total: <strong className="text-[#261C18]">₹{Number(kot.total_amount || 0).toLocaleString("en-IN")}</strong>
                           </span>
 
                           <div className="flex items-center gap-2">
