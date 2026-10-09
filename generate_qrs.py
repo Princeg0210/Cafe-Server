@@ -25,6 +25,7 @@ TABLE_QRS = [
     {"table": 13, "token": "qr_sec_8b1e3f5a7c9d0bdf2468ace13579bdf3"},
     {"table": 14, "token": "qr_sec_9c2f4a6b8d0e1bdf2468ace13579bdf4"},
     {"table": 15, "token": "qr_sec_0d3a5b7c9e1f2bdf2468ace13579bdf5"},
+    {"table": 17, "token": "qr_sec_0d3a5b7c9e1f2bdf2468ace13579bdf7"},
     
 
 ]
