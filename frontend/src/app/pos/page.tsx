@@ -1692,8 +1692,40 @@ export default function POSDashboard() {
                                 • {getTableFloor(cleanTableNumber || tbl.table_id).name}
                               </span>
                             </div>
-                            <div className="text-xs text-stone-500 font-sans mt-0.5">
-                              {tbl.capacity} Seats • {tbl.total_sessions_today} {tbl.total_sessions_today === 1 ? "session" : "sessions"} today
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-stone-500 font-sans">
+                                {tbl.capacity} Seats
+                              </span>
+                              <span className="text-stone-300">•</span>
+                              {/* Clickable Session Button to show previous sessions of that table */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setShowClosedToday((prev) => ({
+                                    ...prev,
+                                    [tbl.table_id]: !prev[tbl.table_id],
+                                  }))
+                                }
+                                className={`text-[11px] font-sans font-semibold px-2 py-0.5 rounded-md border transition-colors cursor-pointer flex items-center gap-1 ${
+                                  showHistory
+                                    ? "bg-[#261C18] text-white border-[#261C18]"
+                                    : settledSessions.length > 0
+                                    ? "bg-[#FAF8F5] text-[#B85B43] border-[#E4DCD0] hover:bg-[#B85B43]/10"
+                                    : "bg-stone-50 text-stone-500 border-stone-200"
+                                }`}
+                                title={
+                                  settledSessions.length > 0
+                                    ? "Click to toggle previous sessions of this table today"
+                                    : "No past sessions yet today"
+                                }
+                              >
+                                <Clock className="w-3 h-3" />
+                                <span>
+                                  {tbl.total_sessions_today} {tbl.total_sessions_today === 1 ? "Session" : "Sessions"}
+                                  {settledSessions.length > 0 ? ` (${settledSessions.length} past)` : ""}
+                                </span>
+                                <ChevronDown className={`w-3 h-3 transition-transform ${showHistory ? "rotate-180" : ""}`} />
+                              </button>
                             </div>
                           </div>
 
@@ -1714,6 +1746,7 @@ export default function POSDashboard() {
 
                       {/* Card Body: Session Info & Running Bill */}
                       <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                        {/* 1. Active Session Details (if occupied) */}
                         {isOccupied && activeSession ? (
                           <div className="space-y-2.5">
                             <div className="flex items-center justify-between text-xs font-sans">
@@ -1765,9 +1798,78 @@ export default function POSDashboard() {
                               </div>
                             )}
                           </div>
-                        ) : (
+                        ) : !showHistory ? (
                           <div className="py-6 text-center text-xs text-stone-400 italic">
                             Table is clean and ready for seating.
+                          </div>
+                        ) : null}
+
+                        {/* 2. Previous Settled Sessions of THIS table today (When Session Button is Clicked) */}
+                        {showHistory && (
+                          <div className="pt-2 space-y-2 border-t border-amber-200 bg-[#FAF8F5] p-3 rounded-md animate-in fade-in duration-150">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-[#B85B43] flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>Previous Sessions Today ({settledSessions.length})</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setShowClosedToday((prev) => ({
+                                    ...prev,
+                                    [tbl.table_id]: false,
+                                  }))
+                                }
+                                className="text-[10px] text-stone-500 hover:text-stone-900 font-semibold underline cursor-pointer"
+                              >
+                                Close
+                              </button>
+                            </div>
+
+                            {settledSessions.length === 0 ? (
+                              <p className="text-xs text-stone-400 italic py-1">
+                                No previous settled sessions recorded for this table today.
+                              </p>
+                            ) : (
+                              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                {settledSessions.map((pastSess) => (
+                                  <div
+                                    key={pastSess.session_id}
+                                    className="bg-white p-2.5 rounded-md border border-stone-200 text-xs space-y-1.5 shadow-2xs"
+                                  >
+                                    <div className="flex items-center justify-between font-sans">
+                                      <span className="font-semibold text-stone-800">
+                                        Session #{pastSess.session_seq}
+                                      </span>
+                                      <span className="font-bold text-[#261C18]">
+                                        ₹{pastSess.total_amount}
+                                      </span>
+                                    </div>
+
+                                    <div className="text-[11px] text-stone-500 flex items-center justify-between">
+                                      <span>
+                                        {new Date(pastSess.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                        {pastSess.closed_at ? ` → ${new Date(pastSess.closed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
+                                      </span>
+                                      <span className="px-1.5 py-0.2 rounded-xs bg-stone-100 text-stone-600 text-[10px] font-medium">
+                                        Settled
+                                      </span>
+                                    </div>
+
+                                    {pastSess.items && pastSess.items.length > 0 && (
+                                      <div className="pt-1 border-t border-stone-100 text-[11px] space-y-0.5 text-stone-600">
+                                        {pastSess.items.map((item, idx) => (
+                                          <div key={idx} className="flex justify-between">
+                                            <span>{item.quantity}× {item.name}</span>
+                                            <span>₹{item.subtotal}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
 
