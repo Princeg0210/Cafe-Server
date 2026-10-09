@@ -33,6 +33,14 @@ import {
   Eye,
   EyeOff,
   Check,
+  Users,
+  Receipt,
+  RotateCw,
+  SlidersHorizontal,
+  AlertTriangle,
+  UtensilsCrossed,
+  Flame,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -149,7 +157,34 @@ export default function AdminPortal() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<"analytics" | "menu" | "reservations" | "tables" | "ledger">("analytics");
+  const [activeTab, setActiveTab] = useState<"analytics" | "operations" | "menu" | "reservations" | "tables" | "ledger">("analytics");
+
+  // Helper for date string
+  const getLocalDateString = (offsetDays = 0) => {
+    const d = new Date();
+    if (offsetDays !== 0) d.setDate(d.getDate() + offsetDays);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // Operations Command Center State
+  const [opDate, setOpDate] = useState<string>(() => getLocalDateString(0));
+  const [opSubTab, setOpSubTab] = useState<"tables" | "bookings" | "kots">("tables");
+  const [opTableFilter, setOpTableFilter] = useState<"all" | "active" | "available">("all");
+  const [opResFilter, setOpResFilter] = useState<string>("all");
+  const [opResSearch, setOpResSearch] = useState<string>("");
+  const [opSummary, setOpSummary] = useState<any>(null);
+  const [opTableOverviews, setOpTableOverviews] = useState<any[]>([]);
+  const [opReservations, setOpReservations] = useState<any[]>([]);
+  const [opKots, setOpKots] = useState<any[]>([]);
+  const [opDough, setOpDough] = useState<any>(null);
+  const [isOpLoading, setIsOpLoading] = useState(false);
+  const [selectedOpTable, setSelectedOpTable] = useState<any | null>(null);
+
+  const isOpToday = opDate === getLocalDateString(0);
+  const isOpFuture = opDate > getLocalDateString(0);
 
   // Dashboard Data
   const [isLoading, setIsLoading] = useState(false);
@@ -396,6 +431,82 @@ export default function AdminPortal() {
       fetchData();
     }
   }, [token, fetchData]);
+
+  // Fetch Operations Data for target date
+  const fetchOperationsData = useCallback(
+    async (targetDate?: string) => {
+      if (!token) return;
+      setIsOpLoading(true);
+      const target = targetDate || opDate;
+      const apiBase = getApiBase();
+      const headers = { Authorization: `Bearer ${token}` };
+      const dateParam = target ? `?target_date=${target}` : "";
+      try {
+        const [sumRes, tablesRes, kotsRes, doughRes, resRes] = await Promise.all([
+          fetch(`${apiBase}/api/v1/pos/summary${dateParam}`, { headers }),
+          fetch(`${apiBase}/api/v1/pos/table-sessions${dateParam}`, { headers }),
+          fetch(`${apiBase}/api/v1/pos/kots${dateParam}`, { headers }),
+          fetch(`${apiBase}/api/v1/pos/daily-dough-capacity${target ? `?target_date=${target}` : ""}`, { headers }),
+          fetch(`${apiBase}/api/v1/reservations?branch_id=1${target ? `&reservation_date=${target}` : ""}`, { headers }),
+        ]);
+
+        if (sumRes.ok) {
+          const sumData = await sumRes.json();
+          setOpSummary(sumData);
+        }
+        if (tablesRes.ok) {
+          const tablesData = await tablesRes.json();
+          setOpTableOverviews(Array.isArray(tablesData) ? tablesData : []);
+        }
+        if (kotsRes.ok) {
+          const kotsData = await kotsRes.json();
+          setOpKots(Array.isArray(kotsData) ? kotsData : []);
+        }
+        if (doughRes.ok) {
+          const doughData = await doughRes.json();
+          setOpDough(doughData);
+        }
+        if (resRes.ok) {
+          const resData = await resRes.json();
+          setOpReservations(Array.isArray(resData) ? resData : []);
+        }
+      } catch (err) {
+        console.warn("Operations data fetch error:", err);
+      } finally {
+        setIsOpLoading(false);
+      }
+    },
+    [token, opDate]
+  );
+
+  useEffect(() => {
+    if (token) {
+      fetchOperationsData(opDate);
+    }
+  }, [token, opDate, fetchOperationsData]);
+
+  const handleUpdateOpReservationStatus = async (resId: number, newStatus: string) => {
+    if (!token) return;
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/reservations/${resId}/status`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        showToast(`Reservation #${resId} marked as ${newStatus}`);
+        fetchOperationsData(opDate);
+      } else {
+        showToast(`Failed to update reservation #${resId}`);
+      }
+    } catch {
+      showToast("Error updating reservation status");
+    }
+  };
 
   // Real-time WebSocket connection for live sync + background poll
   useEffect(() => {
@@ -645,6 +756,43 @@ export default function AdminPortal() {
     return Math.max(...salesHistory.map((s) => s.revenue), 1000);
   }, [salesHistory]);
 
+  // Memoized Operations Metrics & Filters
+  const opSalesTotal = useMemo(() => {
+    return opKots.reduce((sum, k) => sum + (Number(k.total_amount) || 0), 0);
+  }, [opKots]);
+
+  const opOpenKotsCount = useMemo(() => {
+    return opKots.filter((k) => k.status !== "SERVED" && k.status !== "CANCELLED").length;
+  }, [opKots]);
+
+  const opActiveTablesCount = useMemo(() => {
+    return opTableOverviews.filter((t) => (t.active_session_count || 0) > 0).length;
+  }, [opTableOverviews]);
+
+  const filteredOpTables = useMemo(() => {
+    if (opTableFilter === "active") {
+      return opTableOverviews.filter((t) => (t.active_session_count || 0) > 0);
+    }
+    if (opTableFilter === "available") {
+      return opTableOverviews.filter((t) => (t.active_session_count || 0) === 0);
+    }
+    return opTableOverviews;
+  }, [opTableOverviews, opTableFilter]);
+
+  const filteredOpReservations = useMemo(() => {
+    return opReservations.filter((r) => {
+      const matchesFilter = opResFilter === "all" || r.status?.toUpperCase() === opResFilter.toUpperCase();
+      const searchLower = opResSearch.trim().toLowerCase();
+      const matchesSearch =
+        !searchLower ||
+        (r.customer_name || r.customer?.name || "").toLowerCase().includes(searchLower) ||
+        (r.customer_phone || r.customer?.phone || "").toLowerCase().includes(searchLower) ||
+        (r.table_name || `table ${r.table_id || ""}`).toLowerCase().includes(searchLower) ||
+        String(r.id).includes(searchLower);
+      return matchesFilter && matchesSearch;
+    });
+  }, [opReservations, opResFilter, opResSearch]);
+
   // ---------------------------------------------------------------------------
   // AUTH LOGIN SCREEN - WARM BEIGE ARTISANAL THEME
   // ---------------------------------------------------------------------------
@@ -824,6 +972,7 @@ export default function AdminPortal() {
       <div className="bg-[#F3EDE2] border-b border-[#E4DCD0] px-6 py-2.5 overflow-x-auto flex items-center gap-2">
         {[
           { id: "analytics", label: "Executive Analytics", icon: TrendingUp },
+          { id: "operations", label: "Operations", icon: SlidersHorizontal },
           { id: "menu", label: "Menu & Live Pricing", icon: Utensils },
           { id: "reservations", label: "Reservations CRM", icon: Calendar },
           { id: "tables", label: "Tables & QR Generator", icon: QrCode },
@@ -1031,6 +1180,650 @@ export default function AdminPortal() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: OPERATIONS COMMAND & DATE CONTROLLER (REAL-TIME & HISTORICAL ARCHIVE) */}
+        {/* ========================================================================= */}
+        {activeTab === "operations" && (
+          <div className="space-y-6">
+            {/* 1. Header & Operational Date Controller Bar */}
+            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-[#B85B43]/10 text-[#B85B43]">
+                      <SlidersHorizontal className="w-5 h-5" />
+                    </span>
+                    <h2 className="text-lg font-serif font-bold text-[#241A14]">Operations Command Center</h2>
+                  </div>
+                  <p className="text-xs text-[#7A6A5E] mt-1">
+                    Check tables booked on any date, verify live & historical sales, monitor open KOTs, and audit dough capacity.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => fetchOperationsData(opDate)}
+                    disabled={isOpLoading}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#241A14] border border-[#E0D4C2] text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-[#B85B43] ${isOpLoading ? "animate-spin" : ""}`} />
+                    <span>{isOpLoading ? "Syncing..." : "Refresh Data"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Operational Date Controller (Exact Match with POS) */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#FAF7F0] p-3.5 rounded-xl border border-[#E4DCD0] text-xs">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="font-sans font-bold uppercase text-[#4A392F] tracking-wider text-[11px] flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-[#B85B43]" />
+                    OPERATIONS DATE:
+                  </span>
+
+                  <div className="flex items-center gap-1.5 bg-[#FFFDF9] px-3 py-1.5 rounded-lg border border-[#E4DCD0] shadow-xs">
+                    <input
+                      type="date"
+                      value={opDate}
+                      onChange={(e) => setOpDate(e.target.value)}
+                      className="bg-transparent font-mono font-bold text-xs text-[#241A14] focus:outline-none cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Quick Switchers */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setOpDate(getLocalDateString(0))}
+                      className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition-colors cursor-pointer ${
+                        isOpToday
+                          ? "bg-[#261C18] text-white shadow-xs"
+                          : "bg-[#FFFDF9] text-[#665448] hover:bg-[#EBE2D4] border border-[#E4DCD0]"
+                      }`}
+                    >
+                      Today
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOpDate(getLocalDateString(-1))}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
+                        opDate === getLocalDateString(-1)
+                          ? "bg-[#261C18] text-white shadow-xs"
+                          : "bg-[#FFFDF9] text-[#665448] hover:bg-[#EBE2D4] border border-[#E4DCD0]"
+                      }`}
+                    >
+                      Yesterday
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOpDate(getLocalDateString(-2))}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
+                        opDate === getLocalDateString(-2)
+                          ? "bg-[#261C18] text-white shadow-xs"
+                          : "bg-[#FFFDF9] text-[#665448] hover:bg-[#EBE2D4] border border-[#E4DCD0]"
+                      }`}
+                    >
+                      2 Days Ago
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOpDate(getLocalDateString(1))}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
+                        opDate === getLocalDateString(1)
+                          ? "bg-[#261C18] text-white shadow-xs"
+                          : "bg-[#FFFDF9] text-[#665448] hover:bg-[#EBE2D4] border border-[#E4DCD0]"
+                      }`}
+                    >
+                      Tomorrow
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
+                      isOpToday
+                        ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                        : isOpFuture
+                        ? "bg-blue-50 text-blue-800 border-blue-200"
+                        : "bg-stone-100 text-stone-700 border-stone-200"
+                    }`}
+                  >
+                    {isOpToday ? "Live Shift" : isOpFuture ? "Future Booking" : "History Archive"}
+                  </span>
+
+                  {!isOpToday && (
+                    <button
+                      type="button"
+                      onClick={() => setOpDate(getLocalDateString(0))}
+                      className="inline-flex items-center gap-1 text-[11px] text-[#B85B43] font-bold hover:underline cursor-pointer ml-1"
+                    >
+                      <RotateCw className="w-3 h-3" />
+                      <span>Return to Today</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Top Summary KPI Cards for Selected Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: Active Tables */}
+              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm">
+                <div className="text-[11px] uppercase tracking-wider font-bold text-[#7A6A5E] flex items-center justify-between">
+                  <span>ACTIVE TABLES</span>
+                  <Users className="w-4 h-4 text-[#8C7A6D]" />
+                </div>
+                <div className="text-2xl font-serif font-extrabold text-[#241A14] mt-2 flex items-baseline gap-2">
+                  <span>{opActiveTablesCount}</span>
+                  <span className="text-xs font-normal text-[#8C7A6D] font-sans">
+                    / {opTableOverviews.length} total
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#7A6A5E] mt-1">
+                  {isOpToday ? "Currently seated dining sessions" : "Sessions active on this date"}
+                </p>
+              </div>
+
+              {/* Card 2: Open / Total KOTs */}
+              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm">
+                <div className="text-[11px] uppercase tracking-wider font-bold text-[#7A6A5E] flex items-center justify-between">
+                  <span>OPEN KOTS</span>
+                  <Receipt className="w-4 h-4 text-[#8C7A6D]" />
+                </div>
+                <div className="text-2xl font-serif font-extrabold text-[#241A14] mt-2 flex items-baseline gap-2">
+                  <span>{opOpenKotsCount}</span>
+                  <span className="text-xs font-normal text-[#8C7A6D] font-sans">
+                    ({opKots.length} total tickets)
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#7A6A5E] mt-1">
+                  Kitchen tickets placed for this date
+                </p>
+              </div>
+
+              {/* Card 3: Operations Sales */}
+              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm">
+                <div className="text-[11px] uppercase tracking-wider font-bold text-[#7A6A5E] flex items-center justify-between">
+                  <span>OPERATIONS SALES</span>
+                  <TrendingUp className="w-4 h-4 text-[#4A5842]" />
+                </div>
+                <div className="text-2xl font-serif font-extrabold text-[#241A14] mt-2">
+                  ₹{Number(opSalesTotal || 0).toLocaleString("en-IN")}
+                </div>
+                <p className="text-[11px] text-[#7A6A5E] mt-1">
+                  {opSummary?.order_count || opKots.length} orders recorded
+                </p>
+              </div>
+
+              {/* Card 4: Daily Dough & Protected Capacity */}
+              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm">
+                <div className="text-[11px] uppercase tracking-wider font-bold text-[#7A6A5E] flex items-center justify-between">
+                  <span>DOUGH CAPACITY</span>
+                  <Flame className="w-4 h-4 text-[#B85B43]" />
+                </div>
+                <div className="text-2xl font-serif font-extrabold text-[#241A14] mt-2 flex items-baseline gap-2">
+                  <span>{opDough?.walk_in_available ?? "—"}</span>
+                  <span className="text-xs font-normal text-[#8C7A6D] font-sans">
+                    walk-in units
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#7A6A5E] mt-1">
+                  {opDough?.total_active_protected ?? opDough?.protected_units ?? 0} units reserved for bookings
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Operations Sub-Tabs (Floor Tables, Table Bookings, KOTs) */}
+            <div className="flex items-center gap-2 border-b border-[#E4DCD0] pb-2">
+              <button
+                type="button"
+                onClick={() => setOpSubTab("tables")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                  opSubTab === "tables"
+                    ? "bg-[#261C18] text-[#FBF9F5] shadow-sm"
+                    : "bg-[#FFFDF9] text-[#665448] hover:text-[#241A14] hover:bg-[#F3EDE2] border border-[#E4DCD0]"
+                }`}
+              >
+                Floor Tables & Sessions ({opTableOverviews.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpSubTab("bookings")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  opSubTab === "bookings"
+                    ? "bg-[#261C18] text-[#FBF9F5] shadow-sm"
+                    : "bg-[#FFFDF9] text-[#665448] hover:text-[#241A14] hover:bg-[#F3EDE2] border border-[#E4DCD0]"
+                }`}
+              >
+                <span>Table Bookings on {opDate}</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-[#B85B43] text-white">
+                  {opReservations.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpSubTab("kots")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                  opSubTab === "kots"
+                    ? "bg-[#261C18] text-[#FBF9F5] shadow-sm"
+                    : "bg-[#FFFDF9] text-[#665448] hover:text-[#241A14] hover:bg-[#F3EDE2] border border-[#E4DCD0]"
+                }`}
+              >
+                KOT Orders ({opKots.length})
+              </button>
+            </div>
+
+            {/* SUB-VIEW 1: FLOOR TABLES & SESSIONS ON SELECTED DATE */}
+            {opSubTab === "tables" && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#FFFDF9] p-3.5 rounded-xl border border-[#E4DCD0]">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-serif font-bold text-[#241A14]">
+                      Cafe Floor Layout & Dining Sessions
+                    </h3>
+                    <span className="text-xs text-[#7A6A5E]">
+                      ({filteredOpTables.length} tables shown)
+                    </span>
+                  </div>
+
+                  <div className="flex items-center bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
+                    {(["all", "active", "available"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setOpTableFilter(mode)}
+                        className={`px-3 py-1 rounded-md capitalize font-bold transition-colors cursor-pointer ${
+                          opTableFilter === mode
+                            ? "bg-[#261C18] text-white shadow-xs"
+                            : "text-[#665448] hover:text-[#241A14]"
+                        }`}
+                      >
+                        {mode === "all"
+                          ? `All (${opTableOverviews.length})`
+                          : mode === "active"
+                          ? `Occupied (${opActiveTablesCount})`
+                          : `Available (${opTableOverviews.length - opActiveTablesCount})`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {filteredOpTables.length === 0 ? (
+                  <div className="text-center py-12 px-4 bg-[#FFFDF9] rounded-2xl border border-[#E4DCD0] space-y-2">
+                    <UtensilsCrossed className="w-8 h-8 text-[#A8988B] mx-auto" />
+                    <h4 className="text-sm font-bold text-[#241A14]">No Tables Found</h4>
+                    <p className="text-xs text-[#7A6A5E]">No tables match the selected filter on this date.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredOpTables.map((tbl) => {
+                      const cleanTableNumber = tbl.table_number.replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
+                      const displayTableName = `TABLE ${cleanTableNumber.padStart(2, "0") || tbl.table_id}`;
+                      const isOccupied = (tbl.active_session_count || 0) > 0;
+                      const activeSessions = (tbl.sessions || []).filter((s: any) => s.is_active);
+                      const currentSession = activeSessions[0] || (tbl.sessions && tbl.sessions[0]);
+
+                      return (
+                        <div
+                          key={tbl.table_id}
+                          className={`rounded-2xl border p-4.5 space-y-3.5 transition-all shadow-sm ${
+                            isOccupied
+                              ? "bg-[#FFFDF9] border-amber-300 ring-1 ring-amber-200"
+                              : "bg-[#FFFDF9] border-[#E6DCCF]"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-2.5">
+                            <div>
+                              <h4 className="font-serif font-extrabold text-base text-[#241A14]">
+                                {displayTableName}
+                              </h4>
+                              <span className="text-[11px] text-[#7A6A5E]">
+                                {tbl.capacity} Seats Physical Capacity
+                              </span>
+                            </div>
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                                isOccupied
+                                  ? "bg-amber-100 text-amber-900 border-amber-300"
+                                  : "bg-emerald-100 text-emerald-900 border-emerald-300"
+                              }`}
+                            >
+                              {isOccupied ? "Occupied" : "Available"}
+                            </span>
+                          </div>
+
+                          {currentSession ? (
+                            <div className="space-y-2.5 text-xs">
+                              <div className="flex items-center justify-between text-[#665448]">
+                                <span className="font-semibold">Session Status:</span>
+                                <span className="font-bold text-[#241A14]">
+                                  {currentSession.is_active ? "Active Floor Session" : "Closed / Settled"}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between text-[#665448]">
+                                <span className="font-semibold">Opened Time:</span>
+                                <span className="font-mono text-[#241A14]">
+                                  {currentSession.opened_at
+                                    ? new Date(currentSession.opened_at).toLocaleTimeString([], {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })
+                                    : "—"}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between text-[#665448]">
+                                <span className="font-semibold">Guest Count:</span>
+                                <span className="font-bold text-[#241A14]">
+                                  {currentSession.guest_count || tbl.capacity} Guests
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-2 border-t border-[#F0E8DC]">
+                                <span className="font-bold text-[#241A14]">Current Bill:</span>
+                                <span className="font-mono font-extrabold text-sm text-[#B85B43]">
+                                  ₹{Number(currentSession.total_amount || 0).toLocaleString("en-IN")}
+                                </span>
+                              </div>
+
+                              {currentSession.items && currentSession.items.length > 0 && (
+                                <div className="pt-2 border-t border-[#F0E8DC]">
+                                  <div className="text-[11px] font-bold text-[#4A392F] mb-1">
+                                    Ordered Items ({currentSession.items.length}):
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {currentSession.items.slice(0, 4).map((it: any, idx: number) => (
+                                      <span
+                                        key={idx}
+                                        className="px-2 py-0.5 rounded-md bg-[#FAF7F0] border border-[#E0D4C2] text-[10px] text-[#241A14] font-medium"
+                                      >
+                                        {it.quantity}x {it.name}
+                                      </span>
+                                    ))}
+                                    {currentSession.items.length > 4 && (
+                                      <span className="text-[10px] text-[#7A6A5E] font-medium self-center">
+                                        +{currentSession.items.length - 4} more
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => setSelectedOpTable({ ...tbl, session: currentSession })}
+                                className="w-full mt-2 py-1.5 px-3 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#241A14] border border-[#E0D4C2] font-bold text-xs transition-colors cursor-pointer"
+                              >
+                                View Session Details
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="py-6 text-center text-xs text-[#8C7A6D] space-y-1">
+                              <p className="font-medium">No session opened on {opDate}.</p>
+                              <p className="text-[11px] text-[#A8988B]">Table is free for reservations or walk-ins.</p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SUB-VIEW 2: TABLE BOOKINGS ON SELECTED DATE (SPECIFICALLY REQUESTED) */}
+            {opSubTab === "bookings" && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#FFFDF9] p-3.5 rounded-xl border border-[#E4DCD0]">
+                  <div>
+                    <h3 className="text-sm font-serif font-bold text-[#241A14]">
+                      Table Bookings for {opDate}
+                    </h3>
+                    <p className="text-xs text-[#7A6A5E]">
+                      {filteredOpReservations.length} bookings recorded for this date
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
+                      <input
+                        type="text"
+                        value={opResSearch}
+                        onChange={(e) => setOpResSearch(e.target.value)}
+                        placeholder="Search guest, phone, table..."
+                        className="bg-[#FAF7F0] border border-[#E0D4C2] focus:border-[#B85B43] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[#241A14] outline-none"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
+                      {(["all", "CONFIRMED", "ARRIVED", "SEATED", "COMPLETED", "CANCELLED"] as const).map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => setOpResFilter(st)}
+                          className={`px-2.5 py-1 rounded-md capitalize font-bold transition-colors cursor-pointer ${
+                            opResFilter === st
+                              ? "bg-[#261C18] text-white shadow-xs"
+                              : "text-[#665448] hover:text-[#241A14]"
+                          }`}
+                        >
+                          {st.toLowerCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {filteredOpReservations.length === 0 ? (
+                  <div className="text-center py-12 px-4 bg-[#FFFDF9] rounded-2xl border border-[#E4DCD0] space-y-2">
+                    <Calendar className="w-8 h-8 text-[#A8988B] mx-auto" />
+                    <h4 className="text-sm font-bold text-[#241A14]">No Table Bookings Found</h4>
+                    <p className="text-xs text-[#7A6A5E]">
+                      There are no reservations booked for {opDate}. Change the date above to inspect other days.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredOpReservations.map((res: any) => {
+                      const cust = res.customer;
+                      const custName = res.customer_name || cust?.name || "Guest";
+                      const custPhone = res.customer_phone || cust?.phone || "No phone provided";
+                      const st = String(res.status || "CONFIRMED").toUpperCase();
+
+                      const statusBadge =
+                        st === "CONFIRMED"
+                          ? "bg-blue-50 text-blue-800 border-blue-200"
+                          : st === "ARRIVED"
+                          ? "bg-amber-50 text-amber-800 border-amber-200"
+                          : st === "SEATED"
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : st === "COMPLETED"
+                          ? "bg-stone-100 text-stone-700 border-stone-200"
+                          : "bg-rose-50 text-rose-800 border-rose-200";
+
+                      return (
+                        <div
+                          key={res.id}
+                          className="bg-[#FFFDF9] rounded-2xl border border-[#E6DCCF] p-4.5 shadow-sm space-y-3.5 flex flex-col justify-between"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-2.5">
+                              <div>
+                                <span className="font-mono font-bold text-sm text-[#B85B43]">
+                                  #RES-{String(res.id).padStart(4, "0")}
+                                </span>
+                                <div className="text-xs font-semibold text-[#241A14] mt-0.5">
+                                  {res.reservation_date || res.booking_date} • {res.time_slot}
+                                </div>
+                              </div>
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusBadge}`}>
+                                {res.status}
+                              </span>
+                            </div>
+
+                            <div className="text-xs space-y-2 text-[#4A392F]">
+                              <div className="flex items-center justify-between">
+                                <span className="font-serif font-bold text-sm text-[#241A14]">{custName}</span>
+                                <span className="font-bold text-[#665448]">{res.party_size || res.guest_count} Guests</span>
+                              </div>
+
+                              <div className="text-[#7A6A5E] font-mono text-[11px]">{custPhone}</div>
+
+                              <div className="flex items-center justify-between text-xs bg-[#FAF7F0] p-2 rounded-lg border border-[#E0D4C2]">
+                                <span className="font-semibold text-[#665448]">Assigned Table:</span>
+                                <span className="font-bold text-[#241A14]">
+                                  {res.table_name || (res.table_id ? `Table #${res.table_id}` : "Unassigned")}
+                                </span>
+                              </div>
+
+                              {res.advance_amount !== undefined && Number(res.advance_amount) > 0 && (
+                                <div className="text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded-lg border border-emerald-200 font-bold flex items-center justify-between">
+                                  <span>Deposit Paid:</span>
+                                  <span>₹{Number(res.advance_amount).toFixed(0)} ({res.payment_status || "PAID"})</span>
+                                </div>
+                              )}
+
+                              {res.upi_utr && (
+                                <div className="text-[10px] text-[#8C7A6D] font-mono">
+                                  UTR: {res.upi_utr}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 pt-2 border-t border-[#F0E8DC]">
+                            {st !== "SEATED" && st !== "COMPLETED" && st !== "CANCELLED" && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateOpReservationStatus(res.id, "SEATED")}
+                                className="flex-1 py-1.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
+                              >
+                                Seat Guests
+                              </button>
+                            )}
+                            {st === "CONFIRMED" && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateOpReservationStatus(res.id, "ARRIVED")}
+                                className="py-1.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
+                              >
+                                Arrived
+                              </button>
+                            )}
+                            {st !== "CANCELLED" && st !== "COMPLETED" && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateOpReservationStatus(res.id, "CANCELLED")}
+                                className="py-1.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SUB-VIEW 3: KOT ORDERS ON SELECTED DATE */}
+            {opSubTab === "kots" && (
+              <div className="space-y-4">
+                <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
+                  <div className="p-4 border-b border-[#E6DCCF] flex items-center justify-between bg-[#F3EDE2]">
+                    <h3 className="text-sm font-serif font-bold text-[#241A14]">
+                      KOT Kitchen Tickets on {opDate}
+                    </h3>
+                    <span className="text-xs font-bold text-[#B85B43]">
+                      Total Sales: ₹{Number(opSalesTotal || 0).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-[#FAF7F0] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
+                        <tr>
+                          <th className="p-4">KOT Ticket</th>
+                          <th className="p-4">Table</th>
+                          <th className="p-4">Order / Time</th>
+                          <th className="p-4">Items Summary</th>
+                          <th className="p-4">Total Amount</th>
+                          <th className="p-4">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#F0E8DC]">
+                        {opKots.length > 0 ? (
+                          opKots.map((k: any) => (
+                            <tr key={k.id} className="hover:bg-[#FAF7F0] transition-colors">
+                              <td className="p-4 font-mono font-bold text-[#B85B43]">
+                                {k.kot_number || `#KOT-${k.id}`}
+                              </td>
+                              <td className="p-4 font-bold text-[#241A14]">
+                                {k.table_number || `Table ${k.table_id}`}
+                              </td>
+                              <td className="p-4 text-[#665448]">
+                                {k.created_at
+                                  ? new Date(k.created_at).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })
+                                  : "—"}
+                              </td>
+                              <td className="p-4">
+                                {k.items && k.items.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {k.items.map((it: any, idx: number) => (
+                                      <span
+                                        key={idx}
+                                        className="px-2 py-0.5 rounded bg-[#FAF7F0] border border-[#E0D4C2] text-[10px] text-[#241A14]"
+                                      >
+                                        {it.quantity}x {it.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-[#8C7A6D]">{k.items_count || 0} items</span>
+                                )}
+                              </td>
+                              <td className="p-4 font-mono font-bold text-[#241A14]">
+                                ₹{Number(k.total_amount || 0).toLocaleString("en-IN")}
+                              </td>
+                              <td className="p-4">
+                                <span
+                                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                    k.status === "SERVED"
+                                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                      : k.status === "READY"
+                                      ? "bg-blue-100 text-blue-800 border border-blue-300"
+                                      : "bg-amber-100 text-amber-800 border border-amber-300"
+                                  }`}
+                                >
+                                  {k.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={6} className="p-8 text-center text-[#8C7A6D]">
+                              No KOT kitchen tickets placed on {opDate}.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1691,6 +2484,73 @@ export default function AdminPortal() {
                 </button>
               </div>
             </motion.div>
+          </div>
+        )}
+
+        {/* Table Session Details Modal in Operations */}
+        {selectedOpTable && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+              <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-3">
+                <div>
+                  <h3 className="text-xl font-serif font-extrabold text-[#241A14]">
+                    Table {selectedOpTable.table_number?.replace(/^table\s*/i, "")} Session Details
+                  </h3>
+                  <p className="text-xs text-[#7A6A5E] mt-0.5">
+                    Operations Date: {opDate} • {selectedOpTable.session?.guest_count || selectedOpTable.capacity} Guests
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedOpTable(null)}
+                  className="p-1 rounded-lg text-[#8C7A6D] hover:text-[#241A14] hover:bg-[#F3EDE2] cursor-pointer"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="flex items-center justify-between bg-[#FAF7F0] p-3 rounded-xl border border-[#E0D4C2]">
+                  <span className="font-semibold text-[#665448]">Total Bill Amount:</span>
+                  <span className="font-mono font-extrabold text-base text-[#B85B43]">
+                    ₹{Number(selectedOpTable.session?.total_amount || 0).toLocaleString("en-IN")}
+                  </span>
+                </div>
+
+                {selectedOpTable.session?.items && selectedOpTable.session.items.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="font-bold text-[#4A392F]">Ordered Items Breakdown:</div>
+                    <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 divide-y divide-[#F0E8DC]">
+                      {selectedOpTable.session.items.map((it: any, idx: number) => (
+                        <div key={idx} className="pt-1.5 flex items-center justify-between text-xs">
+                          <div>
+                            <span className="font-bold text-[#241A14]">{it.quantity}x {it.name}</span>
+                            {it.special_instructions && (
+                              <p className="text-[10px] text-[#7A6A5E] italic">{it.special_instructions}</p>
+                            )}
+                          </div>
+                          <span className="font-mono font-bold text-[#241A14]">
+                            ₹{Number(it.subtotal || it.unit_price * it.quantity || 0).toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[#8C7A6D] text-center py-4">No items recorded in this session.</p>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-[#F0E8DC] flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedOpTable(null)}
+                  className="px-4 py-2 rounded-xl bg-[#261C18] text-white text-xs font-bold cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </AnimatePresence>
