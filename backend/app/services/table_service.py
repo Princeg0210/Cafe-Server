@@ -134,6 +134,16 @@ class TableService:
                 detail="INVALID_QR_TOKEN: QR token is invalid, expired, or rotated.",
             )
 
+        from app.utils.init_tables import DEFAULT_TABLES
+        valid_ids = [dt["id"] for dt in DEFAULT_TABLES]
+        if qr.table_id not in valid_ids:
+            qr.is_active = False
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="INVALID_QR_TOKEN: Table has been removed or is inactive.",
+            )
+
         table = await db.get(Table, qr.table_id)
         if not table or table.status == "Inactive":
             raise HTTPException(
