@@ -1088,9 +1088,7 @@ export default function AdminPortal() {
     let list = displayTableOverviews;
     if (opFloorFilter !== "all") {
       list = list.filter((tbl) => {
-        const cleanTableNumber = (tbl.table_number || "").replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
-        const floorInfo = getTableFloor(cleanTableNumber || tbl.table_id);
-        const floorNum = tbl.floor_number || floorInfo.floor;
+        const floorNum = tbl.floor_number || getTableFloor(tbl.table_id).floor;
         return floorNum === Number(opFloorFilter);
       });
     }
@@ -1767,18 +1765,23 @@ export default function AdminPortal() {
                       >
                         All Floors
                       </button>
-                      {RESTAURANT_FLOORS.filter((f) => !f.isComingSoon).map((fl) => (
+                      {RESTAURANT_FLOORS.map((fl) => (
                         <button
                           key={fl.id}
                           type="button"
                           onClick={() => setOpFloorFilter(fl.id)}
-                          className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer ${
+                          className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
                             opFloorFilter === fl.id
                               ? "bg-[#261C18] text-white shadow-xs"
                               : "text-[#665448] hover:text-[#241A14]"
                           }`}
                         >
-                          {fl.name}
+                          <span>{fl.name}</span>
+                          {fl.isComingSoon && (
+                            <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.2 rounded font-normal">
+                              Soon
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -1809,17 +1812,31 @@ export default function AdminPortal() {
 
                 {filteredOpTables.length === 0 ? (
                   <div className="text-center py-12 px-4 bg-[#FFFDF9] rounded-2xl border border-[#E4DCD0] space-y-2">
-                    <UtensilsCrossed className="w-8 h-8 text-[#A8988B] mx-auto" />
-                    <h4 className="text-sm font-bold text-[#241A14]">No Tables Found</h4>
-                    <p className="text-xs text-[#7A6A5E]">No tables match the selected filter on this date.</p>
+                    {opFloorFilter === 6 ? (
+                      <>
+                        <div className="inline-block p-3 bg-amber-50 rounded-full border border-amber-200 mb-1">
+                          <Sparkles className="w-6 h-6 text-amber-700 mx-auto" />
+                        </div>
+                        <h4 className="text-sm font-bold text-[#241A14]">Floor 6: Everest Sky Deck</h4>
+                        <p className="text-xs text-[#7A6A5E] max-w-sm mx-auto">
+                          Exclusive rooftop sky deck with 360° views of Old City Udaipur & Lake Pichola is opening soon!
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <UtensilsCrossed className="w-8 h-8 text-[#A8988B] mx-auto" />
+                        <h4 className="text-sm font-bold text-[#241A14]">No Tables Found</h4>
+                        <p className="text-xs text-[#7A6A5E]">No tables match the selected filter on this date.</p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredOpTables.map((tbl) => {
                       const cleanTableNumber = (tbl.table_number || "").replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
                       const displayTableName = `TABLE ${cleanTableNumber.padStart(2, "0") || tbl.table_id}`;
-                      const floorInfo = getTableFloor(cleanTableNumber || tbl.table_id);
-                      const floorDisplayName = tbl.floor_name || floorInfo.name;
+                      const floorInfo = tbl.floor_number ? RESTAURANT_FLOORS.find((f) => f.id === tbl.floor_number) : getTableFloor(tbl.table_id);
+                      const floorDisplayName = tbl.floor_name || floorInfo?.name || "Ground floor";
                       const isOccupied = (tbl.active_session_count || 0) > 0;
                       const activeSessions = (tbl.sessions || []).filter((s: any) => s.is_active);
                       const currentSession = activeSessions[0] || (tbl.sessions && tbl.sessions[0]);
@@ -2686,17 +2703,22 @@ export default function AdminPortal() {
                 >
                   All Floors ({filteredTables.length})
                 </button>
-                {RESTAURANT_FLOORS.filter((f) => !f.isComingSoon).map((fl) => (
+                {RESTAURANT_FLOORS.map((fl) => (
                   <button
                     key={fl.id}
                     onClick={() => setTableFloorFilter(fl.id)}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                       tableFloorFilter === fl.id
                         ? "bg-[#B85B43] text-white shadow-xs"
                         : "text-[#665448] hover:text-[#241A14]"
                     }`}
                   >
-                    {fl.name}
+                    <span>{fl.name}</span>
+                    {fl.isComingSoon && (
+                      <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.2 rounded font-normal">
+                        Soon
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -2712,10 +2734,10 @@ export default function AdminPortal() {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-base font-sans font-bold text-[#241A14] block">
-                        Table #{tbl.table_number}
+                        Table #{tbl.table_number.replace(/^table\s*/i, "")}
                       </span>
                       <span className="text-[11px] font-semibold text-[#B85B43]">
-                        {tbl.floor_name || getTableFloor(tbl.table_number || tbl.id).name}
+                        {tbl.floor_name || getTableFloor(tbl.id).name}
                       </span>
                     </div>
                     <span className="px-2.5 py-0.5 rounded-full bg-[#FAF0E1] text-[#B85B43] font-mono text-[10px] font-bold">
@@ -3386,11 +3408,12 @@ export default function AdminPortal() {
                 >
                   {displayTableOverviews.map((tbl) => {
                     const cleanNum = (tbl.table_number || "").replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
-                    const fl = getTableFloor(cleanNum || tbl.table_id);
+                    const fl = tbl.floor_number ? RESTAURANT_FLOORS.find((f) => f.id === tbl.floor_number) : getTableFloor(tbl.table_id);
+                    const floorName = tbl.floor_name || fl?.name || "Ground floor";
                     const isOccupied = (tbl.active_session_count || 0) > 0;
                     return (
                       <option key={tbl.table_id} value={tbl.table_id}>
-                        Table {cleanNum || tbl.table_id} ({fl.name} • {tbl.capacity} Seats) — {isOccupied ? "Occupied" : "Available"}
+                        Table {cleanNum || tbl.table_id} ({floorName} • {tbl.capacity} Seats) — {isOccupied ? "Occupied" : "Available"}
                       </option>
                     );
                   })}

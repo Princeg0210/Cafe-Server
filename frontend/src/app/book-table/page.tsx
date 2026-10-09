@@ -398,7 +398,7 @@ export default function BookTablePage() {
                     1. Choose Restaurant Floor
                   </span>
                   <span className="text-xs font-sans text-[#9E3E26] font-semibold">
-                    5 Unique Heritage Levels
+                    6 Distinct Heritage Floors (5 Open · Everest Coming Soon)
                   </span>
                 </div>
 

@@ -132,8 +132,18 @@ class ReservationService:
             if not tbl_check.scalar_one_or_none():
                 valid_table_id = None
         if valid_table_id is None and data.table_name:
-            tbl_match = await db.execute(select(Table.id).where(Table.table_number == data.table_name))
-            valid_table_id = tbl_match.scalar_one_or_none()
+            floor_table_ids = {
+                1: [1, 2, 3],
+                2: [4, 5, 6],
+                3: [7, 8],
+                4: [9, 10],
+                5: [11, 12, 13],
+            }
+            tbl_stmt = select(Table.id).where(Table.table_number == data.table_name)
+            if data.floor_number and data.floor_number in floor_table_ids:
+                tbl_stmt = tbl_stmt.where(Table.id.in_(floor_table_ids[data.floor_number]))
+            tbl_match = await db.execute(tbl_stmt)
+            valid_table_id = tbl_match.scalars().first()
 
         # Backend independently calculates the exact deposit from guest count
         deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
@@ -570,8 +580,18 @@ class ReservationService:
                 valid_table_id = None
 
         if valid_table_id is None and data.table_name:
-            tbl_match = await db.execute(select(Table.id).where(Table.table_number == data.table_name))
-            valid_table_id = tbl_match.scalar_one_or_none()
+            floor_table_ids = {
+                1: [1, 2, 3],
+                2: [4, 5, 6],
+                3: [7, 8],
+                4: [9, 10],
+                5: [11, 12, 13],
+            }
+            tbl_stmt = select(Table.id).where(Table.table_number == data.table_name)
+            if data.floor_number and data.floor_number in floor_table_ids:
+                tbl_stmt = tbl_stmt.where(Table.id.in_(floor_table_ids[data.floor_number]))
+            tbl_match = await db.execute(tbl_stmt)
+            valid_table_id = tbl_match.scalars().first()
 
         # 5. Get or create Customer
         cust_query = select(Customer).where(Customer.phone == data.customer_phone)

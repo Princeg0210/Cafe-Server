@@ -36,6 +36,7 @@ import {
   Eye,
   EyeOff,
   Layers,
+  Sparkles,
 } from "lucide-react";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 
@@ -79,6 +80,8 @@ interface TableOverview {
   active_session_count: number;
   total_sessions_today: number;
   sessions: TableSession[];
+  floor_number?: number;
+  floor_name?: string;
 }
 
 interface KOTItem {
@@ -1002,9 +1005,8 @@ export default function POSDashboard() {
   };
 
   const filteredTables = tableOverviews.filter((tbl) => {
-    const cleanTableNumber = tbl.table_number.replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
-    const floorInfo = getTableFloor(cleanTableNumber || tbl.table_id);
-    if (floorFilter !== "all" && floorInfo.floor !== floorFilter) return false;
+    const floorNumber = tbl.floor_number || getTableFloor(tbl.table_id).floor;
+    if (floorFilter !== "all" && floorNumber !== floorFilter) return false;
     if (tableFilter === "active") return tbl.active_session_count > 0;
     if (tableFilter === "available") return tbl.active_session_count === 0;
     return true;
@@ -1572,17 +1574,22 @@ export default function POSDashboard() {
                   >
                     All Floors
                   </button>
-                  {RESTAURANT_FLOORS.filter((f) => !f.isComingSoon).map((fl) => (
+                  {RESTAURANT_FLOORS.map((fl) => (
                     <button
                       key={fl.id}
                       onClick={() => setFloorFilter(fl.id)}
-                      className={`px-2.5 py-1 rounded-sm font-medium transition-colors cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
                         floorFilter === fl.id
                           ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
                           : "text-stone-700 hover:text-[#261C18]"
                       }`}
                     >
-                      {fl.name}
+                      <span>{fl.name}</span>
+                      {fl.isComingSoon && (
+                        <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.2 rounded font-normal">
+                          Soon
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -1612,13 +1619,27 @@ export default function POSDashboard() {
             {/* Tables Grid Layout */}
             {filteredTables.length === 0 ? (
               <div className="text-center py-12 px-4 bg-white rounded-lg border border-[#E4DCD0] space-y-2">
-                <UtensilsCrossed className="w-8 h-8 text-stone-300 mx-auto" />
-                <h4 className="text-sm font-semibold text-[#261C18]">No Tables Found</h4>
-                <p className="text-xs text-stone-500">
-                  {tableFilter === "active"
-                    ? "No tables currently have active dining sessions."
-                    : "No tables match current filter."}
-                </p>
+                {floorFilter === 6 ? (
+                  <>
+                    <div className="inline-block p-3 bg-amber-50 rounded-full border border-amber-200 mb-1">
+                      <Sparkles className="w-6 h-6 text-amber-700" />
+                    </div>
+                    <h4 className="text-sm font-bold text-[#261C18]">Floor 6: Everest Sky Deck</h4>
+                    <p className="text-xs text-stone-500 max-w-sm mx-auto">
+                      Exclusive rooftop sky deck with 360° views of Old City Udaipur & Lake Pichola is opening soon! Table capacity and seating arrangements will appear here once live.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <UtensilsCrossed className="w-8 h-8 text-stone-300 mx-auto" />
+                    <h4 className="text-sm font-semibold text-[#261C18]">No Tables Found</h4>
+                    <p className="text-xs text-stone-500">
+                      {tableFilter === "active"
+                        ? "No tables currently have active dining sessions."
+                        : "No tables match current filter."}
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1664,7 +1685,7 @@ export default function POSDashboard() {
                                 {displayTableName}
                               </span>
                               <span className="text-xs font-semibold text-[#B85B43]">
-                                • {getTableFloor(cleanTableNumber || tbl.table_id).name}
+                                • {tbl.floor_name || getTableFloor(tbl.table_id).name}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 mt-1">

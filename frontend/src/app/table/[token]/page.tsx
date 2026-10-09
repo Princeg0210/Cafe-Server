@@ -27,6 +27,7 @@ import {
   HeartHandshake,
 } from "lucide-react";
 import { menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
+import { getFloorName } from "@/data/floors";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   starters: <Utensils className="w-4 h-4 text-[#9E3E26]" />,
@@ -635,7 +636,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                   </span>
                   {reservationNotice.floor_number && (
                     <span className="text-[10px] font-bold bg-[#261C18] text-white px-2 py-0.5 rounded-full">
-                      Floor {reservationNotice.floor_number}
+                      {getFloorName(reservationNotice.floor_number)}
                     </span>
                   )}
                   {reservationNotice.table_name && (

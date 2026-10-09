@@ -20,8 +20,15 @@ class Table(Base):
 
     @property
     def floor_number(self) -> int:
+        if self.id:
+            if self.id <= 3: return 1
+            if self.id <= 6: return 2
+            if self.id <= 8: return 3
+            if self.id <= 10: return 4
+            if self.id <= 13: return 5
+            return 6
         digits = "".join(filter(str.isdigit, str(self.table_number)))
-        num = int(digits) if digits else self.id
+        num = int(digits) if digits else 1
         if num <= 3: return 1
         if num <= 6: return 2
         if num <= 8: return 3
