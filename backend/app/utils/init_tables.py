@@ -22,6 +22,7 @@ DEFAULT_TABLES = [
     {"id": 13, "table_number": "Table 13", "capacity": 2, "qr_token": "qr_sec_8b1e3f5a7c9d0bdf2468ace13579bdf3"},
     {"id": 14, "table_number": "Table 14", "capacity": 4, "qr_token": "qr_sec_9c2f4a6b8d0e1bdf2468ace13579bdf4"},
     {"id": 15, "table_number": "Table 15", "capacity": 6, "qr_token": "qr_sec_0d3a5b7c9e1f2bdf2468ace13579bdf5"},
+    {"id": 16, "table_number": "Table 17", "capacity": 6, "qr_token": "qr_sec_0d3a5b7c9e1f2bdf2468ace13579bdf7"},
 ]
 
 
