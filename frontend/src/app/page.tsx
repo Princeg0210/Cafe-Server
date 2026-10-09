@@ -83,15 +83,25 @@ export default function Home() {
             transition={{ delay: 0.38, duration: 0.5, ease: "easeOut" }}
             className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-3 pt-5 border-t border-white/15"
           >
-            <div className="inline-flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-sans font-medium">
-              <MapPin className="w-4 h-4 text-[#E8AA62] shrink-0" />
+            <Link
+              href="/location"
+              className="inline-flex items-center gap-2 text-stone-200 hover:text-[#E8AA62] text-xs sm:text-sm font-sans font-medium transition-colors group"
+            >
+              <MapPin className="w-4 h-4 text-[#E8AA62] shrink-0 group-hover:scale-110 transition-transform" />
               <span>32 Sitaphal ki gali, Ganesh Ghati</span>
-            </div>
+            </Link>
             <span className="hidden sm:inline text-white/30">•</span>
-            <div className="inline-flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-sans font-medium">
-              <Flame className="w-4 h-4 text-[#E8AA62] shrink-0" />
-              <span>48h Natural Fermentation</span>
-            </div>
+            <a
+              href="https://www.instagram.com/jaadoo_pizza_project/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-stone-200 hover:text-[#E8AA62] text-xs sm:text-sm font-sans font-medium transition-colors group cursor-pointer"
+            >
+              <Flame className="w-4 h-4 text-[#E8AA62] shrink-0 group-hover:scale-110 transition-transform" />
+              <span className="underline underline-offset-4 decoration-white/30 group-hover:decoration-[#E8AA62]">
+                48h Natural Fermentation
+              </span>
+            </a>
             <span className="hidden sm:inline text-white/30">•</span>
             <div className="inline-flex items-center gap-2 text-stone-200 text-xs sm:text-sm font-sans font-medium">
               <Leaf className="w-4 h-4 text-[#E8AA62] shrink-0" />
