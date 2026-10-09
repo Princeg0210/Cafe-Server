@@ -208,10 +208,10 @@ async def on_startup():
                 await db.commit()
                 logger.info("Default branch and main kitchen seeded.")
 
-        # Ensure POS cashier user and pos:access permissions exist in any environment (Render / Local)
-        from app.utils.create_pos_user import create_pos_user
-        await create_pos_user()
-        logger.info("Default POS user ensured.")
+        # Ensure POS cashier user and Owner Admin user (admin:admin12) exist in any environment
+        from app.utils.create_pos_user import ensure_default_users
+        await ensure_default_users()
+        logger.info("Default POS and Owner Admin users ensured.")
 
         # Ensure default tables (1 to 12) and their secure TableQR tokens exist
         async with AsyncSessionLocal() as db:

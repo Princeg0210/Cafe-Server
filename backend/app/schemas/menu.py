@@ -26,6 +26,16 @@ class MenuItemCreate(BaseModel):
     is_active: bool = True
 
 
+class MenuItemUpdate(BaseModel):
+    category_id: Optional[int] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[Decimal] = None
+    tax_rate: Optional[Decimal] = None
+    is_available: Optional[bool] = None
+    is_active: Optional[bool] = None
+
+
 class MenuItemResponse(MenuItemCreate):
     model_config = ConfigDict(from_attributes=True)
 
@@ -34,3 +44,4 @@ class MenuItemResponse(MenuItemCreate):
     is_sold_out: bool = False
     allocated_count: Optional[int] = None
     max_production_limit: Optional[int] = None
+

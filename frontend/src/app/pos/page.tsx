@@ -1105,7 +1105,9 @@ export default function POSDashboard() {
             <Link href="/" className="hover:text-[#261C18] flex items-center gap-1">
               <ArrowLeft className="w-3 h-3" /> Website
             </Link>
-            <span>JAADOO • The Pizza Project • POS</span>
+            <Link href="/admin" className="text-[#B85B43] hover:underline font-semibold flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3" /> Owner Portal
+            </Link>
           </div>
         </div>
       </div>
@@ -1246,6 +1248,15 @@ export default function POSDashboard() {
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isRefreshingRes ? "animate-spin" : ""}`} />
             </button>
+
+            {/* Owner Portal Link */}
+            <Link
+              href="/admin"
+              className="p-1.5 rounded-md bg-white hover:bg-amber-50 text-[#B85B43] border border-[#E4DCD0] text-xs cursor-pointer flex items-center gap-1"
+              title="Switch to Owner Portal"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+            </Link>
 
             {/* Lock */}
             <button

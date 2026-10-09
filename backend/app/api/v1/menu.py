@@ -87,3 +87,49 @@ async def create_menu_item(data: MenuItemCreate, db: AsyncSession = Depends(get_
         "allocated_count": None,
         "max_production_limit": None,
     }
+
+
+@router.put("/items/{item_id}", response_model=MenuItemResponse)
+async def update_menu_item(item_id: int, data: MenuItemUpdate, db: AsyncSession = Depends(get_db)):
+    from fastapi import HTTPException, status
+    result = await db.execute(select(MenuItem).where(MenuItem.id == item_id))
+    item = result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for field, val in update_data.items():
+        setattr(item, field, val)
+
+    await db.commit()
+    await db.refresh(item)
+
+    return {
+        "id": item.id,
+        "category_id": item.category_id,
+        "name": item.name,
+        "description": item.description,
+        "price": item.price,
+        "tax_rate": item.tax_rate,
+        "is_available": item.is_available,
+        "is_active": item.is_active,
+        "created_at": item.created_at,
+        "is_sold_out": False,
+        "allocated_count": None,
+        "max_production_limit": None,
+    }
+
+
+@router.delete("/items/{item_id}")
+async def delete_menu_item(item_id: int, db: AsyncSession = Depends(get_db)):
+    from fastapi import HTTPException, status
+    result = await db.execute(select(MenuItem).where(MenuItem.id == item_id))
+    item = result.scalar_one_or_none()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
+
+    item.is_active = False
+    item.is_available = False
+    await db.commit()
+    return {"message": "Menu item deleted successfully", "id": item_id}
+
