@@ -45,6 +45,7 @@ import {
 import Link from "next/link";
 import QRCode from "qrcode";
 import { menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
+import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 
 interface DashboardMetrics {
   total_revenue: number;
@@ -126,6 +127,10 @@ interface Reservation {
   payment_status: string;
   upi_utr?: string;
   special_requests?: string;
+  floor_number?: number;
+  floor_name?: string;
+  table_id?: number;
+  table_name?: string;
 }
 
 interface TableOverview {
@@ -135,6 +140,8 @@ interface TableOverview {
   qr_token: string;
   is_active: boolean;
   active_session_count: number;
+  floor_number?: number;
+  floor_name?: string;
 }
 
 interface KOTRecord {
@@ -209,9 +216,11 @@ export default function AdminPortal() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [resSearch, setResSearch] = useState("");
   const [resDateFilter, setResDateFilter] = useState("");
+  const [resFloorFilter, setResFloorFilter] = useState<number | "all">("all");
 
   // Tables Data
   const [tables, setTables] = useState<TableOverview[]>([]);
+  const [tableFloorFilter, setTableFloorFilter] = useState<number | "all">("all");
   const [qrModalTable, setQrModalTable] = useState<{ number: string; url: string; qrDataUrl: string } | null>(null);
 
   // Ledger / KOTs Data
@@ -360,19 +369,26 @@ export default function AdminPortal() {
         const rData = await rRes.json();
         if (Array.isArray(rData)) {
           setReservations(
-            rData.map((r: any) => ({
-              id: r.id,
-              customer_name: r.customer?.name || "Guest",
-              customer_phone: r.customer?.phone || "",
-              party_size: r.guest_count || 2,
-              booking_date: r.reservation_date || "",
-              time_slot: r.time_slot || "",
-              status: r.status || "CONFIRMED",
-              advance_amount: r.advance_amount || 0,
-              payment_status: r.payment_status || "PAID",
-              upi_utr: r.upi_utr || "",
-              special_requests: r.special_requests || "",
-            }))
+            rData.map((r: any) => {
+              const floorInfo = getTableFloor(r.table_id || r.table_name || 1);
+              return {
+                id: r.id,
+                customer_name: r.customer?.name || "Guest",
+                customer_phone: r.customer?.phone || "",
+                party_size: r.guest_count || 2,
+                booking_date: r.reservation_date || "",
+                time_slot: r.time_slot || "",
+                status: r.status || "CONFIRMED",
+                advance_amount: r.advance_amount || 0,
+                payment_status: r.payment_status || "PAID",
+                upi_utr: r.upi_utr || "",
+                special_requests: r.special_requests || "",
+                floor_number: r.floor_number || floorInfo.floor,
+                floor_name: r.floor_number ? getFloorName(r.floor_number) : floorInfo.name,
+                table_id: r.table_id,
+                table_name: r.table_name || (r.table_id ? `Table ${r.table_id}` : "Auto Assigned"),
+              };
+            })
           );
         }
       }
@@ -389,14 +405,19 @@ export default function AdminPortal() {
         const tData = await tRes.json();
         if (Array.isArray(tData)) {
           setTables(
-            tData.map((t: any) => ({
-              id: t.id,
-              table_number: t.table_number,
-              capacity: t.capacity,
-              qr_token: t.qr_token || `qr_sec_${t.id}`,
-              is_active: t.status !== "Maintenance",
-              active_session_count: t.status === "Occupied" ? 1 : 0,
-            }))
+            tData.map((t: any) => {
+              const fl = getTableFloor(t.table_number || t.id);
+              return {
+                id: t.id,
+                table_number: t.table_number,
+                capacity: t.capacity,
+                qr_token: t.qr_token || `qr_sec_${t.id}`,
+                is_active: t.status !== "Maintenance",
+                active_session_count: t.status === "Occupied" ? 1 : 0,
+                floor_number: t.floor_number || fl.floor,
+                floor_name: t.floor_name || fl.name,
+              };
+            })
           );
         }
       }
@@ -744,11 +765,32 @@ export default function AdminPortal() {
         !resSearch ||
         r.customer_name?.toLowerCase().includes(resSearch.toLowerCase()) ||
         r.customer_phone?.includes(resSearch) ||
+        r.table_name?.toLowerCase().includes(resSearch.toLowerCase()) ||
+        r.floor_name?.toLowerCase().includes(resSearch.toLowerCase()) ||
         r.upi_utr?.toLowerCase().includes(resSearch.toLowerCase());
       const matchesDate = !resDateFilter || r.booking_date === resDateFilter;
-      return matchesSearch && matchesDate;
+      const matchesFloor = resFloorFilter === "all" || r.floor_number === Number(resFloorFilter);
+      return matchesSearch && matchesDate && matchesFloor;
     });
-  }, [reservations, resSearch, resDateFilter]);
+  }, [reservations, resSearch, resDateFilter, resFloorFilter]);
+
+  // Filtered Tables
+  const filteredTables = useMemo(() => {
+    const baseList = tables.length > 0 ? tables : RESTAURANT_TABLES.map((rt) => ({
+      id: rt.id,
+      table_number: rt.table_number.replace(/^table\s*/i, ""),
+      capacity: rt.capacity,
+      qr_token: rt.qr_token,
+      is_active: true,
+      active_session_count: 0,
+      floor_number: rt.floor,
+      floor_name: rt.floor_name,
+    }));
+    return baseList.filter((t) => {
+      if (tableFloorFilter === "all") return true;
+      return t.floor_number === Number(tableFloorFilter);
+    });
+  }, [tables, tableFloorFilter]);
 
   // Max value for revenue bar chart
   const maxRevenue = useMemo(() => {
@@ -1972,7 +2014,7 @@ export default function AdminPortal() {
               </div>
 
               {/* Filters */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
                   <input
@@ -1983,6 +2025,19 @@ export default function AdminPortal() {
                     className="bg-[#FFFDF9] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#241A14] placeholder-[#A8988B] outline-none"
                   />
                 </div>
+
+                <select
+                  value={resFloorFilter}
+                  onChange={(e) => setResFloorFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
+                  className="bg-[#FFFDF9] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl px-3 py-1.5 text-xs text-[#241A14] outline-none"
+                >
+                  <option value="all">All Floors</option>
+                  {RESTAURANT_FLOORS.filter((f) => !f.isComingSoon).map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
 
                 <input
                   type="date"
@@ -2000,6 +2055,7 @@ export default function AdminPortal() {
                   <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
                     <tr>
                       <th className="p-4">Booking ID</th>
+                      <th className="p-4">Floor & Table</th>
                       <th className="p-4">Guest Name</th>
                       <th className="p-4">Phone</th>
                       <th className="p-4">Party Size</th>
@@ -2013,6 +2069,14 @@ export default function AdminPortal() {
                       filteredReservations.map((r) => (
                         <tr key={r.id} className="hover:bg-[#FAF7F0] transition-colors">
                           <td className="p-4 font-mono font-bold text-[#B85B43]">#{r.id}</td>
+                          <td className="p-4">
+                            <span className="font-bold text-[#B85B43] block">
+                              {r.floor_name || (r.floor_number ? getFloorName(r.floor_number) : "Ground floor")}
+                            </span>
+                            <span className="text-[11px] font-mono text-[#665448]">
+                              {r.table_name || (r.table_id ? `Table ${r.table_id}` : "Auto Assigned")}
+                            </span>
+                          </td>
                           <td className="p-4 font-bold text-[#241A14]">{r.customer_name}</td>
                           <td className="p-4 text-[#665448] font-mono">{r.customer_phone}</td>
                           <td className="p-4 text-[#665448] font-semibold">{r.party_size} Guests</td>
@@ -2046,7 +2110,7 @@ export default function AdminPortal() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={7} className="p-8 text-center text-[#8C7A6D]">
+                        <td colSpan={8} className="p-8 text-center text-[#8C7A6D]">
                           No reservations matching search criteria.
                         </td>
                       </tr>
@@ -2065,22 +2129,54 @@ export default function AdminPortal() {
               <div>
                 <h2 className="text-lg font-serif font-bold text-[#241A14]">Table Fleet & QR Generation Hub</h2>
                 <p className="text-xs text-[#7A6A5E]">
-                  Instant access to high-resolution printable table cards and tabletop self-ordering links
+                  Total 13 tables across 5 distinct dining floors with individual guest self-order QR codes
                 </p>
+              </div>
+
+              {/* Floor Filter Tabs */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-[#FAF7F0] p-1 rounded-xl border border-[#E6DCCF] text-xs">
+                <button
+                  onClick={() => setTableFloorFilter("all")}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    tableFloorFilter === "all"
+                      ? "bg-[#B85B43] text-white shadow-xs"
+                      : "text-[#665448] hover:text-[#241A14]"
+                  }`}
+                >
+                  All Floors ({filteredTables.length})
+                </button>
+                {RESTAURANT_FLOORS.filter((f) => !f.isComingSoon).map((fl) => (
+                  <button
+                    key={fl.id}
+                    onClick={() => setTableFloorFilter(fl.id)}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                      tableFloorFilter === fl.id
+                        ? "bg-[#B85B43] text-white shadow-xs"
+                        : "text-[#665448] hover:text-[#241A14]"
+                    }`}
+                  >
+                    {fl.name}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Tables Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {tables.map((tbl) => (
+              {filteredTables.map((tbl) => (
                 <div
                   key={tbl.id}
                   className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm space-y-4 hover:border-[#B85B43] transition-all group"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-base font-serif font-bold text-[#241A14]">
-                      Table #{tbl.table_number}
-                    </span>
+                    <div>
+                      <span className="text-base font-serif font-bold text-[#241A14] block">
+                        Table #{tbl.table_number}
+                      </span>
+                      <span className="text-[11px] font-semibold text-[#B85B43]">
+                        {tbl.floor_name || getTableFloor(tbl.table_number || tbl.id).name}
+                      </span>
+                    </div>
                     <span className="px-2.5 py-0.5 rounded-full bg-[#FAF0E1] text-[#B85B43] font-mono text-[10px] font-bold">
                       {tbl.capacity} Seats
                     </span>

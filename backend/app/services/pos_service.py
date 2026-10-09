@@ -577,6 +577,8 @@ class POSService:
                     active_session_count=active_count,
                     total_sessions_today=len(session_details),
                     sessions=session_details,
+                    floor_number=tbl.floor_number,
+                    floor_name=tbl.floor_name,
                 )
             )
 

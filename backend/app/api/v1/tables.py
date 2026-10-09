@@ -21,7 +21,8 @@ sessions_router = APIRouter(prefix="/sessions", tags=["Dining Sessions"])
 
 @router.get("", response_model=List[TableResponse])
 async def list_tables(db: AsyncSession = Depends(get_db)):
-    query = select(Table).order_by(Table.table_number)
+    from sqlalchemy.orm import selectinload
+    query = select(Table).options(selectinload(Table.qr_code)).order_by(Table.id)
     result = await db.execute(query)
     return result.scalars().all()
 

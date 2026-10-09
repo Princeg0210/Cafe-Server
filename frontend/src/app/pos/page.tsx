@@ -35,7 +35,9 @@ import {
   CreditCard,
   Eye,
   EyeOff,
+  Layers,
 } from "lucide-react";
+import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 
 interface SessionItem {
   name: string;
@@ -183,16 +185,6 @@ interface PendingPaymentReview {
   verified_at: string;
 }
 
-export const getTableFloor = (tableIdOrNum: number | string) => {
-  const num =
-    typeof tableIdOrNum === "number"
-      ? tableIdOrNum
-      : parseInt(String(tableIdOrNum).replace(/\D/g, ""), 10) || 1;
-  if (num <= 4) return { floor: 1, name: "Floor 1", short: "F1" };
-  if (num <= 8) return { floor: 2, name: "Floor 2", short: "F2" };
-  return { floor: 3, name: "Floor 3", short: "F3" };
-};
-
 export default function POSDashboard() {
   const [activeTab, setActiveTab] = useState<"tables" | "kots" | "reservations">("tables");
 
@@ -201,6 +193,7 @@ export default function POSDashboard() {
   const [expandedSessions, setExpandedSessions] = useState<Record<number, boolean>>({});
   const [showClosedToday, setShowClosedToday] = useState<Record<number, boolean>>({});
   const [tableFilter, setTableFilter] = useState<"all" | "active" | "available">("all");
+  const [floorFilter, setFloorFilter] = useState<number | "all">("all");
 
   // Authentication State
   const [posToken, setPosToken] = useState<string | null>(null);
@@ -1009,6 +1002,9 @@ export default function POSDashboard() {
   };
 
   const filteredTables = tableOverviews.filter((tbl) => {
+    const cleanTableNumber = tbl.table_number.replace(/^table\s*/i, "").replace(/^t-/i, "").trim();
+    const floorInfo = getTableFloor(cleanTableNumber || tbl.table_id);
+    if (floorFilter !== "all" && floorInfo.floor !== floorFilter) return false;
     if (tableFilter === "active") return tbl.active_session_count > 0;
     if (tableFilter === "available") return tbl.active_session_count === 0;
     return true;
@@ -1564,6 +1560,33 @@ export default function POSDashboard() {
                   </span>
                 </button>
 
+                {/* Floor Filter Tabs */}
+                <div className="flex flex-wrap items-center bg-[#F6F3EC] p-0.5 rounded-md border border-[#E4DCD0] text-xs">
+                  <button
+                    onClick={() => setFloorFilter("all")}
+                    className={`px-2.5 py-1 rounded-sm font-medium transition-colors cursor-pointer ${
+                      floorFilter === "all"
+                        ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
+                        : "text-stone-700 hover:text-[#261C18]"
+                    }`}
+                  >
+                    All Floors
+                  </button>
+                  {RESTAURANT_FLOORS.filter((f) => !f.isComingSoon).map((fl) => (
+                    <button
+                      key={fl.id}
+                      onClick={() => setFloorFilter(fl.id)}
+                      className={`px-2.5 py-1 rounded-sm font-medium transition-colors cursor-pointer ${
+                        floorFilter === fl.id
+                          ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
+                          : "text-stone-700 hover:text-[#261C18]"
+                      }`}
+                    >
+                      {fl.name}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Filter Selector */}
                 <div className="flex items-center bg-[#F6F3EC] p-0.5 rounded-md border border-[#E4DCD0]">
                   {(["all", "active", "available"] as const).map((mode) => (
@@ -1611,6 +1634,17 @@ export default function POSDashboard() {
 
                   const isOccupied = tbl.active_session_count > 0;
                   const activeSession = activeSessions[0];
+
+                  // Match any active booking for this table
+                  const bookedReservation = reservations.find((r) => {
+                    const matchId = r.table_id && (r.table_id === tbl.table_id || r.table_id === parseInt(cleanTableNumber, 10));
+                    const matchName = r.table_name && (
+                      r.table_name.toLowerCase().includes(`table ${cleanTableNumber}`.toLowerCase()) ||
+                      r.table_name.toLowerCase() === tbl.table_number.toLowerCase()
+                    );
+                    const isActive = ["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"].includes(r.status?.toUpperCase() || "");
+                    return (matchId || matchName) && isActive;
+                  });
 
                   return (
                     <div
@@ -1683,6 +1717,33 @@ export default function POSDashboard() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Booked Reservation Banner */}
+                      {bookedReservation && (
+                        <div className="mx-3 mt-3 p-2.5 bg-[#FAF0E1] border border-[#E8DFC9] rounded-md text-xs space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-[#9E3E26] flex items-center gap-1 uppercase tracking-wider text-[10px]">
+                              <UserCheck className="w-3.5 h-3.5 text-[#9E3E26]" />
+                              Reserved Guest
+                            </span>
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                              bookedReservation.status === "SEATED"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : bookedReservation.status === "ARRIVED"
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}>
+                              {bookedReservation.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-stone-900 font-semibold text-xs">
+                            <span className="truncate">{bookedReservation.customer?.name || "Guest"}</span>
+                            <span className="text-[11px] font-mono text-stone-600 shrink-0 ml-1">
+                              {bookedReservation.time_slot} ({bookedReservation.guest_count}p)
+                            </span>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Card Body: Session Info & Running Bill */}
                       <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
@@ -2123,6 +2184,13 @@ export default function POSDashboard() {
                               Deposit Paid: ₹{Number(res.advance_amount).toFixed(0)} ({res.payment_method || "UPI"})
                             </div>
                           )}
+
+                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-stone-100">
+                            <span className="text-stone-500">Floor:</span>
+                            <span className="font-semibold text-[#B85B43]">
+                              {res.floor_number ? getFloorName(res.floor_number) : getTableFloor(res.table_id || res.table_name || 1).name}
+                            </span>
+                          </div>
 
                           <div className="flex items-center justify-between text-[11px] pt-1 border-t border-stone-100">
                             <span className="text-stone-500">Table:</span>

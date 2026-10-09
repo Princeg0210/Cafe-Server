@@ -110,17 +110,10 @@ class ReservationService:
         if valid_table_id is not None:
             tbl_check = await db.execute(select(Table.id).where(Table.id == valid_table_id))
             if not tbl_check.scalar_one_or_none():
-                if data.floor_number and data.table_name:
-                    try:
-                        digits = "".join(filter(str.isdigit, data.table_name))
-                        t_num = int(digits) if digits else 1
-                        computed_id = (data.floor_number - 1) * 5 + t_num
-                        c_check = await db.execute(select(Table.id).where(Table.id == computed_id))
-                        valid_table_id = computed_id if c_check.scalar_one_or_none() else None
-                    except Exception:
-                        valid_table_id = None
-                else:
-                    valid_table_id = None
+                valid_table_id = None
+        if valid_table_id is None and data.table_name:
+            tbl_match = await db.execute(select(Table.id).where(Table.table_number == data.table_name))
+            valid_table_id = tbl_match.scalar_one_or_none()
 
         # Backend independently calculates the exact deposit from guest count
         deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
@@ -548,15 +541,9 @@ class ReservationService:
             if not tbl_check.scalar_one_or_none():
                 valid_table_id = None
 
-        if valid_table_id is None and data.floor_number and data.table_name:
-            try:
-                digits = "".join(filter(str.isdigit, data.table_name))
-                t_num = int(digits) if digits else 1
-                computed_id = (data.floor_number - 1) * 5 + t_num
-                c_check = await db.execute(select(Table.id).where(Table.id == computed_id))
-                valid_table_id = computed_id if c_check.scalar_one_or_none() else None
-            except Exception:
-                valid_table_id = None
+        if valid_table_id is None and data.table_name:
+            tbl_match = await db.execute(select(Table.id).where(Table.table_number == data.table_name))
+            valid_table_id = tbl_match.scalar_one_or_none()
 
         # 5. Get or create Customer
         cust_query = select(Customer).where(Customer.phone == data.customer_phone)
@@ -778,6 +765,7 @@ class ReservationService:
                 unavailable.append({
                     "floor_number": r.floor_number,
                     "table_name": r.table_name,
+                    "table_id": r.table_id,
                     "status": "HELD" if is_held else "BOOKED",
                     "seconds_remaining": int((r.hold_expires_at - now).total_seconds()) if is_held and r.hold_expires_at else 0,
                 })

@@ -106,3 +106,5 @@ class TableOverviewResponse(BaseModel):
     active_session_count: int
     total_sessions_today: int
     sessions: List[TableSessionDetail] = []
+    floor_number: Optional[int] = 1
+    floor_name: Optional[str] = "Ground floor"

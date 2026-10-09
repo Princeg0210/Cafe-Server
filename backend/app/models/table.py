@@ -18,6 +18,33 @@ class Table(Base):
     qr_code = relationship("TableQR", back_populates="table", uselist=False)
     dining_sessions = relationship("DiningSession", back_populates="table")
 
+    @property
+    def floor_number(self) -> int:
+        digits = "".join(filter(str.isdigit, str(self.table_number)))
+        num = int(digits) if digits else self.id
+        if num <= 3: return 1
+        if num <= 6: return 2
+        if num <= 8: return 3
+        if num <= 10: return 4
+        if num <= 13: return 5
+        return 6
+
+    @property
+    def floor_name(self) -> str:
+        names = {
+            1: "Ground floor",
+            2: "School room",
+            3: "Balcony",
+            4: "Lower top",
+            5: "Top top",
+            6: "Everest (coming soon)",
+        }
+        return names.get(self.floor_number, "Ground floor")
+
+    @property
+    def qr_token(self) -> str | None:
+        return self.qr_code.qr_token if self.qr_code else None
+
 
 class TableQR(Base):
     __tablename__ = "table_qr"

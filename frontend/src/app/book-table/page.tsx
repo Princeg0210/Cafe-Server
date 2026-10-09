@@ -20,9 +20,11 @@ import {
   Sparkles,
   Compass,
   UtensilsCrossed,
+  Layers,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import TanFooter from "@/components/TanFooter";
+import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getFloorName, getTableFloor } from "@/data/floors";
 
 interface ConfirmedBooking {
   id: number | string;
@@ -31,31 +33,12 @@ interface ConfirmedBooking {
   guests: number;
   date: string;
   time: string;
-  seatingZone: string;
+  floorNumber: number;
+  floorName: string;
+  tableName: string;
   occasion: string;
   status: "CONFIRMING" | "CONFIRMED";
 }
-
-const SEATING_ZONES = [
-  {
-    id: "terrace",
-    name: "Lake Pichola Terrace",
-    desc: "Open-air panoramic water views and gentle breeze",
-    tag: "Prime Sunset View",
-  },
-  {
-    id: "courtyard",
-    name: "Wood-Oven Courtyard",
-    desc: "Warm rustic ambience near 48h sourdough ovens",
-    tag: "Artisanal Ambience",
-  },
-  {
-    id: "hall",
-    name: "Main Heritage Hall",
-    desc: "Intimate heritage dining sanctuary with acoustic jazz",
-    tag: "Heritage Seating",
-  },
-];
 
 const TIME_SLOTS = [
   { time: "12:30", label: "12:30 PM", category: "Lunch" },
@@ -77,7 +60,8 @@ export default function BookTablePage() {
   });
   const [time, setTime] = useState("19:30");
   const [guests, setGuests] = useState(2);
-  const [seatingZone, setSeatingZone] = useState("terrace");
+  const [selectedFloor, setSelectedFloor] = useState<number>(1);
+  const [selectedTableId, setSelectedTableId] = useState<number | "auto">("auto");
   const [occasion, setOccasion] = useState("Casual Fine Dining");
 
   const [name, setName] = useState("");
@@ -121,6 +105,22 @@ export default function BookTablePage() {
       return;
     }
 
+    const currentFloor = RESTAURANT_FLOORS.find((f) => f.id === selectedFloor) || RESTAURANT_FLOORS[0];
+    if (currentFloor.isComingSoon) {
+      setSubmitError("Everest sky deck is opening soon! Please choose another floor to reserve.");
+      return;
+    }
+
+    const floorTables = RESTAURANT_TABLES.filter((t) => t.floor === currentFloor.id);
+    let chosenTable = floorTables[0];
+    if (selectedTableId !== "auto") {
+      const matched = floorTables.find((t) => t.id === selectedTableId);
+      if (matched) chosenTable = matched;
+    } else {
+      const fits = floorTables.find((t) => t.capacity >= guests) || floorTables[0];
+      if (fits) chosenTable = fits;
+    }
+
     // 1. OPTIMISTIC UI: Instantly display the confirmed digital table pass
     const provisionalId = Math.floor(1000 + Math.random() * 9000);
     const optimisticBooking: ConfirmedBooking = {
@@ -130,7 +130,9 @@ export default function BookTablePage() {
       guests,
       date,
       time,
-      seatingZone: SEATING_ZONES.find((z) => z.id === seatingZone)?.name || "Lake Terrace",
+      floorNumber: currentFloor.id,
+      floorName: currentFloor.name,
+      tableName: chosenTable ? chosenTable.table_number : `Table ${currentFloor.id}`,
       occasion,
       status: "CONFIRMING",
     };
@@ -150,7 +152,9 @@ export default function BookTablePage() {
           guest_count: guests,
           reservation_date: date,
           time_slot: time,
-          table_name: `${seatingZone.toUpperCase()} - Table`,
+          floor_number: currentFloor.id,
+          table_id: chosenTable?.id,
+          table_name: chosenTable ? chosenTable.table_number : "Table 1",
         }),
       });
 
@@ -188,7 +192,7 @@ export default function BookTablePage() {
 
   const handleShareSummary = () => {
     if (!activeBooking) return;
-    const text = `Jaadoo Café Reservation Confirmed!\nBooking Ref: ${activeBooking.id}\nGuest: ${activeBooking.name} (${activeBooking.guests} Guests)\nDate: ${activeBooking.date} at ${activeBooking.time}\nSeating: ${activeBooking.seatingZone}\nLocation: 32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur`;
+    const text = `Jaadoo Café Reservation Confirmed!\nBooking Ref: ${activeBooking.id}\nGuest: ${activeBooking.name} (${activeBooking.guests} Guests)\nDate: ${activeBooking.date} at ${activeBooking.time}\nFloor: ${activeBooking.floorName}\nTable: ${activeBooking.tableName}\nLocation: 32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
       setCopiedLink(true);
@@ -203,7 +207,7 @@ export default function BookTablePage() {
       parseInt(activeBooking.time.split(":")[0]) + 1
     ).padStart(2, "0")}${activeBooking.time.split(":")[1]}00`;
     const details = encodeURIComponent(
-      `Table Reservation at Jaadoo Pizza Project.\nRef: ${activeBooking.id}\nParty: ${activeBooking.guests} Guests\nSeating: ${activeBooking.seatingZone}`
+      `Table Reservation at Jaadoo Pizza Project.\nRef: ${activeBooking.id}\nParty: ${activeBooking.guests} Guests\nFloor: ${activeBooking.floorName}\nTable: ${activeBooking.tableName}`
     );
     const location = encodeURIComponent("Jaadoo Pizza Project, 32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur, Rajasthan");
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
@@ -309,10 +313,12 @@ export default function BookTablePage() {
                   </div>
 
                   <div className="flex items-start gap-3 p-3 bg-white rounded-xl border border-[#DDD3C4]/80">
-                    <Compass className="w-5 h-5 text-[#9E3E26] shrink-0 mt-0.5" />
+                    <Layers className="w-5 h-5 text-[#9E3E26] shrink-0 mt-0.5" />
                     <div>
-                      <span className="text-[11px] uppercase font-bold text-stone-500 block">Seating Zone</span>
-                      <strong className="text-[#140E0A] font-bold">{activeBooking.seatingZone}</strong>
+                      <span className="text-[11px] uppercase font-bold text-stone-500 block">Floor & Table</span>
+                      <strong className="text-[#140E0A] font-bold">
+                        {activeBooking.floorName} · {activeBooking.tableName}
+                      </strong>
                     </div>
                   </div>
 
@@ -385,55 +391,146 @@ export default function BookTablePage() {
               onSubmit={handleBookReservation}
               className="bg-[#FAF7F2] rounded-2xl p-6 sm:p-10 border border-[#DDD3C4] shadow-md space-y-8"
             >
-              {/* Step 1: Seating Zone */}
+              {/* Step 1: Restaurant Floor & Table Selection */}
               <div>
                 <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#DDD3C4]">
                   <span className="font-serif font-bold text-base text-[#140E0A]">
-                    1. Choose Seating Ambience
+                    1. Choose Restaurant Floor
                   </span>
                   <span className="text-xs font-sans text-[#9E3E26] font-semibold">
-                    Select Your Preferred Corner
+                    5 Unique Heritage Levels
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {SEATING_ZONES.map((zone) => {
-                    const isSelected = seatingZone === zone.id;
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {RESTAURANT_FLOORS.map((floor) => {
+                    const isSelected = selectedFloor === floor.id;
+                    const isComingSoon = !!floor.isComingSoon;
+
                     return (
                       <div
-                        key={zone.id}
-                        onClick={() => setSeatingZone(zone.id)}
+                        key={floor.id}
+                        onClick={() => {
+                          setSelectedFloor(floor.id);
+                          setSelectedTableId("auto");
+                        }}
                         className={`p-4 rounded-xl cursor-pointer transition-all border text-left flex flex-col justify-between ${
-                          isSelected
+                          isComingSoon
+                            ? "bg-[#F5F2EB]/60 border-dashed border-[#D2C5B4] opacity-85 hover:opacity-100"
+                            : isSelected
                             ? "bg-white border-[#9E3E26] ring-1 ring-[#9E3E26] shadow-xs"
                             : "bg-[#F2ECE1] border-[#DDD3C4] hover:bg-white"
                         }`}
                       >
                         <div>
-                          <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#9E3E26] block mb-1">
-                            {zone.tag}
-                          </span>
-                          <h4 className="font-serif font-bold text-sm text-[#140E0A]">{zone.name}</h4>
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#9E3E26]">
+                              {floor.short} · Floor {floor.id}
+                            </span>
+                            {isComingSoon && (
+                              <span className="text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded">
+                                Coming Soon
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-serif font-bold text-sm text-[#140E0A]">{floor.name}</h4>
                           <p className="text-xs text-[#2B1D14] font-sans mt-1 leading-relaxed">
-                            {zone.desc}
+                            {floor.desc}
                           </p>
                         </div>
                         <div className="mt-3 pt-2 border-t border-[#DDD3C4]/60 flex items-center justify-between text-xs">
-                          <span className={isSelected ? "font-bold text-[#9E3E26] flex items-center gap-1" : "text-stone-500"}>
-                            {isSelected ? (
-                              <>
-                                <Check className="w-3.5 h-3.5 text-[#9E3E26]" />
-                                <span>Selected</span>
-                              </>
-                            ) : (
-                              "Tap to select"
-                            )}
-                          </span>
+                          {isComingSoon ? (
+                            <span className="text-stone-500 italic text-[11px]">Sky deck opening soon</span>
+                          ) : (
+                            <span className={isSelected ? "font-bold text-[#9E3E26] flex items-center gap-1" : "text-stone-500"}>
+                              {isSelected ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 text-[#9E3E26]" />
+                                  <span>Selected Floor</span>
+                                </>
+                              ) : (
+                                "Tap to select"
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
                   })}
                 </div>
+
+                {/* Table Picker for Chosen Floor */}
+                {selectedFloor !== 6 && (
+                  <div className="mt-4 p-4 bg-white rounded-xl border border-[#DDD3C4] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#140E0A] uppercase tracking-wider font-sans">
+                        Tables on {getFloorName(selectedFloor)}
+                      </span>
+                      <span className="text-[11px] font-sans text-stone-500">
+                        Party size: <strong>{guests} {guests === 1 ? "Guest" : "Guests"}</strong>
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {/* Auto assign option */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTableId("auto")}
+                        className={`p-2.5 rounded-lg border text-left transition-all ${
+                          selectedTableId === "auto"
+                            ? "bg-[#140E0A] text-white border-[#140E0A] shadow-xs"
+                            : "bg-[#F8F5F0] text-[#140E0A] border-[#DDD3C4] hover:border-[#9E3E26]"
+                        }`}
+                      >
+                        <span className="font-sans text-xs font-bold block">Auto-Assign</span>
+                        <span className={`text-[10px] block mt-0.5 ${selectedTableId === "auto" ? "text-stone-300" : "text-stone-500"}`}>
+                          Best table for {guests}p
+                        </span>
+                      </button>
+
+                      {/* Floor Specific Tables */}
+                      {RESTAURANT_TABLES.filter((t) => t.floor === selectedFloor).map((tbl) => {
+                        const isChosen = selectedTableId === tbl.id;
+                        const fitsParty = tbl.capacity >= guests;
+
+                        return (
+                          <button
+                            key={tbl.id}
+                            type="button"
+                            onClick={() => setSelectedTableId(tbl.id)}
+                            className={`p-2.5 rounded-lg border text-left transition-all ${
+                              isChosen
+                                ? "bg-[#140E0A] text-white border-[#140E0A] shadow-xs"
+                                : "bg-[#F8F5F0] text-[#140E0A] border-[#DDD3C4] hover:border-[#9E3E26]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-sans text-xs font-bold block">{tbl.table_number}</span>
+                              <span
+                                className={`text-[9px] font-mono px-1 rounded ${
+                                  isChosen
+                                    ? "bg-white/20 text-white"
+                                    : fitsParty
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-stone-200 text-stone-700"
+                                }`}
+                              >
+                                {tbl.capacity}P
+                              </span>
+                            </div>
+                            <span
+                              className={`text-[10px] block mt-0.5 truncate ${
+                                isChosen ? "text-stone-300" : "text-stone-500"
+                              }`}
+                            >
+                              {fitsParty ? `Seats ${tbl.capacity}` : `Max ${tbl.capacity} seats`}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Step 2: Date, Time Slot & Party Size */}

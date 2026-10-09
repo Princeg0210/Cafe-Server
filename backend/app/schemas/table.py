@@ -11,6 +11,9 @@ class TableResponse(BaseModel):
     table_number: str
     capacity: int
     status: str
+    floor_number: Optional[int] = 1
+    floor_name: Optional[str] = "Ground floor"
+    qr_token: Optional[str] = None
 
 
 class TableQRResponse(BaseModel):
