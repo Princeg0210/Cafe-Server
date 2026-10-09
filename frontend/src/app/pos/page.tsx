@@ -1672,31 +1672,31 @@ export default function POSDashboard() {
                   return (
                     <div
                       key={tbl.table_id}
-                      className={`bg-[#4A3B32] text-[#FBF9F5] rounded-lg border transition-all overflow-hidden flex flex-col justify-between shadow-sm ${
+                      className={`bg-white rounded-lg border transition-all overflow-hidden flex flex-col justify-between ${
                         isOccupied
-                          ? "border-amber-500/80 ring-1 ring-amber-400/40"
-                          : "border-[#6B574A]"
+                          ? "border-amber-400/80 shadow-xs"
+                          : "border-[#E4DCD0]"
                       }`}
                     >
                       {/* Card Top Header */}
                       <div className={`p-4 border-b ${
-                        isOccupied ? "bg-[#544339] border-amber-800/60" : "bg-[#5A493F] border-[#6B574A]"
+                        isOccupied ? "bg-[#FAF7F2] border-amber-200/70" : "bg-[#FAF8F5] border-[#E4DCD0]/60"
                       }`}>
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <div className="flex items-baseline gap-2">
-                              <span className="font-mono font-bold text-xl text-[#FFFDF9] tracking-tight">
+                              <span className="font-mono font-bold text-xl text-[#261C18]">
                                 {displayTableName}
                               </span>
-                              <span className="text-xs font-semibold text-[#F3C79A]">
+                              <span className="text-xs font-semibold text-[#B85B43]">
                                 • {getTableFloor(cleanTableNumber || tbl.table_id).name}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <span className="text-xs text-[#E5D7CC] font-sans">
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-stone-500 font-sans">
                                 {tbl.capacity} Seats
                               </span>
-                              <span className="text-[#877265]">•</span>
+                              <span className="text-stone-300">•</span>
                               {/* Clickable Session Button to show previous sessions of that table */}
                               <button
                                 type="button"
@@ -1706,12 +1706,12 @@ export default function POSDashboard() {
                                     [tbl.table_id]: !prev[tbl.table_id],
                                   }))
                                 }
-                                className={`text-[11px] font-sans font-semibold px-2.5 py-0.5 rounded-md border transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                className={`text-[11px] font-sans font-semibold px-2 py-0.5 rounded-md border transition-colors cursor-pointer flex items-center gap-1 ${
                                   showHistory
-                                    ? "bg-[#B85B43] text-white border-[#B85B43]"
+                                    ? "bg-[#261C18] text-white border-[#261C18]"
                                     : settledSessions.length > 0
-                                    ? "bg-[#3D2F27] text-[#F3C79A] border-[#6B574A] hover:border-[#F3C79A]"
-                                    : "bg-[#3D2F27] text-[#E5D7CC] border-[#6B574A]"
+                                    ? "bg-[#FAF8F5] text-[#B85B43] border-[#E4DCD0] hover:bg-[#B85B43]/10"
+                                    : "bg-stone-50 text-stone-500 border-stone-200"
                                 }`}
                                 title={
                                   settledSessions.length > 0
@@ -1719,7 +1719,7 @@ export default function POSDashboard() {
                                     : "No past sessions yet today"
                                 }
                               >
-                                <Clock className="w-3 h-3 text-[#F3C79A]" />
+                                <Clock className="w-3 h-3" />
                                 <span>
                                   {tbl.total_sessions_today} {tbl.total_sessions_today === 1 ? "Session" : "Sessions"}
                                   {settledSessions.length > 0 ? ` (${settledSessions.length} past)` : ""}
@@ -1731,12 +1731,12 @@ export default function POSDashboard() {
 
                           <div>
                             {isOccupied ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-[#183925] text-[#86EFAC] border border-[#22C55E]/40">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#4ADE80] animate-pulse" />
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                                 OCCUPIED
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium uppercase tracking-wider bg-[#3D2F27] text-[#E5D7CC] border border-[#6B574A]">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium uppercase tracking-wider bg-stone-100 text-stone-600 border border-stone-200">
                                 AVAILABLE
                               </span>
                             )}
@@ -1750,27 +1750,27 @@ export default function POSDashboard() {
                         {isOccupied && activeSession ? (
                           <div className="space-y-2.5">
                             <div className="flex items-center justify-between text-xs font-sans">
-                              <span className="text-[#E5D7CC]">
-                                Opened: <strong className="text-white">{new Date(activeSession.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong>
+                              <span className="text-stone-500">
+                                Opened: <strong>{new Date(activeSession.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong>
                               </span>
-                              <span className="font-semibold text-[#E5D7CC]">
+                              <span className="font-semibold text-stone-700">
                                 {activeSession.items_count} {activeSession.items_count === 1 ? "item" : "items"} ordered
                               </span>
                             </div>
 
                             {activeSession.customer_name && (
-                              <div className="text-xs text-[#E5D7CC] font-medium">
-                                Guest: <span className="text-white font-semibold">{activeSession.customer_name}</span>
+                              <div className="text-xs text-stone-700 font-medium">
+                                Guest: {activeSession.customer_name}
                               </div>
                             )}
 
                             {/* Running Bill Total Box */}
-                            <div className="p-3 bg-[#3D2F27] rounded-md border border-[#6B574A] flex items-center justify-between">
+                            <div className="p-3 bg-[#FAF8F5] rounded-md border border-[#E4DCD0] flex items-center justify-between">
                               <div>
-                                <span className="text-[10px] uppercase font-semibold text-[#D5C6BA] block">
+                                <span className="text-[10px] uppercase font-semibold text-stone-500 block">
                                   Running Bill
                                 </span>
-                                <span className="text-xl font-bold font-sans text-amber-300">
+                                <span className="text-xl font-bold font-sans text-[#261C18]">
                                   ₹{activeSession.total_amount}
                                 </span>
                               </div>
@@ -1778,7 +1778,7 @@ export default function POSDashboard() {
                               <button
                                 type="button"
                                 onClick={() => toggleSession(activeSession.session_id)}
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-[#F3C79A] hover:text-white underline cursor-pointer"
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-[#B85B43] hover:underline cursor-pointer"
                               >
                                 <span>{isSessionExpanded(activeSession) ? "Hide Details" : "View Items →"}</span>
                               </button>
@@ -1786,29 +1786,29 @@ export default function POSDashboard() {
 
                             {/* Expandable Items List */}
                             {isSessionExpanded(activeSession) && (
-                              <div className="pt-2 border-t border-[#6B574A] space-y-1.5">
+                              <div className="pt-2 border-t border-stone-100 space-y-1.5">
                                 {activeSession.items.map((item, idx) => (
-                                  <div key={idx} className="flex items-center justify-between text-xs py-1 border-b border-[#5A493F] last:border-none">
-                                    <span className="text-[#F5EDE5]">
-                                      <strong className="text-white">{item.quantity}×</strong> {item.name}
+                                  <div key={idx} className="flex items-center justify-between text-xs py-1 border-b border-stone-100 last:border-none">
+                                    <span className="text-stone-800">
+                                      <strong className="text-[#261C18]">{item.quantity}×</strong> {item.name}
                                     </span>
-                                    <span className="font-semibold text-amber-200">₹{item.subtotal}</span>
+                                    <span className="font-semibold text-stone-700">₹{item.subtotal}</span>
                                   </div>
                                 ))}
                               </div>
                             )}
                           </div>
                         ) : !showHistory ? (
-                          <div className="py-6 text-center text-xs text-[#D5C6BA] italic font-serif">
+                          <div className="py-6 text-center text-xs text-stone-400 italic">
                             Table is clean and ready for seating.
                           </div>
                         ) : null}
 
                         {/* 2. Previous Settled Sessions of THIS table today (When Session Button is Clicked) */}
                         {showHistory && (
-                          <div className="pt-2 space-y-2 border-t border-[#6B574A] bg-[#3D2F27] p-3 rounded-md animate-in fade-in duration-150">
+                          <div className="pt-2 space-y-2 border-t border-amber-200 bg-[#FAF8F5] p-3 rounded-md animate-in fade-in duration-150">
                             <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-bold uppercase tracking-wider text-[#F3C79A] flex items-center gap-1.5">
+                              <span className="text-[11px] font-bold uppercase tracking-wider text-[#B85B43] flex items-center gap-1.5">
                                 <Clock className="w-3.5 h-3.5" />
                                 <span>Previous Sessions Today ({settledSessions.length})</span>
                               </span>
@@ -1820,14 +1820,14 @@ export default function POSDashboard() {
                                     [tbl.table_id]: false,
                                   }))
                                 }
-                                className="text-[10px] text-[#D5C6BA] hover:text-white font-semibold underline cursor-pointer"
+                                className="text-[10px] text-stone-500 hover:text-stone-900 font-semibold underline cursor-pointer"
                               >
                                 Close
                               </button>
                             </div>
 
                             {settledSessions.length === 0 ? (
-                              <p className="text-xs text-[#B8A79B] italic py-1">
+                              <p className="text-xs text-stone-400 italic py-1">
                                 No previous settled sessions recorded for this table today.
                               </p>
                             ) : (
@@ -1835,33 +1835,33 @@ export default function POSDashboard() {
                                 {settledSessions.map((pastSess) => (
                                   <div
                                     key={pastSess.session_id}
-                                    className="bg-[#4A3B32] p-2.5 rounded-md border border-[#6B574A] text-xs space-y-1.5 shadow-2xs"
+                                    className="bg-white p-2.5 rounded-md border border-stone-200 text-xs space-y-1.5 shadow-2xs"
                                   >
                                     <div className="flex items-center justify-between font-sans">
-                                      <span className="font-semibold text-[#F5EDE5]">
+                                      <span className="font-semibold text-stone-800">
                                         Session #{pastSess.session_seq}
                                       </span>
-                                      <span className="font-bold text-amber-300">
+                                      <span className="font-bold text-[#261C18]">
                                         ₹{pastSess.total_amount}
                                       </span>
                                     </div>
 
-                                    <div className="text-[11px] text-[#D5C6BA] flex items-center justify-between">
+                                    <div className="text-[11px] text-stone-500 flex items-center justify-between">
                                       <span>
                                         {new Date(pastSess.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                                         {pastSess.closed_at ? ` → ${new Date(pastSess.closed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
                                       </span>
-                                      <span className="px-1.5 py-0.2 rounded-xs bg-[#3D2F27] text-[#D5C6BA] border border-[#6B574A] text-[10px] font-medium">
+                                      <span className="px-1.5 py-0.2 rounded-xs bg-stone-100 text-stone-600 text-[10px] font-medium">
                                         Settled
                                       </span>
                                     </div>
 
                                     {pastSess.items && pastSess.items.length > 0 && (
-                                      <div className="pt-1 border-t border-[#6B574A] text-[11px] space-y-0.5 text-[#E5D7CC]">
+                                      <div className="pt-1 border-t border-stone-100 text-[11px] space-y-0.5 text-stone-600">
                                         {pastSess.items.map((item, idx) => (
                                           <div key={idx} className="flex justify-between">
                                             <span>{item.quantity}× {item.name}</span>
-                                            <span className="text-amber-200">₹{item.subtotal}</span>
+                                            <span>₹{item.subtotal}</span>
                                           </div>
                                         ))}
                                       </div>
@@ -1875,14 +1875,14 @@ export default function POSDashboard() {
 
                         {/* Settle Action Button */}
                         {isOccupied && activeSession && isTodaySelected && (
-                          <div className="pt-3 border-t border-[#6B574A]">
+                          <div className="pt-3 border-t border-stone-100">
                             <button
                               type="button"
                               onClick={() => handleCloseSession(activeSession.session_id, cleanTableNumber, tbl.table_id)}
                               disabled={closingSessionIds[activeSession.session_id]}
-                              className="w-full bg-[#B85B43] hover:bg-[#A84E38] text-white py-2 rounded-md font-sans font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+                              className="w-full bg-[#261C18] hover:bg-[#B85B43] text-white py-2 rounded-md font-sans font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
                             >
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                               <span>{closingSessionIds[activeSession.session_id] ? "Settling..." : "Settle Table"}</span>
                             </button>
                           </div>
