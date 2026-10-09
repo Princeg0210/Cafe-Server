@@ -1121,13 +1121,10 @@ export default function POSDashboard() {
           </form>
 
           {/* Quick links footer */}
-          <div className="pt-4 border-t border-[#E8DFC9] flex items-center justify-between text-xs text-[#7A6A5E]">
-            <Link href="/admin" className="hover:text-[#B85B43] font-semibold transition-colors flex items-center gap-1">
-              <span>Owner Portal</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-            <Link href="/" className="hover:text-[#B85B43] font-semibold transition-colors">
-              Public Website
+          <div className="pt-4 border-t border-[#E8DFC9] flex items-center justify-center text-xs text-[#7A6A5E]">
+            <Link href="/" className="hover:text-[#B85B43] font-semibold transition-colors flex items-center gap-1.5">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Public Website</span>
             </Link>
           </div>
         </motion.div>
@@ -1273,14 +1270,7 @@ export default function POSDashboard() {
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isRefreshingRes ? "animate-spin" : ""}`} />
             </button>
 
-            {/* Owner Portal Link */}
-            <Link
-              href="/admin"
-              className="p-1.5 rounded-md bg-white hover:bg-amber-50 text-[#B85B43] border border-[#E4DCD0] text-xs cursor-pointer flex items-center gap-1"
-              title="Switch to Owner Portal"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-            </Link>
+
 
             {/* Lock */}
             <button
