@@ -1121,10 +1121,13 @@ export default function POSDashboard() {
           </form>
 
           {/* Quick links footer */}
-          <div className="pt-4 border-t border-[#E8DFC9] flex items-center justify-center text-xs text-[#7A6A5E]">
-            <Link href="/" className="hover:text-[#B85B43] font-semibold transition-colors flex items-center gap-1.5">
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Public Website</span>
+          <div className="pt-4 border-t border-[#E8DFC9] flex items-center justify-between text-xs text-[#7A6A5E]">
+            <Link href="/admin" className="hover:text-[#B85B43] font-semibold transition-colors flex items-center gap-1">
+              <span>Owner Portal</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+            <Link href="/" className="hover:text-[#B85B43] font-semibold transition-colors">
+              Public Website
             </Link>
           </div>
         </motion.div>
@@ -1204,8 +1207,8 @@ export default function POSDashboard() {
               <button
                 onClick={() => setActiveTab("tables")}
                 className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${activeTab === "tables"
-                    ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
-                    : "text-stone-700 hover:text-[#261C18]"
+                  ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
+                  : "text-stone-700 hover:text-[#261C18]"
                   }`}
               >
                 Tables ({activeTablesCount}/{tableOverviews.length})
@@ -1213,8 +1216,8 @@ export default function POSDashboard() {
               <button
                 onClick={() => setActiveTab("kots")}
                 className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${activeTab === "kots"
-                    ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
-                    : "text-stone-700 hover:text-[#261C18]"
+                  ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
+                  : "text-stone-700 hover:text-[#261C18]"
                   }`}
               >
                 KOTs ({kots.length})
@@ -1222,8 +1225,8 @@ export default function POSDashboard() {
               <button
                 onClick={() => setActiveTab("reservations")}
                 className={`px-3 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${activeTab === "reservations"
-                    ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
-                    : "text-stone-700 hover:text-[#261C18]"
+                  ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
+                  : "text-stone-700 hover:text-[#261C18]"
                   }`}
               >
                 <span>Bookings</span>
@@ -1248,8 +1251,8 @@ export default function POSDashboard() {
                 if (next) setTimeout(playChime, 50);
               }}
               className={`p-1.5 rounded-md border text-xs cursor-pointer ${soundEnabled
-                  ? "bg-[#261C18] border-[#261C18] text-[#FBF9F5]"
-                  : "bg-white border-[#E4DCD0] text-stone-500"
+                ? "bg-[#261C18] border-[#261C18] text-[#FBF9F5]"
+                : "bg-white border-[#E4DCD0] text-stone-500"
                 }`}
               title={soundEnabled ? "Audio chime ON" : "Audio chime OFF"}
             >
@@ -1270,7 +1273,14 @@ export default function POSDashboard() {
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing || isRefreshingRes ? "animate-spin" : ""}`} />
             </button>
 
-
+            {/* Owner Portal Link */}
+            <Link
+              href="/admin"
+              className="p-1.5 rounded-md bg-white hover:bg-amber-50 text-[#B85B43] border border-[#E4DCD0] text-xs cursor-pointer flex items-center gap-1"
+              title="Switch to Owner Portal"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+            </Link>
 
             {/* Lock */}
             <button
@@ -1312,8 +1322,8 @@ export default function POSDashboard() {
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(0))}
                   className={`px-2.5 py-1 rounded-md font-semibold text-[11px] transition-colors cursor-pointer ${isTodaySelected
-                      ? "bg-[#261C18] text-white"
-                      : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
+                    ? "bg-[#261C18] text-white"
+                    : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
                     }`}
                 >
                   Today
@@ -1322,8 +1332,8 @@ export default function POSDashboard() {
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(-1))}
                   className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${selectedDate === getLocalDateString(-1)
-                      ? "bg-[#261C18] text-white font-semibold"
-                      : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
+                    ? "bg-[#261C18] text-white font-semibold"
+                    : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
                     }`}
                 >
                   Yesterday
@@ -1332,8 +1342,8 @@ export default function POSDashboard() {
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(-2))}
                   className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${selectedDate === getLocalDateString(-2)
-                      ? "bg-[#261C18] text-white font-semibold"
-                      : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
+                    ? "bg-[#261C18] text-white font-semibold"
+                    : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
                     }`}
                 >
                   2 Days Ago
@@ -1342,8 +1352,8 @@ export default function POSDashboard() {
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(1))}
                   className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${selectedDate === getLocalDateString(1)
-                      ? "bg-[#261C18] text-white font-semibold"
-                      : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
+                    ? "bg-[#261C18] text-white font-semibold"
+                    : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
                     }`}
                 >
                   Tomorrow
@@ -1353,10 +1363,10 @@ export default function POSDashboard() {
 
             <div className="flex items-center gap-2">
               <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${isTodaySelected
-                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                  : isFutureDateSelected
-                    ? "bg-blue-50 text-blue-800 border-blue-200"
-                    : "bg-stone-100 text-stone-700 border-stone-200"
+                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                : isFutureDateSelected
+                  ? "bg-blue-50 text-blue-800 border-blue-200"
+                  : "bg-stone-100 text-stone-700 border-stone-200"
                 }`}>
                 {isTodaySelected ? "Live Shift" : isFutureDateSelected ? "Future Booking" : "History Archive"}
               </span>
@@ -1414,8 +1424,8 @@ export default function POSDashboard() {
 
             {/* Metric 4: Needs Attention */}
             <div className={`p-4 rounded-lg border shadow-2xs ${needsAttentionCount > 0
-                ? "bg-amber-50/70 border-amber-300"
-                : "bg-white border-[#E4DCD0]"
+              ? "bg-amber-50/70 border-amber-300"
+              : "bg-white border-[#E4DCD0]"
               }`}>
               <div className="text-[11px] font-sans uppercase tracking-wider font-semibold flex items-center justify-between text-stone-500">
                 <span className={needsAttentionCount > 0 ? "text-amber-900 font-bold" : ""}>NEEDS ATTENTION</span>
@@ -1500,8 +1510,8 @@ export default function POSDashboard() {
                 </div>
 
                 <div className={`p-2 rounded-md border ${(doughCapacity.walk_in_available ?? 0) > 0
-                    ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
-                    : "bg-red-50/50 border-red-200 text-red-900"
+                  ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
+                  : "bg-red-50/50 border-red-200 text-red-900"
                   }`}>
                   <div className="text-[10px] uppercase font-semibold opacity-80">Walk-In Available</div>
                   <div className="font-bold text-sm mt-0.5">
@@ -1645,8 +1655,8 @@ export default function POSDashboard() {
                       key={mode}
                       onClick={() => setTableFilter(mode)}
                       className={`px-2.5 py-1 rounded-sm capitalize font-medium transition-colors cursor-pointer ${tableFilter === mode
-                          ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
-                          : "text-stone-700 hover:text-[#261C18]"
+                        ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
+                        : "text-stone-700 hover:text-[#261C18]"
                         }`}
                     >
                       {mode === "all"
@@ -1690,8 +1700,8 @@ export default function POSDashboard() {
                     <div
                       key={tbl.table_id}
                       className={`bg-white rounded-lg border transition-all overflow-hidden flex flex-col justify-between ${isOccupied
-                          ? "border-amber-400/80 shadow-xs"
-                          : "border-[#E4DCD0]"
+                        ? "border-amber-400/80 shadow-xs"
+                        : "border-[#E4DCD0]"
                         }`}
                     >
                       {/* Card Top Header */}
@@ -1722,10 +1732,10 @@ export default function POSDashboard() {
                                   }))
                                 }
                                 className={`text-[11px] font-sans font-semibold px-2 py-0.5 rounded-md border transition-colors cursor-pointer flex items-center gap-1 ${showHistory
-                                    ? "bg-[#261C18] text-white border-[#261C18]"
-                                    : settledSessions.length > 0
-                                      ? "bg-[#FAF8F5] text-[#B85B43] border-[#E4DCD0] hover:bg-[#B85B43]/10"
-                                      : "bg-stone-50 text-stone-500 border-stone-200"
+                                  ? "bg-[#261C18] text-white border-[#261C18]"
+                                  : settledSessions.length > 0
+                                    ? "bg-[#FAF8F5] text-[#B85B43] border-[#E4DCD0] hover:bg-[#B85B43]/10"
+                                    : "bg-stone-50 text-stone-500 border-stone-200"
                                   }`}
                                 title={
                                   settledSessions.length > 0
@@ -2126,8 +2136,8 @@ export default function POSDashboard() {
                     key={st}
                     onClick={() => setResFilter(st)}
                     className={`px-2.5 py-1 rounded-sm capitalize transition-colors cursor-pointer ${resFilter === st
-                        ? "bg-[#261C18] text-white font-semibold"
-                        : "text-stone-600 hover:text-stone-900"
+                      ? "bg-[#261C18] text-white font-semibold"
+                      : "text-stone-600 hover:text-stone-900"
                       }`}
                   >
                     {st.toLowerCase()}
