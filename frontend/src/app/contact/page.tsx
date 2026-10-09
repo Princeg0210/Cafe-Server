@@ -42,11 +42,15 @@ export default function ContactPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center"
         >
+          <div className="inline-flex items-center gap-2 text-[#9E3E26] text-xs font-sans font-bold uppercase tracking-[0.22em] mb-2.5">
+            <Mail className="w-3.5 h-3.5 text-[#9E3E26]" />
+            <span>Get in Touch • Jaadoo Trattoria</span>
+          </div>
           <h1 className="text-3xl md:text-5xl font-serif font-bold text-[#140E0A] tracking-tight">
-            Brew Station and Location
+            Contact Us
           </h1>
-          <p className="text-[#241711] font-sans text-sm md:text-base mt-2">
-            Find us in the heart of Old City Udaipur near Gangaur Ghat.
+          <p className="text-[#3B2C23] font-sans text-sm md:text-base mt-2 max-w-xl mx-auto">
+            Have questions about private dining, group events, or dietary requests? Reach out directly to our team.
           </p>
         </motion.div>
 

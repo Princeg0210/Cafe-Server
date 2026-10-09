@@ -28,7 +28,7 @@ export default function LocationBrewStation() {
         </a>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Address Card */}
         <div className="bg-[#F2ECE1] rounded-lg p-6 border border-[#DDD3C4] space-y-2">
           <div className="flex items-center gap-2 text-[#9E3E26]">
@@ -71,6 +71,38 @@ export default function LocationBrewStation() {
             <Phone className="w-4 h-4 text-[#9E3E26]" />
             <span>+91 98290 12345 (Station Helpdesk)</span>
           </div>
+        </div>
+      </div>
+
+      {/* Embedded Google Maps Container */}
+      <div className="rounded-xl overflow-hidden border border-[#DDD3C4] shadow-sm bg-[#EAE3D6]">
+        <div className="bg-[#E4DCD0] px-4 py-2.5 flex items-center justify-between border-b border-[#DDD3C4]">
+          <div className="flex items-center gap-2 text-xs font-sans font-bold uppercase tracking-wider text-[#140E0A]">
+            <MapPin className="w-3.5 h-3.5 text-[#9E3E26]" />
+            <span>Live Map — Gangaur Ghat, Udaipur</span>
+          </div>
+          <a
+            href="https://maps.google.com/?q=Gangaur+Ghat+Udaipur"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] font-sans font-bold text-[#9E3E26] hover:underline flex items-center gap-1"
+          >
+            <span>Open in Maps App</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        </div>
+        <div className="w-full h-80 sm:h-96 relative">
+          <iframe
+            title="Jaadoo Trattoria Location Map"
+            src="https://maps.google.com/maps?q=Gangaur+Ghat+Old+City+Udaipur+Rajasthan&t=&z=16&ie=UTF8&iwloc=&output=embed"
+            width="100%"
+            height="100%"
+            style={{ border: 0 }}
+            allowFullScreen={false}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            className="w-full h-full grayscale-25 contrast-105"
+          />
         </div>
       </div>
     </section>

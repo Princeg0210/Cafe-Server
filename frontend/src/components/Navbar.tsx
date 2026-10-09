@@ -17,7 +17,8 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
     { name: "Menu", href: "/menu" },
     { name: "Book a Table", href: "/book-table" },
     { name: "Our Story", href: "/about" },
-    { name: "Location", href: "/contact" },
+    { name: "Location", href: "/location" },
+    { name: "Contact Us", href: "/contact" },
   ];
 
   return (

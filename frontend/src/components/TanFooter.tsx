@@ -79,8 +79,13 @@ export default function TanFooter() {
               </Link>
             </li>
             <li>
+              <Link href="/location" className="hover:text-[#B85B43] transition-colors font-medium text-stone-200">
+                Brew Station & Location
+              </Link>
+            </li>
+            <li>
               <Link href="/contact" className="hover:text-[#B85B43] transition-colors font-medium text-stone-200">
-                Brew Station and Location
+                Contact Us
               </Link>
             </li>
             <li className="pt-1">
