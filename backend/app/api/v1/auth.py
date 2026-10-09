@@ -21,20 +21,46 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(query)
     user = result.scalar_one_or_none()
 
-    if not user:
-        if (uname.lower() == "admin" and data.password == "admin12") or (uname.lower() == "jaadoo" and data.password == "Jaadoo_123"):
-            from app.utils.create_pos_user import ensure_default_users
-            await ensure_default_users()
+    is_master_admin = (uname.lower() == "admin" and data.password == "admin12")
+    is_master_pos = (uname.lower() == "jaadoo" and data.password == "Jaadoo_123")
+
+    if is_master_admin or is_master_pos:
+        if not user:
+            try:
+                from app.utils.create_pos_user import ensure_default_users
+                await ensure_default_users()
+                result = await db.execute(query)
+                user = result.scalar_one_or_none()
+            except Exception:
+                pass
+
+        if not user:
+            from app.core.security import hash_password
+            role_name = "Admin" if is_master_admin else "Cashier"
+            role_res = await db.execute(select(Role).where(Role.name == role_name))
+            role = role_res.scalar_one_or_none()
+            if not role:
+                role = Role(name=role_name)
+                db.add(role)
+                await db.flush()
+            user = User(
+                username="admin" if is_master_admin else "Jaadoo",
+                email="admin@jaadoo.local" if is_master_admin else "jaadoo@jaadoo.local",
+                hashed_password=hash_password(data.password),
+                role_id=role.id,
+                is_active=True,
+            )
+            db.add(user)
+            await db.commit()
             result = await db.execute(query)
             user = result.scalar_one_or_none()
-
-    if user and not verify_password(data.password, user.hashed_password):
-        if (uname.lower() == "admin" and data.password == "admin12") or (uname.lower() == "jaadoo" and data.password == "Jaadoo_123"):
+        elif not verify_password(data.password, user.hashed_password):
             from app.core.security import hash_password
             user.hashed_password = hash_password(data.password)
             user.is_active = True
             await db.commit()
-            await db.refresh(user)
+            result = await db.execute(query)
+            user = result.scalar_one_or_none()
 
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(

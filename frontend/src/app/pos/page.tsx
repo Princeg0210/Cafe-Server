@@ -32,6 +32,8 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 interface SessionItem {
@@ -205,6 +207,7 @@ export default function POSDashboard() {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [loginUsername, setLoginUsername] = useState("Jaadoo");
   const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -1075,14 +1078,25 @@ export default function POSDashboard() {
               <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-1">
                 Password
               </label>
-              <input
-                type="password"
-                required
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="Enter password"
-                className="w-full text-xs p-2.5 rounded-md border border-stone-200 focus:outline-hidden focus:border-[#B85B43] bg-stone-50/50 font-sans"
-              />
+              <div className="relative">
+                <input
+                  type={showLoginPassword ? "text" : "password"}
+                  required
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="w-full text-xs p-2.5 pr-10 rounded-md border border-stone-200 focus:outline-hidden focus:border-[#B85B43] bg-stone-50/50 font-sans"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 transition-colors p-1 cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showLoginPassword ? "Hide password" : "Show password"}
+                >
+                  {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <button

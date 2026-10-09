@@ -30,6 +30,8 @@ import {
   Smartphone,
   Banknote,
   Sparkles,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -115,6 +117,7 @@ export default function AdminPortal() {
   const [token, setToken] = useState<string | null>(null);
   const [usernameInput, setUsernameInput] = useState("admin");
   const [passwordInput, setPasswordInput] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -453,14 +456,25 @@ export default function AdminPortal() {
               <label className="text-xs font-semibold uppercase tracking-wider text-stone-400 block mb-1.5">
                 Password
               </label>
-              <input
-                type="password"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full bg-[#120D0A] border border-[#3A2A20] focus:border-[#E8AA62] rounded-xl px-4 py-3 text-sm text-stone-100 placeholder-stone-600 outline-none transition-colors"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full bg-[#120D0A] border border-[#3A2A20] focus:border-[#E8AA62] rounded-xl px-4 py-3 pr-11 text-sm text-stone-100 placeholder-stone-600 outline-none transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-[#E8AA62] transition-colors p-1 cursor-pointer"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             {loginError && (
