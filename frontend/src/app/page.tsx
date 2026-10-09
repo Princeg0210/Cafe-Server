@@ -42,7 +42,7 @@ export default function Home() {
         </motion.div>
 
         <div className="relative z-10 text-left px-6 sm:px-12 md:px-16 py-12 max-w-3xl">
-          
+
           {/* Authentic Italian editorial eyebrow */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -73,7 +73,7 @@ export default function Home() {
             transition={{ delay: 0.28, duration: 0.5, ease: "easeOut" }}
             className="mt-5 text-base sm:text-lg md:text-xl font-sans font-normal text-stone-100 max-w-2xl leading-relaxed drop-shadow-md"
           >
-            Discover an artisanal gastronomic experience that transports you to the heart of Italy, crafted with 48-hour fermented sourdough and panoramic Lake Pichola views.
+            Discover the warmth of Italian-inspired dining at Jaadoo Trattoria, where freshly prepared pizzas, comforting Italian flavours, and a relaxed café atmosphere come together in the heart of Udaipur.
           </motion.p>
 
           {/* Anti-AI Editorial Feature Band */}
