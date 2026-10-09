@@ -1,11 +1,17 @@
 from typing import List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
 from app.models.menu import MenuCategory, MenuItem
 from app.models.capacity import ItemCapacityRule
-from app.schemas.menu import MenuCategoryCreate, MenuCategoryResponse, MenuItemCreate, MenuItemResponse
+from app.schemas.menu import (
+    MenuCategoryCreate,
+    MenuCategoryResponse,
+    MenuItemCreate,
+    MenuItemResponse,
+    MenuItemUpdate,
+)
 
 router = APIRouter(prefix="/menu", tags=["Menu & Production Capacity"])
 
@@ -91,7 +97,6 @@ async def create_menu_item(data: MenuItemCreate, db: AsyncSession = Depends(get_
 
 @router.put("/items/{item_id}", response_model=MenuItemResponse)
 async def update_menu_item(item_id: int, data: MenuItemUpdate, db: AsyncSession = Depends(get_db)):
-    from fastapi import HTTPException, status
     result = await db.execute(select(MenuItem).where(MenuItem.id == item_id))
     item = result.scalar_one_or_none()
     if not item:
@@ -122,7 +127,6 @@ async def update_menu_item(item_id: int, data: MenuItemUpdate, db: AsyncSession 
 
 @router.delete("/items/{item_id}")
 async def delete_menu_item(item_id: int, db: AsyncSession = Depends(get_db)):
-    from fastapi import HTTPException, status
     result = await db.execute(select(MenuItem).where(MenuItem.id == item_id))
     item = result.scalar_one_or_none()
     if not item:
