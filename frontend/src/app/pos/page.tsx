@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   Clock,
   Printer,
@@ -1034,72 +1035,67 @@ export default function POSDashboard() {
     );
   }
 
-  // 2. Staff Authentication Gate
+  // 2. Staff Authentication Gate - WARM BEIGE ARTISANAL THEME
   if (!posToken) {
     return (
-      <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans flex flex-col justify-between p-4 sm:p-6">
-        <div className="max-w-sm mx-auto my-auto w-full bg-white rounded-2xl p-6 sm:p-8 border border-[#E4DCD0] shadow-sm space-y-5">
-          <div className="text-left space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="w-28 h-18 sm:w-36 sm:h-22 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md bg-white">
-                <img
-                  src="/jaadoo_logo.jpg"
-                  alt="Jaadoo Logo"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#261C18] text-[#FBF9F5] text-[10px] font-semibold uppercase tracking-wider">
-                <ShieldCheck className="w-3 h-3 text-[#B85B43]" />
-                <span></span>
-              </div>
+      <div className="min-h-screen bg-[#F7F3EB] flex items-center justify-center p-4 font-sans text-[#2A1E17] selection:bg-[#B85B43] selection:text-white">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="w-full max-w-md bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-8 shadow-xl space-y-6"
+        >
+          {/* Brand Header with Official Matchbox Logo */}
+          <div className="text-center space-y-3">
+            <div className="w-44 h-24 sm:w-52 sm:h-28 mx-auto rounded-2xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-lg bg-white">
+              <img
+                src="/jaadoo_logo.jpg"
+                alt="Jaadoo - The Pizza Project"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <h1 className="font-serif font-bold text-2xl text-[#261C18]">
-              JAADOO <span className="italic font-normal text-[#B85B43]">POS</span>
-            </h1>
-            <p className="text-xs text-stone-500 font-sans">
-              Enter authorized credentials to access live restaurant operations.
-            </p>
+            <div>
+              <h1 className="text-2xl font-serif font-extrabold text-[#2A1E17] tracking-tight">
+                JAADOO POS TERMINAL
+              </h1>
+              <p className="text-[11px] uppercase tracking-[0.25em] text-[#B85B43] font-bold mt-0.5">
+                Staff Operations & Live Kitchen Access
+              </p>
+            </div>
           </div>
 
-          {loginError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-              <span>{loginError}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-3.5">
+          {/* Form */}
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-1">
-                Username
+              <label className="text-xs font-bold uppercase tracking-wider text-[#6B5A4E] block mb-1.5">
+                Staff Username
               </label>
               <input
                 type="text"
-                required
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
                 placeholder="e.g. Jaadoo"
-                className="w-full text-xs p-2.5 rounded-md border border-stone-200 focus:outline-hidden focus:border-[#B85B43] bg-stone-50/50 font-sans"
+                required
+                className="w-full bg-[#FAF7F0] border border-[#E2D6C5] focus:border-[#B85B43] focus:bg-white rounded-xl px-4 py-3 text-sm text-[#2A1E17] placeholder-[#A8988B] outline-none transition-all shadow-2xs font-sans"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-stone-700 uppercase tracking-wider mb-1">
+              <label className="text-xs font-bold uppercase tracking-wider text-[#6B5A4E] block mb-1.5">
                 Password
               </label>
               <div className="relative">
                 <input
                   type={showLoginPassword ? "text" : "password"}
-                  required
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="Enter password"
-                  className="w-full text-xs p-2.5 pr-10 rounded-md border border-stone-200 focus:outline-hidden focus:border-[#B85B43] bg-stone-50/50 font-sans"
+                  placeholder="••••••••"
+                  required
+                  className="w-full bg-[#FAF7F0] border border-[#E2D6C5] focus:border-[#B85B43] focus:bg-white rounded-xl px-4 py-3 pr-11 text-sm text-[#2A1E17] placeholder-[#A8988B] outline-none transition-all shadow-2xs font-sans"
                 />
                 <button
                   type="button"
                   onClick={() => setShowLoginPassword(!showLoginPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 transition-colors p-1 cursor-pointer"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8C7A6D] hover:text-[#B85B43] transition-colors p-1 cursor-pointer"
                   tabIndex={-1}
                   aria-label={showLoginPassword ? "Hide password" : "Show password"}
                 >
@@ -1108,31 +1104,33 @@ export default function POSDashboard() {
               </div>
             </div>
 
+            {loginError && (
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full bg-[#261C18] hover:bg-[#B85B43] disabled:opacity-50 text-white py-2.5 rounded-md font-sans font-semibold text-xs uppercase tracking-wider transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer mt-2"
+              className="w-full bg-[#B85B43] hover:bg-[#A34B34] text-white font-bold py-3.5 px-4 rounded-xl text-xs uppercase tracking-[0.2em] transition-all shadow-md active:scale-[0.98] disabled:opacity-50 cursor-pointer"
             >
-              {isLoggingIn ? (
-                <>
-                  <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Authenticating...</span>
-                </>
-              ) : (
-                "Sign In to Terminal"
-              )}
+              {isLoggingIn ? "AUTHENTICATING..." : "ENTER POS TERMINAL"}
             </button>
           </form>
 
-          <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-500">
-            <Link href="/" className="hover:text-[#261C18] flex items-center gap-1">
-              <ArrowLeft className="w-3 h-3" /> Website
+          {/* Quick links footer */}
+          <div className="pt-4 border-t border-[#E8DFC9] flex items-center justify-between text-xs text-[#7A6A5E]">
+            <Link href="/admin" className="hover:text-[#B85B43] font-semibold transition-colors flex items-center gap-1">
+              <span>Owner Portal</span>
+              <ChevronRight className="w-3.5 h-3.5" />
             </Link>
-            <Link href="/admin" className="text-[#B85B43] hover:underline font-semibold flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3" /> Owner Portal
+            <Link href="/" className="hover:text-[#B85B43] font-semibold transition-colors">
+              Public Website
             </Link>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
