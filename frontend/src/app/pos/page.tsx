@@ -312,7 +312,7 @@ export default function POSDashboard() {
         if (audioContextRef.current && audioContextRef.current.state === "suspended") {
           audioContextRef.current.resume();
         }
-      } catch {}
+      } catch { }
     };
 
     window.addEventListener("click", unlockAudio);
@@ -361,7 +361,7 @@ export default function POSDashboard() {
       gain2.connect(ctx.destination);
       osc2.start(now + 0.1);
       osc2.stop(now + 0.6);
-    } catch {}
+    } catch { }
   };
 
   // Auth Verification
@@ -376,7 +376,7 @@ export default function POSDashboard() {
         setStaffUser(u);
         try {
           localStorage.setItem("jaadoo_pos_user", JSON.stringify(u));
-        } catch {}
+        } catch { }
         return true;
       } else {
         handleLogout();
@@ -397,7 +397,7 @@ export default function POSDashboard() {
       if (savedUser) {
         try {
           setStaffUser(JSON.parse(savedUser));
-        } catch {}
+        } catch { }
       }
       setIsAuthChecking(false);
       verifyToken(savedToken);
@@ -432,7 +432,7 @@ export default function POSDashboard() {
       if (data.user) {
         try {
           localStorage.setItem("jaadoo_pos_user", JSON.stringify(data.user));
-        } catch {}
+        } catch { }
         setStaffUser(data.user);
       }
       setPosToken(tok);
@@ -681,7 +681,7 @@ export default function POSDashboard() {
         if (wsRef.current) {
           try {
             wsRef.current.close();
-          } catch {}
+          } catch { }
         }
         const ws = new WebSocket(`${wsBase}/ws/pos`);
         wsRef.current = ws;
@@ -712,7 +712,7 @@ export default function POSDashboard() {
               fetchData();
               fetchReservations();
             }
-          } catch {}
+          } catch { }
         };
       } catch {
         setIsConnected(false);
@@ -726,7 +726,7 @@ export default function POSDashboard() {
       if (wsRef.current) {
         try {
           wsRef.current.close();
-        } catch {}
+        } catch { }
       }
     };
   }, [posToken, soundEnabled]);
@@ -1016,7 +1016,7 @@ export default function POSDashboard() {
   const activeTablesCount = tableOverviews.filter((t) => t.active_session_count > 0).length;
   const openKotsCount = kots.filter((k) => k.status !== "COMPLETED").length;
   const totalSalesToday = kots.reduce((sum, k) => sum + (Number(k.total_amount) || 0), 0);
-  
+
   // Needs Attention Items from existing data
   const failedKots = kots.filter((k) => k.printed_status === "FAILED");
   const arrivedUnseatedRes = reservations.filter((r) => r.status.toUpperCase() === "ARRIVED");
@@ -1050,7 +1050,7 @@ export default function POSDashboard() {
               </div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#261C18] text-[#FBF9F5] text-[10px] font-semibold uppercase tracking-wider">
                 <ShieldCheck className="w-3 h-3 text-[#B85B43]" />
-                <span>Staff Terminal</span>
+                <span></span>
               </div>
             </div>
             <h1 className="font-serif font-bold text-2xl text-[#261C18]">
@@ -1156,11 +1156,11 @@ export default function POSDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans antialiased">
-      
+
       {/* 1. COMPACT OPERATIONAL HEADER */}
       <header className="sticky top-0 z-40 bg-[#FBF9F5] border-b border-[#E4DCD0] px-4 sm:px-6 py-2.5 shadow-2xs">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          
+
           {/* Brand & Live Indicator */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2.5 group">
@@ -1208,31 +1208,28 @@ export default function POSDashboard() {
             <div className="flex items-center bg-[#ECE6DC] p-0.5 rounded-lg text-xs font-medium border border-[#E4DCD0]">
               <button
                 onClick={() => setActiveTab("tables")}
-                className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${
-                  activeTab === "tables"
+                className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${activeTab === "tables"
                     ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
                     : "text-stone-700 hover:text-[#261C18]"
-                }`}
+                  }`}
               >
                 Tables ({activeTablesCount}/{tableOverviews.length})
               </button>
               <button
                 onClick={() => setActiveTab("kots")}
-                className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${
-                  activeTab === "kots"
+                className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${activeTab === "kots"
                     ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
                     : "text-stone-700 hover:text-[#261C18]"
-                }`}
+                  }`}
               >
                 KOTs ({kots.length})
               </button>
               <button
                 onClick={() => setActiveTab("reservations")}
-                className={`px-3 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${
-                  activeTab === "reservations"
+                className={`px-3 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${activeTab === "reservations"
                     ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
                     : "text-stone-700 hover:text-[#261C18]"
-                }`}
+                  }`}
               >
                 <span>Bookings</span>
                 <span className="text-[10px] opacity-80">({reservations.length})</span>
@@ -1255,11 +1252,10 @@ export default function POSDashboard() {
                 setSoundEnabled(next);
                 if (next) setTimeout(playChime, 50);
               }}
-              className={`p-1.5 rounded-md border text-xs cursor-pointer ${
-                soundEnabled
+              className={`p-1.5 rounded-md border text-xs cursor-pointer ${soundEnabled
                   ? "bg-[#261C18] border-[#261C18] text-[#FBF9F5]"
                   : "bg-white border-[#E4DCD0] text-stone-500"
-              }`}
+                }`}
               title={soundEnabled ? "Audio chime ON" : "Audio chime OFF"}
             >
               {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
@@ -1301,17 +1297,17 @@ export default function POSDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
-        
+
         {/* 2. SUMMARY METRICS & OPERATIONAL DATE BAR */}
         <section className="space-y-3">
-          
+
           {/* Operational Date Controller (Compact) */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 bg-white p-3 rounded-lg border border-[#E4DCD0] text-xs">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-sans font-bold uppercase text-stone-600 tracking-wider text-[11px]">
                 OPERATIONS DATE:
               </span>
-              
+
               <div className="flex items-center gap-1.5 bg-[#F6F3EC] px-2.5 py-1 rounded-md border border-[#E4DCD0]">
                 <Calendar className="w-3.5 h-3.5 text-[#B85B43]" />
                 <input
@@ -1327,44 +1323,40 @@ export default function POSDashboard() {
                 <button
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(0))}
-                  className={`px-2.5 py-1 rounded-md font-semibold text-[11px] transition-colors cursor-pointer ${
-                    isTodaySelected
+                  className={`px-2.5 py-1 rounded-md font-semibold text-[11px] transition-colors cursor-pointer ${isTodaySelected
                       ? "bg-[#261C18] text-white"
                       : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
-                  }`}
+                    }`}
                 >
                   Today
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(-1))}
-                  className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${
-                    selectedDate === getLocalDateString(-1)
+                  className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${selectedDate === getLocalDateString(-1)
                       ? "bg-[#261C18] text-white font-semibold"
                       : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
-                  }`}
+                    }`}
                 >
                   Yesterday
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(-2))}
-                  className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${
-                    selectedDate === getLocalDateString(-2)
+                  className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${selectedDate === getLocalDateString(-2)
                       ? "bg-[#261C18] text-white font-semibold"
                       : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
-                  }`}
+                    }`}
                 >
                   2 Days Ago
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedDate(getLocalDateString(1))}
-                  className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${
-                    selectedDate === getLocalDateString(1)
+                  className={`px-2.5 py-1 rounded-md text-[11px] transition-colors cursor-pointer ${selectedDate === getLocalDateString(1)
                       ? "bg-[#261C18] text-white font-semibold"
                       : "bg-[#F6F3EC] text-stone-700 hover:bg-[#E4DCD0]"
-                  }`}
+                    }`}
                 >
                   Tomorrow
                 </button>
@@ -1372,13 +1364,12 @@ export default function POSDashboard() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
-                isTodaySelected
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${isTodaySelected
                   ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                   : isFutureDateSelected
-                  ? "bg-blue-50 text-blue-800 border-blue-200"
-                  : "bg-stone-100 text-stone-700 border-stone-200"
-              }`}>
+                    ? "bg-blue-50 text-blue-800 border-blue-200"
+                    : "bg-stone-100 text-stone-700 border-stone-200"
+                }`}>
                 {isTodaySelected ? "Live Shift" : isFutureDateSelected ? "Future Booking" : "History Archive"}
               </span>
 
@@ -1397,7 +1388,7 @@ export default function POSDashboard() {
 
           {/* 4 Primary Summary Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            
+
             {/* Metric 1: Active Tables */}
             <div className="bg-white p-4 rounded-lg border border-[#E4DCD0] shadow-2xs">
               <div className="text-[11px] font-sans uppercase tracking-wider font-semibold text-stone-500 flex items-center justify-between">
@@ -1434,11 +1425,10 @@ export default function POSDashboard() {
             </div>
 
             {/* Metric 4: Needs Attention */}
-            <div className={`p-4 rounded-lg border shadow-2xs ${
-              needsAttentionCount > 0
+            <div className={`p-4 rounded-lg border shadow-2xs ${needsAttentionCount > 0
                 ? "bg-amber-50/70 border-amber-300"
                 : "bg-white border-[#E4DCD0]"
-            }`}>
+              }`}>
               <div className="text-[11px] font-sans uppercase tracking-wider font-semibold flex items-center justify-between text-stone-500">
                 <span className={needsAttentionCount > 0 ? "text-amber-900 font-bold" : ""}>NEEDS ATTENTION</span>
                 <AlertTriangle className={`w-3.5 h-3.5 ${needsAttentionCount > 0 ? "text-amber-600" : "text-stone-400"}`} />
@@ -1521,11 +1511,10 @@ export default function POSDashboard() {
                   </div>
                 </div>
 
-                <div className={`p-2 rounded-md border ${
-                  (doughCapacity.walk_in_available ?? 0) > 0
+                <div className={`p-2 rounded-md border ${(doughCapacity.walk_in_available ?? 0) > 0
                     ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
                     : "bg-red-50/50 border-red-200 text-red-900"
-                }`}>
+                  }`}>
                   <div className="text-[10px] uppercase font-semibold opacity-80">Walk-In Available</div>
                   <div className="font-bold text-sm mt-0.5">
                     {doughCapacity.walk_in_available ?? 0}
@@ -1634,7 +1623,7 @@ export default function POSDashboard() {
         {/* ================= TAB 1: ACTIVE TABLES (PRIMARY OPERATIONAL SECTION) ================= */}
         {activeTab === "tables" && (
           <section className="space-y-4">
-            
+
             {/* Table Controls Bar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-3.5 rounded-lg border border-[#E4DCD0]">
               <div className="flex items-center gap-2">
@@ -1667,17 +1656,16 @@ export default function POSDashboard() {
                     <button
                       key={mode}
                       onClick={() => setTableFilter(mode)}
-                      className={`px-2.5 py-1 rounded-sm capitalize font-medium transition-colors cursor-pointer ${
-                        tableFilter === mode
+                      className={`px-2.5 py-1 rounded-sm capitalize font-medium transition-colors cursor-pointer ${tableFilter === mode
                           ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
                           : "text-stone-700 hover:text-[#261C18]"
-                      }`}
+                        }`}
                     >
                       {mode === "all"
                         ? `All (${tableOverviews.length})`
                         : mode === "active"
-                        ? `Occupied (${activeTablesCount})`
-                        : `Available (${tableOverviews.length - activeTablesCount})`}
+                          ? `Occupied (${activeTablesCount})`
+                          : `Available (${tableOverviews.length - activeTablesCount})`}
                     </button>
                   ))}
                 </div>
@@ -1713,16 +1701,14 @@ export default function POSDashboard() {
                   return (
                     <div
                       key={tbl.table_id}
-                      className={`bg-white rounded-lg border transition-all overflow-hidden flex flex-col justify-between ${
-                        isOccupied
+                      className={`bg-white rounded-lg border transition-all overflow-hidden flex flex-col justify-between ${isOccupied
                           ? "border-amber-400/80 shadow-xs"
                           : "border-[#E4DCD0]"
-                      }`}
+                        }`}
                     >
                       {/* Card Top Header */}
-                      <div className={`p-4 border-b ${
-                        isOccupied ? "bg-[#FAF7F2] border-amber-200/70" : "bg-[#FAF8F5] border-[#E4DCD0]/60"
-                      }`}>
+                      <div className={`p-4 border-b ${isOccupied ? "bg-[#FAF7F2] border-amber-200/70" : "bg-[#FAF8F5] border-[#E4DCD0]/60"
+                        }`}>
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <div className="flex items-baseline gap-2">
@@ -1747,13 +1733,12 @@ export default function POSDashboard() {
                                     [tbl.table_id]: !prev[tbl.table_id],
                                   }))
                                 }
-                                className={`text-[11px] font-sans font-semibold px-2 py-0.5 rounded-md border transition-colors cursor-pointer flex items-center gap-1 ${
-                                  showHistory
+                                className={`text-[11px] font-sans font-semibold px-2 py-0.5 rounded-md border transition-colors cursor-pointer flex items-center gap-1 ${showHistory
                                     ? "bg-[#261C18] text-white border-[#261C18]"
                                     : settledSessions.length > 0
-                                    ? "bg-[#FAF8F5] text-[#B85B43] border-[#E4DCD0] hover:bg-[#B85B43]/10"
-                                    : "bg-stone-50 text-stone-500 border-stone-200"
-                                }`}
+                                      ? "bg-[#FAF8F5] text-[#B85B43] border-[#E4DCD0] hover:bg-[#B85B43]/10"
+                                      : "bg-stone-50 text-stone-500 border-stone-200"
+                                  }`}
                                 title={
                                   settledSessions.length > 0
                                     ? "Click to toggle previous sessions of this table today"
@@ -1940,7 +1925,7 @@ export default function POSDashboard() {
         {/* ================= TAB 2: LIVE KOT TICKETS ================= */}
         {activeTab === "kots" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
+
             {/* Left Column: Tickets Flow (7 Cols) */}
             <div className="lg:col-span-7 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2 bg-white p-3.5 rounded-lg border border-[#E4DCD0]">
@@ -1955,17 +1940,15 @@ export default function POSDashboard() {
                   <div className="flex items-center bg-[#F6F3EC] p-0.5 rounded-md border border-[#E4DCD0]">
                     <button
                       onClick={() => setSortOrder("asc")}
-                      className={`px-2 py-0.5 rounded-sm transition-colors cursor-pointer ${
-                        sortOrder === "asc" ? "bg-[#261C18] text-white font-semibold" : "text-stone-600"
-                      }`}
+                      className={`px-2 py-0.5 rounded-sm transition-colors cursor-pointer ${sortOrder === "asc" ? "bg-[#261C18] text-white font-semibold" : "text-stone-600"
+                        }`}
                     >
                       1 → N
                     </button>
                     <button
                       onClick={() => setSortOrder("desc")}
-                      className={`px-2 py-0.5 rounded-sm transition-colors cursor-pointer ${
-                        sortOrder === "desc" ? "bg-[#261C18] text-white font-semibold" : "text-stone-600"
-                      }`}
+                      className={`px-2 py-0.5 rounded-sm transition-colors cursor-pointer ${sortOrder === "desc" ? "bg-[#261C18] text-white font-semibold" : "text-stone-600"
+                        }`}
                     >
                       Latest
                     </button>
@@ -1977,9 +1960,8 @@ export default function POSDashboard() {
                       <button
                         key={t}
                         onClick={() => setFilter(t)}
-                        className={`px-2.5 py-0.5 rounded-sm capitalize transition-colors cursor-pointer ${
-                          filter === t ? "bg-[#B85B43] text-white font-semibold" : "text-stone-600"
-                        }`}
+                        className={`px-2.5 py-0.5 rounded-sm capitalize transition-colors cursor-pointer ${filter === t ? "bg-[#B85B43] text-white font-semibold" : "text-stone-600"
+                          }`}
                       >
                         {t}
                       </button>
@@ -2143,7 +2125,7 @@ export default function POSDashboard() {
         {/* ================= TAB 3: RESERVATIONS ================= */}
         {activeTab === "reservations" && (
           <section className="space-y-4">
-            
+
             {/* Header & Filter */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-3.5 rounded-lg border border-[#E4DCD0]">
               <h3 className="text-sm font-bold uppercase tracking-wider text-[#261C18]">
@@ -2155,11 +2137,10 @@ export default function POSDashboard() {
                   <button
                     key={st}
                     onClick={() => setResFilter(st)}
-                    className={`px-2.5 py-1 rounded-sm capitalize transition-colors cursor-pointer ${
-                      resFilter === st
+                    className={`px-2.5 py-1 rounded-sm capitalize transition-colors cursor-pointer ${resFilter === st
                         ? "bg-[#261C18] text-white font-semibold"
                         : "text-stone-600 hover:text-stone-900"
-                    }`}
+                      }`}
                   >
                     {st.toLowerCase()}
                   </button>
@@ -2185,12 +2166,12 @@ export default function POSDashboard() {
                     st === "CONFIRMED"
                       ? "bg-blue-50 text-blue-800 border-blue-200"
                       : st === "ARRIVED"
-                      ? "bg-amber-50 text-amber-800 border-amber-200"
-                      : st === "SEATED"
-                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                      : st === "COMPLETED"
-                      ? "bg-stone-100 text-stone-700 border-stone-200"
-                      : "bg-rose-50 text-rose-800 border-rose-200";
+                        ? "bg-amber-50 text-amber-800 border-amber-200"
+                        : st === "SEATED"
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : st === "COMPLETED"
+                            ? "bg-stone-100 text-stone-700 border-stone-200"
+                            : "bg-rose-50 text-rose-800 border-rose-200";
 
                   return (
                     <div
