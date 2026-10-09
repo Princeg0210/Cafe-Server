@@ -43,6 +43,8 @@ import {
   CheckCircle2,
   UserCheck,
   ChevronDown,
+  Package,
+  FolderPlus,
 } from "lucide-react";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -90,6 +92,8 @@ interface MenuItem {
 interface MenuCategory {
   id: number;
   name: string;
+  display_order?: number;
+  is_active?: boolean;
 }
 
 const INITIAL_CATEGORIES: MenuCategory[] = [
@@ -170,7 +174,7 @@ export default function AdminPortal() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<"analytics" | "operations" | "menu" | "reservations" | "tables" | "ledger">("analytics");
+  const [activeTab, setActiveTab] = useState<"analytics" | "operations" | "inventory" | "menu" | "reservations" | "tables" | "ledger">("analytics");
 
   // Helper for date string
   const getLocalDateString = (offsetDays = 0) => {
@@ -219,6 +223,10 @@ export default function AdminPortal() {
   const [newItemData, setNewItemData] = useState({ name: "", category_id: 1, description: "", price: 350 });
   const [menuSearch, setMenuSearch] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<number | "all">("all");
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryData, setNewCategoryData] = useState({ name: "", display_order: 1 });
+  const [editingCategory, setEditingCategory] = useState<MenuCategory | null>(null);
+  const [editCategoryData, setEditCategoryData] = useState({ name: "", display_order: 1 });
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Reservations Data
@@ -822,6 +830,114 @@ export default function AdminPortal() {
     }
   };
 
+  // Category Handlers
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !newCategoryData.name.trim()) return;
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/menu/categories`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: newCategoryData.name.trim(),
+          display_order: Number(newCategoryData.display_order) || 1,
+          is_active: true,
+        }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setCategories((prev) => [...prev, created]);
+        setIsCreatingCategory(false);
+        setNewCategoryData({ name: "", display_order: 1 });
+        showToast(`Category "${created.name}" created successfully!`);
+        fetchMenuData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(`Failed to create category: ${err.detail || "Server error"}`);
+      }
+    } catch {
+      showToast("Error creating category.");
+    }
+  };
+
+  const handleUpdateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !editingCategory || !editCategoryData.name.trim()) return;
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/menu/categories/${editingCategory.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: editCategoryData.name.trim(),
+          display_order: Number(editCategoryData.display_order) || 1,
+        }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        setEditingCategory(null);
+        showToast(`Category "${updated.name}" updated successfully!`);
+        fetchMenuData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(`Failed to update category: ${err.detail || "Server error"}`);
+      }
+    } catch {
+      showToast("Error updating category.");
+    }
+  };
+
+  const handleDeleteCategory = async (catId: number, catName: string) => {
+    if (!confirm(`Are you sure you want to deactivate category "${catName}"?`)) return;
+    if (!token) return;
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/menu/categories/${catId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setCategories((prev) => prev.filter((c) => c.id !== catId));
+        showToast(`Category "${catName}" removed.`);
+        fetchMenuData();
+      }
+    } catch {
+      showToast("Error deleting category.");
+    }
+  };
+
+  const handleDeleteMenuItem = async (itemId: number) => {
+    if (!confirm("Are you sure you want to delete this food item?")) return;
+    if (!token) return;
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/menu/items/${itemId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setMenuItems((prev) => prev.filter((i) => i.id !== itemId));
+        showToast("Food item deleted successfully.");
+        fetchMenuData();
+      }
+    } catch {
+      showToast("Error deleting food item.");
+    }
+  };
+
+  const handleOpenAddItemForCategory = (categoryId: number) => {
+    setNewItemData((prev) => ({ ...prev, category_id: categoryId }));
+    setIsCreatingItem(true);
+  };
+
   // Generate and show Table QR
   const handleOpenTableQr = async (tableNumber: string, qrToken: string) => {
     const origin = typeof window !== "undefined" ? window.location.origin : "https://cafe-piza.vercel.app";
@@ -1181,13 +1297,13 @@ export default function AdminPortal() {
         {[
           { id: "analytics", label: "Executive Analytics", icon: TrendingUp },
           { id: "operations", label: "Operations", icon: SlidersHorizontal },
-          { id: "menu", label: "Menu & Live Pricing", icon: Utensils },
+          { id: "inventory", label: "Inventory", icon: Package },
           { id: "reservations", label: "Reservations CRM", icon: Calendar },
           { id: "tables", label: "Tables & QR Generator", icon: QrCode },
           { id: "ledger", label: "KOT & Billing Ledger", icon: FileText },
         ].map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
+          const isActive = activeTab === tab.id || (tab.id === "inventory" && activeTab === "menu");
           return (
             <button
               key={tab.id}
@@ -2124,27 +2240,152 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* TAB 2: MENU & LIVE PRICING MANAGEMENT */}
-        {activeTab === "menu" && (
+        {/* TAB 2: INVENTORY & FOOD CATEGORIES MANAGEMENT */}
+        {(activeTab === "inventory" || activeTab === "menu") && (
           <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            {/* 1. Header with Controls */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-serif font-bold text-[#241A14]">Menu & Live Pricing Control</h2>
-                <p className="text-xs text-[#7A6A5E]">
-                  Changes to prices and stock status instantly sync across the public website, digital menu, POS, and QR tables in real time.
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-sans font-bold text-[#241A14]">
+                    Food Inventory & Categories
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F3EDE2] text-[#B85B43] border border-[#E0D4C2]">
+                    {categories.length} Categories • {menuItems.length} Food Items
+                  </span>
+                </div>
+                <p className="text-xs text-[#7A6A5E] mt-1">
+                  Manage all food categories, add items directly to any category, and update real-time pricing and stock status across POS and customer digital ordering.
                 </p>
               </div>
 
-              <button
-                onClick={() => setIsCreatingItem(true)}
-                className="inline-flex items-center gap-2 bg-[#B85B43] hover:bg-[#A34B34] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add New Item</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewCategoryData({ name: "", display_order: categories.length + 1 });
+                    setIsCreatingCategory(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 bg-[#261C18] hover:bg-[#3D2C24] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer"
+                >
+                  <FolderPlus className="w-4 h-4 text-[#EAD8C7]" />
+                  <span>+ New Category</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewItemData({
+                      name: "",
+                      category_id: selectedCategoryFilter === "all" ? (categories[0]?.id || 1) : Number(selectedCategoryFilter),
+                      description: "",
+                      price: 350,
+                    });
+                    setIsCreatingItem(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 bg-[#B85B43] hover:bg-[#A34B34] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Add Food Item</span>
+                </button>
+              </div>
             </div>
 
-            {/* Filter & Search Bar */}
+            {/* 2. CATEGORIES SECTION (CARDS HUB) */}
+            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[#F0E8DC] pb-3">
+                <div>
+                  <h3 className="font-sans font-bold text-sm text-[#241A14] flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-[#B85B43]" />
+                    Food Item Category Sections
+                  </h3>
+                  <p className="text-[11px] text-[#7A6A5E]">
+                    Select any category below to filter items, add food items directly to it, or edit the category name.
+                  </p>
+                </div>
+                <div className="text-xs font-bold text-[#8C7A6D]">
+                  {categories.length} Total Categories
+                </div>
+              </div>
+
+              {/* Grid of Category Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+                {categories.map((c, idx) => {
+                  const catItems = menuItems.filter((i) => i.category_id === c.id);
+                  const inStock = catItems.filter((i) => i.is_available).length;
+                  const isSelected = selectedCategoryFilter === c.id;
+
+                  return (
+                    <div
+                      key={c.id}
+                      className={`rounded-2xl border p-4 flex flex-col justify-between transition-all ${
+                        isSelected
+                          ? "bg-[#FAF5ED] border-[#B85B43] shadow-sm ring-1 ring-[#B85B43]"
+                          : "bg-[#FFFDF9] border-[#E8DFC9] hover:border-[#CDBFA8]"
+                      }`}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-1">
+                          <div>
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#B85B43]">
+                              Category #{c.display_order || idx + 1}
+                            </span>
+                            <h4 className="font-sans font-extrabold text-sm text-[#241A14] mt-0.5 leading-snug">
+                              {c.name}
+                            </h4>
+                          </div>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FAF0E1] text-[#9E3E26] border border-[#E8DFC9] shrink-0">
+                            {catItems.length} {catItems.length === 1 ? "Item" : "Items"}
+                          </span>
+                        </div>
+
+                        <div className="text-[11px] text-[#7A6A5E] flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                          <span>{inStock} Available in Stock</span>
+                        </div>
+                      </div>
+
+                      {/* Category Action Buttons */}
+                      <div className="pt-3 mt-3 border-t border-[#F0E8DC] flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddItemForCategory(c.id)}
+                          className="flex-1 py-1.5 px-2 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#241A14] border border-[#E0D4C2] font-bold text-[11px] transition-colors cursor-pointer text-center"
+                          title={`Add a new food item into ${c.name}`}
+                        >
+                          + Add Item
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingCategory(c);
+                            setEditCategoryData({ name: c.name, display_order: c.display_order || idx + 1 });
+                          }}
+                          className="py-1.5 px-2.5 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#665448] hover:text-[#241A14] border border-[#E0D4C2] font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1"
+                          title="Edit Category Name & Order"
+                        >
+                          <Edit3 className="w-3 h-3 text-[#B85B43]" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCategoryFilter(isSelected ? "all" : c.id)}
+                          className={`py-1.5 px-2.5 rounded-xl font-bold text-[11px] transition-colors cursor-pointer ${
+                            isSelected
+                              ? "bg-[#241A14] text-white"
+                              : "bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#665448] border border-[#E0D4C2]"
+                          }`}
+                          title="Filter table below to this category"
+                        >
+                          {isSelected ? "Active" : "View"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. Filter & Search Bar */}
             <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
               <div className="relative min-w-[240px] flex-1">
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
@@ -2152,49 +2393,82 @@ export default function AdminPortal() {
                   type="text"
                   value={menuSearch}
                   onChange={(e) => setMenuSearch(e.target.value)}
-                  placeholder="Search item name or ingredient..."
+                  placeholder="Search food item name, price, or ingredients..."
                   className="w-full bg-[#FAF6EE] border border-[#E0D4C2] focus:border-[#B85B43] focus:bg-white rounded-xl pl-10 pr-4 py-2 text-xs text-[#241A14] placeholder-[#A8988B] outline-none"
                 />
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto">
+              <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
                 <button
+                  type="button"
                   onClick={() => setSelectedCategoryFilter("all")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
                     selectedCategoryFilter === "all"
-                      ? "bg-[#241A14] text-white"
+                      ? "bg-[#241A14] text-white shadow-xs"
                       : "bg-[#FAF6EE] border border-[#E0D4C2] text-[#665448] hover:bg-[#F0E8DA]"
                   }`}
                 >
                   All Categories ({menuItems.length})
                 </button>
-                {categories.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => setSelectedCategoryFilter(c.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
-                      selectedCategoryFilter === c.id
-                        ? "bg-[#241A14] text-white"
-                        : "bg-[#FAF6EE] border border-[#E0D4C2] text-[#665448] hover:bg-[#F0E8DA]"
-                    }`}
-                  >
-                    {c.name}
-                  </button>
-                ))}
+                {categories.map((c) => {
+                  const count = menuItems.filter((i) => i.category_id === c.id).length;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedCategoryFilter(c.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                        selectedCategoryFilter === c.id
+                          ? "bg-[#241A14] text-white shadow-xs"
+                          : "bg-[#FAF6EE] border border-[#E0D4C2] text-[#665448] hover:bg-[#F0E8DA]"
+                      }`}
+                    >
+                      <span>{c.name}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                        selectedCategoryFilter === c.id ? "bg-white/20 text-white" : "bg-[#EAE0D2] text-[#665448]"
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Menu Items Table */}
+            {/* Selected Category Notice Bar */}
+            {selectedCategoryFilter !== "all" && (
+              <div className="flex items-center justify-between p-3.5 bg-[#FAF5ED] rounded-xl border border-[#E0D4C2] text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-[#241A14]">Filtered Category:</span>
+                  <span className="px-2.5 py-1 rounded-md bg-[#B85B43] text-white font-bold uppercase text-[10px] tracking-wider">
+                    {categories.find((c) => c.id === selectedCategoryFilter)?.name || "Selected"}
+                  </span>
+                  <span className="text-[#7A6A5E]">
+                    ({filteredMenuItems.length} items shown)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleOpenAddItemForCategory(Number(selectedCategoryFilter))}
+                  className="inline-flex items-center gap-1 text-[#B85B43] hover:underline font-bold cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Item to this Category</span>
+                </button>
+              </div>
+            )}
+
+            {/* Food Items Table */}
             <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
                     <tr>
-                      <th className="p-4">Item Name</th>
+                      <th className="p-4">Food Item</th>
                       <th className="p-4">Category</th>
                       <th className="p-4">Description</th>
                       <th className="p-4">Price (₹)</th>
-                      <th className="p-4">Stock Status (Live)</th>
+                      <th className="p-4">Live Stock Status</th>
                       <th className="p-4 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -2203,8 +2477,10 @@ export default function AdminPortal() {
                       <tr>
                         <td colSpan={6} className="text-center py-12 text-[#8C7A6D]">
                           <Utensils className="w-8 h-8 mx-auto mb-2 opacity-40 text-[#B85B43]" />
-                          <p className="font-semibold text-sm text-[#4A392F]">No menu items matching your filter</p>
-                          <p className="text-[11px] text-[#A8988B] mt-1">Try adjusting your search query or selecting &quot;All Categories&quot;</p>
+                          <p className="font-semibold text-sm text-[#4A392F]">No food items matching your filter</p>
+                          <p className="text-[11px] text-[#A8988B] mt-1">
+                            Use &quot;+ Add Food Item&quot; to add a new dish to this category.
+                          </p>
                         </td>
                       </tr>
                     ) : (
@@ -2214,7 +2490,7 @@ export default function AdminPortal() {
                           <tr key={item.id} className="hover:bg-[#FAF7F0] transition-colors">
                             <td className="p-4 font-bold text-[#241A14]">{item.name}</td>
                             <td className="p-4">
-                              <span className="px-2.5 py-1 rounded-md bg-[#FAF0E1] text-[10px] text-[#B85B43] font-bold uppercase tracking-wider">
+                              <span className="px-2.5 py-1 rounded-md bg-[#FAF0E1] text-[10px] text-[#B85B43] font-bold uppercase tracking-wider border border-[#E8DFC9]">
                                 {category?.name || "General"}
                               </span>
                             </td>
@@ -2222,6 +2498,7 @@ export default function AdminPortal() {
                             <td className="p-4 font-extrabold text-[#B85B43] text-sm">₹{item.price}</td>
                             <td className="p-4">
                               <button
+                                type="button"
                                 onClick={() => handleToggleItemAvailability(item)}
                                 className={`px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
                                   item.is_available
@@ -2239,11 +2516,20 @@ export default function AdminPortal() {
                             </td>
                             <td className="p-4 text-right space-x-2">
                               <button
+                                type="button"
                                 onClick={() => setEditingItem(item)}
                                 className="inline-flex items-center gap-1 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#241A14] text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                               >
                                 <Edit3 className="w-3.5 h-3.5 text-[#B85B43]" />
                                 <span>Edit Rate</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteMenuItem(item.id)}
+                                className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                                title="Delete Food Item"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </td>
                           </tr>
@@ -2750,6 +3036,160 @@ export default function AdminPortal() {
                 >
                   Create Item
                 </button>
+              </div>
+            </motion.form>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: CREATE CATEGORY */}
+      <AnimatePresence>
+        {isCreatingCategory && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.form
+              onSubmit={handleCreateCategory}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-[#FFFDF9] border border-[#E6DCCF] rounded-3xl p-6 shadow-2xl space-y-4 text-[#241A14]"
+            >
+              <div className="flex items-center justify-between border-b border-[#F0E8DC] pb-3">
+                <div className="flex items-center gap-2">
+                  <FolderPlus className="w-5 h-5 text-[#B85B43]" />
+                  <h3 className="text-base font-serif font-bold text-[#241A14]">Add New Food Category</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingCategory(false)}
+                  className="text-[#8C7A6D] hover:text-[#241A14] text-lg p-1 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="font-bold text-[#665448] block mb-1">Category Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={newCategoryData.name}
+                    onChange={(e) => setNewCategoryData({ ...newCategoryData, name: e.target.value })}
+                    placeholder="e.g. Artisanal Garlic Breads, Calzones, Mocktails"
+                    className="w-full bg-[#FAF7F0] border border-[#E2D6C5] focus:border-[#B85B43] focus:bg-white rounded-xl p-3 text-[#241A14] font-medium outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#665448] block mb-1">Display Order (Menu Sort)</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={newCategoryData.display_order}
+                    onChange={(e) => setNewCategoryData({ ...newCategoryData, display_order: Number(e.target.value) })}
+                    className="w-full bg-[#FAF7F0] border border-[#E2D6C5] focus:border-[#B85B43] focus:bg-white rounded-xl p-3 text-[#241A14] font-bold outline-none"
+                  />
+                  <p className="text-[11px] text-[#8C7A6D] mt-1">Lower numbers appear first on customer menus and POS.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#F0E8DC]">
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingCategory(false)}
+                  className="px-4 py-2.5 rounded-xl bg-[#FAF6EE] hover:bg-[#F0E8DA] text-[#665448] text-xs font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-[#B85B43] hover:bg-[#A34B34] text-white text-xs font-bold uppercase tracking-wider cursor-pointer shadow-md"
+                >
+                  Create Category
+                </button>
+              </div>
+            </motion.form>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: EDIT CATEGORY */}
+      <AnimatePresence>
+        {editingCategory && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.form
+              onSubmit={handleUpdateCategory}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-[#FFFDF9] border border-[#E6DCCF] rounded-3xl p-6 shadow-2xl space-y-4 text-[#241A14]"
+            >
+              <div className="flex items-center justify-between border-b border-[#F0E8DC] pb-3">
+                <div className="flex items-center gap-2">
+                  <Edit3 className="w-5 h-5 text-[#B85B43]" />
+                  <h3 className="text-base font-serif font-bold text-[#241A14]">Edit Food Category</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingCategory(null)}
+                  className="text-[#8C7A6D] hover:text-[#241A14] text-lg p-1 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="font-bold text-[#665448] block mb-1">Category Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editCategoryData.name}
+                    onChange={(e) => setEditCategoryData({ ...editCategoryData, name: e.target.value })}
+                    className="w-full bg-[#FAF7F0] border border-[#E2D6C5] focus:border-[#B85B43] focus:bg-white rounded-xl p-3 text-[#241A14] font-medium outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#665448] block mb-1">Display Order</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={editCategoryData.display_order}
+                    onChange={(e) => setEditCategoryData({ ...editCategoryData, display_order: Number(e.target.value) })}
+                    className="w-full bg-[#FAF7F0] border border-[#E2D6C5] focus:border-[#B85B43] focus:bg-white rounded-xl p-3 text-[#241A14] font-bold outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-[#F0E8DC]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDeleteCategory(editingCategory.id, editingCategory.name);
+                    setEditingCategory(null);
+                  }}
+                  className="px-3 py-2 rounded-xl text-rose-700 hover:bg-rose-50 text-xs font-bold transition-colors cursor-pointer border border-rose-200"
+                >
+                  Deactivate Category
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingCategory(null)}
+                    className="px-4 py-2.5 rounded-xl bg-[#FAF6EE] hover:bg-[#F0E8DA] text-[#665448] text-xs font-bold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl bg-[#B85B43] hover:bg-[#A34B34] text-white text-xs font-bold uppercase tracking-wider cursor-pointer shadow-md"
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
             </motion.form>
           </div>

@@ -7,11 +7,13 @@ from app.models.menu import MenuCategory, MenuItem
 from app.models.capacity import ItemCapacityRule
 from app.schemas.menu import (
     MenuCategoryCreate,
+    MenuCategoryUpdate,
     MenuCategoryResponse,
     MenuItemCreate,
     MenuItemResponse,
     MenuItemUpdate,
 )
+from app.api.websocket import ws_manager
 
 router = APIRouter(prefix="/menu", tags=["Menu & Production Capacity"])
 
@@ -29,7 +31,64 @@ async def create_category(data: MenuCategoryCreate, db: AsyncSession = Depends(g
     db.add(category)
     await db.commit()
     await db.refresh(category)
+
+    payload = {
+        "type": "MENU_UPDATED",
+        "action": "CATEGORY_CREATE",
+        "category_id": category.id,
+        "name": category.name,
+    }
+    for ch in ["menu", "pos", "tables", "admin"]:
+        await ws_manager.broadcast(ch, payload)
+
     return category
+
+
+@router.put("/categories/{category_id}", response_model=MenuCategoryResponse)
+async def update_category(category_id: int, data: MenuCategoryUpdate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(MenuCategory).where(MenuCategory.id == category_id))
+    category = result.scalar_one_or_none()
+    if not category:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for field, val in update_data.items():
+        setattr(category, field, val)
+
+    await db.commit()
+    await db.refresh(category)
+
+    payload = {
+        "type": "MENU_UPDATED",
+        "action": "CATEGORY_UPDATE",
+        "category_id": category.id,
+        "name": category.name,
+    }
+    for ch in ["menu", "pos", "tables", "admin"]:
+        await ws_manager.broadcast(ch, payload)
+
+    return category
+
+
+@router.delete("/categories/{category_id}")
+async def delete_category(category_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(MenuCategory).where(MenuCategory.id == category_id))
+    category = result.scalar_one_or_none()
+    if not category:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+
+    category.is_active = False
+    await db.commit()
+
+    payload = {
+        "type": "MENU_UPDATED",
+        "action": "CATEGORY_DELETE",
+        "category_id": category_id,
+    }
+    for ch in ["menu", "pos", "tables", "admin"]:
+        await ws_manager.broadcast(ch, payload)
+
+    return {"message": "Category deleted successfully", "id": category_id}
 
 
 @router.get("/items", response_model=List[MenuItemResponse])
@@ -70,9 +129,6 @@ async def list_menu_items(db: AsyncSession = Depends(get_db)):
         items.append(item_dict)
 
     return items
-
-
-from app.api.websocket import ws_manager
 
 
 @router.post("/items", response_model=MenuItemResponse, status_code=201)

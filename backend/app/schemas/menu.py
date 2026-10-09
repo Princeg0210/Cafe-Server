@@ -10,6 +10,12 @@ class MenuCategoryCreate(BaseModel):
     is_active: bool = True
 
 
+class MenuCategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    display_order: Optional[int] = None
+    is_active: Optional[bool] = None
+
+
 class MenuCategoryResponse(MenuCategoryCreate):
     model_config = ConfigDict(from_attributes=True)
 
