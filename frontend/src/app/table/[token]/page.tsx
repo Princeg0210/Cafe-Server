@@ -128,6 +128,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const [quickDineMinutesLeft, setQuickDineMinutesLeft] = useState<number | null>(null);
 
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [liveMenuData, setLiveMenuData] = useState(menuData);
   const [cart, setCart] = useState<{ [key: string | number]: { item: MenuItem; qty: number } }>({});
   const [showCartDrawer, setShowCartDrawer] = useState(false);
   const [showBillModal, setShowBillModal] = useState(false);
@@ -154,6 +155,90 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     }
     return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   };
+
+  // Sync live prices and stock availability from backend API
+  const fetchLiveMenu = React.useCallback(async () => {
+    try {
+      const apiBase = getApiBase();
+      const res = await fetch(`${apiBase}/api/v1/menu/items`);
+      if (!res.ok) return;
+      const dbItems: Array<{
+        id: number;
+        category_id: number;
+        name: string;
+        description?: string;
+        price: string | number;
+        is_available: boolean;
+        is_sold_out?: boolean;
+      }> = await res.json();
+
+      const dbMapByName = new Map<string, typeof dbItems[0]>();
+      dbItems.forEach((item) => {
+        dbMapByName.set(item.name.trim().toLowerCase(), item);
+      });
+
+      setLiveMenuData((prev) => {
+        return prev.map((category) => {
+          return {
+            ...category,
+            items: category.items.map((item) => {
+              const matched = dbMapByName.get(item.name.trim().toLowerCase());
+              if (matched) {
+                return {
+                  ...item,
+                  price: Number(matched.price),
+                  description: matched.description || item.description,
+                  is_available: matched.is_available && !matched.is_sold_out,
+                };
+              }
+              return item;
+            }),
+          };
+        });
+      });
+    } catch {}
+  }, []);
+
+  // Live WebSocket listener for instant hand-to-hand menu status updates
+  useEffect(() => {
+    fetchLiveMenu();
+
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: any = null;
+
+    const connectWS = () => {
+      try {
+        const apiBase = getApiBase();
+        const wsProto = apiBase.startsWith("https") ? "wss" : "ws";
+        const wsHost = apiBase.replace(/^https?:\/\//, "");
+        ws = new WebSocket(`${wsProto}://${wsHost}/ws/menu`);
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === "MENU_UPDATED") {
+              fetchLiveMenu();
+            }
+          } catch {}
+        };
+
+        ws.onclose = () => {
+          reconnectTimeout = setTimeout(connectWS, 5000);
+        };
+      } catch {
+        reconnectTimeout = setTimeout(connectWS, 6000);
+      }
+    };
+
+    connectWS();
+    const interval = setInterval(fetchLiveMenu, 10000);
+
+    return () => {
+      if (ws) ws.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      clearInterval(interval);
+    };
+  }, [fetchLiveMenu]);
 
   // Validate QR Token on mount
   useEffect(() => {
@@ -447,11 +532,15 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans selection:bg-[#B85B43]/20">
       {/* Direct Focused Header: Table Number & View Bill */}
-      <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0] shadow-xs px-4 sm:px-6 py-3">
+      <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0] shadow-xs px-4 sm:px-6 py-2.5">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#261C18] flex items-center justify-center text-[#FBF9F5] border border-[#B85B43]/40 shadow-xs">
-              <span className="font-serif italic font-bold text-sm text-[#B85B43]">J</span>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-8 rounded-md overflow-hidden bg-white border border-[#9E3E26]/30 shadow-2xs shrink-0">
+              <img
+                src="/jaadoo_logo.jpg"
+                alt="Jaadoo Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <span className="font-serif font-extrabold text-base leading-none text-[#261C18] block">
@@ -701,7 +790,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
             >
               ALL DISHES
             </button>
-            {menuData.map((c) => (
+            {liveMenuData.map((c) => (
               <button
                 key={c.id}
                 onClick={() => setSelectedCategory(c.id)}
@@ -720,8 +809,8 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         {/* Category Sections & Items List */}
         <div className="space-y-8">
           {(selectedCategory === "all"
-            ? menuData
-            : menuData.filter((c) => c.id === selectedCategory)
+            ? liveMenuData
+            : liveMenuData.filter((c) => c.id === selectedCategory)
           ).map((category) => (
             <section id={category.id} key={category.id}>
               {/* Category Header */}
@@ -742,6 +831,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
               {/* Menu Items */}
               <div className="divide-y divide-[#E6DDD0]">
                 {category.items.map((item) => {
+                  const isAvailable = (item as any).is_available !== false;
                   const qtyInCart = cart[item.id]?.qty || 0;
                   const itemMedia = ITEM_MEDIA_MAP[item.id];
                   const imgUrl = itemMedia?.image_url || "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80";
@@ -751,12 +841,14 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                     <div
                       key={item.id}
                       onClick={() => {
-                        if (qtyInCart === 0) updateCart(item, 1);
+                        if (isAvailable && qtyInCart === 0) updateCart(item, 1);
                       }}
-                      className={`group flex items-start sm:items-center justify-between py-3 px-2 sm:px-3 rounded-xl transition-all cursor-pointer ${
-                        qtyInCart > 0
-                          ? "bg-[#F4ECE0] border border-[#DDD3C4]"
-                          : "hover:bg-[#F2ECE1]/80 border border-transparent"
+                      className={`group flex items-start sm:items-center justify-between py-3 px-2 sm:px-3 rounded-xl transition-all ${
+                        !isAvailable
+                          ? "opacity-60 bg-stone-100/60 cursor-not-allowed"
+                          : qtyInCart > 0
+                          ? "bg-[#F4ECE0] border border-[#DDD3C4] cursor-pointer"
+                          : "hover:bg-[#F2ECE1]/80 border border-transparent cursor-pointer"
                       }`}
                     >
                       {/* Thumbnail */}
@@ -764,19 +856,32 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                         <img
                           src={imgUrl}
                           alt={item.name}
-                          className="w-full h-full object-cover"
+                          className={`w-full h-full object-cover ${!isAvailable ? "grayscale" : ""}`}
                           loading="lazy"
                         />
                       </div>
 
                       {/* Details */}
                       <div className="flex-1 min-w-0 pr-3">
-                        {badge && (
-                          <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#140E0A] bg-[#E5DEC3] px-2 py-0.5 rounded-full inline-block mb-1 border border-[#CCC2A5]">
-                            {badge}
-                          </span>
-                        )}
-                        <h3 className="text-sm font-serif font-bold text-[#140E0A] uppercase tracking-wide leading-snug group-hover:text-[#9E3E26] transition-colors break-words whitespace-normal">
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          {!isAvailable && (
+                            <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-rose-800 bg-rose-100 px-2 py-0.5 rounded-full inline-block border border-rose-300">
+                              Sold Out
+                            </span>
+                          )}
+                          {badge && (
+                            <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#140E0A] bg-[#E5DEC3] px-2 py-0.5 rounded-full inline-block border border-[#CCC2A5]">
+                              {badge}
+                            </span>
+                          )}
+                        </div>
+                        <h3
+                          className={`text-sm font-serif font-bold uppercase tracking-wide leading-snug break-words whitespace-normal transition-colors ${
+                            isAvailable
+                              ? "text-[#140E0A] group-hover:text-[#9E3E26]"
+                              : "text-stone-500 line-through"
+                          }`}
+                        >
                           {item.name}
                         </h3>
                         {item.description && (
@@ -788,17 +893,25 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
                       {/* Price & Add Controls */}
                       <div className="flex flex-col items-end shrink-0 pl-2 pt-0.5 sm:pt-0">
-                        <span className="text-base font-sans font-extrabold text-[#140E0A] text-right mb-1.5">
+                        <span
+                          className={`text-base font-sans font-extrabold text-right mb-1.5 ${
+                            isAvailable ? "text-[#140E0A]" : "text-stone-400"
+                          }`}
+                        >
                           ₹{item.price}
                         </span>
 
-                        {qtyInCart === 0 ? (
+                        {!isAvailable ? (
+                          <span className="px-3 py-1 rounded-full bg-stone-200 text-stone-500 text-[10px] font-sans font-bold uppercase tracking-wider">
+                            Unavailable
+                          </span>
+                        ) : qtyInCart === 0 ? (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               updateCart(item, 1);
                             }}
-                            className="px-4 py-1.5 rounded-full bg-[#140E0A] hover:bg-[#9E3E26] text-[#FAF8F5] text-xs font-sans font-bold uppercase tracking-wider shadow-2xs transition-all"
+                            className="px-4 py-1.5 rounded-full bg-[#140E0A] hover:bg-[#9E3E26] text-[#FAF8F5] text-xs font-sans font-bold uppercase tracking-wider shadow-2xs transition-all cursor-pointer"
                           >
                             ADD
                           </button>
@@ -809,7 +922,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                                 e.stopPropagation();
                                 updateCart(item, -1);
                               }}
-                              className="w-5 h-5 rounded-full hover:bg-[#9E3E26] flex items-center justify-center transition"
+                              className="w-5 h-5 rounded-full hover:bg-[#9E3E26] flex items-center justify-center transition cursor-pointer"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -821,7 +934,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                                 e.stopPropagation();
                                 updateCart(item, 1);
                               }}
-                              className="w-5 h-5 rounded-full hover:bg-[#9E3E26] flex items-center justify-center transition"
+                              className="w-5 h-5 rounded-full hover:bg-[#9E3E26] flex items-center justify-center transition cursor-pointer"
                             >
                               <Plus className="w-3 h-3" />
                             </button>

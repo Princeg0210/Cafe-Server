@@ -13,6 +13,8 @@ class ConnectionManager:
             "pos": set(),
             "orders": set(),
             "tables": set(),
+            "menu": set(),
+            "admin": set(),
         }
 
     async def connect(self, websocket: WebSocket, channel: str):
@@ -28,13 +30,14 @@ class ConnectionManager:
         if channel in self.channels:
             payload = json.dumps(message)
             dead_sockets = set()
-            for connection in self.channels[channel]:
+            for connection in list(self.channels[channel]):
                 try:
                     await connection.send_text(payload)
                 except Exception:
                     dead_sockets.add(connection)
             for dead in dead_sockets:
-                self.channels[channel].remove(dead)
+                if dead in self.channels[channel]:
+                    self.channels[channel].remove(dead)
 
 
 ws_manager = ConnectionManager()

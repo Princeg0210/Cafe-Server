@@ -23,11 +23,11 @@ export default function TanFooter() {
         {/* Column 1: Brand & Identity */}
         <div className="md:col-span-5 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="relative w-11 h-11 rounded-full overflow-hidden bg-white border border-[#E4DCD0]/30 shadow-xs shrink-0">
+            <div className="relative w-14 h-9 rounded-md overflow-hidden bg-white border border-[#E4DCD0]/30 shadow-xs shrink-0">
               <img
-                src="/jaadoo-logo-real.png"
-                alt="Jaadoo Logo"
-                className="w-full h-full object-contain p-0.5"
+                src="/jaadoo_logo.jpg"
+                alt="Jaadoo - The Pizza Project"
+                className="w-full h-full object-cover"
               />
             </div>
             <div>

@@ -72,12 +72,26 @@ async def list_menu_items(db: AsyncSession = Depends(get_db)):
     return items
 
 
+from app.api.websocket import ws_manager
+
+
 @router.post("/items", response_model=MenuItemResponse, status_code=201)
 async def create_menu_item(data: MenuItemCreate, db: AsyncSession = Depends(get_db)):
     item = MenuItem(**data.model_dump())
     db.add(item)
     await db.commit()
     await db.refresh(item)
+
+    payload = {
+        "type": "MENU_UPDATED",
+        "action": "CREATE",
+        "item_id": item.id,
+        "name": item.name,
+        "price": float(item.price),
+        "is_available": item.is_available,
+    }
+    for ch in ["menu", "pos", "tables", "admin"]:
+        await ws_manager.broadcast(ch, payload)
 
     return {
         "id": item.id,
@@ -109,6 +123,17 @@ async def update_menu_item(item_id: int, data: MenuItemUpdate, db: AsyncSession 
     await db.commit()
     await db.refresh(item)
 
+    payload = {
+        "type": "MENU_UPDATED",
+        "action": "UPDATE",
+        "item_id": item.id,
+        "name": item.name,
+        "price": float(item.price),
+        "is_available": item.is_available,
+    }
+    for ch in ["menu", "pos", "tables", "admin"]:
+        await ws_manager.broadcast(ch, payload)
+
     return {
         "id": item.id,
         "category_id": item.category_id,
@@ -135,5 +160,14 @@ async def delete_menu_item(item_id: int, db: AsyncSession = Depends(get_db)):
     item.is_active = False
     item.is_available = False
     await db.commit()
+
+    payload = {
+        "type": "MENU_UPDATED",
+        "action": "DELETE",
+        "item_id": item_id,
+    }
+    for ch in ["menu", "pos", "tables", "admin"]:
+        await ws_manager.broadcast(ch, payload)
+
     return {"message": "Menu item deleted successfully", "id": item_id}
 

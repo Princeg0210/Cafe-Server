@@ -1038,11 +1038,20 @@ export default function POSDashboard() {
   if (!posToken) {
     return (
       <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans flex flex-col justify-between p-4 sm:p-6">
-        <div className="max-w-sm mx-auto my-auto w-full bg-white rounded-lg p-6 sm:p-8 border border-[#E4DCD0] shadow-sm space-y-5">
-          <div className="text-left space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#261C18] text-[#FBF9F5] text-[10px] font-semibold uppercase tracking-wider mb-1">
-              <ShieldCheck className="w-3 h-3 text-[#B85B43]" />
-              <span>Staff Terminal</span>
+        <div className="max-w-sm mx-auto my-auto w-full bg-white rounded-2xl p-6 sm:p-8 border border-[#E4DCD0] shadow-sm space-y-5">
+          <div className="text-left space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="w-14 h-9 rounded-md overflow-hidden border border-[#9E3E26]/30 shadow-2xs bg-white">
+                <img
+                  src="/jaadoo_logo.jpg"
+                  alt="Jaadoo Logo"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#261C18] text-[#FBF9F5] text-[10px] font-semibold uppercase tracking-wider">
+                <ShieldCheck className="w-3 h-3 text-[#B85B43]" />
+                <span>Staff Terminal</span>
+              </div>
             </div>
             <h1 className="font-serif font-bold text-2xl text-[#261C18]">
               JAADOO <span className="italic font-normal text-[#B85B43]">POS</span>
@@ -1154,7 +1163,14 @@ export default function POSDashboard() {
           
           {/* Brand & Live Indicator */}
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2 group">
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="w-11 h-7 rounded-md overflow-hidden border border-[#9E3E26]/30 shadow-2xs bg-white shrink-0">
+                <img
+                  src="/jaadoo_logo.jpg"
+                  alt="Jaadoo Logo"
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <span className="font-serif font-bold text-lg text-[#261C18] tracking-tight">
                 JAADOO <span className="font-serif italic font-normal text-[#B85B43]">POS</span>
               </span>
