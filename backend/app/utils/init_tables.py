@@ -70,5 +70,12 @@ async def ensure_default_tables(db: AsyncSession) -> None:
             if not qr.is_active:
                 qr.is_active = True
 
+    # Automatically clean up any extra tables removed from DEFAULT_TABLES
+    valid_ids = [dt["id"] for dt in DEFAULT_TABLES]
+    orphan_tables_res = await db.execute(select(Table).where(Table.id.notin_(valid_ids)))
+    orphan_tables = orphan_tables_res.scalars().all()
+    for ot in orphan_tables:
+        await db.delete(ot)
+
     await db.commit()
     logger.info("Default tables and secure TableQR tokens ensured.")
