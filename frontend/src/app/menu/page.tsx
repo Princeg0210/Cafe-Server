@@ -161,7 +161,7 @@ export default function MenuPage() {
       {/* Header Banner - Authentic Italian Trattoria with Logo */}
       <section className="bg-[#140E0A] text-[#FBF9F5] py-10 px-4 text-center border-b border-[#3A2A20] relative overflow-hidden">
         <div className="max-w-4xl mx-auto space-y-3">
-          <div className="w-18 h-11 mx-auto rounded-lg overflow-hidden border border-[#D8A168]/40 shadow-md bg-white">
+          <div className="w-40 h-24 sm:w-48 sm:h-28 mx-auto rounded-2xl overflow-hidden border-2 border-[#D8A168]/60 shadow-xl bg-white mb-2">
             <img
               src="/jaadoo_logo.jpg"
               alt="Jaadoo - The Pizza Project"

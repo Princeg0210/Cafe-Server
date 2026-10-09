@@ -534,8 +534,8 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
       {/* Direct Focused Header: Table Number & View Bill */}
       <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0] shadow-xs px-4 sm:px-6 py-2.5">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-8 rounded-md overflow-hidden bg-white border border-[#9E3E26]/30 shadow-2xs shrink-0">
+          <div className="flex items-center gap-3.5">
+            <div className="w-18 h-11 sm:w-22 sm:h-13 rounded-xl overflow-hidden bg-white border-2 border-[#9E3E26]/40 shadow-xs shrink-0">
               <img
                 src="/jaadoo_logo.jpg"
                 alt="Jaadoo Logo"

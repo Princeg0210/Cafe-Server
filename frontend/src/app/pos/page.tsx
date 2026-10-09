@@ -1041,7 +1041,7 @@ export default function POSDashboard() {
         <div className="max-w-sm mx-auto my-auto w-full bg-white rounded-2xl p-6 sm:p-8 border border-[#E4DCD0] shadow-sm space-y-5">
           <div className="text-left space-y-2">
             <div className="flex items-center justify-between">
-              <div className="w-14 h-9 rounded-md overflow-hidden border border-[#9E3E26]/30 shadow-2xs bg-white">
+              <div className="w-28 h-18 sm:w-36 sm:h-22 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md bg-white">
                 <img
                   src="/jaadoo_logo.jpg"
                   alt="Jaadoo Logo"
@@ -1164,11 +1164,11 @@ export default function POSDashboard() {
           {/* Brand & Live Indicator */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-11 h-7 rounded-md overflow-hidden border border-[#9E3E26]/30 shadow-2xs bg-white shrink-0">
+              <div className="w-16 h-10 sm:w-20 sm:h-12 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-xs bg-white shrink-0">
                 <img
                   src="/jaadoo_logo.jpg"
                   alt="Jaadoo Logo"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
               </div>
               <span className="font-serif font-bold text-lg text-[#261C18] tracking-tight">

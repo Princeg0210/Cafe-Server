@@ -521,7 +521,7 @@ export default function AdminPortal() {
         >
           {/* Brand Header with Official Matchbox Logo */}
           <div className="text-center space-y-3">
-            <div className="w-24 h-15 mx-auto rounded-xl overflow-hidden border border-[#9E3E26]/30 shadow-md bg-white">
+            <div className="w-44 h-24 sm:w-52 sm:h-28 mx-auto rounded-2xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-lg bg-white">
               <img
                 src="/jaadoo_logo.jpg"
                 alt="Jaadoo - The Pizza Project"
@@ -631,9 +631,9 @@ export default function AdminPortal() {
       </AnimatePresence>
 
       {/* Top Header */}
-      <header className="bg-[#FFFDF9] border-b border-[#E6DCce] px-6 py-3.5 sticky top-0 z-40 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-8 rounded-md overflow-hidden border border-[#9E3E26]/30 shadow-2xs bg-white shrink-0">
+      <header className="bg-[#FFFDF9] border-b border-[#E6DCce] px-6 py-4 sticky top-0 z-40 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-20 h-12 sm:w-24 sm:h-14 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md bg-white shrink-0">
             <img
               src="/jaadoo_logo.jpg"
               alt="Jaadoo Logo"
@@ -1480,7 +1480,7 @@ export default function AdminPortal() {
               className="w-full max-w-sm bg-[#FFFDF9] text-[#241A14] rounded-3xl p-6 shadow-2xl text-center space-y-4 border border-[#E6DCCF]"
             >
               <div className="border-b border-[#F0E8DC] pb-3 flex flex-col items-center">
-                <div className="w-16 h-10 rounded-lg overflow-hidden border border-[#9E3E26]/30 shadow-2xs mb-2">
+                <div className="w-28 h-16 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md mb-2.5 bg-white">
                   <img
                     src="/jaadoo_logo.jpg"
                     alt="Jaadoo Logo"

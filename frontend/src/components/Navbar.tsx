@@ -23,17 +23,17 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
 
   return (
     <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0]/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 sm:h-22 flex items-center justify-between gap-6">
         
         {/* Left Side: Brand Logo + Typographic Navigation */}
-        <div className="flex items-center gap-8 lg:gap-12 min-w-0">
+        <div className="flex items-center gap-6 lg:gap-10 min-w-0">
           {/* Editorial Brand Logo */}
-          <Link href="/" className="flex items-center gap-3 group shrink-0 min-w-0">
-            <div className="relative w-12 h-8 sm:w-14 sm:h-9 rounded-md overflow-hidden bg-white border border-[#9E3E26]/30 group-hover:border-[#9E3E26] transition-all shrink-0 shadow-xs">
+          <Link href="/" className="flex items-center gap-3.5 group shrink-0 min-w-0">
+            <div className="relative w-20 h-12 sm:w-24 sm:h-14 rounded-xl overflow-hidden bg-white border-2 border-[#9E3E26]/40 group-hover:border-[#9E3E26] transition-all shrink-0 shadow-md">
               <img
                 src="/jaadoo_logo.jpg"
                 alt="Jaadoo - The Pizza Project"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
             </div>
             <div className="flex flex-col justify-center min-w-0">
