@@ -28,13 +28,13 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://cafe-piza.vercel.app"),
   title: {
-    default: "Jaadoo - The Pizza Project | Woodfired Neapolitan Pizza · Artisanal Coffee",
-    template: "%s | Jaadoo - The Pizza Project",
+    default: "Jaadoo Pizza Project | Woodfired Neapolitan Pizza · Artisanal Coffee",
+    template: "%s | Jaadoo Pizza Project",
   },
   description:
     "Authentic 48-hour slow-fermented Neapolitan wood-fired pizza, mountain Arabica espresso, and Himalayan wild-harvested tisanes in the heart of Old City, Udaipur.",
   keywords: [
-    "Jaadoo - The Pizza Project",
+    "Jaadoo Pizza Project",
     "Jaadoo Pizza Udaipur",
     "Italian Restaurant Udaipur",
     "Woodfired Pizza Udaipur",
@@ -44,9 +44,9 @@ export const metadata: Metadata = {
     "Ganesh Ghati Italian Pizzeria",
     "Table Booking Udaipur Cafe",
   ],
-  authors: [{ name: "Jaadoo - The Pizza Project" }],
-  creator: "Jaadoo - The Pizza Project (Jazz and Blues Hospitality LLP)",
-  publisher: "Jaadoo - The Pizza Project",
+  authors: [{ name: "Jaadoo Pizza Project" }],
+  creator: "Jaadoo Pizza Project (Jazz and Blues Hospitality LLP)",
+  publisher: "Jaadoo Pizza Project",
   formatDetection: {
     email: false,
     address: false,
@@ -59,8 +59,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_IN",
     url: "https://cafe-piza.vercel.app",
-    siteName: "Jaadoo - The Pizza Project · Udaipur",
-    title: "Jaadoo - The Pizza Project | Woodfired Neapolitan Pizza · Artisanal Coffee",
+    siteName: "Jaadoo Pizza Project · Udaipur",
+    title: "Jaadoo Pizza Project | Woodfired Neapolitan Pizza · Artisanal Coffee",
     description:
       "48-hour slow fermentation Neapolitan pizza and specialty Arabica roasts at 32 Sitaphal ki gali, Ganesh Ghati, Old City Udaipur.",
     images: [
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
         url: "/jaadoo-pizza-twilight.png",
         width: 1200,
         height: 630,
-        alt: "Jaadoo - The Pizza Project Woodfired Neapolitan Pizza",
+        alt: "Jaadoo Pizza Project Woodfired Neapolitan Pizza",
       },
     ],
   },

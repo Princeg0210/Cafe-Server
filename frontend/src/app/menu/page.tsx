@@ -164,7 +164,7 @@ export default function MenuPage() {
           <div className="w-40 h-24 sm:w-48 sm:h-28 mx-auto rounded-2xl overflow-hidden border-2 border-[#D8A168]/60 shadow-xl bg-white mb-2">
             <img
               src="/jaadoo_logo.jpg"
-              alt="Jaadoo - The Pizza Project"
+              alt="Jaadoo Pizza Project"
               className="w-full h-full object-cover"
             />
           </div>
@@ -173,7 +173,7 @@ export default function MenuPage() {
             — ESTRATTO DAL MENU · LA CARTA —
           </span>
           <h1 className="text-3xl sm:text-5xl font-serif font-bold text-white tracking-tight">
-            Jaadoo - The Pizza Project Menu
+            Jaadoo Pizza Project Menu
           </h1>
           <p className="text-stone-300 font-sans font-medium text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
             Wood-Fired Neapolitan Pizzas · 48h Natural Fermentation · Mountain Arabica and Tisanes

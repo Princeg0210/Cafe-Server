@@ -71,7 +71,7 @@ export default function CinematicBrandIntro({
               JAADOO
             </h1>
             <span className="font-serif italic font-normal text-2xl sm:text-3xl md:text-4xl text-[#C88A48] mt-2 tracking-wide">
-              The Pizza Project
+              Pizza Project
             </span>
 
             {/* Subtle Divider */}

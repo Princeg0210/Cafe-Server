@@ -203,11 +203,11 @@ export default function BookTablePage() {
       parseInt(activeBooking.time.split(":")[0]) + 1
     ).padStart(2, "0")}${activeBooking.time.split(":")[1]}00`;
     const details = encodeURIComponent(
-      `Table Reservation at Jaadoo - The Pizza Project.\nRef: ${activeBooking.id}\nParty: ${activeBooking.guests} Guests\nSeating: ${activeBooking.seatingZone}`
+      `Table Reservation at Jaadoo Pizza Project.\nRef: ${activeBooking.id}\nParty: ${activeBooking.guests} Guests\nSeating: ${activeBooking.seatingZone}`
     );
-    const location = encodeURIComponent("Jaadoo - The Pizza Project, 32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur, Rajasthan");
+    const location = encodeURIComponent("Jaadoo Pizza Project, 32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur, Rajasthan");
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
-      "Dinner at Jaadoo - The Pizza Project Udaipur"
+      "Dinner at Jaadoo Pizza Project Udaipur"
     )}&dates=${startIso}/${endIso}&details=${details}&location=${location}`;
   };
 
@@ -244,7 +244,7 @@ export default function BookTablePage() {
               {/* Top Station Header */}
               <div className="bg-[#140E0A] text-[#FAF8F5] p-6 text-center border-b border-[#3A281E]">
                 <div className="flex items-center justify-center gap-2 mb-1 text-xs font-serif italic text-[#E8A563]">
-                  <span>Jaadoo - The Pizza Project</span>
+                  <span>Jaadoo Pizza Project</span>
                   <span>·</span>
                   <span>Old City Udaipur</span>
                 </div>

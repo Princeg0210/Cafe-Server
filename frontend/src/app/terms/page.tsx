@@ -39,7 +39,7 @@ export default function TermsConditionsPage() {
             Terms and Conditions
           </h1>
           <p className="text-xs sm:text-sm text-stone-500 font-serif italic mt-2">
-            Last Updated: September 2026 • Jaadoo - The Pizza Project (Jazz and Blues Hospitality LLP)
+            Last Updated: September 2026 • Jaadoo Pizza Project (Jazz and Blues Hospitality LLP)
           </p>
         </header>
 

@@ -32,13 +32,13 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
             <div className="relative w-20 h-12 sm:w-24 sm:h-14 rounded-xl overflow-hidden bg-white border-2 border-[#9E3E26]/40 group-hover:border-[#9E3E26] transition-all shrink-0 shadow-md">
               <img
                 src="/jaadoo_logo.jpg"
-                alt="Jaadoo - The Pizza Project"
+                alt="Jaadoo Pizza Project"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
             </div>
             <div className="flex flex-col justify-center min-w-0">
               <span className="font-serif font-extrabold text-xl sm:text-2xl leading-tight tracking-wide text-[#140E0A] truncate">
-                JAADOO <span className="font-serif italic font-normal text-base sm:text-lg text-[#9E3E26] ml-0.5">The Pizza Project</span>
+                JAADOO <span className="font-serif italic font-normal text-base sm:text-lg text-[#9E3E26] ml-0.5">Pizza Project</span>
               </span>
               <span className="text-[10px] font-sans tracking-[0.22em] text-[#3B2C23] uppercase font-bold leading-none mt-0.5">
                 ARTISANAL PIZZERIA · UDAIPUR

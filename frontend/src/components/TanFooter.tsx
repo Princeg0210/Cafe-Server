@@ -26,13 +26,13 @@ export default function TanFooter() {
             <div className="relative w-24 h-14 rounded-xl overflow-hidden bg-white border-2 border-[#E4DCD0]/40 shadow-sm shrink-0">
               <img
                 src="/jaadoo_logo.jpg"
-                alt="Jaadoo - The Pizza Project"
+                alt="Jaadoo Pizza Project"
                 className="w-full h-full object-cover"
               />
             </div>
             <div>
               <span className="font-serif font-bold text-2xl tracking-wide block leading-none text-[#FBF9F5]">
-                JAADOO <span className="font-serif italic text-[#B85B43] font-normal text-lg">The Pizza Project</span>
+                JAADOO <span className="font-serif italic text-[#B85B43] font-normal text-lg">Pizza Project</span>
               </span>
               <span className="text-[10px] font-sans tracking-[0.25em] text-[#D8C7B5] uppercase font-medium">
                 ARTISANAL PIZZERIA · UDAIPUR · EST. 2024
@@ -135,7 +135,7 @@ export default function TanFooter() {
       {/* Bottom Footer Bar */}
       <div className="max-w-6xl mx-auto pt-6 border-t border-[#E4DCD0]/20 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-stone-400 font-sans">
         <p className="text-center md:text-left">
-          Copyright © JAADOO • The Pizza Project {new Date().getFullYear()}. All Rights Reserved.
+          Copyright © JAADOO PIZZA PROJECT {new Date().getFullYear()}. All Rights Reserved.
         </p>
 
         <div className="flex items-center gap-4">

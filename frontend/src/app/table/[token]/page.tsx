@@ -544,7 +544,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
             </div>
             <div>
               <span className="font-serif font-extrabold text-base leading-none text-[#261C18] block">
-                JAADOO <span className="font-serif italic font-normal text-sm text-[#B85B43]">The Pizza Project</span>
+                JAADOO <span className="font-serif italic font-normal text-sm text-[#B85B43]">Pizza Project</span>
               </span>
               <span className="text-[10px] font-mono font-bold text-[#4A5842] flex items-center gap-1.5 mt-0.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -744,7 +744,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                   </div>
 
                   <p className="font-serif text-sm sm:text-base text-[#140E0A] leading-relaxed font-semibold">
-                    “Please feel free to settle your bill at our reception counter whenever you wrap up. We invite you to pay at the counter not just for the bill, but because we genuinely love to meet, smile with, and thank the wonderful people who grace Jaadoo - The Pizza Project with their presence.”
+                    “Please feel free to settle your bill at our reception counter whenever you wrap up. We invite you to pay at the counter not just for the bill, but because we genuinely love to meet, smile with, and thank the wonderful people who grace Jaadoo Pizza Project with their presence.”
                   </p>
 
                   <p className="text-xs sm:text-sm font-sans font-medium text-[#1B3618] mt-3">

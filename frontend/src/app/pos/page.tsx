@@ -834,7 +834,7 @@ export default function POSDashboard() {
       <body>
         <div class="header">
           <div>
-            <h1>JAADOO • THE PIZZA PROJECT • POS OPERATIONAL REPORT</h1>
+            <h1>JAADOO PIZZA PROJECT • POS OPERATIONAL REPORT</h1>
             <p>32 Sitaphal ki gali, Ganesh Ghati, Udaipur • Session Reset Summary</p>
           </div>
           <div class="badge">Date: ${reportDate} | Generated: ${printTime}</div>
@@ -934,7 +934,7 @@ export default function POSDashboard() {
         </table>
 
         <div class="footer">
-          JAADOO • The Pizza Project • Operational POS System • ${reportDate}
+          JAADOO Pizza Project • Operational POS System • ${reportDate}
         </div>
 
         <script>
@@ -1049,7 +1049,7 @@ export default function POSDashboard() {
             <div className="w-44 h-24 sm:w-52 sm:h-28 mx-auto rounded-2xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-lg bg-white">
               <img
                 src="/jaadoo_logo.jpg"
-                alt="Jaadoo - The Pizza Project"
+                alt="Jaadoo Pizza Project"
                 className="w-full h-full object-cover"
               />
             </div>

@@ -661,7 +661,7 @@ export default function AdminPortal() {
             <div className="w-44 h-24 sm:w-52 sm:h-28 mx-auto rounded-2xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-lg bg-white">
               <img
                 src="/jaadoo_logo.jpg"
-                alt="Jaadoo - The Pizza Project"
+                alt="Jaadoo Pizza Project"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -779,7 +779,7 @@ export default function AdminPortal() {
           </div>
           <div>
             <h1 className="text-base font-serif font-extrabold tracking-wide text-[#241A14]">
-              JAADOO • THE PIZZA PROJECT
+              JAADOO PIZZA PROJECT
             </h1>
             <div className="mt-0.5">
               <span className="text-[10px] uppercase font-extrabold tracking-[0.22em] text-[#B85B43]">
@@ -1634,7 +1634,7 @@ export default function AdminPortal() {
                   Table #{qrModalTable.number}
                 </h3>
                 <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#B85B43] mt-0.5">
-                  JAADOO • THE PIZZA PROJECT
+                  JAADOO PIZZA PROJECT
                 </p>
               </div>
 
@@ -1668,7 +1668,7 @@ export default function AdminPortal() {
                           <body onload="window.print()">
                             <div class="card">
                               <h1>TABLE #${qrModalTable.number}</h1>
-                              <p>JAADOO • THE PIZZA PROJECT</p>
+                              <p>JAADOO PIZZA PROJECT</p>
                               <img src="${qrModalTable.qrDataUrl}" />
                               <div class="foot">Scan to Order • 32 Sitaphal ki gali, Ganesh Ghati, Udaipur</div>
                             </div>

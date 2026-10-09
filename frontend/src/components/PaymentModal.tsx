@@ -13,7 +13,7 @@ interface PaymentModalProps {
 }
 
 const MERCHANT_UPI_ID = "9460555743-2@ybl";
-const MERCHANT_NAME = "Jaadoo - The Pizza Project";
+const MERCHANT_NAME = "Jaadoo Pizza Project";
 
 export default function PaymentModal({
   isOpen,
