@@ -50,9 +50,7 @@ export default function Home() {
             transition={{ delay: 0.08, duration: 0.45, ease: "easeOut" }}
             className="mb-4"
           >
-            <span className="text-xs md:text-sm font-serif uppercase tracking-[0.35em] text-[#E8AA62] font-semibold">
-              EST. 2023 · UDAIPUR OLD CITY · LAKE PICHOLA
-            </span>
+
           </motion.div>
 
           {/* Luxury Serif Headline - High Contrast Pure White */}
