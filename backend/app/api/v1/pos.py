@@ -94,6 +94,33 @@ async def merge_tables(
     return await POSService.merge_tables(db, source_table_id=source_table_id, target_table_id=target_table_id)
 
 
+@router.post("/walk-in/seat")
+async def seat_walk_in(
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
+):
+    table_id = int(payload.get("table_id", 0))
+    customer_name = payload.get("customer_name")
+    guest_count = payload.get("guest_count")
+    return await POSService.seat_walk_in(
+        db,
+        table_id=table_id,
+        customer_name=customer_name,
+        guest_count=int(guest_count) if guest_count else None,
+    )
+
+
+@router.put("/sessions/{id}/items")
+async def update_session_items(
+    id: int,
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
+):
+    items = payload.get("items", [])
+    return await POSService.update_session_items(db, session_id=id, items=items)
+
 
 @router.post("/sessions/reset-all")
 async def reset_all_sessions(

@@ -675,3 +675,120 @@ class POSService:
             "target_table_id": target_table_id,
         }
 
+    @staticmethod
+    async def seat_walk_in(
+        db: AsyncSession,
+        table_id: int,
+        customer_name: Optional[str] = None,
+        guest_count: Optional[int] = None,
+    ) -> dict:
+        table = await db.get(Table, table_id)
+        if not table:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Table not found.")
+
+        session_stmt = (
+            select(DiningSession)
+            .where(
+                DiningSession.table_id == table_id,
+                DiningSession.status.in_(["OPENED", "ACTIVE", "CHECKOUT"]),
+            )
+            .order_by(DiningSession.opened_at.desc())
+        )
+        sess_res = await db.execute(session_stmt)
+        active_sess = sess_res.scalar_one_or_none()
+
+        if active_sess:
+            return {
+                "message": f"Table #{table.table_number or table_id} already has an active session.",
+                "session_id": active_sess.id,
+                "session_token": active_sess.session_token,
+            }
+
+        import secrets
+        new_session = DiningSession(
+            table_id=table_id,
+            session_token=f"sess_tok_{secrets.token_urlsafe(32)}",
+            status="ACTIVE",
+        )
+        db.add(new_session)
+        table.status = "Occupied"
+        await db.commit()
+        await db.refresh(new_session)
+
+        from app.api.websocket import ws_manager
+        event = {
+            "event": "TABLE_OCCUPIED",
+            "table_id": table_id,
+            "session_id": new_session.id,
+            "customer_name": customer_name,
+            "guest_count": guest_count,
+        }
+        await ws_manager.broadcast("tables", event)
+        await ws_manager.broadcast("pos", event)
+
+        return {
+            "message": f"Walk-in seated successfully at Table #{table.table_number or table_id}.",
+            "session_id": new_session.id,
+            "session_token": new_session.session_token,
+        }
+
+    @staticmethod
+    async def update_session_items(
+        db: AsyncSession,
+        session_id: int,
+        items: List[dict],
+    ) -> dict:
+        session = await db.get(DiningSession, session_id)
+        if not session:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dining session not found.")
+
+        orders_stmt = select(Order).options(selectinload(Order.items).selectinload(OrderItem.menu_item)).where(Order.dining_session_id == session_id)
+        orders_res = await db.execute(orders_stmt)
+        orders = orders_res.scalars().all()
+
+        if not orders:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No orders found for this session to edit.")
+
+        latest_order = orders[-1]
+        req_item_map = {it["name"].strip().lower(): it for it in items if int(it.get("quantity", 0)) > 0}
+
+        for ord in orders:
+            for oi in list(ord.items):
+                item_name = oi.menu_item.name.strip().lower() if oi.menu_item else ""
+                if item_name in req_item_map:
+                    new_qty = int(req_item_map[item_name]["quantity"])
+                    oi.quantity = new_qty
+                    oi.subtotal = Decimal(str(oi.unit_price)) * new_qty
+                    del req_item_map[item_name]
+                else:
+                    await db.delete(oi)
+
+        for it_name_lower, it_data in req_item_map.items():
+            menu_stmt = select(MenuItem).where(func.lower(MenuItem.name) == it_name_lower)
+            m_res = await db.execute(menu_stmt)
+            m_item = m_res.scalar_one_or_none()
+            if m_item:
+                qty = int(it_data.get("quantity", 1))
+                price = Decimal(str(it_data.get("unit_price", m_item.price)))
+                new_oi = OrderItem(
+                    order_id=latest_order.id,
+                    menu_item_id=m_item.id,
+                    quantity=qty,
+                    unit_price=price,
+                    subtotal=price * qty,
+                    special_instructions=it_data.get("special_instructions"),
+                )
+                db.add(new_oi)
+
+        await db.commit()
+
+        from app.api.websocket import ws_manager
+        event = {
+            "event": "ORDER_UPDATED",
+            "dining_session_id": session_id,
+        }
+        await ws_manager.broadcast("pos", event)
+        await ws_manager.broadcast("tables", event)
+
+        return {"message": "Session items updated successfully.", "session_id": session_id}
+

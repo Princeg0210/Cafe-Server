@@ -246,6 +246,32 @@ export default function POSDashboard() {
 
   const [isResettingAll, setIsResettingAll] = useState(false);
 
+  // Walk-in Portal State
+  const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
+  const [walkInTableId, setWalkInTableId] = useState<number | null>(null);
+  const [walkInGuestName, setWalkInGuestName] = useState("");
+  const [walkInGuestCount, setWalkInGuestCount] = useState<number>(2);
+  const [isSeatingWalkIn, setIsSeatingWalkIn] = useState(false);
+
+  // Merge Table State
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
+  const [mergeSourceTableId, setMergeSourceTableId] = useState<number | null>(null);
+  const [mergeTargetTableId, setMergeTargetTableId] = useState<number | null>(null);
+  const [isMerging, setIsMerging] = useState(false);
+
+  // Bill Modals State
+  const [billPreviewSession, setBillPreviewSession] = useState<TableSession | null>(null);
+  const [billPreviewTableInfo, setBillPreviewTableInfo] = useState<{ tableNumber: string; floorName: string; tableId: number } | null>(null);
+
+  const [billEditSession, setBillEditSession] = useState<TableSession | null>(null);
+  const [billEditTableInfo, setBillEditTableInfo] = useState<{ tableNumber: string; floorName: string; tableId: number } | null>(null);
+  const [billEditItems, setBillEditItems] = useState<SessionItem[]>([]);
+  const [isSavingBillEdit, setIsSavingBillEdit] = useState(false);
+
+  const [billSettleSession, setBillSettleSession] = useState<TableSession | null>(null);
+  const [billSettleTableInfo, setBillSettleTableInfo] = useState<{ tableNumber: string; floorName: string; tableId: number } | null>(null);
+  const [settlePaymentMode, setSettlePaymentMode] = useState<"CASH" | "UPI" | "CARD">("CASH");
+
   // Reservations State
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isRefreshingRes, setIsRefreshingRes] = useState(false);
@@ -735,18 +761,346 @@ export default function POSDashboard() {
     }
   };
 
+  const handlePrintThermalBill = (session: TableSession, tableNumber: string, floorName: string) => {
+    const printWindow = window.open("", "_blank", "width=380,height=600");
+    if (!printWindow) {
+      alert("Please allow popups in your browser to print thermal customer bills.");
+      return;
+    }
+
+    const receiptDate = new Date().toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    const receiptTime = new Date().toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    const subtotal = Number(session.subtotal || session.total_amount || 0);
+    const tax = Number(session.tax_amount || (subtotal * 0.05));
+    const gross = Number(session.gross_amount || (subtotal + tax));
+    const depositCredit = Number(session.reservation_credit || session.reservation_deposit_paid || 0);
+    const netDue = Number(session.net_amount_due ?? Math.max(0, gross - depositCredit));
+
+    const itemsHtml = (session.items || [])
+      .map(
+        (it) => `
+        <tr>
+          <td style="text-align: left; padding: 4px 0; font-family: monospace;">${it.name}</td>
+          <td style="text-align: center; padding: 4px 0; font-family: monospace;">${it.quantity}</td>
+          <td style="text-align: right; padding: 4px 0; font-family: monospace;">₹${Number(it.unit_price).toFixed(2)}</td>
+          <td style="text-align: right; padding: 4px 0; font-family: monospace;">₹${Number(it.subtotal).toFixed(2)}</td>
+        </tr>
+        ${it.special_instructions ? `<tr><td colspan="4" style="font-size: 10px; color: #555; padding-bottom: 4px;">* ${it.special_instructions}</td></tr>` : ""}
+      `
+      )
+      .join("");
+
+    const receiptContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Bill Receipt - Session #${session.session_seq}</title>
+        <style>
+          @page { size: 80mm auto; margin: 0; }
+          body {
+            font-family: 'Courier New', Courier, monospace;
+            width: 76mm;
+            margin: 0 auto;
+            padding: 12px 6px;
+            color: #000;
+            background: #fff;
+            font-size: 12px;
+            line-height: 1.3;
+          }
+          .text-center { text-align: center; }
+          .text-right { text-align: right; }
+          .bold { font-weight: bold; }
+          .title { font-size: 16px; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px; }
+          .subtitle { font-size: 11px; margin-bottom: 2px; }
+          .divider { border-top: 1px dashed #000; margin: 6px 0; }
+          .double-divider { border-top: 2px dashed #000; margin: 8px 0; }
+          table { width: 100%; border-collapse: collapse; margin: 4px 0; font-size: 11px; }
+          th { border-bottom: 1px dashed #000; padding: 4px 0; font-weight: bold; }
+          .row { display: flex; justify-content: space-between; margin: 3px 0; font-size: 11px; }
+          .total-row { font-size: 14px; font-weight: bold; margin: 6px 0; }
+          .footer { margin-top: 14px; text-align: center; font-size: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="text-center">
+          <div class="title">JAADOO TRATTORIA</div>
+          <div class="subtitle">Woodfired Pizza & Artisanal Italian</div>
+          <div class="subtitle">32 Sitaphal ki gali, Udaipur</div>
+          <div class="subtitle">GSTIN: 08AAACJ1234F1Z5</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <span>Table: <strong>${tableNumber}</strong></span>
+          <span>Floor: ${floorName}</span>
+        </div>
+        <div class="row">
+          <span>Session: #${session.session_seq}</span>
+          <span>Date: ${receiptDate}</span>
+        </div>
+        <div class="row">
+          <span>Time: ${receiptTime}</span>
+          <span>Staff: ${staffUser?.username || "Cashier"}</span>
+        </div>
+        ${session.customer_name ? `<div class="row"><span>Guest: ${session.customer_name}</span></div>` : ""}
+
+        <div class="divider"></div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align: left;">Item</th>
+              <th style="text-align: center;">Qty</th>
+              <th style="text-align: right;">Rate</th>
+              <th style="text-align: right;">Amt</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <span>Subtotal:</span>
+          <span>₹${subtotal.toFixed(2)}</span>
+        </div>
+        <div class="row">
+          <span>GST (5%):</span>
+          <span>₹${tax.toFixed(2)}</span>
+        </div>
+        <div class="row bold">
+          <span>Gross Total:</span>
+          <span>₹${gross.toFixed(2)}</span>
+        </div>
+
+        ${
+          depositCredit > 0
+            ? `
+          <div class="row" style="color: #000;">
+            <span>Advance Deposit Credit:</span>
+            <span>-₹${depositCredit.toFixed(2)}</span>
+          </div>
+        `
+            : ""
+        }
+
+        <div class="double-divider"></div>
+
+        <div class="row total-row">
+          <span>NET AMOUNT DUE:</span>
+          <span>₹${netDue.toFixed(2)}</span>
+        </div>
+
+        <div class="double-divider"></div>
+
+        <div class="footer">
+          <div>*** CUSTOMER INVOICE ***</div>
+          <div style="margin-top: 4px;">Thank you for dining with us!</div>
+          <div>Please visit Jaadoo Trattoria again.</div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 750);
+          };
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(receiptContent);
+    printWindow.document.close();
+  };
+
+  const handleSeatWalkIn = async () => {
+    if (!walkInTableId) {
+      alert("Please select an available table.");
+      return;
+    }
+    if (!posToken) {
+      alert("Staff session expired. Please sign in again.");
+      return;
+    }
+    setIsSeatingWalkIn(true);
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pos/walk-in/seat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${posToken}`,
+        },
+        body: JSON.stringify({
+          table_id: walkInTableId,
+          customer_name: walkInGuestName.trim() || "Walk-in Guest",
+          guest_count: walkInGuestCount || 2,
+        }),
+      });
+      if (res.ok) {
+        setIsWalkInModalOpen(false);
+        setWalkInGuestName("");
+        setWalkInTableId(null);
+        await fetchData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed to seat walk-in: ${err.detail || "Server error"}`);
+      }
+    } catch {
+      alert("Network error: Could not reach backend server.");
+    } finally {
+      setIsSeatingWalkIn(false);
+    }
+  };
+
+  const handleMergeTables = async () => {
+    if (!mergeSourceTableId || !mergeTargetTableId) {
+      alert("Please select both source and destination tables to merge.");
+      return;
+    }
+    if (mergeSourceTableId === mergeTargetTableId) {
+      alert("Source and destination tables must be different.");
+      return;
+    }
+    if (!posToken) {
+      alert("Staff session expired. Please sign in again.");
+      return;
+    }
+    setIsMerging(true);
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pos/tables/merge`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${posToken}`,
+        },
+        body: JSON.stringify({
+          source_table_id: mergeSourceTableId,
+          target_table_id: mergeTargetTableId,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.message || "Tables merged successfully.");
+        setIsMergeModalOpen(false);
+        setMergeSourceTableId(null);
+        setMergeTargetTableId(null);
+        await fetchData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed to merge tables: ${err.detail || "Server error"}`);
+      }
+    } catch {
+      alert("Network error: Could not reach backend server.");
+    } finally {
+      setIsMerging(false);
+    }
+  };
+
+  const handleSaveBillEdit = async () => {
+    if (!billEditSession) return;
+    if (!posToken) {
+      alert("Staff session expired.");
+      return;
+    }
+    setIsSavingBillEdit(true);
+    const apiBase = getApiBase();
+    try {
+      const res = await fetch(`${apiBase}/api/v1/pos/sessions/${billEditSession.session_id}/items`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${posToken}`,
+        },
+        body: JSON.stringify({
+          items: billEditItems,
+        }),
+      });
+      if (res.ok) {
+        setBillEditSession(null);
+        await fetchData();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Failed to update bill items: ${err.detail || "Server error"}`);
+      }
+    } catch {
+      alert("Network error: Could not reach backend server.");
+    } finally {
+      setIsSavingBillEdit(false);
+    }
+  };
+
+  const handleSettleBill = async () => {
+    if (!billSettleSession || !billSettleTableInfo) return;
+    if (!posToken) {
+      alert("Staff session expired.");
+      return;
+    }
+    const sessionId = billSettleSession.session_id;
+    const tableId = billSettleTableInfo.tableId;
+    const tableNumber = billSettleTableInfo.tableNumber;
+    setClosingSessionIds((prev) => ({ ...prev, [sessionId]: true }));
+    const apiBase = getApiBase();
+    try {
+      let res = await fetch(`${apiBase}/api/v1/pos/sessions/${sessionId}/close`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${posToken}`,
+        },
+      });
+
+      if (!res.ok && tableId) {
+        res = await fetch(`${apiBase}/api/v1/pos/tables/${tableId}/settle`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${posToken}`,
+          },
+        });
+      }
+
+      if (res.ok) {
+        setBillSettleSession(null);
+        await Promise.all([fetchData(), fetchReservations()]);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Cannot settle table: ${err.detail || "Server error"}`);
+      }
+    } catch {
+      alert("Network error: Could not reach café backend server.");
+    } finally {
+      setClosingSessionIds((prev) => ({ ...prev, [sessionId]: false }));
+    }
+  };
+
   const handleCloseSession = async (sessionId: number, tableNumber: string, tableId?: number) => {
     if (!posToken) {
       alert("Staff session expired. Please sign in again.");
       return;
     }
     const session = tableOverviews.flatMap((t) => t.sessions).find((s) => s.session_id === sessionId);
-    let confirmMsg = `Settle bill and close session for Table ${tableNumber}?`;
-    if (session && session.reservation_deposit_paid && Number(session.reservation_deposit_paid) > 0) {
-      confirmMsg += `\n\nBill Total: ₹${session.gross_amount || session.total_amount}\nReservation Credit: -₹${session.reservation_credit}\nAmount Due: ₹${session.net_amount_due}`;
-    }
-    confirmMsg += `\n\nThis will mark the table as Available for walk-in guests.`;
-    if (!confirm(confirmMsg)) {
+    if (session) {
+      setBillSettleSession(session);
+      setBillSettleTableInfo({
+        tableNumber,
+        floorName: "",
+        tableId: tableId || 0,
+      });
       return;
     }
     setClosingSessionIds((prev) => ({ ...prev, [sessionId]: true }));
@@ -771,8 +1125,6 @@ export default function POSDashboard() {
       }
 
       if (res.ok) {
-        const data = await res.json().catch(() => ({}));
-        alert(data.message || `Table ${tableNumber} settled successfully.`);
         await Promise.all([fetchData(), fetchReservations()]);
       } else {
         const err = await res.json().catch(() => ({}));
@@ -1527,14 +1879,45 @@ export default function POSDashboard() {
           <section className="space-y-4">
 
             {/* Table Controls Bar */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-3.5 rounded-lg border border-[#E4DCD0]">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-white p-3.5 rounded-lg border border-[#E4DCD0]">
+              <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-base font-serif font-bold text-[#261C18]">
                   Active Tables
                 </h2>
                 <span className="text-xs text-stone-500 font-sans">
                   ({tableOverviews.length} physical tables)
                 </span>
+
+                {/* Primary Quick Actions: Walk-in & Merge */}
+                <div className="flex items-center gap-1.5 ml-0 sm:ml-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const firstAvail = tableOverviews.find((t) => t.status === "Available");
+                      setWalkInTableId(firstAvail ? firstAvail.table_id : (tableOverviews[0]?.table_id || 1));
+                      setIsWalkInModalOpen(true);
+                    }}
+                    className="px-2.5 py-1.5 rounded-md bg-[#261C18] hover:bg-[#B85B43] text-white text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                  >
+                    <Users className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>+ Walk-in Guest</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const firstOcc = tableOverviews.find((t) => t.status === "Occupied" || (t.sessions && t.sessions.some((s) => s.is_active)));
+                      const firstAvail = tableOverviews.find((t) => t.status === "Available" || t.table_id !== firstOcc?.table_id);
+                      setMergeSourceTableId(firstOcc ? firstOcc.table_id : (tableOverviews[0]?.table_id || 1));
+                      setMergeTargetTableId(firstAvail ? firstAvail.table_id : (tableOverviews[1]?.table_id || 2));
+                      setIsMergeModalOpen(true);
+                    }}
+                    className="px-2.5 py-1.5 rounded-md bg-[#F6F3EC] hover:bg-[#EAE4D6] text-[#261C18] border border-[#E4DCD0] text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                  >
+                    <Layers className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Merge Tables</span>
+                  </button>
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -1925,17 +2308,90 @@ export default function POSDashboard() {
                                   </div>
                                 )}
 
-                                {/* Settle Action Button */}
+                                 {/* Bill Options for Occupied Table */}
                                 {isOccupied && activeSession && isTodaySelected && (
-                                  <div className="pt-3 border-t border-stone-100">
+                                  <div className="pt-3 border-t border-stone-100 space-y-2 font-sans">
+                                    {/* Primary Row: Print Bill ★ & Settle Bill */}
+                                    <div className="grid grid-cols-2 gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => handlePrintThermalBill(activeSession, `Table ${floorTableNum}`, floorInfo.name)}
+                                        className="bg-[#B85B43] hover:bg-[#9E3E26] text-white py-2 px-2 rounded-md font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 shadow-2xs cursor-pointer"
+                                        title="Direct print formatted 80mm customer thermal invoice"
+                                      >
+                                        <Printer className="w-3.5 h-3.5" />
+                                        <span>★ Print Bill</span>
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setBillSettleSession(activeSession);
+                                          setBillSettleTableInfo({
+                                            tableNumber: `Table ${floorTableNum}`,
+                                            floorName: floorInfo.name,
+                                            tableId: tbl.table_id,
+                                          });
+                                        }}
+                                        disabled={closingSessionIds[activeSession.session_id]}
+                                        className="bg-[#261C18] hover:bg-[#140E0A] text-white py-2 px-2 rounded-md font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 shadow-2xs cursor-pointer disabled:opacity-50"
+                                      >
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                        <span>Settle Bill</span>
+                                      </button>
+                                    </div>
+
+                                    {/* Secondary Row: Preview Bill & Edit Bill */}
+                                    <div className="grid grid-cols-2 gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setBillPreviewSession(activeSession);
+                                          setBillPreviewTableInfo({
+                                            tableNumber: `Table ${floorTableNum}`,
+                                            floorName: floorInfo.name,
+                                            tableId: tbl.table_id,
+                                          });
+                                        }}
+                                        className="bg-[#F6F3EC] hover:bg-[#EAE4D6] text-[#261C18] border border-[#E4DCD0] py-1.5 px-2 rounded-md font-semibold text-[10px] sm:text-[11px] uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                      >
+                                        <Eye className="w-3 h-3 text-stone-600" />
+                                        <span>Preview</span>
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setBillEditSession(activeSession);
+                                          setBillEditTableInfo({
+                                            tableNumber: `Table ${floorTableNum}`,
+                                            floorName: floorInfo.name,
+                                            tableId: tbl.table_id,
+                                          });
+                                          setBillEditItems([...(activeSession.items || [])]);
+                                        }}
+                                        className="bg-[#F6F3EC] hover:bg-[#EAE4D6] text-[#261C18] border border-[#E4DCD0] py-1.5 px-2 rounded-md font-semibold text-[10px] sm:text-[11px] uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                      >
+                                        <UtensilsCrossed className="w-3 h-3 text-stone-600" />
+                                        <span>Edit Bill</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Available Table Quick Seat Walk-in */}
+                                {!isOccupied && !isReserved && isTodaySelected && (
+                                  <div className="pt-2 border-t border-stone-100">
                                     <button
                                       type="button"
-                                      onClick={() => handleCloseSession(activeSession.session_id, `Table ${floorTableNum} (${floorInfo.name})`, tbl.table_id)}
-                                      disabled={closingSessionIds[activeSession.session_id]}
-                                      className="w-full bg-[#261C18] hover:bg-[#B85B43] text-white py-2 rounded-md font-sans font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+                                      onClick={() => {
+                                        setWalkInTableId(tbl.table_id);
+                                        setIsWalkInModalOpen(true);
+                                      }}
+                                      className="w-full bg-[#FAF8F5] hover:bg-emerald-50 text-emerald-800 border border-emerald-300 py-1.5 rounded-md font-semibold text-xs tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                                     >
-                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                      <span>{closingSessionIds[activeSession.session_id] ? "Settling..." : "Settle Table"}</span>
+                                      <Users className="w-3.5 h-3.5 text-emerald-600" />
+                                      <span>+ Seat Walk-in</span>
                                     </button>
                                   </div>
                                 )}
@@ -2324,65 +2780,495 @@ export default function POSDashboard() {
           </section>
         )}
 
-        {/* Modal: Assign Table */}
-        {assigningTableRes && (
+        {/* Modal 1: Walk-in Guest Intake Portal */}
+        {isWalkInModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-2xs">
-            <div className="bg-white rounded-lg w-full max-w-md p-5 border border-[#E4DCD0] shadow-xl space-y-4">
+            <div className="bg-white rounded-xl w-full max-w-md p-5 border border-[#E4DCD0] shadow-2xl space-y-4">
               <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
-                <h3 className="font-serif font-bold text-base text-[#261C18]">
-                  Assign Physical Table
-                </h3>
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-emerald-600" />
+                  <h3 className="font-serif font-bold text-base text-[#261C18]">
+                    Seat Walk-in Guest
+                  </h3>
+                </div>
                 <button
                   type="button"
-                  onClick={() => setAssigningTableRes(null)}
+                  onClick={() => setIsWalkInModalOpen(false)}
                   className="p-1 rounded-md hover:bg-stone-100 text-stone-500 cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="p-3 bg-[#FAF8F5] border border-[#E4DCD0] rounded-md text-xs space-y-1">
-                <p>
-                  <strong>Reservation:</strong> #RES-{String(assigningTableRes.id).padStart(4, "0")} • {assigningTableRes.customer?.name}
-                </p>
-                <p>
-                  <strong>Party Size:</strong> {assigningTableRes.guest_count} Guests • {assigningTableRes.time_slot}
-                </p>
-              </div>
+              <div className="space-y-3 font-sans text-xs">
+                <div>
+                  <label className="font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                    Select Table:
+                  </label>
+                  <select
+                    value={walkInTableId || ""}
+                    onChange={(e) => setWalkInTableId(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-lg border border-stone-300 bg-stone-50 font-sans focus:outline-hidden focus:border-[#B85B43]"
+                  >
+                    {tableOverviews.map((tbl) => {
+                      const fl = getTableFloor(tbl.table_id, tbl.floor_number);
+                      const relativeNum = tbl.floor_table_num || fl.floor_table_num;
+                      return (
+                        <option key={tbl.table_id} value={tbl.table_id}>
+                          Table {relativeNum} ({fl.name} • {tbl.capacity || fl.capacity} Seats) — {tbl.status}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-stone-700 uppercase tracking-wider block">
-                  Select Table:
-                </label>
-                <select
-                  value={selectedAssignTableId}
-                  onChange={(e) => setSelectedAssignTableId(Number(e.target.value))}
-                  className="w-full text-xs p-2.5 rounded-md border border-stone-300 bg-stone-50 font-sans focus:outline-hidden focus:border-[#B85B43]"
-                >
-                  {tableOverviews.map((tbl) => {
-                    const fl = getTableFloor(tbl.table_id, tbl.floor_number);
-                    const relativeNum = tbl.floor_table_num || fl.floor_table_num;
-                    return (
-                      <option key={tbl.table_id} value={tbl.table_id}>
-                        Table {relativeNum} ({fl.name} • {tbl.capacity || fl.capacity} Seats) — {tbl.status}
-                      </option>
-                    );
-                  })}
-                </select>
+                <div>
+                  <label className="font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                    Guest / Group Name (Optional):
+                  </label>
+                  <input
+                    type="text"
+                    value={walkInGuestName}
+                    onChange={(e) => setWalkInGuestName(e.target.value)}
+                    placeholder="e.g., Walk-in Guest"
+                    className="w-full p-2.5 rounded-lg border border-stone-300 bg-white focus:outline-hidden focus:border-[#B85B43]"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                    Party Size (Guests):
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5, 6, 8].map((cnt) => (
+                      <button
+                        key={cnt}
+                        type="button"
+                        onClick={() => setWalkInGuestCount(cnt)}
+                        className={`flex-1 py-2 rounded-lg font-bold transition-colors cursor-pointer ${
+                          walkInGuestCount === cnt
+                            ? "bg-[#261C18] text-white"
+                            : "bg-[#F6F3EC] text-stone-700 hover:bg-[#EAE4D6]"
+                        }`}
+                      >
+                        {cnt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="pt-2 flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => handleAssignTable(assigningTableRes.id, selectedAssignTableId)}
-                  className="flex-1 bg-[#261C18] hover:bg-[#B85B43] text-white py-2.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
+                  onClick={handleSeatWalkIn}
+                  disabled={isSeatingWalkIn}
+                  className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
                 >
-                  Confirm Table Assignment
+                  {isSeatingWalkIn ? "Seating..." : "Seat Guest & Open Session"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAssigningTableRes(null)}
-                  className="px-3 py-2.5 border border-stone-200 hover:bg-stone-100 text-stone-700 rounded-md text-xs font-semibold transition-colors cursor-pointer"
+                  onClick={() => setIsWalkInModalOpen(false)}
+                  className="px-3.5 py-2.5 border border-stone-200 hover:bg-stone-100 text-stone-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal 2: Merge Tables Feature */}
+        {isMergeModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-2xs">
+            <div className="bg-white rounded-xl w-full max-w-md p-5 border border-[#E4DCD0] shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-amber-700" />
+                  <h3 className="font-serif font-bold text-base text-[#261C18]">
+                    Merge Table Sessions
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMergeModalOpen(false)}
+                  className="p-1 rounded-md hover:bg-stone-100 text-stone-500 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-3 bg-[#FAF8F5] border border-amber-200 rounded-lg text-xs space-y-1 text-stone-700">
+                <p className="font-semibold text-amber-900">
+                  Combine table orders & sessions:
+                </p>
+                <p>
+                  All orders, items, and KOTs from the <strong>Source Table</strong> will be merged into the <strong>Target Table</strong>. The source table will be freed for new guests.
+                </p>
+              </div>
+
+              <div className="space-y-3 font-sans text-xs">
+                <div>
+                  <label className="font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                    Source Table (To be merged from):
+                  </label>
+                  <select
+                    value={mergeSourceTableId || ""}
+                    onChange={(e) => setMergeSourceTableId(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-lg border border-stone-300 bg-stone-50 font-sans focus:outline-hidden focus:border-[#B85B43]"
+                  >
+                    {tableOverviews.map((tbl) => {
+                      const fl = getTableFloor(tbl.table_id, tbl.floor_number);
+                      const relativeNum = tbl.floor_table_num || fl.floor_table_num;
+                      return (
+                        <option key={tbl.table_id} value={tbl.table_id}>
+                          Table {relativeNum} ({fl.name}) — {tbl.status}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-stone-700 uppercase tracking-wider block mb-1">
+                    Target Table (Destination to combine into):
+                  </label>
+                  <select
+                    value={mergeTargetTableId || ""}
+                    onChange={(e) => setMergeTargetTableId(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-lg border border-stone-300 bg-stone-50 font-sans focus:outline-hidden focus:border-[#B85B43]"
+                  >
+                    {tableOverviews.map((tbl) => {
+                      const fl = getTableFloor(tbl.table_id, tbl.floor_number);
+                      const relativeNum = tbl.floor_table_num || fl.floor_table_num;
+                      return (
+                        <option key={tbl.table_id} value={tbl.table_id}>
+                          Table {relativeNum} ({fl.name}) — {tbl.status}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleMergeTables}
+                  disabled={isMerging}
+                  className="flex-1 bg-[#B85B43] hover:bg-[#9E3E26] text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
+                >
+                  {isMerging ? "Merging..." : "Confirm Table Merge"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMergeModalOpen(false)}
+                  className="px-3.5 py-2.5 border border-stone-200 hover:bg-stone-100 text-stone-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal 3: Preview Bill */}
+        {billPreviewSession && billPreviewTableInfo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-2xs">
+            <div className="bg-white rounded-xl w-full max-w-md p-5 border border-[#E4DCD0] shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-5 h-5 text-[#B85B43]" />
+                  <h3 className="font-serif font-bold text-base text-[#261C18]">
+                    {billPreviewTableInfo.tableNumber} • Bill Preview
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBillPreviewSession(null)}
+                  className="p-1 rounded-md hover:bg-stone-100 text-stone-500 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3 font-sans text-xs">
+                <div className="flex justify-between text-stone-500 border-b border-stone-100 pb-2">
+                  <span>Session: #{billPreviewSession.session_seq}</span>
+                  <span>{new Date(billPreviewSession.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+
+                {/* Items List */}
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {billPreviewSession.items && billPreviewSession.items.length > 0 ? (
+                    billPreviewSession.items.map((it, idx) => (
+                      <div key={idx} className="flex justify-between items-start text-stone-800">
+                        <span className="flex-1">
+                          <strong>{it.quantity}×</strong> {it.name}
+                        </span>
+                        <span className="font-bold">₹{Number(it.subtotal).toFixed(2)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-stone-400 italic text-center py-3">No items placed yet in this session.</p>
+                  )}
+                </div>
+
+                {/* Totals Breakdown */}
+                <div className="bg-[#FAF8F5] p-3 rounded-lg border border-[#E4DCD0] space-y-1.5 pt-2 text-xs">
+                  <div className="flex justify-between text-stone-600">
+                    <span>Subtotal:</span>
+                    <span>₹{Number(billPreviewSession.subtotal || billPreviewSession.total_amount || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-stone-600">
+                    <span>GST (5%):</span>
+                    <span>₹{Number(billPreviewSession.tax_amount || ((billPreviewSession.subtotal || billPreviewSession.total_amount || 0) * 0.05)).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-stone-900 border-t border-stone-200 pt-1">
+                    <span>Gross Amount:</span>
+                    <span>₹{Number(billPreviewSession.gross_amount || billPreviewSession.total_amount || 0).toFixed(2)}</span>
+                  </div>
+
+                  {Number(billPreviewSession.reservation_credit || billPreviewSession.reservation_deposit_paid || 0) > 0 && (
+                    <div className="flex justify-between text-emerald-700 font-semibold">
+                      <span>Advance Deposit Credit:</span>
+                      <span>-₹{Number(billPreviewSession.reservation_credit || billPreviewSession.reservation_deposit_paid || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-sm font-extrabold text-[#B85B43] border-t border-dashed border-stone-300 pt-2">
+                    <span>NET AMOUNT DUE:</span>
+                    <span>₹{Number(billPreviewSession.net_amount_due ?? billPreviewSession.gross_amount ?? billPreviewSession.total_amount).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handlePrintThermalBill(billPreviewSession, billPreviewTableInfo.tableNumber, billPreviewTableInfo.floorName);
+                  }}
+                  className="flex-1 bg-[#B85B43] hover:bg-[#9E3E26] text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>★ Print Bill</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sess = billPreviewSession;
+                    const info = billPreviewTableInfo;
+                    setBillPreviewSession(null);
+                    setBillSettleSession(sess);
+                    setBillSettleTableInfo(info);
+                  }}
+                  className="flex-1 bg-[#261C18] hover:bg-[#140E0A] text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>Settle Bill</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal 4: Edit Bill Items */}
+        {billEditSession && billEditTableInfo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-2xs">
+            <div className="bg-white rounded-xl w-full max-w-md p-5 border border-[#E4DCD0] shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <UtensilsCrossed className="w-5 h-5 text-stone-800" />
+                  <h3 className="font-serif font-bold text-base text-[#261C18]">
+                    {billEditTableInfo.tableNumber} • Edit Bill Items
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBillEditSession(null)}
+                  className="p-1 rounded-md hover:bg-stone-100 text-stone-500 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3 font-sans text-xs">
+                <p className="text-stone-500">
+                  Adjust item quantities or remove cancelled items before settlement.
+                </p>
+
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {billEditItems.length > 0 ? (
+                    billEditItems.map((it, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2.5 rounded-lg bg-[#FAF8F5] border border-stone-200 flex items-center justify-between gap-2"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-stone-900 truncate">{it.name}</p>
+                          <p className="text-[11px] text-stone-500 font-mono">₹{it.unit_price} each</p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center bg-white border border-stone-300 rounded-md">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newItems = [...billEditItems];
+                                if (newItems[idx].quantity > 1) {
+                                  newItems[idx].quantity -= 1;
+                                  newItems[idx].subtotal = newItems[idx].quantity * newItems[idx].unit_price;
+                                } else {
+                                  newItems.splice(idx, 1);
+                                }
+                                setBillEditItems(newItems);
+                              }}
+                              className="px-2 py-1 hover:bg-stone-100 font-bold text-stone-700 cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <span className="px-2 font-bold font-mono">{it.quantity}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newItems = [...billEditItems];
+                                newItems[idx].quantity += 1;
+                                newItems[idx].subtotal = newItems[idx].quantity * newItems[idx].unit_price;
+                                setBillEditItems(newItems);
+                              }}
+                              className="px-2 py-1 hover:bg-stone-100 font-bold text-stone-700 cursor-pointer"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          <span className="font-bold text-stone-900 w-16 text-right font-mono">
+                            ₹{(it.quantity * it.unit_price).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-stone-400 italic text-center py-4">No items remaining in this bill.</p>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-center bg-stone-100 p-2.5 rounded-lg font-bold text-xs">
+                  <span>Updated Subtotal:</span>
+                  <span className="text-[#B85B43] text-sm">
+                    ₹{billEditItems.reduce((acc, it) => acc + (it.quantity * it.unit_price), 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSaveBillEdit}
+                  disabled={isSavingBillEdit}
+                  className="flex-1 bg-[#261C18] hover:bg-[#B85B43] text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
+                >
+                  {isSavingBillEdit ? "Saving..." : "Save Bill Changes"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillEditSession(null)}
+                  className="px-3.5 py-2.5 border border-stone-200 hover:bg-stone-100 text-stone-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal 5: Settle Bill & Close Session */}
+        {billSettleSession && billSettleTableInfo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-2xs">
+            <div className="bg-white rounded-xl w-full max-w-md p-5 border border-[#E4DCD0] shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <h3 className="font-serif font-bold text-base text-[#261C18]">
+                    Settle Table Bill & Free Table
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBillSettleSession(null)}
+                  className="p-1 rounded-md hover:bg-stone-100 text-stone-500 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-3 bg-[#FAF8F5] border border-stone-200 rounded-lg text-xs space-y-2 font-sans">
+                <div className="flex justify-between font-bold text-stone-800">
+                  <span>{billSettleTableInfo.tableNumber}</span>
+                  <span>Session #{billSettleSession.session_seq}</span>
+                </div>
+
+                <div className="border-t border-stone-200 pt-2 space-y-1 text-stone-600">
+                  <div className="flex justify-between">
+                    <span>Gross Amount:</span>
+                    <span>₹{Number(billSettleSession.gross_amount || billSettleSession.total_amount || 0).toFixed(2)}</span>
+                  </div>
+
+                  {Number(billSettleSession.reservation_credit || billSettleSession.reservation_deposit_paid || 0) > 0 && (
+                    <div className="flex justify-between text-emerald-700 font-semibold">
+                      <span>Advance Deposit Credit:</span>
+                      <span>-₹{Number(billSettleSession.reservation_credit || billSettleSession.reservation_deposit_paid || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-base font-extrabold text-[#261C18] border-t border-stone-300 pt-1.5">
+                    <span>Net Amount Due:</span>
+                    <span className="text-emerald-800 font-mono">
+                      ₹{Number(billSettleSession.net_amount_due ?? billSettleSession.gross_amount ?? billSettleSession.total_amount).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Mode Selector */}
+              <div className="space-y-1.5 font-sans text-xs">
+                <label className="font-bold text-stone-700 uppercase tracking-wider block">
+                  Received Payment Mode:
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["CASH", "UPI", "CARD"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setSettlePaymentMode(mode)}
+                      className={`py-2 rounded-lg font-bold transition-colors cursor-pointer text-center ${
+                        settlePaymentMode === mode
+                          ? "bg-[#261C18] text-white shadow-2xs"
+                          : "bg-[#F6F3EC] text-stone-700 hover:bg-[#EAE4D6]"
+                      }`}
+                    >
+                      {mode === "CASH" ? "💵 Cash" : mode === "UPI" ? "📱 UPI" : "💳 Card"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSettleBill}
+                  disabled={closingSessionIds[billSettleSession.session_id]}
+                  className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer shadow-2xs flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{closingSessionIds[billSettleSession.session_id] ? "Settling..." : "Confirm & Clear Table"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillSettleSession(null)}
+                  className="px-3.5 py-2.5 border border-stone-200 hover:bg-stone-100 text-stone-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

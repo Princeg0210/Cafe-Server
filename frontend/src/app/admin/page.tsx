@@ -46,6 +46,7 @@ import {
   Package,
   FolderPlus,
   Zap,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -239,6 +240,7 @@ export default function AdminPortal() {
   const [resSearch, setResSearch] = useState("");
   const [resDateFilter, setResDateFilter] = useState("");
   const [resFloorFilter, setResFloorFilter] = useState<number | "all">("all");
+  const [selectedResDetails, setSelectedResDetails] = useState<Reservation | null>(null);
 
   // Tables Data
   const [tables, setTables] = useState<TableOverview[]>([]);
@@ -2663,12 +2665,17 @@ export default function AdminPortal() {
                         <th className="p-4">Date & Time</th>
                         <th className="p-4">Deposit</th>
                         <th className="p-4">Status</th>
+                        <th className="p-4 text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#F0E8DC]">
                       {recentReservations.length > 0 ? (
                         recentReservations.map((r) => (
-                          <tr key={r.id} className="hover:bg-[#FAF7F0] transition-colors">
+                          <tr
+                            key={r.id}
+                            onClick={() => setSelectedResDetails(r)}
+                            className="hover:bg-[#FAF7F0] transition-colors cursor-pointer"
+                          >
                             <td className="p-4 font-mono font-bold text-[#B85B43]">
                               {r.booking_id || `RES-${String(r.id).padStart(4, "0")}`}
                             </td>
@@ -2709,11 +2716,23 @@ export default function AdminPortal() {
                                 {r.status}
                               </span>
                             </td>
+                            <td className="p-4 text-right">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedResDetails(r);
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-[#FAF7F0] hover:bg-[#B85B43] hover:text-white text-[#4A392F] border border-[#E0D4C2] text-xs font-bold transition-colors cursor-pointer"
+                              >
+                                Details →
+                              </button>
+                            </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={8} className="p-6 text-center text-[#8C7A6D]">
+                          <td colSpan={9} className="p-6 text-center text-[#8C7A6D]">
                             No recent reservations in the last 7 calendar days.
                           </td>
                         </tr>
@@ -3537,6 +3556,166 @@ export default function AdminPortal() {
                   className="px-4 py-2.5 border border-[#E0D4C2] hover:bg-[#FAF7F0] text-[#665448] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Full Reservation Details Modal */}
+        {selectedResDetails && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-2xs">
+            <div className="bg-[#FFFDF9] rounded-2xl w-full max-w-lg p-6 border border-[#E0D4C2] shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-[#E0D4C2] pb-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-[#B85B43]" />
+                  <div>
+                    <h3 className="font-serif font-bold text-base text-[#241A14]">
+                      Reservation Details
+                    </h3>
+                    <p className="text-xs font-mono font-bold text-[#B85B43]">
+                      {selectedResDetails.booking_id || `RES-${String(selectedResDetails.id).padStart(4, "0")}`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedResDetails(null)}
+                  className="p-1 rounded-lg hover:bg-[#FAF7F0] text-[#665448] cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Guest & Party Info */}
+              <div className="grid grid-cols-2 gap-3 text-xs bg-[#FAF7F0] p-3.5 rounded-xl border border-[#E0D4C2]">
+                <div>
+                  <span className="text-[#8C7A6D] uppercase text-[10px] font-bold block">Guest Name</span>
+                  <span className="font-bold text-[#241A14] text-sm">{selectedResDetails.customer_name}</span>
+                </div>
+                <div>
+                  <span className="text-[#8C7A6D] uppercase text-[10px] font-bold block">Phone</span>
+                  <span className="font-mono text-[#241A14]">{selectedResDetails.customer_phone || "Not provided"}</span>
+                </div>
+                <div>
+                  <span className="text-[#8C7A6D] uppercase text-[10px] font-bold block">Party Size</span>
+                  <span className="font-bold text-[#241A14]">{selectedResDetails.party_size} Guests</span>
+                </div>
+                <div>
+                  <span className="text-[#8C7A6D] uppercase text-[10px] font-bold block">Date & Time Slot</span>
+                  <span className="font-bold text-[#B85B43]">
+                    {selectedResDetails.booking_date} • {selectedResDetails.time_slot}
+                  </span>
+                </div>
+              </div>
+
+              {/* Table Seating Info */}
+              <div className="text-xs space-y-2">
+                <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-[#E0D4C2]">
+                  <div>
+                    <span className="text-[#8C7A6D] text-[10px] uppercase font-bold block">Assigned Table & Floor</span>
+                    <span className="font-bold text-[#241A14]">
+                      {selectedResDetails.table_name || (selectedResDetails.table_id ? `Table ${selectedResDetails.table_id}` : "Auto Assigned")}
+                    </span>
+                    <span className="text-[#8C7A6D] ml-2">
+                      ({selectedResDetails.floor_name || (selectedResDetails.floor_number ? getFloorName(selectedResDetails.floor_number) : "Ground Floor")})
+                    </span>
+                  </div>
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                      selectedResDetails.status === "CONFIRMED"
+                        ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                        : selectedResDetails.status === "ARRIVED"
+                        ? "bg-amber-100 text-amber-800 border border-amber-300"
+                        : selectedResDetails.status === "SEATED"
+                        ? "bg-indigo-100 text-indigo-800 border border-indigo-300"
+                        : "bg-stone-100 text-stone-700 border border-stone-300"
+                    }`}
+                  >
+                    {selectedResDetails.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Deposit & Payment Ledger */}
+              <div className="bg-[#FAF7F0] p-3.5 rounded-xl border border-[#E0D4C2] text-xs space-y-2">
+                <h4 className="font-serif font-bold text-xs text-[#241A14] uppercase tracking-wider">
+                  Payment & Advance Deposit
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[#8C7A6D] block">Advance Amount:</span>
+                    <span className="font-bold text-emerald-800 font-mono text-sm">
+                      ₹{Number(selectedResDetails.advance_amount || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[#8C7A6D] block">Payment Status:</span>
+                    <span className="font-bold text-[#241A14]">{selectedResDetails.payment_status || "PENDING"}</span>
+                  </div>
+                  {selectedResDetails.upi_utr && (
+                    <div className="col-span-2">
+                      <span className="text-[#8C7A6D] block">Bank / UPI Reference (UTR):</span>
+                      <span className="font-mono font-bold text-[#241A14]">{selectedResDetails.upi_utr}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Status Actions */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-xs font-bold text-[#4A392F] uppercase tracking-wider block">
+                  Update Reservation Status:
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {selectedResDetails.status !== "ARRIVED" && selectedResDetails.status !== "SEATED" && selectedResDetails.status !== "COMPLETED" && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await handleUpdateOpReservationStatus(selectedResDetails.id, "ARRIVED");
+                        setSelectedResDetails({ ...selectedResDetails, status: "ARRIVED" });
+                      }}
+                      className="py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      Mark Arrived
+                    </button>
+                  )}
+
+                  {selectedResDetails.status !== "SEATED" && selectedResDetails.status !== "COMPLETED" && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await handleUpdateOpReservationStatus(selectedResDetails.id, "SEATED");
+                        setSelectedResDetails({ ...selectedResDetails, status: "SEATED" });
+                      }}
+                      className="py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      Seat Guests
+                    </button>
+                  )}
+
+                  {selectedResDetails.status !== "COMPLETED" && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await handleUpdateOpReservationStatus(selectedResDetails.id, "COMPLETED");
+                        setSelectedResDetails({ ...selectedResDetails, status: "COMPLETED" });
+                      }}
+                      className="py-2 rounded-xl bg-[#261C18] hover:bg-[#B85B43] text-white font-bold text-xs transition-colors cursor-pointer"
+                    >
+                      Complete
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-[#E0D4C2] flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedResDetails(null)}
+                  className="px-5 py-2.5 bg-[#261C18] hover:bg-[#B85B43] text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  Close
                 </button>
               </div>
             </div>
