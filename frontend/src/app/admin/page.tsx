@@ -3358,6 +3358,9 @@ export default function AdminPortal() {
               className="w-full max-w-sm bg-[#FFFDF9] text-[#241A14] rounded-3xl p-6 shadow-2xl text-center space-y-4 border border-[#E6DCCF]"
             >
               <div className="border-b border-[#F0E8DC] pb-3 flex flex-col items-center">
+                <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#B85B43] mb-2">
+                  JAADOO PIZZA PROJECT
+                </p>
                 <div className="w-28 h-16 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md mb-2.5 bg-white">
                   <img
                     src="/jaadoo_logo.jpg"
@@ -3365,12 +3368,7 @@ export default function AdminPortal() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <h3 className="text-xl font-sans font-extrabold uppercase tracking-wider text-[#241A14]">
-                  Table #{qrModalTable.number}
-                </h3>
-                <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#B85B43] mt-0.5">
-                  JAADOO PIZZA PROJECT
-                </p>
+                <p className="text-xs font-semibold text-[#665448]">Ground floor</p>
               </div>
 
               {/* QR Image */}
@@ -3402,8 +3400,8 @@ export default function AdminPortal() {
                           </head>
                           <body onload="window.print()">
                             <div class="card">
-                              <h1>TABLE #${qrModalTable.number}</h1>
                               <p>JAADOO PIZZA PROJECT</p>
+                              <h1>Ground floor</h1>
                               <img src="${qrModalTable.qrDataUrl}" />
                               <div class="foot">Scan to Order • 32 Sitaphal ki gali, Ganesh Ghati, Udaipur</div>
                             </div>

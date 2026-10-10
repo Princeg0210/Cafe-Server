@@ -39,7 +39,7 @@ export const RESTAURANT_FLOORS: FloorInfo[] = [
   {
     id: 3,
     slug: "balcony",
-    name: "The Trattoria Experience",
+    name: "Balcony",
     short: "BAL",
     desc: "Enjoy freshly prepared pizzas, Italian-inspired dishes, and your favourite café beverages in a warm, relaxed setting. Perfect for casual dining, catching up with friends, and spending quality time over good food.",
     tableIds: [7, 8],
@@ -47,7 +47,7 @@ export const RESTAURANT_FLOORS: FloorInfo[] = [
   {
     id: 4,
     slug: "lower-top",
-    name: "Gather, Dine & Celebrate",
+    name: "Lower top",
     short: "LT",
     desc: "A welcoming space for family gatherings, group dining, and special occasions. Enjoy good food and comfortable seating in a relaxed atmosphere, whether you're meeting friends or celebrating a memorable moment.",
     tableIds: [9, 10],

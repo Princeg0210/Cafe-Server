@@ -455,11 +455,12 @@ class ReservationService:
         refund_pct = cancellation_policy["refund_percentage"]
 
         advance = Decimal(str(reservation.advance_amount or "0.00"))
+        cancellation_charge = Decimal("56.00")
         refund_amount = Decimal("0.00")
 
         if reservation.payment_status == "PAID" and advance > Decimal("0.00"):
             if policy_type == "FULL_REFUND":
-                refund_amount = advance
+                refund_amount = max(Decimal("0.00"), advance - cancellation_charge)
             elif policy_type == "REFUND_BEFORE_CUTOFF":
                 from app.utils.helpers import calculate_reservation_window
                 win = calculate_reservation_window(reservation.reservation_date, reservation.time_slot)
@@ -468,7 +469,7 @@ class ReservationService:
                 hours_until = (slot_start - now).total_seconds() / 3600.0 if slot_start else 0.0
 
                 if hours_until >= cutoff_hours:
-                    refund_amount = (advance * (refund_pct / Decimal("100"))).quantize(Decimal("0.01"))
+                    refund_amount = max(Decimal("0.00"), (advance * (refund_pct / Decimal("100"))).quantize(Decimal("0.01")) - cancellation_charge)
                 else:
                     refund_amount = Decimal("0.00")
             else:  # NO_REFUND
@@ -1093,7 +1094,7 @@ class ReservationService:
         """
         deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
         if deposit_per_guest <= 0:
-            deposit_per_guest = Decimal("300.00")
+            deposit_per_guest = Decimal("250.00")
 
         total_deposit = deposit_per_guest * Decimal(str(data.guest_count))
         amount_paise = int(total_deposit * 100)
@@ -1180,7 +1181,7 @@ class ReservationService:
 
         deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
         if deposit_per_guest <= 0:
-            deposit_per_guest = Decimal("300.00")
+            deposit_per_guest = Decimal("250.00")
         total_deposit = deposit_per_guest * Decimal(str(data.guest_count))
 
         reservation = Reservation(

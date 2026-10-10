@@ -7,7 +7,6 @@ import Navbar from "@/components/Navbar";
 import TanFooter from "@/components/TanFooter";
 import { MENU_ITEM_ID_MAP, MenuCategory, MenuItem, menuData as initialMenuData } from "@/data/menu";
 
-const premiumIds = ["pz5", "pz6", "pz3"];
 const categoryLabels: Record<string, string> = {
   all: "All dishes",
   starters: "Starters",
@@ -92,8 +91,6 @@ export default function MenuPage() {
     () => activeCategory === "all" ? menuData : menuData.filter((category) => category.id === activeCategory),
     [activeCategory, menuData],
   );
-  const pizzaItems = menuData.find((category) => category.id === "pizza")?.items ?? [];
-  const premiumItems = premiumIds.map((id) => pizzaItems.find((item) => item.id === id)).filter((item): item is MenuItem => Boolean(item));
 
   return (
     <div className="min-h-screen bg-[#F7EBD5] text-[#17251A] selection:bg-[#9E3E26] selection:text-white">
@@ -122,22 +119,6 @@ export default function MenuPage() {
         </div>
       </nav>
 
-      {(activeCategory === "all" || activeCategory === "pizza") && (
-        <section className="border-b border-[#D7C4A3] bg-[#FFF9EE] px-4 py-10 sm:px-6 sm:py-14">
-          <div className="mx-auto max-w-6xl">
-            <div className="mb-7 flex items-center justify-center gap-4 text-center"><span className="h-px w-10 bg-[#9E3E26]" /><div><h2 className="font-serif text-3xl font-bold sm:text-4xl">Premium Pizzas</h2><p className="mt-1 text-sm text-[#6C5848]">Signature creations from the printed menu</p></div><span className="h-px w-10 bg-[#9E3E26]" /></div>
-            <div className="grid gap-5 md:grid-cols-3">
-              {premiumItems.map((item) => (
-                <article key={item.id} className="overflow-hidden border border-[#D7C4A3] bg-[#F7EBD5]">
-                  <div className="relative aspect-[4/3] overflow-hidden"><Image src={item.image_url!} alt={item.name} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition-transform duration-500 hover:scale-[1.03]" /></div>
-                  <div className="p-5"><div className="flex items-start justify-between gap-4"><h3 className="font-serif text-xl font-bold">{item.name}</h3><MenuPrice price={item.price} /></div>{item.description && <p className="mt-2 text-sm italic leading-relaxed text-[#5B4A3E]">({item.description})</p>}</div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
         <div className="grid gap-x-12 gap-y-14 lg:grid-cols-2">
           {visibleCategories.map((category) => {
@@ -147,7 +128,7 @@ export default function MenuPage() {
                 <div className="flex items-end justify-between gap-4 border-b-2 border-[#17251A] pb-3">
                   <div className="flex items-center gap-3">
                     <span className="grid h-10 w-10 place-items-center rounded-full border border-[#9E3E26] text-[#9E3E26]">{category.id === "pizza" ? <Flame className="h-5 w-5" /> : category.id === "beverages" ? <Wine className="h-5 w-5" /> : category.id === "hot-drinks" ? <Coffee className="h-5 w-5" /> : <Leaf className="h-5 w-5" />}</span>
-                    <div><h2 className="font-serif text-2xl font-bold sm:text-3xl">{category.name}</h2>{category.subtitle && <p className="mt-0.5 text-xs text-[#9E3E26] sm:text-sm">{category.subtitle}</p>}</div>
+                    <div><h2 className="font-serif text-2xl font-bold sm:text-3xl">{category.name}</h2></div>
                   </div>
                 </div>
                 <div className={isDrinks ? "grid grid-cols-2 gap-x-5 sm:gap-x-8" : category.id === "pizza" ? "grid gap-x-10 md:grid-cols-2" : ""}>

@@ -38,7 +38,7 @@ const DINNER_TIME_SLOTS = [
   { time: "09:15 PM", label: "09:15 PM" },
 ];
 
-const DEPOSIT_PER_GUEST = 300;
+const DEPOSIT_PER_GUEST = 250;
 const OPEN_DAYS = new Set([0, 1, 4, 5, 6]); // Sunday, Monday, Thursday, Friday, Saturday
 
 function getNextOpenDate() {
@@ -568,9 +568,8 @@ export default function BookTablePage() {
                   Jaadoo is open Thursday through Monday.
                 </p>
                 <p>Choose an available date and dinner slot from the calendar.</p>
-                <p>Reservations are confirmed within 48 hours, subject to availability. If we cannot accommodate your request, your payment is refunded.</p>
-                <p>Confirmed reservations are final and cannot be changed or refunded.</p>
-                <p>The ₹300 per guest advance is fully adjustable against your food and beverage bill.</p>
+                <p>Your request is confirmed automatically when a matching table is available. If the selected date, time, or table is unavailable, your payment is refunded.</p>
+                <p>The ₹250 per guest advance is fully adjustable against your food and beverage bill. If you cancel or the booking cannot be fulfilled, ₹56 is retained as the cancellation charge and the balance is refunded.</p>
               </div>
 
               <button
@@ -720,16 +719,10 @@ export default function BookTablePage() {
               >
                 {/* Original editorial booking-page header */}
                 <div className="text-center">
-                  <span className="mb-1 block font-serif text-sm font-normal italic tracking-widest text-[#9E3E26]">
-                    Prenotazione Tavoli · Est. 2023 · Ganesh Ghati
-                  </span>
                   <h1 className="font-serif text-4xl font-bold tracking-tight text-[#140E0A] sm:text-5xl">
                     Reserve Your Table
                   </h1>
                   <div className="mx-auto my-4 h-0.5 w-12 bg-[#9E3E26]" />
-                  <p className="mx-auto max-w-lg text-sm leading-relaxed text-[#241711] md:text-base">
-                    Neapolitan sourdough pizzas and wild Himalayan tisanes with panoramic views of Lake Pichola.
-                  </p>
                 </div>
 
                 {/* Calendar Section */}
@@ -825,7 +818,7 @@ export default function BookTablePage() {
                   <p className="text-sm leading-relaxed text-[#524942]">
                     Thursday to Monday · 75 minutes per reservation.
                     <br />
-                    ₹300 per guest is fully adjustable against the final food bill.
+                    ₹250 per guest is fully adjustable against the final food bill.
                   </p>
                 </div>
               </motion.div>
@@ -888,7 +881,7 @@ export default function BookTablePage() {
                       Number of Guest(s)
                     </h3>
                     <p className="text-xs text-stone-500 font-medium mt-0.5">
-                      INR 300 per guest
+                      INR 250 per guest
                     </p>
                   </div>
 
@@ -935,13 +928,14 @@ export default function BookTablePage() {
                     </h3>
                     <span className="text-[11px] text-stone-400">6 Heritage Floors</span>
                   </div>
+                  <div className="relative">
                   <select
                     value={selectedFloor}
                     onChange={(e) => {
                       setSelectedFloor(Number(e.target.value));
                       setSelectedTableId("auto");
                     }}
-                    className="w-full text-xs font-medium p-3 rounded-xl border border-[#DDD3C4] bg-white text-[#140E0A] focus:outline-hidden focus:border-[#65C5A8]"
+                    className="w-full appearance-none text-xs font-medium p-3 pr-10 rounded-xl border border-[#DDD3C4] bg-white text-[#140E0A] focus:outline-hidden focus:border-[#65C5A8] focus:ring-2 focus:ring-[#65C5A8]/20"
                   >
                     {RESTAURANT_FLOORS.map((f) => (
                       <option key={f.id} value={f.id} disabled={f.isComingSoon}>
@@ -949,6 +943,8 @@ export default function BookTablePage() {
                       </option>
                     ))}
                   </select>
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-stone-500">⌄</span>
+                  </div>
                 </div>
 
                 {/* Continue to Step 3 */}
@@ -1033,20 +1029,6 @@ export default function BookTablePage() {
                     />
                   </div>
 
-                  {/* Email */}
-                  <div>
-                    <label className="block text-xs font-bold text-[#140E0A] mb-1.5">
-                      Email <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="e.g. rahul@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full text-sm p-3 rounded-xl border border-[#D5CCC0] focus:border-[#65C5A8] focus:outline-hidden bg-white text-[#140E0A]"
-                    />
-                  </div>
 
                   {/* Mobile Number with +91 */}
                   <div>
@@ -1279,13 +1261,13 @@ export default function BookTablePage() {
                       Cancellation & Refund Policy
                     </h4>
                     <p>
-                      <strong>1. Adjustable Deposit:</strong> The advance deposit of INR 300 per guest is 100% adjustable against your final food and beverage bill.
+                      <strong>1. Adjustable Deposit:</strong> The advance deposit of INR 250 per guest is 100% adjustable against your final food and beverage bill.
                     </p>
                     <p>
                       <strong>2. Non-Availability Refund:</strong> In the rare event that your table request cannot be accommodated within 48 hours, a 100% full refund is issued instantly.
                     </p>
                     <p>
-                      <strong>3. Advance Cancellation:</strong> Cancellations made at least 24 hours prior to the reserved slot qualify for full rescheduling or refund credit.
+                      <strong>3. Advance Cancellation:</strong> If you cancel or the booking cannot be fulfilled, ₹56 is retained as the cancellation charge and the balance is refunded.
                     </p>
                     <p>
                       <strong>4. Same-Day Cancellation & No-Shows:</strong> Due to artisanal fresh sourdough dough fermentation schedules, cancellations made within 24 hours or no-shows are non-refundable.
@@ -1373,7 +1355,7 @@ export default function BookTablePage() {
                   </div>
                   <div className="flex justify-between items-center text-[11px] text-stone-500 pb-1 border-b border-stone-200">
                     <span>GUESTS</span>
-                    <span className="font-bold text-stone-800">{guests} Guests (₹300/person)</span>
+                    <span className="font-bold text-stone-800">{guests} Guests (₹250/person)</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-sans font-bold text-stone-700">PAYABLE AMOUNT</span>

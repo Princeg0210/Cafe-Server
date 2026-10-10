@@ -81,6 +81,8 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const [isValidating, setIsValidating] = useState(true);
   const [isValidQr, setIsValidQr] = useState<boolean | null>(null);
   const [qrErrorMessage, setQrErrorMessage] = useState<string | null>(null);
+  const [showReservationIdPrompt, setShowReservationIdPrompt] = useState(false);
+  const [reservationIdInput, setReservationIdInput] = useState("");
   const [reservationNotice, setReservationNotice] = useState<{
     is_reserved: boolean;
     reservation_id: number;
@@ -216,6 +218,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
           setSessionToken(data.session_token);
           setValidatedQrToken(rawToken);
           setIsValidQr(true);
+          setShowReservationIdPrompt(true);
           if (data.is_reserved && data.reservation) {
             setReservationNotice(data.reservation);
             if (data.reservation.quick_dine_minutes) {
@@ -313,6 +316,19 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     }
   };
 
+  const continueFromReservationPrompt = () => {
+    const entered = reservationIdInput.trim();
+    if (reservationNotice && entered && Number(entered) !== reservationNotice.reservation_id) {
+      alert("That reservation ID does not match this table.");
+      return;
+    }
+    if (reservationNotice && !entered) {
+      alert("Enter your reservation ID to continue.");
+      return;
+    }
+    setShowReservationIdPrompt(false);
+  };
+
   // 4. Quick Dine Acceptance Handler
   const handleAcceptQuickDine = () => {
     setIsQuickDineActive(true);
@@ -339,10 +355,6 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
   const totalCartCount = Object.values(cart).reduce((sum, c) => sum + c.qty, 0);
   const totalCartPrice = Object.values(cart).reduce((sum, c) => sum + c.item.price * c.qty, 0);
-  const pizzaItems = liveMenuData.find((category) => category.id === "pizza")?.items ?? [];
-  const premiumItems = ["pz5", "pz6", "pz3"]
-    .map((id) => pizzaItems.find((item) => item.id === id))
-    .filter((item): item is (typeof pizzaItems)[number] => Boolean(item));
 
   const fetchBill = async () => {
     if (!sessionId || !sessionToken) return;
@@ -544,6 +556,19 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
       {/* Main Container: Pure Menu & Bill Flow */}
       <main className="mx-auto max-w-6xl px-4 py-6 pb-32 sm:px-6 sm:py-10">
+        <AnimatePresence>
+          {showReservationIdPrompt && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm rounded-2xl bg-[#FFF9EE] p-6 shadow-2xl">
+                <h2 className="font-serif text-2xl font-bold text-[#261C18]">Welcome to your table</h2>
+                <p className="mt-2 text-sm leading-relaxed text-[#5A4A3D]">Enter your reservation ID so we can connect your booking to this table.</p>
+                <input value={reservationIdInput} onChange={(event) => setReservationIdInput(event.target.value)} inputMode="numeric" placeholder="Reservation ID" className="mt-5 w-full rounded-xl border border-[#D7C4A3] bg-white px-3 py-3 text-sm outline-none focus:border-[#B85B43]" />
+                <button type="button" onClick={continueFromReservationPrompt} className="mt-4 w-full rounded-xl bg-[#261C18] py-3 text-sm font-bold text-white">Continue to menu</button>
+                {!reservationNotice && <button type="button" onClick={() => setShowReservationIdPrompt(false)} className="mt-2 w-full py-2 text-xs font-semibold text-[#8C6C52]">Continue without a reservation</button>}
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
         {/* Quick Dine Active Banner */}
         {isQuickDineActive && reservationNotice && (
           <div className="mb-4 p-3.5 rounded-2xl bg-amber-500/15 border-2 border-amber-500/40 text-amber-950 flex items-center justify-between gap-3 shadow-xs animate-in fade-in slide-in-from-top-2">
@@ -753,34 +778,6 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
           )}
         </AnimatePresence>
 
-        {(selectedCategory === "all" || selectedCategory === "pizza") && (
-          <section className="mb-10 border-y border-[#D7C4A3] bg-[#FFF9EE] px-4 py-8 sm:px-6 sm:py-10">
-            <div className="mb-7 flex items-center justify-center gap-4 text-center"><span className="h-px w-10 bg-[#9E3E26]" /><div><h2 className="font-serif text-3xl font-bold sm:text-4xl">Premium Pizzas</h2><p className="mt-1 text-sm text-[#6C5848]">Signature creations from the printed menu</p></div><span className="h-px w-10 bg-[#9E3E26]" /></div>
-            <div className="grid gap-5 md:grid-cols-3">
-              {premiumItems.map((item) => {
-                const qtyInCart = cart[item.id]?.qty || 0;
-                const isAvailable = (item as MenuItem).is_available !== false;
-                return (
-                  <article key={item.id} className="overflow-hidden border border-[#D7C4A3] bg-[#F7EBD5]">
-                    <div className="relative aspect-[4/3] overflow-hidden"><img src={item.image_url} alt={item.name} className="h-full w-full object-cover" /></div>
-                    <div className="p-5">
-                      <div className="flex items-start justify-between gap-4"><h3 className="font-serif text-xl font-bold">{item.name}</h3><span className="shrink-0 font-sans text-base font-bold text-[#9E3E26]">₹{item.price}</span></div>
-                      {item.description && <p className="mt-2 min-h-10 text-sm italic leading-relaxed text-[#5B4A3E]">({item.description})</p>}
-                      <div className="mt-4 flex justify-end">
-                        {!isAvailable ? <span className="text-xs font-bold uppercase text-[#9E3E26]">Sold out</span> : qtyInCart === 0 ? (
-                          <button type="button" onClick={() => updateCart(item, 1)} className="min-h-10 rounded-full bg-[#17251A] px-5 text-xs font-bold uppercase tracking-wider text-[#FFF8EA]">Add</button>
-                        ) : (
-                          <div className="flex min-h-10 items-center gap-2 rounded-full bg-[#17251A] px-3 text-[#FFF8EA]"><button type="button" onClick={() => updateCart(item, -1)} aria-label={`Remove one ${item.name}`}><Minus className="h-4 w-4" /></button><span className="min-w-5 text-center font-bold">{qtyInCart}</span><button type="button" onClick={() => updateCart(item, 1)} aria-label={`Add one ${item.name}`}><Plus className="h-4 w-4" /></button></div>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
         {/* Sticky Category Navigation Filter */}
         <nav aria-label="Menu categories" className="sticky top-16 z-30 -mx-4 mb-10 border-y border-[#D7C4A3] bg-[#F7EBD5]/95 py-3 backdrop-blur-md sm:-mx-6">
           <div className="no-scrollbar flex items-center gap-2 overflow-x-auto px-4 sm:px-6">
@@ -827,9 +824,6 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                 <h2 className="font-serif text-2xl font-bold text-[#17251A] sm:text-3xl">
                   {category.name}
                 </h2>
-                {category.subtitle && (
-                  <span className="hidden text-sm text-[#9E3E26] sm:inline">{category.subtitle}</span>
-                )}
               </div>
 
               {/* Menu Items */}
@@ -839,7 +833,6 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                   const qtyInCart = cart[item.id]?.qty || 0;
                   const itemMedia = ITEM_MEDIA_MAP[item.id];
                   const imgUrl = itemMedia?.image_url || "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80";
-                  const badge = itemMedia?.badge || item.tags?.[0];
 
                   return (
                     <div
@@ -871,11 +864,6 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                           {!isAvailable && (
                             <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-rose-800 bg-rose-100 px-2 py-0.5 rounded-full inline-block border border-rose-300">
                               Sold Out
-                            </span>
-                          )}
-                          {badge && (
-                            <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#140E0A] bg-[#E5DEC3] px-2 py-0.5 rounded-full inline-block border border-[#CCC2A5]">
-                              {badge}
                             </span>
                           )}
                         </div>
@@ -1148,7 +1136,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
               <div className="p-3.5 rounded-xl bg-[#4A5842]/10 border border-[#4A5842]/20 text-[#261C18] text-xs leading-relaxed flex items-start gap-2">
                 <Info className="w-4 h-4 text-[#4A5842] shrink-0 mt-0.5" />
                 <p>
-                  You can pay and settle your bill at your table or at the counter upon leaving.
+                  Please pay when you leave at the counter.
                 </p>
               </div>
 

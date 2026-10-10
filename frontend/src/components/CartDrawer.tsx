@@ -245,7 +245,7 @@ export default function CartDrawer({
                         className="bg-[#261C18] hover:bg-[#1C1512] text-[#FBF9F5] py-3 px-3 rounded-full font-sans font-semibold text-xs uppercase tracking-wider transition-colors shadow-xs flex items-center justify-center gap-1.5 border border-[#E4DCD0]/20"
                       >
                         <Utensils className="w-4 h-4 text-[#B85B43]" />
-                        <span>Send (Pay at Counter)</span>
+                        <span>Send order · pay at counter when leaving</span>
                       </button>
 
                       <button
