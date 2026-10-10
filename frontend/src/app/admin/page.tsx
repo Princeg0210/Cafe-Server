@@ -1851,6 +1851,8 @@ export default function AdminPortal() {
             )}
             </div>
 
+            </>}
+
             {/* 14-Day Sales Trend Bar Chart */}
             <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-6 shadow-sm space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1885,7 +1887,7 @@ export default function AdminPortal() {
 
                       <div
                         style={{ height: `${heightPercent}%` }}
-                        className="w-full bg-gradient-to-t from-[#B85B43] to-[#D97736] rounded-t-sm group-hover:brightness-110 transition-all"
+                        className="w-full bg-gradient-to-t from-[#166534] via-[#22C55E] to-[#86EFAC] rounded-t-sm group-hover:brightness-110 transition-all"
                       />
                       <span className="text-[9px] font-mono text-[#8C7A6D] rotate-[-45deg] origin-top-left mt-2 font-medium">
                         {item.date}
@@ -1970,7 +1972,6 @@ export default function AdminPortal() {
                 </div>
               </div>
             </div>
-            </>}
           </div>
         )}
 

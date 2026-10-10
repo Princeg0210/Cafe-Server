@@ -726,7 +726,31 @@ export default function POSDashboard() {
       }
       if (tablesRes.ok) {
         const tablesData = await tablesRes.json();
-        setTableOverviews(tablesData);
+        setTableOverviews(Array.isArray(tablesData) && tablesData.length > 0 ? tablesData : RESTAURANT_TABLES.map((table) => ({
+          table_id: table.id,
+          table_number: table.table_number,
+          capacity: table.capacity,
+          status: "Available",
+          active_session_count: 0,
+          total_sessions_today: 0,
+          sessions: [],
+          floor_number: table.floor,
+          floor_name: getFloorName(table.floor),
+          floor_table_num: table.floor_table_num,
+        })));
+      } else {
+        setTableOverviews(RESTAURANT_TABLES.map((table) => ({
+          table_id: table.id,
+          table_number: table.table_number,
+          capacity: table.capacity,
+          status: "Available",
+          active_session_count: 0,
+          total_sessions_today: 0,
+          sessions: [],
+          floor_number: table.floor,
+          floor_name: getFloorName(table.floor),
+          floor_table_num: table.floor_table_num,
+        })));
       }
       if (doughRes.ok) {
         const doughData = await doughRes.json();
