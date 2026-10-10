@@ -121,7 +121,7 @@ export default function BookTablePage() {
   const [rzpKeyId, setRzpKeyId] = useState<string>("rzp_test_JaadooCafe10");
 
   const getApiBase = () => {
-    return process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
+    return "";
   };
 
   // Fetch Razorpay configuration on mount

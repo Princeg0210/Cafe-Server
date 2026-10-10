@@ -63,7 +63,7 @@ export default function MenuPage() {
 
   const fetchLiveMenu = useCallback(async () => {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
+      const apiBase = "";
       const response = await fetch(`${apiBase}/api/v1/menu/items`);
       if (!response.ok) return;
       const liveItems: Array<{ id: number; price: string | number; is_available: boolean; is_sold_out?: boolean }> = await response.json();
@@ -82,7 +82,9 @@ export default function MenuPage() {
 
   useEffect(() => {
     fetchLiveMenu();
-    const interval = window.setInterval(fetchLiveMenu, 15000);
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") fetchLiveMenu();
+    }, 30000);
     return () => window.clearInterval(interval);
   }, [fetchLiveMenu]);
 

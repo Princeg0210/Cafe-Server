@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
@@ -19,7 +19,8 @@ router = APIRouter(prefix="/menu", tags=["Menu & Production Capacity"])
 
 
 @router.get("/categories", response_model=List[MenuCategoryResponse])
-async def list_categories(db: AsyncSession = Depends(get_db)):
+async def list_categories(response: Response, db: AsyncSession = Depends(get_db)):
+    response.headers["Cache-Control"] = "public, max-age=3, stale-while-revalidate=5"
     query = select(MenuCategory).where(MenuCategory.is_active == True).order_by(MenuCategory.display_order)
     result = await db.execute(query)
     return result.scalars().all()
@@ -92,7 +93,8 @@ async def delete_category(category_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/items", response_model=List[MenuItemResponse])
-async def list_menu_items(db: AsyncSession = Depends(get_db)):
+async def list_menu_items(response: Response, db: AsyncSession = Depends(get_db)):
+    response.headers["Cache-Control"] = "public, max-age=3, stale-while-revalidate=5"
     query = (
         select(MenuItem, ItemCapacityRule)
         .outerjoin(ItemCapacityRule, MenuItem.id == ItemCapacityRule.menu_item_id)

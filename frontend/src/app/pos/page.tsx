@@ -286,7 +286,7 @@ export default function POSDashboard() {
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const getApiBase = () => {
-    return process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
+    return "";
   };
 
   const getWsBase = () => {
@@ -552,6 +552,8 @@ export default function POSDashboard() {
   const handleUpdateReservationStatus = async (id: number, newStatus: string) => {
     if (!posToken) return;
     setUpdatingResId(id);
+    const previousReservations = reservations;
+    setReservations((prev) => prev.map((reservation) => reservation.id === id ? { ...reservation, status: newStatus } : reservation));
     const apiBase = getApiBase();
     try {
       if (newStatus === "SEATED") {
@@ -584,9 +586,11 @@ export default function POSDashboard() {
         await Promise.all([fetchReservations(), fetchData(), fetchPendingReviews()]);
       } else {
         const err = await res.json().catch(() => ({}));
+        setReservations(previousReservations);
         alert(`Cannot update reservation: ${err.detail || "Server error"}`);
       }
     } catch {
+      setReservations(previousReservations);
       alert("Network error updating reservation status.");
     } finally {
       setUpdatingResId(null);
@@ -668,6 +672,7 @@ export default function POSDashboard() {
     fetchReservations(undefined, selectedDate);
     fetchPendingReviews(undefined);
     const interval = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
       fetchData(undefined, selectedDate);
       fetchReservations(undefined, selectedDate);
       fetchPendingReviews(undefined);
@@ -1498,7 +1503,7 @@ export default function POSDashboard() {
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
 
           {/* Brand & Live Indicator */}
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
             <Link href="/" className="flex items-center gap-2.5 group">
               <div className="w-16 h-10 sm:w-20 sm:h-12 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-xs bg-white shrink-0">
                 <img
@@ -1520,7 +1525,7 @@ export default function POSDashboard() {
                 LIVE SHIFT
               </span>
               <span className="text-stone-400">•</span>
-              <span className="font-mono text-stone-600">{todayStr}</span>
+              <span className="hidden font-mono text-stone-600 sm:inline">{todayStr}</span>
             </div>
 
             {currentTime && (
@@ -1540,11 +1545,11 @@ export default function POSDashboard() {
           )}
 
           {/* Navigation Tabs & Staff Controls */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center bg-[#ECE6DC] p-0.5 rounded-lg text-xs font-medium border border-[#E4DCD0]">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <div className="flex w-full items-center justify-between bg-[#ECE6DC] p-0.5 rounded-lg text-xs font-medium border border-[#E4DCD0] sm:w-auto">
               <button
                 onClick={() => setActiveTab("tables")}
-                className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${activeTab === "tables"
+                className={`flex-1 whitespace-nowrap px-2 py-1 rounded-md transition-colors cursor-pointer sm:flex-none sm:px-3 ${activeTab === "tables"
                   ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
                   : "text-stone-700 hover:text-[#261C18]"
                   }`}
@@ -1553,7 +1558,7 @@ export default function POSDashboard() {
               </button>
               <button
                 onClick={() => setActiveTab("kots")}
-                className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${activeTab === "kots"
+                className={`flex-1 whitespace-nowrap px-2 py-1 rounded-md transition-colors cursor-pointer sm:flex-none sm:px-3 ${activeTab === "kots"
                   ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
                   : "text-stone-700 hover:text-[#261C18]"
                   }`}
@@ -1562,7 +1567,7 @@ export default function POSDashboard() {
               </button>
               <button
                 onClick={() => setActiveTab("reservations")}
-                className={`px-3 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1 ${activeTab === "reservations"
+                className={`flex-1 whitespace-nowrap px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1 sm:flex-none sm:px-3 ${activeTab === "reservations"
                   ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
                   : "text-stone-700 hover:text-[#261C18]"
                   }`}

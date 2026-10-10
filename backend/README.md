@@ -19,6 +19,10 @@ Production-ready FastAPI backend and PostgreSQL schema implementation for **Jaad
 
 ## Key Architecture & Business Rules
 
+### Shared API gateway limits
+
+The website proxies `/api/v1/*` to this API. A Redis-backed middleware limits login attempts to 12/minute/IP, QR validation to 30/minute/IP, writes to 90/minute/client, and reads to 300/minute/client. Authenticated staff are isolated by bearer token. Guest identity uses the first `X-Forwarded-For` address, so the public reverse proxy must overwrite or sanitize that header. The limiter fails open if Redis is unavailable, preserving ordering and reservations; monitor Redis health in production.
+
 ### 1. Three Isolated Capacity & Inventory Domains
 - **Reservation Capacity** (`reservation_capacity_rules`): Manages seating/guest bookings per time slot.
 - **Menu Item Production Capacity** (`item_capacity_rules`): Enforces kitchen output limits (e.g. max 50 pizzas). Exceeding limit raises HTTP 400 `PIZZA_SOLD_OUT`.

@@ -1,4 +1,8 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is the Jaadoo Pizza Project website and customer, owner, and staff portals.
+
+## API gateway
+
+The browser calls `/api/v1/*` on the website's own origin. Next.js forwards those requests to `API_UPSTREAM_URL` (default: `https://cafe-piza-api.onrender.com`). Set `API_UPSTREAM_URL=http://localhost:8000` for a local backend. WebSocket connections still use `NEXT_PUBLIC_WS_URL` because Next.js rewrites do not proxy WebSocket upgrades. Rate limits are enforced by the FastAPI middleware so direct API callers share the same limits.
 
 ## Getting Started
 

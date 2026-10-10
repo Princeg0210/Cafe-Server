@@ -2,6 +2,10 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
+import hashlib
+import time
+import redis.asyncio as aioredis
+from redis.exceptions import RedisError
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.logging import setup_logging, logger
@@ -17,6 +21,58 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+_gateway_redis = aioredis.from_url(
+    settings.REDIS_URL,
+    socket_connect_timeout=0.15,
+    socket_timeout=0.15,
+    decode_responses=True,
+)
+
+
+@app.middleware("http")
+async def api_gateway_limits(request: Request, call_next):
+    """Apply one distributed request budget before API routes reach the database."""
+    path = request.url.path
+    if not path.startswith("/api/v1/") or request.method == "OPTIONS":
+        return await call_next(request)
+
+    if path == "/api/v1/auth/login":
+        bucket, limit = "login", 12
+    elif path == "/api/v1/tables/qr/validate":
+        bucket, limit = "qr", 30
+    elif request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        bucket, limit = "write", 90
+    else:
+        bucket, limit = "read", 300
+
+    # Bearer tokens isolate staff behind the same network; guests use their IP.
+    bearer = request.headers.get("authorization", "")
+    # The same-origin website proxy forwards the guest IP; without it every
+    # guest would share the website server's request budget.
+    forwarded_ip = request.headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
+    client_ip = forwarded_ip or (request.client.host if request.client else "unknown")
+    identity = bearer if bucket not in {"login", "qr"} and bearer.startswith("Bearer ") else client_ip
+    digest = hashlib.sha256(identity.encode()).hexdigest()[:24]
+    window = int(time.time() // 60)
+    key = f"gateway:{bucket}:{digest}:{window}"
+    try:
+        count = await _gateway_redis.incr(key)
+        if count == 1:
+            await _gateway_redis.expire(key, 61)
+        if count > limit:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many requests. Please try again shortly."},
+                headers={"Retry-After": str(60 - int(time.time()) % 60)},
+            )
+    except RedisError:
+        # Keep ordering available if the rate-limit store is temporarily down.
+        pass
+
+    response = await call_next(request)
+    response.headers["X-RateLimit-Limit"] = str(limit)
+    return response
 
 # Configure CORS
 origins = settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else [settings.CORS_ORIGINS]

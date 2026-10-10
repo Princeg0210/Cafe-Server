@@ -114,7 +114,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const [lastOrderNum, setLastOrderNum] = useState("");
 
   const getApiBase = () => {
-    return process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
+    return "";
   };
 
   // Sync live prices and stock availability from backend API
@@ -165,10 +165,8 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
     const connectWS = () => {
       try {
-        const apiBase = getApiBase();
-        const wsProto = apiBase.startsWith("https") ? "wss" : "ws";
-        const wsHost = apiBase.replace(/^https?:\/\//, "");
-        ws = new WebSocket(`${wsProto}://${wsHost}/ws/menu`);
+        const wsBase = process.env.NEXT_PUBLIC_WS_URL || "wss://cafe-piza-api.onrender.com";
+        ws = new WebSocket(`${wsBase}/ws/menu`);
 
         ws.onmessage = (event) => {
           try {
@@ -188,7 +186,9 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     };
 
     connectWS();
-    const interval = setInterval(fetchLiveMenu, 10000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") fetchLiveMenu();
+    }, 30000);
 
     return () => {
       if (ws) ws.close();
@@ -266,7 +266,9 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     };
 
     syncTableBill();
-    const interval = setInterval(syncTableBill, 6000);
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") syncTableBill();
+    }, 15000);
     return () => {
       isMounted = false;
       clearInterval(interval);
@@ -494,8 +496,8 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     <div className="min-h-screen bg-[#F7EBD5] text-[#17251A] font-sans selection:bg-[#9E3E26] selection:text-white">
       {/* Direct Focused Header: Table Number & View Bill */}
       <header className="sticky top-0 z-40 border-b border-[#D7C4A3] bg-[#FFF9EE]/95 px-4 py-2.5 backdrop-blur-md sm:px-6">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
-          <div className="flex items-center gap-3.5">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3.5">
             <div className="w-18 h-11 sm:w-22 sm:h-13 rounded-xl overflow-hidden bg-white border-2 border-[#9E3E26]/40 shadow-xs shrink-0">
               <img
                 src="/jaadoo_logo.jpg"
@@ -516,7 +518,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
           <button
             onClick={fetchBill}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-xs font-semibold uppercase tracking-wider transition-all shadow-xs"
+            className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-xs font-semibold uppercase tracking-wider transition-all shadow-xs"
           >
             <Receipt className="w-3.5 h-3.5 text-[#B85B43]" />
             <span>

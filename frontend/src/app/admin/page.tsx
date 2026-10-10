@@ -260,7 +260,7 @@ export default function AdminPortal() {
 
   // Base API resolution
   const getApiBase = () => {
-    return process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
+    return "";
   };
 
   const getWsBase = () => {
@@ -348,6 +348,13 @@ export default function AdminPortal() {
   const fetchData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     const apiBase = getApiBase();
+    const headers = { Authorization: `Bearer ${token}` };
+    const requests = token ? Promise.allSettled([
+      fetch(`${apiBase}/api/v1/analytics/dashboard`, { headers }),
+      fetch(`${apiBase}/api/v1/reservations`, { headers }),
+      fetch(`${apiBase}/api/v1/tables`, { headers }),
+      fetch(`${apiBase}/api/v1/pos/kots`, { headers }),
+    ]) : null;
 
     // 1. Always sync menu
     await fetchMenuData();
@@ -356,13 +363,12 @@ export default function AdminPortal() {
       if (!silent) setIsLoading(false);
       return;
     }
+    const responses = await requests!;
 
     // 2. Analytics Dashboard (Protected)
     try {
-      const anaRes = await fetch(`${apiBase}/api/v1/analytics/dashboard`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (anaRes.ok) {
+      const anaRes = responses[0].status === "fulfilled" ? responses[0].value : null;
+      if (anaRes?.ok) {
         const data = await anaRes.json();
         if (data.metrics) setMetrics(data.metrics);
         if (data.sales_history) setSalesHistory(data.sales_history || []);
@@ -376,10 +382,8 @@ export default function AdminPortal() {
 
     // 3. Reservations (Protected)
     try {
-      const rRes = await fetch(`${apiBase}/api/v1/reservations`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (rRes.ok) {
+      const rRes = responses[1].status === "fulfilled" ? responses[1].value : null;
+      if (rRes?.ok) {
         const rData = await rRes.json();
         if (Array.isArray(rData)) {
           setReservations(
@@ -415,10 +419,8 @@ export default function AdminPortal() {
 
     // 4. Tables (Protected)
     try {
-      const tRes = await fetch(`${apiBase}/api/v1/tables`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (tRes.ok) {
+      const tRes = responses[2].status === "fulfilled" ? responses[2].value : null;
+      if (tRes?.ok) {
         const tData = await tRes.json();
         if (Array.isArray(tData)) {
           setTables(
@@ -446,10 +448,8 @@ export default function AdminPortal() {
 
     // 5. KOTs / Ledger (Protected)
     try {
-      const kRes = await fetch(`${apiBase}/api/v1/pos/kots`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (kRes.ok) {
+      const kRes = responses[3].status === "fulfilled" ? responses[3].value : null;
+      if (kRes?.ok) {
         const kData = await kRes.json();
         if (Array.isArray(kData)) setKots(kData);
       }
@@ -528,6 +528,10 @@ export default function AdminPortal() {
   // Handle seating and reservation status update with live session check-in
   const handleUpdateOpReservationStatus = async (resId: number, newStatus: string) => {
     if (!token) return;
+    const previousOpReservations = opReservations;
+    const previousReservations = reservations;
+    setOpReservations((prev) => prev.map((reservation) => reservation.id === resId ? { ...reservation, status: newStatus } : reservation));
+    setReservations((prev) => prev.map((reservation) => reservation.id === resId ? { ...reservation, status: newStatus } : reservation));
     const apiBase = getApiBase();
     try {
       if (newStatus === "SEATED") {
@@ -544,7 +548,7 @@ export default function AdminPortal() {
           if (checkinRes.ok) {
             showToast(`Reservation #${resId} checked in & seated at Table #${targetRes.table_id}`);
             await Promise.all([fetchOperationsData(opDate, true), fetchData(true)]);
-            return;
+            return true;
           }
         }
       }
@@ -560,12 +564,18 @@ export default function AdminPortal() {
       if (res.ok) {
         showToast(`Reservation #${resId} marked as ${newStatus}`);
         await Promise.all([fetchOperationsData(opDate, true), fetchData(true)]);
+        return true;
       } else {
+        setOpReservations(previousOpReservations);
+        setReservations(previousReservations);
         showToast(`Failed to update reservation #${resId}`);
       }
     } catch {
+      setOpReservations(previousOpReservations);
+      setReservations(previousReservations);
       showToast("Error updating reservation status");
     }
+    return false;
   };
 
   // Assign table to reservation from Operations view
@@ -667,15 +677,16 @@ export default function AdminPortal() {
     };
     const healthInterval = setInterval(checkConnection, 10000);
 
-    // Guaranteed background polling fallback every 6 seconds for 100% fresh data
+    // WebSockets provide immediate updates; poll less often as a fallback.
     const pollInterval = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
       if (token) {
         fetchData(true);
         fetchOperationsData(opDate, true);
       } else {
         fetchMenuData();
       }
-    }, 6000);
+    }, 30000);
 
     return () => {
       isCleanedUp = true;
@@ -1237,8 +1248,8 @@ export default function AdminPortal() {
       </AnimatePresence>
 
       {/* Top Header */}
-      <header className="bg-[#FFFDF9] border-b border-[#E6DCce] px-6 py-4 sticky top-0 z-40 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <header className="bg-[#FFFDF9] border-b border-[#E6DCce] px-4 sm:px-6 py-4 sticky top-0 z-40 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-4">
           <div className="w-20 h-12 sm:w-24 sm:h-14 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md bg-white shrink-0">
             <img
               src="/jaadoo_logo.jpg"
@@ -1259,7 +1270,7 @@ export default function AdminPortal() {
         </div>
 
         {/* Global Action Header */}
-        <div className="flex items-center gap-3">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
           <button
             onClick={() => fetchData(false)}
             disabled={isLoading}
@@ -1290,7 +1301,7 @@ export default function AdminPortal() {
       </header>
 
       {/* Sub-Header Navigation Tabs */}
-      <div className="bg-[#F3EDE2] border-b border-[#E4DCD0] px-6 py-2.5 overflow-x-auto flex items-center gap-2">
+      <div className="bg-[#F3EDE2] border-b border-[#E4DCD0] px-4 sm:px-6 py-2.5 overflow-x-auto flex items-center gap-2">
         {[
           { id: "analytics", label: "Executive Analytics", icon: TrendingUp },
           { id: "operations", label: "Operations", icon: SlidersHorizontal },
@@ -1319,7 +1330,7 @@ export default function AdminPortal() {
       </div>
 
       {/* Main Tab Content */}
-      <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+      <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full min-w-0 mx-auto space-y-6">
         {/* TAB 1: EXECUTIVE ANALYTICS */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
@@ -1386,7 +1397,7 @@ export default function AdminPortal() {
 
             {/* 14-Day Sales Trend Bar Chart */}
             <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-serif font-bold uppercase tracking-wider text-[#241A14]">
                     Daily Sales History (Last 14 Days)
@@ -1405,7 +1416,8 @@ export default function AdminPortal() {
               </div>
 
               {/* Bar visualization */}
-              <div className="pt-6 pb-2 grid grid-cols-14 gap-2 items-end h-52 border-b border-[#E6DCCF]">
+              <div className="overflow-x-auto pb-2">
+                <div className="pt-6 pb-2 grid min-w-[560px] grid-cols-14 gap-2 items-end h-52 border-b border-[#E6DCCF]">
                 {salesHistory.map((item, idx) => {
                   const heightPercent = Math.max((item.revenue / maxRevenue) * 100, 4);
                   return (
@@ -1425,6 +1437,7 @@ export default function AdminPortal() {
                     </div>
                   );
                 })}
+                </div>
               </div>
             </div>
 
@@ -2439,7 +2452,7 @@ export default function AdminPortal() {
 
             {/* 3. Filter & Search Bar */}
             <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
-              <div className="relative min-w-[240px] flex-1">
+              <div className="relative w-full min-w-0 flex-1 sm:w-auto sm:min-w-[240px]">
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
                 <input
                   type="text"
@@ -3667,13 +3680,12 @@ export default function AdminPortal() {
                 <span className="text-xs font-bold text-[#4A392F] uppercase tracking-wider block">
                   Update Reservation Status:
                 </span>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   {selectedResDetails.status !== "ARRIVED" && selectedResDetails.status !== "SEATED" && selectedResDetails.status !== "COMPLETED" && (
                     <button
                       type="button"
                       onClick={async () => {
-                        await handleUpdateOpReservationStatus(selectedResDetails.id, "ARRIVED");
-                        setSelectedResDetails({ ...selectedResDetails, status: "ARRIVED" });
+                        if (await handleUpdateOpReservationStatus(selectedResDetails.id, "ARRIVED")) setSelectedResDetails({ ...selectedResDetails, status: "ARRIVED" });
                       }}
                       className="py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-colors cursor-pointer"
                     >
@@ -3685,8 +3697,7 @@ export default function AdminPortal() {
                     <button
                       type="button"
                       onClick={async () => {
-                        await handleUpdateOpReservationStatus(selectedResDetails.id, "SEATED");
-                        setSelectedResDetails({ ...selectedResDetails, status: "SEATED" });
+                        if (await handleUpdateOpReservationStatus(selectedResDetails.id, "SEATED")) setSelectedResDetails({ ...selectedResDetails, status: "SEATED" });
                       }}
                       className="py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors cursor-pointer"
                     >
@@ -3698,8 +3709,7 @@ export default function AdminPortal() {
                     <button
                       type="button"
                       onClick={async () => {
-                        await handleUpdateOpReservationStatus(selectedResDetails.id, "COMPLETED");
-                        setSelectedResDetails({ ...selectedResDetails, status: "COMPLETED" });
+                        if (await handleUpdateOpReservationStatus(selectedResDetails.id, "COMPLETED")) setSelectedResDetails({ ...selectedResDetails, status: "COMPLETED" });
                       }}
                       className="py-2 rounded-xl bg-[#261C18] hover:bg-[#B85B43] text-white font-bold text-xs transition-colors cursor-pointer"
                     >

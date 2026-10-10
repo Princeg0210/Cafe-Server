@@ -33,11 +33,11 @@ export default function Home() {
             loop
             muted
             playsInline
+            preload="metadata"
             poster="/hero-bg.jpg"
             className="w-full h-full object-cover object-center brightness-105 contrast-105"
           >
-            <source src="/hero-video.mp4" type="video/mp4" />
-            <source src="/hero-bg-video.mp4" type="video/mp4" />
+            <source src="/hero-fire-optimized.mp4" type="video/mp4" />
           </video>
           {/* Refined luminous overlay - balanced for maximum brightness while keeping text crisp */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10" />
