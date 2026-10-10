@@ -499,7 +499,9 @@ export default function AdminPortal() {
           setReservations(
             rData.map((r: any) => {
               const floorInfo = getTableFloor(r.table_id || r.table_name || 1);
-              const canonicalId = r.booking_id || formatBookingId(r.customer?.name, r.customer?.phone, r.id);
+              const canonicalId = (r.booking_id && String(r.booking_id).toUpperCase().startsWith("RES-"))
+                ? String(r.booking_id).toUpperCase()
+                : `RES-${String(r.id).padStart(4, "0")}`;
               return {
                 id: r.id,
                 booking_id: canonicalId,
@@ -1236,19 +1238,35 @@ export default function AdminPortal() {
   // Filtered Reservations
   const filteredReservations = useMemo(() => {
     return reservations.filter((r) => {
-      const q = resSearch.trim().toLowerCase();
+      const rawQ = resSearch.trim().toLowerCase();
+      if (!rawQ) {
+        const matchesDate = !resDateFilter || r.booking_date === resDateFilter;
+        const matchesFloor = resFloorFilter === "all" || r.floor_number === Number(resFloorFilter);
+        return matchesDate && matchesFloor;
+      }
+
+      const cleanNumQ = rawQ.replace(/^(res[-_\s]*|#)/i, "").trim();
+      const resIdStr = String(r.id);
+      const resCanonical = `res-${resIdStr.padStart(4, "0")}`.toLowerCase();
+      const resShort = `res-${resIdStr}`.toLowerCase();
+
+      const matchesId =
+        (cleanNumQ !== "" && (resIdStr === cleanNumQ || resIdStr.includes(cleanNumQ))) ||
+        resCanonical.includes(rawQ) ||
+        resShort.includes(rawQ) ||
+        (r.booking_id && r.booking_id.toLowerCase().includes(rawQ));
+
       const matchesSearch =
-        !q ||
-        r.id.toString().includes(q) ||
-        r.booking_id?.toLowerCase().includes(q) ||
-        r.customer_name?.toLowerCase().includes(q) ||
-        r.customer_phone?.includes(q) ||
-        r.table_name?.toLowerCase().includes(q) ||
-        r.floor_name?.toLowerCase().includes(q) ||
-        r.upi_utr?.toLowerCase().includes(q);
+        matchesId ||
+        r.customer_name?.toLowerCase().includes(rawQ) ||
+        r.customer_phone?.includes(rawQ) ||
+        r.table_name?.toLowerCase().includes(rawQ) ||
+        r.floor_name?.toLowerCase().includes(rawQ) ||
+        r.upi_utr?.toLowerCase().includes(rawQ);
+
       const matchesDate = !resDateFilter || r.booking_date === resDateFilter;
       const matchesFloor = resFloorFilter === "all" || r.floor_number === Number(resFloorFilter);
-      return matchesSearch && matchesDate && matchesFloor;
+      return Boolean(matchesSearch && matchesDate && matchesFloor);
     });
   }, [reservations, resSearch, resDateFilter, resFloorFilter]);
 
@@ -2183,6 +2201,465 @@ export default function AdminPortal() {
               </button>
             </div>
 
+            {/* SUB-VIEW 1: FLOOR TABLES & SESSIONS ON SELECTED DATE */}
+            {opSubTab === "tables" && (
+              <div className="space-y-4">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-[#FFFDF9] p-3.5 rounded-xl border border-[#E4DCD0]">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-sans font-bold text-[#241A14]">
+                      Cafe Floor Layout & Dining Sessions
+                    </h3>
+                    <span className="text-xs text-[#7A6A5E]">
+                      ({filteredOpTables.length} tables shown)
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Floor Filter Tabs matching POS */}
+                    <div className="flex flex-wrap items-center bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setOpFloorFilter("all")}
+                        className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer ${
+                          opFloorFilter === "all"
+                            ? "bg-[#261C18] text-white shadow-xs"
+                            : "text-[#665448] hover:text-[#241A14]"
+                        }`}
+                      >
+                        All Floors
+                      </button>
+                      {RESTAURANT_FLOORS.map((fl) => (
+                        <button
+                          key={fl.id}
+                          type="button"
+                          onClick={() => setOpFloorFilter(fl.id)}
+                          className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                            opFloorFilter === fl.id
+                              ? "bg-[#261C18] text-white shadow-xs"
+                              : "text-[#665448] hover:text-[#241A14]"
+                          }`}
+                        >
+                          <span>{fl.name}</span>
+                          {fl.isComingSoon && (
+                            <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.2 rounded font-normal">
+                              Soon
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Occupancy Filter */}
+                    <div className="flex items-center bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
+                      {(["all", "active", "available"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setOpTableFilter(mode)}
+                          className={`px-3 py-1 rounded-md capitalize font-bold transition-colors cursor-pointer ${
+                            opTableFilter === mode
+                              ? "bg-[#261C18] text-white shadow-xs"
+                              : "text-[#665448] hover:text-[#241A14]"
+                          }`}
+                        >
+                          {mode === "all"
+                            ? `All (${displayTableOverviews.length})`
+                            : mode === "active"
+                            ? `Occupied (${opActiveTablesCount})`
+                            : `Available (${displayTableOverviews.length - opActiveTablesCount})`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {filteredOpTables.length === 0 ? (
+                  <div className="text-center py-12 px-4 bg-[#FFFDF9] rounded-2xl border border-[#E4DCD0] space-y-2">
+                    {opFloorFilter === 6 ? (
+                      <>
+                        <div className="inline-block p-3 bg-amber-50 rounded-full border border-amber-200 mb-1">
+                          <Sparkles className="w-6 h-6 text-amber-700 mx-auto" />
+                        </div>
+                        <h4 className="text-sm font-bold text-[#241A14]">Floor 6: Everest Sky Deck</h4>
+                        <p className="text-xs text-[#7A6A5E] max-w-sm mx-auto">
+                          Exclusive rooftop sky deck with 360° views of Old City Udaipur & Lake Pichola is opening soon!
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <UtensilsCrossed className="w-8 h-8 text-[#A8988B] mx-auto" />
+                        <h4 className="text-sm font-bold text-[#241A14]">No Tables Found</h4>
+                        <p className="text-xs text-[#7A6A5E]">No tables match the selected filter on this date.</p>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {(opFloorFilter === "all"
+                      ? RESTAURANT_FLOORS.filter((f) => !f.isComingSoon)
+                      : RESTAURANT_FLOORS.filter((f) => f.id === opFloorFilter)
+                    ).map((floor) => {
+                      const floorTables = filteredOpTables.filter(
+                        (tbl) => (tbl.floor_number || getTableFloor(tbl.table_id).floor) === floor.id
+                      );
+                      if (floorTables.length === 0) return null;
+
+                      return (
+                        <div key={floor.id} className="space-y-3">
+                          <div className="flex items-center justify-between bg-[#F8F5F0] px-4 py-2.5 rounded-xl border border-[#E4DCD0] shadow-2xs">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full bg-[#B85B43]" />
+                              <h3 className="font-serif font-bold text-sm text-[#241A14]">
+                                Floor {floor.id}: {floor.name}
+                              </h3>
+                              <span className="text-xs text-[#7A6A5E] font-sans">
+                                ({floorTables.length} {floorTables.length === 1 ? "Table" : "Tables"})
+                              </span>
+                            </div>
+                            <span className="text-xs text-[#7A6A5E] font-sans hidden sm:inline">
+                              {floor.desc}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {floorTables.map((tbl) => {
+                              const floorInfo = tbl.floor_number ? RESTAURANT_FLOORS.find((f) => f.id === tbl.floor_number) : getTableFloor(tbl.table_id);
+                              const floorDetail = getTableFloor(tbl.table_id, tbl.floor_number);
+                              const floorTableNum = tbl.floor_table_num || floorDetail.floor_table_num;
+                              const displayTableName = `TABLE ${String(floorTableNum).padStart(2, "0")}`;
+                              const floorDisplayName = tbl.floor_name || floorInfo?.name || floorDetail.name;
+                              const isOccupied = (tbl.active_session_count || 0) > 0;
+                              const activeSessions = (tbl.sessions || []).filter((s: any) => s.is_active);
+                              const currentSession = activeSessions[0] || (tbl.sessions && tbl.sessions[0]);
+
+                              // Match any active booking for this table on selected date (matching POS)
+                              const bookedReservation = displayOpReservations.find((r) => {
+                                const matchId = r.table_id === tbl.table_id;
+                                const matchName = r.table_name && (
+                                  (r.table_name.toLowerCase().replace(/\s+/g, "") === `table${floorTableNum}` ||
+                                   r.table_name.toLowerCase().replace(/\s+/g, "") === `table${tbl.table_id}`) &&
+                                  (!r.floor_number || r.floor_number === (tbl.floor_number || floorDetail.floor))
+                                );
+                                const isActive = ["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"].includes(r.status?.toUpperCase() || "");
+                                return (matchId || matchName) && isActive;
+                              });
+
+                              return (
+                                <div
+                                  key={tbl.table_id}
+                                  className={`rounded-2xl border p-4.5 space-y-3.5 transition-all shadow-sm ${
+                                    isOccupied
+                                      ? "bg-[#FFFDF9] border-amber-300 ring-1 ring-amber-200"
+                                      : "bg-[#FFFDF9] border-[#E6DCCF]"
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-2.5">
+                                    <div>
+                                      <div className="flex items-baseline gap-2">
+                                        <h4 className="font-sans font-extrabold text-base text-[#241A14]">
+                                          {displayTableName}
+                                        </h4>
+                                        <span className="text-xs font-semibold text-[#B85B43]">
+                                          • {floorDisplayName}
+                                        </span>
+                                      </div>
+                                      <span className="text-[11px] text-[#7A6A5E]">
+                                        {tbl.capacity || floorDetail.capacity} Seats Physical Capacity
+                                      </span>
+                                    </div>
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                                isOccupied
+                                  ? "bg-amber-100 text-amber-900 border-amber-300"
+                                  : "bg-emerald-100 text-emerald-900 border-emerald-300"
+                              }`}
+                            >
+                              {isOccupied ? "Occupied" : "Available"}
+                            </span>
+                          </div>
+
+                          {/* Booked Reservation Banner matching POS */}
+                          {bookedReservation && (
+                            <div className="p-2.5 bg-[#FAF0E1] border border-[#E8DFC9] rounded-xl text-xs space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-[#9E3E26] flex items-center gap-1 uppercase tracking-wider text-[10px]">
+                                  <UserCheck className="w-3.5 h-3.5 text-[#9E3E26]" />
+                                  Reserved Guest
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                                  bookedReservation.status === "SEATED"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : bookedReservation.status === "ARRIVED"
+                                    ? "bg-amber-100 text-amber-800"
+                                    : "bg-blue-100 text-blue-800"
+                                }`}>
+                                  {bookedReservation.status}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-stone-900 font-semibold text-xs">
+                                <span className="truncate">{bookedReservation.customer_name || bookedReservation.customer?.name || "Guest"}</span>
+                                <span className="text-[11px] font-mono text-stone-600 shrink-0 ml-1">
+                                  {bookedReservation.time_slot} ({bookedReservation.guest_count || bookedReservation.party_size}p)
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {currentSession ? (
+                            <div className="space-y-2.5 text-xs">
+                              <div className="flex items-center justify-between text-[#665448]">
+                                <span className="font-semibold">Session Status:</span>
+                                <span className="font-bold text-[#241A14]">
+                                  {currentSession.is_active ? "Active Floor Session" : "Closed / Settled"}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between text-[#665448]">
+                                <span className="font-semibold">Opened Time:</span>
+                                <span className="font-mono text-[#241A14]">
+                                  {currentSession.opened_at
+                                    ? new Date(currentSession.opened_at).toLocaleTimeString([], {
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      })
+                                    : "—"}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between text-[#665448]">
+                                <span className="font-semibold">Guest Count:</span>
+                                <span className="font-bold text-[#241A14]">
+                                  {currentSession.guest_count || tbl.capacity} Guests
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-2 border-t border-[#F0E8DC]">
+                                <span className="font-bold text-[#241A14]">Current Bill:</span>
+                                <span className="font-mono font-extrabold text-sm text-[#B85B43]">
+                                  ₹{Number(currentSession.total_amount || 0).toLocaleString("en-IN")}
+                                </span>
+                              </div>
+
+                              {currentSession.items && currentSession.items.length > 0 && (
+                                <div className="pt-2 border-t border-[#F0E8DC]">
+                                  <div className="text-[11px] font-bold text-[#4A392F] mb-1">
+                                    Ordered Items ({currentSession.items.length}):
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {currentSession.items.slice(0, 4).map((it: any, idx: number) => (
+                                      <span
+                                        key={idx}
+                                        className="px-2 py-0.5 rounded-md bg-[#FAF7F0] border border-[#E0D4C2] text-[10px] text-[#241A14] font-medium"
+                                      >
+                                        {it.quantity}x {it.name}
+                                      </span>
+                                    ))}
+                                    {currentSession.items.length > 4 && (
+                                      <span className="text-[10px] text-[#7A6A5E] font-medium self-center">
+                                        +{currentSession.items.length - 4} more
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => setSelectedOpTable({ ...tbl, session: currentSession })}
+                                className="w-full mt-2 py-1.5 px-3 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#241A14] border border-[#E0D4C2] font-bold text-xs transition-colors cursor-pointer"
+                              >
+                                View Session Details
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="py-6 text-center text-xs text-[#8C7A6D] space-y-1">
+                              <p className="font-medium">No session opened on {opDate}.</p>
+                              <p className="text-[11px] text-[#A8988B]">Table is free for reservations or walk-ins.</p>
+                            </div>
+                          )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              </div>
+            )}
+
+            {/* SUB-VIEW 2: TABLE BOOKINGS ON SELECTED DATE (SPECIFICALLY REQUESTED) */}
+            {opSubTab === "bookings" && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#FFFDF9] p-3.5 rounded-xl border border-[#E4DCD0]">
+                  <div>
+                    <h3 className="text-sm font-sans font-bold text-[#241A14]">
+                      Table Bookings for <span className="font-mono">{opDate}</span>
+                    </h3>
+                    <p className="text-xs text-[#7A6A5E]">
+                      {filteredOpReservations.length} bookings recorded for this date
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
+                      <input
+                        type="text"
+                        value={opResSearch}
+                        onChange={(e) => setOpResSearch(e.target.value)}
+                        placeholder="Search guest, phone, table..."
+                        className="bg-[#FAF7F0] border border-[#E0D4C2] focus:border-[#B85B43] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[#241A14] outline-none"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
+                      {(["all", "CONFIRMED", "ARRIVED", "SEATED", "COMPLETED", "CANCELLED"] as const).map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => setOpResFilter(st)}
+                          className={`px-2.5 py-1 rounded-md capitalize font-bold transition-colors cursor-pointer ${
+                            opResFilter === st
+                              ? "bg-[#261C18] text-white shadow-xs"
+                              : "text-[#665448] hover:text-[#241A14]"
+                          }`}
+                        >
+                          {st.toLowerCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {filteredOpReservations.length === 0 ? (
+                  <div className="text-center py-12 px-4 bg-[#FFFDF9] rounded-2xl border border-[#E4DCD0] space-y-2">
+                    <Calendar className="w-8 h-8 text-[#A8988B] mx-auto" />
+                    <h4 className="text-sm font-bold text-[#241A14]">No Table Bookings Found</h4>
+                    <p className="text-xs text-[#7A6A5E]">
+                      There are no reservations booked for {opDate}. Change the date above to inspect other days.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredOpReservations.map((res: any) => {
+                      const cust = res.customer;
+                      const custName = res.customer_name || cust?.name || "Guest";
+                      const custPhone = res.customer_phone || cust?.phone || "No phone provided";
+                      const st = String(res.status || "CONFIRMED").toUpperCase();
+
+                      const statusBadge =
+                        st === "CONFIRMED"
+                          ? "bg-blue-50 text-blue-800 border-blue-200"
+                          : st === "ARRIVED"
+                          ? "bg-amber-50 text-amber-800 border-amber-200"
+                          : st === "SEATED"
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                          : st === "COMPLETED"
+                          ? "bg-stone-100 text-stone-700 border-stone-200"
+                          : "bg-rose-50 text-rose-800 border-rose-200";
+
+                      return (
+                        <div
+                          key={res.id}
+                          className="bg-[#FFFDF9] rounded-2xl border border-[#E6DCCF] p-4.5 shadow-sm space-y-3.5 flex flex-col justify-between"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-2.5">
+                              <div>
+                                <span className="font-mono font-bold text-sm text-[#B85B43]">
+                                  RES-{String(res.id).padStart(4, "0")}
+                                </span>
+                                <div className="text-xs font-semibold text-[#241A14] mt-0.5">
+                                  {res.reservation_date || res.booking_date} • {res.time_slot}
+                                </div>
+                              </div>
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusBadge}`}>
+                                {res.status}
+                              </span>
+                            </div>
+
+                            <div className="text-xs space-y-2 text-[#4A392F]">
+                              <div className="flex items-center justify-between">
+                                <span className="font-sans font-bold text-sm text-[#241A14]">{custName}</span>
+                                <span className="font-bold text-[#665448]">{res.party_size || res.guest_count} Guests</span>
+                              </div>
+
+                              <div className="text-[#7A6A5E] font-mono text-[11px]">{custPhone}</div>
+
+                              <div className="flex items-center justify-between text-xs bg-[#FAF7F0] p-2 rounded-lg border border-[#E0D4C2]">
+                                <span className="font-semibold text-[#665448]">Assigned Table:</span>
+                                <span className="font-bold text-[#241A14]">
+                                  {res.table_name || (res.table_id ? `Table #${res.table_id}` : "Unassigned")}
+                                </span>
+                              </div>
+
+                              {res.advance_amount !== undefined && Number(res.advance_amount) > 0 && (
+                                <div className="text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded-lg border border-emerald-200 font-bold flex items-center justify-between">
+                                  <span>Deposit Paid:</span>
+                                  <span>₹{Number(res.advance_amount).toFixed(0)} ({res.payment_status || "PAID"})</span>
+                                </div>
+                              )}
+
+                              {res.upi_utr && (
+                                <div className="text-[10px] text-[#8C7A6D] font-mono">
+                                  UTR: {res.upi_utr}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 pt-2 border-t border-[#F0E8DC]">
+                            {!res.table_id && st !== "CANCELLED" && st !== "COMPLETED" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpAssigningRes(res);
+                                  setSelectedAssignTableId(displayTableOverviews[0]?.table_id || 1);
+                                }}
+                                className="py-1.5 px-3 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#B85B43] border border-[#E0D4C2] font-bold text-xs transition-colors cursor-pointer shadow-xs"
+                              >
+                                Assign Table
+                              </button>
+                            )}
+                            {st !== "SEATED" && st !== "COMPLETED" && st !== "CANCELLED" && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateOpReservationStatus(res.id, "SEATED")}
+                                className="flex-1 py-1.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
+                              >
+                                Seat Guests
+                              </button>
+                            )}
+                            {st === "CONFIRMED" && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateOpReservationStatus(res.id, "ARRIVED")}
+                                className="py-1.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
+                              >
+                                Arrived
+                              </button>
+                            )}
+                            {st !== "CANCELLED" && st !== "COMPLETED" && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateOpReservationStatus(res.id, "CANCELLED")}
+                                className="py-1.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* SUB-VIEW 3: KOT ORDERS ON SELECTED DATE */}
             {opSubTab === "kots" && (
               <div className="space-y-4">
@@ -2861,8 +3338,8 @@ export default function AdminPortal() {
                     type="text"
                     value={resSearch}
                     onChange={(e) => setResSearch(e.target.value)}
-                    placeholder="Search by Reservation ID, name, phone..."
-                    className="bg-[#FFFDF9] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#241A14] placeholder-[#A8988B] outline-none w-64"
+                    placeholder="Search by RES ID (e.g. RES-0064, 64), name, phone..."
+                    className="bg-[#FFFDF9] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#241A14] placeholder-[#A8988B] outline-none w-72"
                   />
                 </div>
 
