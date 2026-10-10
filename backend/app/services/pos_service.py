@@ -602,3 +602,76 @@ class POSService:
             )
 
         return results
+
+    @staticmethod
+    async def merge_tables(db: AsyncSession, source_table_id: int, target_table_id: int) -> dict:
+        if source_table_id == target_table_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Source and target tables must be different.")
+
+        source_tbl = await db.get(Table, source_table_id)
+        target_tbl = await db.get(Table, target_table_id)
+        if not source_tbl or not target_tbl:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source or target table not found.")
+
+        source_sess_stmt = (
+            select(DiningSession)
+            .where(
+                DiningSession.table_id == source_table_id,
+                DiningSession.status.in_(["OPENED", "ACTIVE", "CHECKOUT"]),
+            )
+            .order_by(DiningSession.opened_at.desc())
+        )
+        source_sess_res = await db.execute(source_sess_stmt)
+        source_sess = source_sess_res.scalar_one_or_none()
+        if not source_sess:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"No active dining session found on source Table #{source_table_id}.")
+
+        target_sess_stmt = (
+            select(DiningSession)
+            .where(
+                DiningSession.table_id == target_table_id,
+                DiningSession.status.in_(["OPENED", "ACTIVE", "CHECKOUT"]),
+            )
+            .order_by(DiningSession.opened_at.desc())
+        )
+        target_sess_res = await db.execute(target_sess_stmt)
+        target_sess = target_sess_res.scalar_one_or_none()
+
+        if not target_sess:
+            source_sess.table_id = target_table_id
+            target_tbl.status = "Occupied"
+            source_tbl.status = "Available"
+        else:
+            orders_stmt = select(Order).where(Order.dining_session_id == source_sess.id)
+            orders_res = await db.execute(orders_stmt)
+            for ord_item in orders_res.scalars().all():
+                ord_item.dining_session_id = target_sess.id
+
+            kots_stmt = select(KOT).where(KOT.dining_session_id == source_sess.id)
+            kots_res = await db.execute(kots_stmt)
+            for kot in kots_res.scalars().all():
+                kot.dining_session_id = target_sess.id
+                kot.table_id = target_table_id
+                kot.table_number = target_tbl.table_number
+
+            source_sess.status = "CLOSED"
+            source_sess.closed_at = utc_now()
+            source_tbl.status = "Available"
+
+        await db.commit()
+
+        from app.api.websocket import ws_manager
+        merge_event = {
+            "event": "TABLES_MERGED",
+            "source_table_id": source_table_id,
+            "target_table_id": target_table_id,
+        }
+        await ws_manager.broadcast("tables", merge_event)
+        await ws_manager.broadcast("pos", merge_event)
+
+        return {
+            "message": f"Table #{source_table_id} merged into Table #{target_table_id} successfully.",
+            "source_table_id": source_table_id,
+            "target_table_id": target_table_id,
+        }
+

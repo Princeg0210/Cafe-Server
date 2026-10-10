@@ -645,7 +645,7 @@ export default function POSDashboard() {
       fetchData(undefined, selectedDate);
       fetchReservations(undefined, selectedDate);
       fetchPendingReviews(undefined);
-    }, 10000);
+    }, 55000); // 55 seconds refresh interval
     return () => clearInterval(interval);
   }, [posToken, selectedDate]);
 

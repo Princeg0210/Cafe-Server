@@ -109,3 +109,9 @@ class TableOverviewResponse(BaseModel):
     floor_number: Optional[int] = 1
     floor_name: Optional[str] = "Ground floor"
     floor_table_num: Optional[int] = 1
+
+
+class MergeTablesRequest(BaseModel):
+    source_table_id: int
+    target_table_id: int
+

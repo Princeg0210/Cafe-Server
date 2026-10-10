@@ -83,6 +83,18 @@ async def settle_table(
     return await POSService.settle_table_by_id(db, table_id=table_id)
 
 
+@router.post("/tables/merge")
+async def merge_tables(
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
+):
+    source_table_id = int(payload.get("source_table_id", 0))
+    target_table_id = int(payload.get("target_table_id", 0))
+    return await POSService.merge_tables(db, source_table_id=source_table_id, target_table_id=target_table_id)
+
+
+
 @router.post("/sessions/reset-all")
 async def reset_all_sessions(
     db: AsyncSession = Depends(get_db),
