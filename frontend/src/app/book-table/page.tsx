@@ -597,7 +597,7 @@ export default function BookTablePage() {
           >
             <div className="relative bg-[#FAF8F5] rounded-3xl border border-[#E8E2D8] overflow-hidden shadow-xl">
               {/* Optional Subtle Watermark behind the card */}
-              <div 
+              <div
                 className="absolute inset-0 pointer-events-none opacity-[0.035] bg-center bg-no-repeat bg-contain z-0"
                 style={{ backgroundImage: "url('/jaadoo_logo.jpg')" }}
               />
@@ -783,13 +783,12 @@ export default function BookTablePage() {
                             disabled={isDisabled}
                             onClick={() => handleSelectCalendarDate(item.date, isPast)}
                             title={isClosed ? "Closed on Tuesday and Wednesday" : undefined}
-                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center font-medium transition-all ${
-                              isSelected
-                                ? "bg-[#9E3E26] text-white font-bold shadow-xs scale-105"
-                                : isDisabled
+                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center font-medium transition-all ${isSelected
+                              ? "bg-[#9E3E26] text-white font-bold shadow-xs scale-105"
+                              : isDisabled
                                 ? "text-stone-300 cursor-not-allowed"
                                 : "text-[#140E0A] hover:bg-[#F0EAE0] cursor-pointer"
-                            }`}
+                              }`}
                           >
                             {item.dayNumber}
                           </button>
@@ -805,7 +804,7 @@ export default function BookTablePage() {
                     <div>
                       <span className="text-[11px] font-bold uppercase tracking-wider text-[#9E3E26]">Dinner service</span>
                       <h4 className="font-serif text-xl font-bold text-[#140E0A]">
-                      Dinner
+                        Dinner
                       </h4>
                     </div>
                     <button
@@ -862,11 +861,10 @@ export default function BookTablePage() {
                           key={slot.time}
                           type="button"
                           onClick={() => setSelectedTime(slot.time)}
-                          className={`px-4 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
-                            isSelected
-                              ? "bg-[#EDF9F5] border border-[#65C5A8] text-[#140E0A] shadow-2xs"
-                              : "bg-[#F6F6F6] border border-transparent text-[#2C2C2C] hover:bg-stone-200"
-                          }`}
+                          className={`px-4 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${isSelected
+                            ? "bg-[#EDF9F5] border border-[#65C5A8] text-[#140E0A] shadow-2xs"
+                            : "bg-[#F6F6F6] border border-transparent text-[#2C2C2C] hover:bg-stone-200"
+                            }`}
                         >
                           {slot.label}
                         </button>
@@ -930,20 +928,20 @@ export default function BookTablePage() {
                     <span className="text-[11px] text-stone-400">6 Heritage Floors</span>
                   </div>
                   <div className="relative">
-                  <select
-                    value={selectedFloor}
-                    onChange={(e) => {
-                      setSelectedFloor(Number(e.target.value));
-                      setSelectedTableId("auto");
-                    }}
-                    className="w-full appearance-none text-xs font-medium p-3 pr-10 rounded-xl border border-[#DDD3C4] bg-white text-[#140E0A] focus:outline-hidden focus:border-[#65C5A8] focus:ring-2 focus:ring-[#65C5A8]/20"
-                  >
-                    {RESTAURANT_FLOORS.map((f) => (
-                      <option key={f.id} value={f.id} disabled={f.isComingSoon}>
-                        Floor {f.id} — {f.name} {f.isComingSoon ? "(Coming Soon)" : ""}
-                      </option>
-                    ))}
-                  </select>
+                    <select
+                      value={selectedFloor}
+                      onChange={(e) => {
+                        setSelectedFloor(Number(e.target.value));
+                        setSelectedTableId("auto");
+                      }}
+                      className="w-full appearance-none text-xs font-medium p-3 pr-10 rounded-xl border border-[#DDD3C4] bg-white text-[#140E0A] focus:outline-hidden focus:border-[#65C5A8] focus:ring-2 focus:ring-[#65C5A8]/20"
+                    >
+                      {RESTAURANT_FLOORS.map((f) => (
+                        <option key={f.id} value={f.id} disabled={f.isComingSoon}>
+                          Floor {f.id} — {f.name} {f.isComingSoon ? "(Coming Soon)" : ""}
+                        </option>
+                      ))}
+                    </select>
                     <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-stone-500">⌄</span>
                   </div>
                 </div>
@@ -1069,11 +1067,10 @@ export default function BookTablePage() {
                 {/* MANDATORY POLICIES AND RULES CHECKBOX */}
                 <div
                   id="policy-checkbox-container"
-                  className={`p-3.5 rounded-xl border transition-all ${
-                    policyWarning && !policyAccepted
-                      ? "border-red-500 bg-red-50/50 ring-2 ring-red-200"
-                      : "border-transparent bg-stone-50"
-                  }`}
+                  className={`p-3.5 rounded-xl border transition-all ${policyWarning && !policyAccepted
+                    ? "border-red-500 bg-red-50/50 ring-2 ring-red-200"
+                    : "border-transparent bg-stone-50"
+                    }`}
                 >
                   <label className="flex items-start gap-2.5 cursor-pointer text-xs text-[#2A231E] leading-relaxed">
                     <input
@@ -1145,11 +1142,10 @@ export default function BookTablePage() {
                     type="button"
                     disabled={isPaymentProcessing}
                     onClick={handleInitiatePayment}
-                    className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${
-                      !policyAccepted
-                        ? "bg-stone-300 text-stone-500 cursor-not-allowed"
-                        : "bg-[#140E0A] hover:bg-black text-white cursor-pointer active:scale-[0.99]"
-                    }`}
+                    className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${!policyAccepted
+                      ? "bg-stone-300 text-stone-500 cursor-not-allowed"
+                      : "bg-[#140E0A] hover:bg-black text-white cursor-pointer active:scale-[0.99]"
+                      }`}
                   >
                     {isPaymentProcessing ? (
                       <>
@@ -1206,21 +1202,19 @@ export default function BookTablePage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setPolicyModalTab("houseRules")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      policyModalTab === "houseRules"
-                        ? "bg-[#140E0A] text-white"
-                        : "bg-white text-stone-600 border border-stone-200"
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${policyModalTab === "houseRules"
+                      ? "bg-[#140E0A] text-white"
+                      : "bg-white text-stone-600 border border-stone-200"
+                      }`}
                   >
                     House Rules
                   </button>
                   <button
                     onClick={() => setPolicyModalTab("cancellation")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      policyModalTab === "cancellation"
-                        ? "bg-[#140E0A] text-white"
-                        : "bg-white text-stone-600 border border-stone-200"
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${policyModalTab === "cancellation"
+                      ? "bg-[#140E0A] text-white"
+                      : "bg-white text-stone-600 border border-stone-200"
+                      }`}
                   >
                     Cancellation Policy
                   </button>
