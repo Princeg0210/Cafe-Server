@@ -52,7 +52,15 @@ import QRCode from "qrcode";
 import { menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
-import { adminFetch, ADMIN_TOKEN_KEY, ADMIN_REFRESH_KEY, ADMIN_SESSION_EXPIRED, ADMIN_TOKEN_REFRESHED } from "@/lib/adminFetch";
+import { adminSession } from "@/lib/authFetch";
+
+const {
+  fetch: adminFetch,
+  tokenKey: ADMIN_TOKEN_KEY,
+  refreshKey: ADMIN_REFRESH_KEY,
+  expiredEvent: ADMIN_SESSION_EXPIRED,
+  refreshedEvent: ADMIN_TOKEN_REFRESHED,
+} = adminSession;
 
 interface DashboardMetrics {
   total_revenue: number;

@@ -40,6 +40,15 @@ import {
 } from "lucide-react";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
+import { posSession } from "@/lib/authFetch";
+
+const {
+  fetch: posFetch,
+  tokenKey: POS_TOKEN_KEY,
+  refreshKey: POS_REFRESH_KEY,
+  expiredEvent: POS_SESSION_EXPIRED,
+  refreshedEvent: POS_TOKEN_REFRESHED,
+} = posSession;
 
 interface SessionItem {
   name: string;
@@ -371,7 +380,7 @@ export default function POSDashboard() {
   const verifyToken = async (tok: string): Promise<boolean> => {
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/auth/me`, {
+      const res = await posFetch(`${apiBase}/api/v1/auth/me`, {
         headers: { Authorization: `Bearer ${tok}` },
       });
       if (res.ok) {
@@ -397,7 +406,7 @@ export default function POSDashboard() {
   };
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("jaadoo_pos_token");
+    const savedToken = localStorage.getItem(POS_TOKEN_KEY);
     const savedUser = localStorage.getItem("jaadoo_pos_user");
     if (savedToken) {
       setPosToken(savedToken);
@@ -419,7 +428,7 @@ export default function POSDashboard() {
     setLoginError(null);
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/auth/login`, {
+      const res = await posFetch(`${apiBase}/api/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -435,7 +444,8 @@ export default function POSDashboard() {
       }
       const data = await res.json();
       const tok = data.access_token;
-      localStorage.setItem("jaadoo_pos_token", tok);
+      localStorage.setItem(POS_TOKEN_KEY, tok);
+      if (data.refresh_token) localStorage.setItem(POS_REFRESH_KEY, data.refresh_token);
       if (data.user) {
         try {
           localStorage.setItem("jaadoo_pos_user", JSON.stringify(data.user));
@@ -451,12 +461,33 @@ export default function POSDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("jaadoo_pos_token");
+    localStorage.removeItem(POS_TOKEN_KEY);
+    localStorage.removeItem(POS_REFRESH_KEY);
     localStorage.removeItem("jaadoo_pos_user");
     setPosToken(null);
     setStaffUser(null);
     setLoginPassword("");
   };
+
+  // Keep React state in sync with posFetch: renewed token, or session that could not be renewed
+  useEffect(() => {
+    const onRefreshed = (e: Event) => setPosToken((e as CustomEvent<string>).detail);
+    const onExpired = () => {
+      localStorage.removeItem(POS_TOKEN_KEY);
+      localStorage.removeItem(POS_REFRESH_KEY);
+      localStorage.removeItem("jaadoo_pos_user");
+      setPosToken(null);
+      setStaffUser(null);
+      setLoginPassword("");
+      setLoginError("Your session expired. Please log in again.");
+    };
+    window.addEventListener(POS_TOKEN_REFRESHED, onRefreshed);
+    window.addEventListener(POS_SESSION_EXPIRED, onExpired);
+    return () => {
+      window.removeEventListener(POS_TOKEN_REFRESHED, onRefreshed);
+      window.removeEventListener(POS_SESSION_EXPIRED, onExpired);
+    };
+  }, []);
 
   const getLocalDateString = (offsetDays = 0) => {
     const d = new Date();
@@ -483,10 +514,10 @@ export default function POSDashboard() {
       const dateParam = target ? `?target_date=${target}` : "";
       setIsLoadingDoughCapacity(true);
       const [kotsRes, sumRes, tablesRes, doughRes] = await Promise.all([
-        fetch(`${apiBase}/api/v1/pos/kots${dateParam}`, { headers }),
-        fetch(`${apiBase}/api/v1/pos/summary${dateParam}`, { headers }),
-        fetch(`${apiBase}/api/v1/pos/table-sessions${dateParam}`, { headers }),
-        fetch(`${apiBase}/api/v1/pos/daily-dough-capacity${target ? `?target_date=${target}` : ""}`, { headers }),
+        posFetch(`${apiBase}/api/v1/pos/kots${dateParam}`, { headers }),
+        posFetch(`${apiBase}/api/v1/pos/summary${dateParam}`, { headers }),
+        posFetch(`${apiBase}/api/v1/pos/table-sessions${dateParam}`, { headers }),
+        posFetch(`${apiBase}/api/v1/pos/daily-dough-capacity${target ? `?target_date=${target}` : ""}`, { headers }),
       ]);
 
       if (kotsRes.status === 401 || kotsRes.status === 403) {
@@ -525,7 +556,7 @@ export default function POSDashboard() {
     const apiBase = getApiBase();
     try {
       // Fetch all reservations for branch 1 so POS always has full active reservation data
-      const res = await fetch(`${apiBase}/api/v1/reservations?branch_id=1`, {
+      const res = await posFetch(`${apiBase}/api/v1/reservations?branch_id=1`, {
         headers: { Authorization: `Bearer ${tok}` },
       });
       if (res.ok) {
@@ -544,7 +575,7 @@ export default function POSDashboard() {
     if (!tok) return;
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/reservations/pending-reviews`, {
+      const res = await posFetch(`${apiBase}/api/v1/reservations/pending-reviews`, {
         headers: { Authorization: `Bearer ${tok}` },
       });
       if (res.ok) {
@@ -566,7 +597,7 @@ export default function POSDashboard() {
       if (newStatus === "SEATED") {
         const resObj = reservations.find((r) => r.id === id);
         if (resObj && resObj.table_id) {
-          const checkinRes = await fetch(`${apiBase}/api/v1/reservations/${id}/checkin`, {
+          const checkinRes = await posFetch(`${apiBase}/api/v1/reservations/${id}/checkin`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -581,7 +612,7 @@ export default function POSDashboard() {
         }
       }
 
-      const res = await fetch(`${apiBase}/api/v1/reservations/${id}/status`, {
+      const res = await posFetch(`${apiBase}/api/v1/reservations/${id}/status`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -618,7 +649,7 @@ export default function POSDashboard() {
         const resId = match ? match.id : prompt("Enter Reservation ID to confirm with this verified credit:");
         if (!resId) return;
 
-        const res = await fetch(`${apiBase}/api/v1/reservations/${resId}/staff-verify`, {
+        const res = await posFetch(`${apiBase}/api/v1/reservations/${resId}/staff-verify`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -649,7 +680,7 @@ export default function POSDashboard() {
       const targetTbl = tableOverviews.find((t) => t.table_id === tableId);
       const floorInfo = getTableFloor(tableId, targetTbl?.floor_number);
       const floorTableNum = targetTbl?.floor_table_num || floorInfo.floor_table_num;
-      const res = await fetch(`${apiBase}/api/v1/reservations/${reservationId}/assign-table`, {
+      const res = await posFetch(`${apiBase}/api/v1/reservations/${reservationId}/assign-table`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -759,7 +790,7 @@ export default function POSDashboard() {
     setRetryingIds((prev) => ({ ...prev, [kotId]: true }));
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/pos/kots/${kotId}/retry-print`, {
+      const res = await posFetch(`${apiBase}/api/v1/pos/kots/${kotId}/retry-print`, {
         method: "POST",
         headers: { Authorization: `Bearer ${posToken}` },
       });
@@ -950,7 +981,7 @@ export default function POSDashboard() {
     setIsSeatingWalkIn(true);
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/pos/walk-in/seat`, {
+      const res = await posFetch(`${apiBase}/api/v1/pos/walk-in/seat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -994,7 +1025,7 @@ export default function POSDashboard() {
     setIsMerging(true);
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/pos/tables/merge`, {
+      const res = await posFetch(`${apiBase}/api/v1/pos/tables/merge`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1032,7 +1063,7 @@ export default function POSDashboard() {
     setIsSavingBillEdit(true);
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/pos/sessions/${billEditSession.session_id}/items`, {
+      const res = await posFetch(`${apiBase}/api/v1/pos/sessions/${billEditSession.session_id}/items`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -1068,7 +1099,7 @@ export default function POSDashboard() {
     setClosingSessionIds((prev) => ({ ...prev, [sessionId]: true }));
     const apiBase = getApiBase();
     try {
-      let res = await fetch(`${apiBase}/api/v1/pos/sessions/${sessionId}/close`, {
+      let res = await posFetch(`${apiBase}/api/v1/pos/sessions/${sessionId}/close`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1077,7 +1108,7 @@ export default function POSDashboard() {
       });
 
       if (!res.ok && tableId) {
-        res = await fetch(`${apiBase}/api/v1/pos/tables/${tableId}/settle`, {
+        res = await posFetch(`${apiBase}/api/v1/pos/tables/${tableId}/settle`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1118,7 +1149,7 @@ export default function POSDashboard() {
     setClosingSessionIds((prev) => ({ ...prev, [sessionId]: true }));
     const apiBase = getApiBase();
     try {
-      let res = await fetch(`${apiBase}/api/v1/pos/sessions/${sessionId}/close`, {
+      let res = await posFetch(`${apiBase}/api/v1/pos/sessions/${sessionId}/close`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1127,7 +1158,7 @@ export default function POSDashboard() {
       });
 
       if (!res.ok && tableId) {
-        res = await fetch(`${apiBase}/api/v1/pos/tables/${tableId}/settle`, {
+        res = await posFetch(`${apiBase}/api/v1/pos/tables/${tableId}/settle`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1322,7 +1353,7 @@ export default function POSDashboard() {
 
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/pos/sessions/reset-all`, {
+      const res = await posFetch(`${apiBase}/api/v1/pos/sessions/reset-all`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
