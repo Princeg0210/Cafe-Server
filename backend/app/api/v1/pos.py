@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, require_permission
 from app.models.user import User
-from app.schemas.pos import KOTResponse, POSSummaryResponse, TableOverviewResponse
+from app.schemas.pos import KOTResponse, POSSummaryResponse, SessionDiscountRequest, TableOverviewResponse
+from app.services.billing_service import BillingService
 from app.services.pos_service import POSService
 
 router = APIRouter(prefix="/pos", tags=["Live POS & KOT Operations"])
@@ -120,6 +121,36 @@ async def update_session_items(
 ):
     items = payload.get("items", [])
     return await POSService.update_session_items(db, session_id=id, items=items)
+
+
+@router.put("/sessions/{id}/discount")
+async def set_session_discount(
+    id: int,
+    payload: SessionDiscountRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
+):
+    """Apply (or clear) a % or flat discount on an open bill; capped at 10% of the subtotal, before GST."""
+    bill = await BillingService.set_session_discount(
+        db,
+        dining_session_id=id,
+        discount_type=payload.discount_type,
+        discount_value=payload.discount_value,
+        reason=payload.reason,
+        user_id=current_user.id,
+    )
+    return {
+        "bill_id": bill.id,
+        "subtotal": bill.subtotal,
+        "discount_type": bill.discount_type,
+        "discount_value": bill.discount_value,
+        "discount_amount": bill.discount_amount,
+        "discount_reason": bill.discount_reason,
+        "tax_amount": bill.tax_amount,
+        "gross_amount": bill.subtotal - bill.discount_amount + bill.tax_amount,
+        "reservation_credit": bill.reservation_credit,
+        "net_amount_due": bill.total_amount,
+    }
 
 
 @router.post("/sessions/reset-all")

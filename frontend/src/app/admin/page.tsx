@@ -3736,6 +3736,15 @@ export default function AdminPortal() {
                               <span>Subtotal</span>
                               <span className="font-mono">₹{Number(s.subtotal || 0).toLocaleString("en-IN")}</span>
                             </div>
+                            {Number(s.discount_amount || 0) > 0 && (
+                              <div className="flex justify-between text-emerald-700">
+                                <span>
+                                  Discount{s.discount_type === "PERCENT" ? ` (${Number(s.discount_value)}%)` : ""}
+                                  {s.discount_reason ? ` · ${s.discount_reason}` : ""}
+                                </span>
+                                <span className="font-mono">−₹{Number(s.discount_amount).toLocaleString("en-IN")}</span>
+                              </div>
+                            )}
                             <div className="flex justify-between text-[#665448]">
                               <span>Tax</span>
                               <span className="font-mono">₹{Number(s.tax_amount || 0).toLocaleString("en-IN")}</span>

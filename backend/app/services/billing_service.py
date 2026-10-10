@@ -14,6 +14,26 @@ from app.schemas.billing import PaymentCreate
 from app.services.settings_service import SettingsService
 
 
+# Staff discounts (owner/admin and cashier alike) are capped at this share of the item subtotal
+MAX_DISCOUNT_PERCENT = Decimal("10")
+
+
+def compute_discount_amount(subtotal: Decimal, discount_type: str | None, discount_value) -> Decimal:
+    """Rupee discount for a bill, applied to the pre-GST subtotal and never above MAX_DISCOUNT_PERCENT.
+
+    Re-clamped on every recalculation, so removing items after a flat discount can't push it past the cap.
+    """
+    value = Decimal(str(discount_value or "0"))
+    if discount_type not in ("PERCENT", "FLAT") or value <= 0 or subtotal <= 0:
+        return Decimal("0.00")
+    cap = (subtotal * MAX_DISCOUNT_PERCENT / Decimal("100")).quantize(Decimal("0.01"))
+    if discount_type == "PERCENT":
+        amount = subtotal * min(value, MAX_DISCOUNT_PERCENT) / Decimal("100")
+    else:
+        amount = value
+    return min(amount.quantize(Decimal("0.01")), cap)
+
+
 class BillingService:
     @staticmethod
     async def get_or_calculate_bill(db: AsyncSession, dining_session_id: int) -> Bill:
@@ -48,10 +68,18 @@ class BillingService:
         subtotal_res = await db.execute(subtotal_query)
         calc_subtotal = Decimal(str(subtotal_res.scalar() or "0.00"))
 
+        # Discount comes off the subtotal before GST (GST is charged on the discounted value)
+        calc_discount = compute_discount_amount(
+            calc_subtotal,
+            bill.discount_type if bill else None,
+            bill.discount_value if bill else 0,
+        )
+        taxable_value = calc_subtotal - calc_discount
+
         # Calculate dynamic configurable tax
         tax_rate = Decimal(str(getattr(settings, "DEFAULT_TAX_RATE", "0.05")))
-        calc_tax = (calc_subtotal * tax_rate).quantize(Decimal("0.01"))
-        gross_total = calc_subtotal + calc_tax
+        calc_tax = (taxable_value * tax_rate).quantize(Decimal("0.01"))
+        gross_total = taxable_value + calc_tax
 
         # Resolve associated reservation for deposit credit
         reservation = dining_session.reservation
@@ -102,15 +130,14 @@ class BillingService:
                     remainder_amount = excess
                     remainder_action = "CUSTOMER_CREDIT"
 
-        discount = bill.discount_amount if bill else Decimal("0.00")
-        net_due = max(gross_total - reservation_credit - discount, Decimal("0.00"))
+        net_due = max(gross_total - reservation_credit, Decimal("0.00"))
 
         if not bill:
             bill = Bill(
                 dining_session_id=dining_session_id,
                 subtotal=calc_subtotal,
                 tax_amount=calc_tax,
-                discount_amount=Decimal("0.00"),
+                discount_amount=calc_discount,
                 reservation_deposit_paid=deposit_paid,
                 reservation_credit=reservation_credit,
                 remainder_action=remainder_action,
@@ -124,6 +151,7 @@ class BillingService:
         else:
             bill.subtotal = calc_subtotal
             bill.tax_amount = calc_tax
+            bill.discount_amount = calc_discount
             bill.reservation_deposit_paid = deposit_paid
             bill.reservation_credit = reservation_credit
             bill.remainder_action = remainder_action
@@ -133,6 +161,59 @@ class BillingService:
             await db.refresh(bill)
 
         return bill
+
+    @staticmethod
+    async def set_session_discount(
+        db: AsyncSession,
+        dining_session_id: int,
+        discount_type: str | None,
+        discount_value: Decimal,
+        reason: str | None,
+        user_id: int | None,
+    ) -> Bill:
+        """Set (or clear, with discount_type=None) the discount on an open session's bill."""
+        dining_session = await db.get(DiningSession, dining_session_id)
+        if not dining_session:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Dining session #{dining_session_id} not found.")
+        if dining_session.status not in ("OPENED", "ACTIVE", "CHECKOUT"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="DISCOUNT_LOCKED: This bill is already settled.")
+
+        bill = await BillingService.get_or_calculate_bill(db, dining_session_id)
+        if bill.is_paid:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="DISCOUNT_LOCKED: This bill is already paid.")
+
+        value = Decimal(str(discount_value or "0"))
+        if discount_type is not None:
+            if discount_type not in ("PERCENT", "FLAT"):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Discount type must be PERCENT or FLAT.")
+            if value <= 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Discount must be greater than zero.")
+            max_flat = (bill.subtotal * MAX_DISCOUNT_PERCENT / Decimal("100")).quantize(Decimal("0.01"))
+            if discount_type == "PERCENT" and value > MAX_DISCOUNT_PERCENT:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"DISCOUNT_LIMIT: Maximum discount is {MAX_DISCOUNT_PERCENT}%.",
+                )
+            if discount_type == "FLAT" and value > max_flat:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"DISCOUNT_LIMIT: Maximum discount on this bill is ₹{max_flat} ({MAX_DISCOUNT_PERCENT}% of ₹{bill.subtotal}).",
+                )
+
+        if discount_type:
+            bill.discount_type = discount_type
+            bill.discount_value = value
+            bill.discount_reason = (reason or "").strip()[:200] or None
+            bill.discount_by_user_id = user_id
+        else:
+            bill.discount_type = None
+            bill.discount_value = Decimal("0.00")
+            bill.discount_reason = None
+            bill.discount_by_user_id = None
+        await db.commit()
+
+        # Recalculate subtotal, discount, GST and amount due with the new discount
+        return await BillingService.get_or_calculate_bill(db, dining_session_id)
 
     @staticmethod
     async def process_checkout(db: AsyncSession, bill_id: int, payment_data: PaymentCreate) -> Payment:

@@ -24,6 +24,7 @@ from app.schemas.pos import (
     SessionItemDetail,
 )
 from app.utils.helpers import utc_now
+from app.services.billing_service import compute_discount_amount
 
 
 class POSService:
@@ -517,8 +518,14 @@ class POSService:
                     for v in aggregated_items.values()
                 ]
 
-                tax_amt = (session_total * Decimal("0.05")).quantize(Decimal("0.01"))
-                gross_amt = session_total + tax_amt
+                bill_rec = sess.bills[-1] if sess.bills else None
+                disc_amt = compute_discount_amount(
+                    session_total,
+                    bill_rec.discount_type if bill_rec else None,
+                    bill_rec.discount_value if bill_rec else 0,
+                )
+                tax_amt = ((session_total - disc_amt) * Decimal("0.05")).quantize(Decimal("0.01"))
+                gross_amt = session_total - disc_amt + tax_amt
                 dep_paid = Decimal("0.00")
                 res_credit = Decimal("0.00")
                 rem_action = None
@@ -564,6 +571,10 @@ class POSService:
                         net_amount_due=net_due,
                         remainder_action=rem_action,
                         remainder_amount=rem_amount,
+                        discount_type=bill_rec.discount_type if bill_rec else None,
+                        discount_value=bill_rec.discount_value if bill_rec else Decimal("0.00"),
+                        discount_amount=disc_amt,
+                        discount_reason=bill_rec.discount_reason if bill_rec else None,
                     )
                 )
 

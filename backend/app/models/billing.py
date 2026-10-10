@@ -14,6 +14,11 @@ class Bill(Base):
     subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     tax_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     discount_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"), nullable=False)
+    # Staff-entered discount; discount_amount is derived from these on every recalculation
+    discount_type: Mapped[str | None] = mapped_column(String(10), nullable=True)  # PERCENT, FLAT
+    discount_value: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"), nullable=False)
+    discount_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    discount_by_user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     reservation_deposit_paid: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"), nullable=False)
     reservation_credit: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"), nullable=False)
     remainder_action: Mapped[str | None] = mapped_column(String(30), nullable=True)  # REFUND_REMAINDER, CUSTOMER_CREDIT, FORFEIT_REMAINDER

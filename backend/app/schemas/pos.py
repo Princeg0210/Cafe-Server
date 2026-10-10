@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel
 
 
@@ -74,6 +74,13 @@ class SessionItemDetail(BaseModel):
     special_instructions: Optional[str] = None
 
 
+class SessionDiscountRequest(BaseModel):
+    # None clears the discount
+    discount_type: Optional[Literal["PERCENT", "FLAT"]] = None
+    discount_value: Decimal = Decimal("0.00")
+    reason: Optional[str] = None
+
+
 class TableSessionDetail(BaseModel):
     session_id: int
     session_seq: int
@@ -96,6 +103,10 @@ class TableSessionDetail(BaseModel):
     net_amount_due: Decimal = Decimal("0.00")
     remainder_action: Optional[str] = None
     remainder_amount: Decimal = Decimal("0.00")
+    discount_type: Optional[str] = None
+    discount_value: Decimal = Decimal("0.00")
+    discount_amount: Decimal = Decimal("0.00")
+    discount_reason: Optional[str] = None
 
 
 class TableOverviewResponse(BaseModel):

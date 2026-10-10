@@ -248,6 +248,10 @@ async def on_startup():
                 await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS reservation_credit NUMERIC(12, 2) DEFAULT 0.00"))
                 await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS remainder_action VARCHAR(30)"))
                 await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS remainder_amount NUMERIC(12, 2) DEFAULT 0.00"))
+                await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS discount_type VARCHAR(10)"))
+                await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS discount_value NUMERIC(12, 2) NOT NULL DEFAULT 0.00"))
+                await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS discount_reason VARCHAR(200)"))
+                await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS discount_by_user_id INTEGER"))
 
                 await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS event_id VARCHAR(100)"))
                 await conn.execute(text("ALTER TABLE verified_bank_credits ADD COLUMN IF NOT EXISTS raw_event_payload VARCHAR(500)"))

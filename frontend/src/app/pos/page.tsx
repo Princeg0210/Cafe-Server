@@ -51,6 +51,132 @@ const {
   refreshedEvent: POS_TOKEN_REFRESHED,
 } = posSession;
 
+// Max discount any staff member (admin or cashier) can give; the backend enforces the same cap.
+const MAX_DISCOUNT_PERCENT = 10;
+
+function SettleDiscountControl({
+  session,
+  token,
+  onApplied,
+}: {
+  session: TableSession;
+  token: string;
+  onApplied: (update: Partial<TableSession>) => void;
+}) {
+  const [type, setType] = useState<"PERCENT" | "FLAT">(session.discount_type || "PERCENT");
+  const [value, setValue] = useState(session.discount_type ? String(Number(session.discount_value || 0)) : "");
+  const [reason, setReason] = useState(session.discount_reason || "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const subtotal = Number(session.subtotal || session.total_amount || 0);
+  const maxFlat = Math.floor(subtotal * MAX_DISCOUNT_PERCENT) / 100;
+  const hasDiscount = Number(session.discount_amount || 0) > 0;
+
+  const submit = async (clear: boolean) => {
+    const num = Number(value);
+    if (!clear) {
+      if (!value || !Number.isFinite(num) || num <= 0) return setError("Enter a discount greater than zero.");
+      if (type === "PERCENT" && num > MAX_DISCOUNT_PERCENT) return setError(`Maximum discount is ${MAX_DISCOUNT_PERCENT}%.`);
+      if (type === "FLAT" && num > maxFlat) return setError(`Maximum discount on this bill is ₹${maxFlat.toFixed(2)}.`);
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await posFetch(`/api/v1/pos/sessions/${session.session_id}/discount`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(clear ? { discount_type: null } : { discount_type: type, discount_value: num, reason: reason.trim() || null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.detail === "string" ? data.detail.replace(/^[A-Z_]+: /, "") : "Could not apply discount.");
+        return;
+      }
+      if (clear) {
+        setValue("");
+        setReason("");
+      }
+      onApplied({
+        subtotal: Number(data.subtotal),
+        discount_type: data.discount_type,
+        discount_value: Number(data.discount_value),
+        discount_amount: Number(data.discount_amount),
+        discount_reason: data.discount_reason,
+        tax_amount: Number(data.tax_amount),
+        gross_amount: Number(data.gross_amount),
+        reservation_credit: Number(data.reservation_credit),
+        net_amount_due: Number(data.net_amount_due),
+      });
+    } catch {
+      setError("Network error applying discount.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-1.5 font-sans text-xs">
+      <label className="font-bold text-stone-700 uppercase tracking-wider block">
+        Discount <span className="normal-case font-semibold text-stone-500">(max {MAX_DISCOUNT_PERCENT}%, before GST)</span>
+      </label>
+      <div className="flex items-center gap-2">
+        <div className="flex rounded-lg bg-[#F6F3EC] p-0.5">
+          {(["PERCENT", "FLAT"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setType(t)}
+              className={`px-2.5 py-1.5 rounded-md font-bold cursor-pointer ${type === t ? "bg-[#261C18] text-white" : "text-stone-700"}`}
+            >
+              {t === "PERCENT" ? "%" : "₹"}
+            </button>
+          ))}
+        </div>
+        <input
+          type="number"
+          min="0"
+          step={type === "PERCENT" ? "0.5" : "1"}
+          max={type === "PERCENT" ? MAX_DISCOUNT_PERCENT : maxFlat}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={type === "PERCENT" ? `Up to ${MAX_DISCOUNT_PERCENT}` : `Up to ${maxFlat.toFixed(0)}`}
+          aria-label="Discount value"
+          className="w-24 px-2.5 py-1.5 rounded-lg border border-[#E4DCD0] bg-white outline-none focus:border-[#261C18]"
+        />
+        <button
+          type="button"
+          onClick={() => submit(false)}
+          disabled={busy}
+          className="px-3 py-1.5 rounded-lg bg-[#261C18] text-white font-bold cursor-pointer disabled:opacity-50"
+        >
+          {busy ? "…" : "Apply"}
+        </button>
+        {hasDiscount && (
+          <button
+            type="button"
+            onClick={() => submit(true)}
+            disabled={busy}
+            className="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 font-bold cursor-pointer disabled:opacity-50"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+      <input
+        type="text"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        maxLength={200}
+        placeholder="Reason (optional), e.g. regular guest"
+        aria-label="Discount reason"
+        className="w-full px-2.5 py-1.5 rounded-lg border border-[#E4DCD0] bg-white outline-none focus:border-[#261C18]"
+      />
+      {error && <p className="text-rose-700 font-semibold">{error}</p>}
+    </div>
+  );
+}
+
 interface SessionItem {
   name: string;
   quantity: number;
@@ -81,6 +207,10 @@ interface TableSession {
   net_amount_due?: number;
   remainder_action?: string;
   remainder_amount?: number;
+  discount_type?: "PERCENT" | "FLAT" | null;
+  discount_value?: number;
+  discount_amount?: number;
+  discount_reason?: string | null;
 }
 
 interface TableOverview {
@@ -884,8 +1014,9 @@ export default function POSDashboard() {
     });
 
     const subtotal = Number(session.subtotal || session.total_amount || 0);
-    const tax = Number(session.tax_amount || (subtotal * 0.05));
-    const gross = Number(session.gross_amount || (subtotal + tax));
+    const discount = Number(session.discount_amount || 0);
+    const tax = Number(session.tax_amount || ((subtotal - discount) * 0.05));
+    const gross = Number(session.gross_amount || (subtotal - discount + tax));
     const depositCredit = Number(session.reservation_credit || session.reservation_deposit_paid || 0);
     const netDue = Number(session.net_amount_due ?? Math.max(0, gross - depositCredit));
 
@@ -979,6 +1110,16 @@ export default function POSDashboard() {
           <span>Subtotal:</span>
           <span>₹${subtotal.toFixed(2)}</span>
         </div>
+        ${
+          discount > 0
+            ? `
+          <div class="row">
+            <span>Discount${session.discount_type === "PERCENT" ? ` (${Number(session.discount_value)}%)` : ""}:</span>
+            <span>-₹${discount.toFixed(2)}</span>
+          </div>
+        `
+            : ""
+        }
         <div class="row">
           <span>GST (5%):</span>
           <span>₹${tax.toFixed(2)}</span>
@@ -3462,6 +3603,14 @@ export default function POSDashboard() {
                     <span>Subtotal:</span>
                     <span>₹{Number(billPreviewSession.subtotal || billPreviewSession.total_amount || 0).toFixed(2)}</span>
                   </div>
+                  {Number(billPreviewSession.discount_amount || 0) > 0 && (
+                    <div className="flex justify-between text-emerald-700 font-semibold">
+                      <span>
+                        Discount{billPreviewSession.discount_type === "PERCENT" ? ` (${Number(billPreviewSession.discount_value)}%)` : ""}:
+                      </span>
+                      <span>-₹{Number(billPreviewSession.discount_amount).toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-stone-600">
                     <span>GST (5%):</span>
                     <span>₹{Number(billPreviewSession.tax_amount || ((billPreviewSession.subtotal || billPreviewSession.total_amount || 0) * 0.05)).toFixed(2)}</span>
@@ -3653,6 +3802,22 @@ export default function POSDashboard() {
 
                 <div className="border-t border-stone-200 pt-2 space-y-1 text-stone-600">
                   <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>₹{Number(billSettleSession.subtotal || billSettleSession.total_amount || 0).toFixed(2)}</span>
+                  </div>
+                  {Number(billSettleSession.discount_amount || 0) > 0 && (
+                    <div className="flex justify-between text-emerald-700 font-semibold">
+                      <span>
+                        Discount{billSettleSession.discount_type === "PERCENT" ? ` (${Number(billSettleSession.discount_value)}%)` : ""}:
+                      </span>
+                      <span>-₹{Number(billSettleSession.discount_amount).toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>GST (5%):</span>
+                    <span>₹{Number(billSettleSession.tax_amount || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span>Gross Amount:</span>
                     <span>₹{Number(billSettleSession.gross_amount || billSettleSession.total_amount || 0).toFixed(2)}</span>
                   </div>
@@ -3672,6 +3837,18 @@ export default function POSDashboard() {
                   </div>
                 </div>
               </div>
+
+              {posToken && (
+                <SettleDiscountControl
+                  key={billSettleSession.session_id}
+                  session={billSettleSession}
+                  token={posToken}
+                  onApplied={(update) => {
+                    setBillSettleSession((prev) => (prev ? { ...prev, ...update } : prev));
+                    fetchData();
+                  }}
+                />
+              )}
 
               {/* Payment Mode Selector */}
               <div className="space-y-1.5 font-sans text-xs">
