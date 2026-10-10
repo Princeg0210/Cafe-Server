@@ -7,19 +7,21 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class CustomerBase(BaseModel):
     name: str
-    phone: str
+    phone: Optional[str] = None
     email: Optional[str] = None
 
 
-class CustomerCreate(CustomerBase):
-    pass
+class CustomerCreate(BaseModel):
+    name: str
+    phone: str
+    email: Optional[str] = None
 
 
 class CustomerResponse(CustomerBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
 
 class ReservationCreate(BaseModel):
@@ -68,15 +70,16 @@ class ReservationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    branch_id: int
-    customer_id: int
+    booking_id: Optional[str] = None
+    branch_id: Optional[int] = 1
+    customer_id: Optional[int] = None
     guest_count: int
     reservation_date: date
-    time_slot: str
+    time_slot: Optional[str] = ""
     table_id: Optional[int] = None
     floor_number: Optional[int] = None
     table_name: Optional[str] = None
-    status: str
+    status: Optional[str] = "CONFIRMED"
     payment_status: Optional[str] = "PAID"
     advance_amount: Optional[float] = 0.0
     payment_reference: Optional[str] = None
@@ -89,8 +92,9 @@ class ReservationResponse(BaseModel):
     cancellation_refund_amount: Optional[float] = 0.0
     cancellation_refund_status: Optional[str] = None
     celery_task_id: Optional[str] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
     customer: Optional[CustomerResponse] = None
+    is_historical_limited: Optional[bool] = False
 
 
 class ReservationHoldRequest(BaseModel):

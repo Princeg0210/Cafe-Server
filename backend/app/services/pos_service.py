@@ -589,7 +589,7 @@ class POSService:
             results.append(
                 TableOverviewResponse(
                     table_id=tbl.id,
-                    table_number=f"Table {tbl.floor_table_num}",
+                    table_number=tbl.table_number or f"Table {tbl.floor_table_num}",
                     capacity=tbl.capacity,
                     status=table_status,
                     active_session_count=active_count,

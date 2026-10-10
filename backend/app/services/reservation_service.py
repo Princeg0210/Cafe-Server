@@ -44,6 +44,118 @@ ALLOWED_STATE_TRANSITIONS = {
 
 class ReservationService:
     @staticmethod
+    def get_seven_day_cutoff() -> datetime.date:
+        """
+        Calculates the 7-day cutoff date in Asia/Kolkata timezone.
+        Recent reservations are within the previous 7 calendar days including current business date.
+        Example: If today is Oct 10, cutoff is Oct 4 (covers Oct 4 through Oct 10, inclusive).
+        """
+        from app.utils.helpers import ist_now
+        return ist_now().date() - datetime.timedelta(days=6)
+
+    @staticmethod
+    def format_canonical_booking_id(reservation_id: int) -> str:
+        """
+        Returns canonical Booking ID / Reservation ID representation.
+        Guarantees BOOKING ID = RESERVATION ID across customer and admin portals.
+        """
+        return f"RES-{reservation_id:04d}"
+
+    @staticmethod
+    def sanitize_reservation_response(reservation: Reservation, cutoff_date: Optional[datetime.date] = None):
+        """
+        Applies client 7-day privacy & display policy:
+        1. Last 7 calendar days (reservation_date >= cutoff_date): Full reservation details.
+        2. Older than 7 calendar days (reservation_date < cutoff_date): Restricted strictly to:
+           - Reservation/Booking ID
+           - Customer name
+           - Total number of guests
+           (All other fields: phone, email, time_slot, notes, payment info stripped on backend).
+        """
+        from app.schemas.reservation import ReservationResponse, CustomerResponse
+        if cutoff_date is None:
+            cutoff_date = ReservationService.get_seven_day_cutoff()
+
+        booking_id = ReservationService.format_canonical_booking_id(reservation.id)
+        is_recent = reservation.reservation_date >= cutoff_date
+
+        if is_recent:
+            customer_resp = None
+            if reservation.customer:
+                customer_resp = CustomerResponse(
+                    id=reservation.customer.id,
+                    name=reservation.customer.name,
+                    phone=reservation.customer.phone,
+                    email=reservation.customer.email,
+                    created_at=reservation.customer.created_at,
+                )
+            return ReservationResponse(
+                id=reservation.id,
+                booking_id=booking_id,
+                branch_id=reservation.branch_id,
+                customer_id=reservation.customer_id,
+                guest_count=reservation.guest_count,
+                reservation_date=reservation.reservation_date,
+                time_slot=reservation.time_slot,
+                table_id=reservation.table_id,
+                floor_number=reservation.floor_number,
+                table_name=reservation.table_name,
+                status=reservation.status,
+                payment_status=reservation.payment_status,
+                advance_amount=float(reservation.advance_amount or 0),
+                payment_reference=reservation.payment_reference,
+                payment_method=reservation.payment_method,
+                hold_expires_at=reservation.hold_expires_at,
+                upi_id=reservation.upi_id,
+                upi_utr=reservation.upi_utr,
+                is_deposit_credited=reservation.is_deposit_credited,
+                credited_bill_id=reservation.credited_bill_id,
+                cancellation_refund_amount=float(reservation.cancellation_refund_amount or 0),
+                cancellation_refund_status=reservation.cancellation_refund_status,
+                celery_task_id=reservation.celery_task_id,
+                created_at=reservation.created_at,
+                customer=customer_resp,
+                is_historical_limited=False,
+            )
+        else:
+            # Historical reservation older than 7 days - STRICT RESTRICTION
+            customer_resp = CustomerResponse(
+                id=reservation.customer_id or 0,
+                name=reservation.customer.name if reservation.customer else "Guest",
+                phone="",
+                email=None,
+                created_at=None,
+            )
+            return ReservationResponse(
+                id=reservation.id,
+                booking_id=booking_id,
+                branch_id=1,
+                customer_id=reservation.customer_id,
+                guest_count=reservation.guest_count,
+                reservation_date=reservation.reservation_date,
+                time_slot="",
+                table_id=None,
+                floor_number=None,
+                table_name=None,
+                status=reservation.status or "COMPLETED",
+                payment_status=None,
+                advance_amount=None,
+                payment_reference=None,
+                payment_method=None,
+                hold_expires_at=None,
+                upi_id=None,
+                upi_utr=None,
+                is_deposit_credited=False,
+                credited_bill_id=None,
+                cancellation_refund_amount=None,
+                cancellation_refund_status=None,
+                celery_task_id=None,
+                created_at=None,
+                customer=customer_resp,
+                is_historical_limited=True,
+            )
+
+    @staticmethod
     async def _broadcast_reservation_event(reservation: Reservation, event_type: str = "RESERVATION_UPDATED"):
         try:
             from app.api.websocket import ws_manager

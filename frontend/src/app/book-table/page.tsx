@@ -535,9 +535,15 @@ export default function BookTablePage() {
             animate={{ opacity: 1, scale: 1 }}
             className="space-y-6 pt-2"
           >
-            <div className="bg-[#FAF8F5] rounded-3xl border border-[#E8E2D8] overflow-hidden shadow-xl">
+            <div className="relative bg-[#FAF8F5] rounded-3xl border border-[#E8E2D8] overflow-hidden shadow-xl">
+              {/* Optional Subtle Watermark behind the card */}
+              <div 
+                className="absolute inset-0 pointer-events-none opacity-[0.035] bg-center bg-no-repeat bg-contain z-0"
+                style={{ backgroundImage: "url('/jaadoo_logo.jpg')" }}
+              />
+
               {/* Green Header */}
-              <div className="bg-[#65C5A8] text-[#140E0A] p-6 text-center">
+              <div className="relative z-10 bg-[#65C5A8] text-[#140E0A] p-6 text-center">
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white shadow-md mb-3 text-[#140E0A]">
                   <CheckCircle2 className="w-8 h-8 text-[#140E0A]" />
                 </div>
@@ -547,14 +553,15 @@ export default function BookTablePage() {
                 <p className="text-xs font-semibold opacity-90 mt-1">
                   Jaadoo Pizza Project · Old City, Udaipur
                 </p>
-                <div className="mt-3 inline-block bg-white/90 text-[#140E0A] font-mono text-xs font-extrabold px-3 py-1 rounded-full shadow-2xs">
-                  {confirmedBooking.id}
+                <div className="mt-3 inline-flex items-center gap-1.5 bg-white/95 text-[#140E0A] font-mono text-xs font-extrabold px-3.5 py-1 rounded-full shadow-2xs">
+                  <span className="text-[10px] text-stone-500 uppercase tracking-wider font-sans font-bold">Reservation ID:</span>
+                  <span>{confirmedBooking.id}</span>
                 </div>
               </div>
 
               {/* Pass Content */}
-              <div className="p-6 space-y-5 text-sm">
-                <div className="bg-white p-4 rounded-2xl border border-[#EFE9DF] space-y-3">
+              <div className="relative z-10 p-6 space-y-4 text-sm">
+                <div className="bg-white p-4 rounded-2xl border border-[#EFE9DF] space-y-3 shadow-2xs">
                   <div className="flex items-center justify-between pb-2 border-b border-stone-100">
                     <span className="text-xs text-stone-500 font-medium">Guest Name</span>
                     <strong className="text-[#140E0A] font-semibold">{confirmedBooking.name}</strong>
@@ -578,22 +585,41 @@ export default function BookTablePage() {
                     </strong>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-stone-500 font-medium">Deposit Paid (Adjustable)</span>
+                    <span className="text-xs text-stone-500 font-medium">Deposit Paid (100% Adjustable)</span>
                     <strong className="text-[#140E0A] font-bold text-emerald-700">
                       ₹{confirmedBooking.amountPaid.toFixed(2)}
                     </strong>
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-[#EDF9F5] border border-[#BCE8D8] rounded-2xl text-xs text-[#1F5444] leading-relaxed">
-                  <strong>Slot Duration: 75 minutes.</strong> Your advance amount of ₹{confirmedBooking.amountPaid} is 100% adjustable against your food bill. Please arrive on time as slots are held for up to 15 minutes.
+                {/* Location Information */}
+                <div className="p-3.5 bg-white border border-[#EFE9DF] rounded-2xl text-xs text-[#4A423D] space-y-1 shadow-2xs">
+                  <div className="flex items-center gap-1.5 font-bold text-[#140E0A]">
+                    <MapPin className="w-3.5 h-3.5 text-[#B85B43] shrink-0" />
+                    <span>Location Details</span>
+                  </div>
+                  <p className="pl-5 leading-relaxed">
+                    32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur, Rajasthan 313001
+                  </p>
                 </div>
 
+                {/* Parking Instructions */}
+                <div className="p-3.5 bg-[#F6F8FA] border border-[#E2E8F0] rounded-2xl text-xs text-[#334155] space-y-1 shadow-2xs">
+                  <div className="flex items-center gap-1.5 font-bold text-[#0F172A]">
+                    <Info className="w-3.5 h-3.5 text-[#3B82F6] shrink-0" />
+                    <span>Parking Instructions</span>
+                  </div>
+                  <p className="pl-5 leading-relaxed">
+                    Designated two-wheeler parking is available in the vicinity. For four-wheelers, municipal parking is located near the heritage entry gate (approx. 2–3 mins walk). Please reach out to café staff for on-arrival assistance.
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
                 <div className="space-y-2 pt-2">
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => window.print()}
-                      className="w-full py-3 bg-white border border-[#DDD3C4] rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-stone-50 transition-colors"
+                      className="w-full py-3 bg-white border border-[#DDD3C4] rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-stone-50 transition-colors cursor-pointer"
                     >
                       <Printer className="w-4 h-4" />
                       <span>Print Pass</span>
@@ -602,7 +628,7 @@ export default function BookTablePage() {
                       href={createGoogleCalendarUrl()}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full py-3 bg-white border border-[#DDD3C4] rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-stone-50 transition-colors"
+                      className="w-full py-3 bg-white border border-[#DDD3C4] rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-stone-50 transition-colors cursor-pointer"
                     >
                       <CalendarPlus className="w-4 h-4 text-[#65C5A8]" />
                       <span>Calendar</span>
@@ -611,23 +637,10 @@ export default function BookTablePage() {
 
                   <button
                     onClick={handleShareSummary}
-                    className="w-full py-3 bg-white border border-[#DDD3C4] rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-stone-50 transition-colors"
+                    className="w-full py-3.5 bg-[#140E0A] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-black transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Share2 className="w-4 h-4" />
                     <span>{copiedLink ? "Copied to Clipboard!" : "Share Booking Details"}</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setConfirmedBooking(null);
-                      setStep(1);
-                      setName("");
-                      setPhone("");
-                      setPolicyAccepted(false);
-                    }}
-                    className="w-full py-3.5 bg-[#140E0A] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-black transition-colors"
-                  >
-                    Reserve Another Table
                   </button>
                 </div>
               </div>

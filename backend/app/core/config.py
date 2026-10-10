@@ -49,8 +49,8 @@ class Settings(BaseSettings):
     RAZORPAY_WEBHOOK_SECRET: str = "jaadoo_webhook_secret_2026"
     RAZORPAY_TEST_MODE: bool = True
 
-    # Reservation Deposit & Hold Settings (Airmenus standard: INR 150 per guest)
-    DEFAULT_DEPOSIT_PER_GUEST: str = "150.00"
+    # Reservation Deposit & Hold Settings
+    DEFAULT_DEPOSIT_PER_GUEST: str = "200.00"
     RESERVATION_HOLD_MINUTES: int = 7
     DEFAULT_RESERVATION_PIZZA_DEMAND_PER_GUEST: str = "0.75"
 

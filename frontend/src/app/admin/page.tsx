@@ -124,6 +124,7 @@ const INITIAL_MENU_ITEMS: MenuItem[] = menuData.flatMap((c, catIdx) =>
 
 interface Reservation {
   id: number;
+  booking_id?: string;
   customer_name: string;
   customer_phone: string;
   party_size: number;
@@ -141,6 +142,7 @@ interface Reservation {
   floor_name?: string;
   table_id?: number;
   table_name?: string;
+  is_historical_limited?: boolean;
 }
 
 interface TableOverview {
@@ -381,8 +383,10 @@ export default function AdminPortal() {
           setReservations(
             rData.map((r: any) => {
               const floorInfo = getTableFloor(r.table_id || r.table_name || 1);
+              const canonicalId = r.booking_id || `RES-${String(r.id).padStart(4, "0")}`;
               return {
                 id: r.id,
+                booking_id: canonicalId,
                 customer_name: r.customer?.name || "Guest",
                 customer_phone: r.customer?.phone || "",
                 party_size: r.guest_count || 2,
@@ -397,6 +401,7 @@ export default function AdminPortal() {
                 floor_name: r.floor_number ? getFloorName(r.floor_number) : floorInfo.name,
                 table_id: r.table_id,
                 table_name: r.table_name || (r.table_id ? `Table ${r.table_id}` : "Auto Assigned"),
+                is_historical_limited: Boolean(r.is_historical_limited),
               };
             })
           );
@@ -973,18 +978,29 @@ export default function AdminPortal() {
   // Filtered Reservations
   const filteredReservations = useMemo(() => {
     return reservations.filter((r) => {
+      const q = resSearch.trim().toLowerCase();
       const matchesSearch =
-        !resSearch ||
-        r.customer_name?.toLowerCase().includes(resSearch.toLowerCase()) ||
-        r.customer_phone?.includes(resSearch) ||
-        r.table_name?.toLowerCase().includes(resSearch.toLowerCase()) ||
-        r.floor_name?.toLowerCase().includes(resSearch.toLowerCase()) ||
-        r.upi_utr?.toLowerCase().includes(resSearch.toLowerCase());
+        !q ||
+        r.id.toString().includes(q) ||
+        r.booking_id?.toLowerCase().includes(q) ||
+        r.customer_name?.toLowerCase().includes(q) ||
+        r.customer_phone?.includes(q) ||
+        r.table_name?.toLowerCase().includes(q) ||
+        r.floor_name?.toLowerCase().includes(q) ||
+        r.upi_utr?.toLowerCase().includes(q);
       const matchesDate = !resDateFilter || r.booking_date === resDateFilter;
       const matchesFloor = resFloorFilter === "all" || r.floor_number === Number(resFloorFilter);
       return matchesSearch && matchesDate && matchesFloor;
     });
   }, [reservations, resSearch, resDateFilter, resFloorFilter]);
+
+  const recentReservations = useMemo(() => {
+    return filteredReservations.filter((r) => !r.is_historical_limited);
+  }, [filteredReservations]);
+
+  const historicalReservations = useMemo(() => {
+    return filteredReservations.filter((r) => r.is_historical_limited);
+  }, [filteredReservations]);
 
   // Filtered Tables
   const filteredTables = useMemo(() => {
@@ -2584,7 +2600,7 @@ export default function AdminPortal() {
               <div>
                 <h2 className="text-lg font-serif font-bold text-[#241A14]">Master Reservations Ledger</h2>
                 <p className="text-xs text-[#7A6A5E]">
-                  View upcoming table bookings, advance deposits, and customer details
+                  View table bookings, advance deposits, and 7-day historical ledger
                 </p>
               </div>
 
@@ -2596,8 +2612,8 @@ export default function AdminPortal() {
                     type="text"
                     value={resSearch}
                     onChange={(e) => setResSearch(e.target.value)}
-                    placeholder="Search name, phone, UTR..."
-                    className="bg-[#FFFDF9] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#241A14] placeholder-[#A8988B] outline-none"
+                    placeholder="Search by Reservation ID, name, phone..."
+                    className="bg-[#FFFDF9] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#241A14] placeholder-[#A8988B] outline-none w-64"
                   />
                 </div>
 
@@ -2623,77 +2639,131 @@ export default function AdminPortal() {
               </div>
             </div>
 
-            {/* Reservations Table */}
-            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
-                    <tr>
-                      <th className="p-4">Booking ID</th>
-                      <th className="p-4">Floor & Table</th>
-                      <th className="p-4">Guest Name</th>
-                      <th className="p-4">Phone</th>
-                      <th className="p-4">Party Size</th>
-                      <th className="p-4">Date & Slot</th>
-                      <th className="p-4">Deposit Status</th>
-                      <th className="p-4">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F0E8DC]">
-                    {filteredReservations.length > 0 ? (
-                      filteredReservations.map((r) => (
-                        <tr key={r.id} className="hover:bg-[#FAF7F0] transition-colors">
-                          <td className="p-4 font-mono font-bold text-[#B85B43]">#{r.id}</td>
-                          <td className="p-4">
-                            <span className="font-bold text-[#B85B43] block">
-                              {r.floor_name || (r.floor_number ? getFloorName(r.floor_number) : "Ground floor")}
-                            </span>
-                            <span className="text-[11px] font-mono text-[#665448]">
-                              {r.table_name || (r.table_id ? `Table ${r.table_id}` : "Auto Assigned")}
-                            </span>
-                          </td>
-                          <td className="p-4 font-bold text-[#241A14]">{r.customer_name}</td>
-                          <td className="p-4 text-[#665448] font-mono">{r.customer_phone}</td>
-                          <td className="p-4 text-[#665448] font-semibold">{r.party_size} Guests</td>
-                          <td className="p-4 text-[#665448]">
-                            {r.booking_date} ({r.time_slot})
-                          </td>
-                          <td className="p-4">
-                            <span className="text-emerald-700 font-bold">
-                              ₹{Number(r.advance_amount || 0)} ({r.payment_status})
-                            </span>
-                            {r.upi_utr && (
-                              <span className="block text-[10px] text-[#8C7A6D] font-mono">UTR: {r.upi_utr}</span>
-                            )}
-                          </td>
-                          <td className="p-4">
-                            <span
-                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                r.status === "CONFIRMED"
-                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                                  : r.status === "ARRIVED"
-                                  ? "bg-amber-100 text-amber-800 border border-amber-300"
-                                  : r.status === "SEATED"
-                                  ? "bg-indigo-100 text-indigo-800 border border-indigo-300"
-                                  : "bg-stone-100 text-stone-700 border border-stone-300"
-                              }`}
-                            >
-                              {r.status}
-                            </span>
+            {/* SECTION 1: RECENT RESERVATIONS (LAST 7 DAYS - FULL DETAILS) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-serif font-bold text-[#241A14]">Recent Reservations (Last 7 Days)</h3>
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                    Full Details ({recentReservations.length})
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
+                      <tr>
+                        <th className="p-4">Reservation ID</th>
+                        <th className="p-4">Floor & Table</th>
+                        <th className="p-4">Customer Name</th>
+                        <th className="p-4">Phone</th>
+                        <th className="p-4">Guests</th>
+                        <th className="p-4">Date & Time</th>
+                        <th className="p-4">Deposit</th>
+                        <th className="p-4">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F0E8DC]">
+                      {recentReservations.length > 0 ? (
+                        recentReservations.map((r) => (
+                          <tr key={r.id} className="hover:bg-[#FAF7F0] transition-colors">
+                            <td className="p-4 font-mono font-bold text-[#B85B43]">
+                              {r.booking_id || `RES-${String(r.id).padStart(4, "0")}`}
+                            </td>
+                            <td className="p-4">
+                              <span className="font-bold text-[#B85B43] block">
+                                {r.floor_name || (r.floor_number ? getFloorName(r.floor_number) : "Ground floor")}
+                              </span>
+                              <span className="text-[11px] font-mono text-[#665448]">
+                                {r.table_name || (r.table_id ? `Table ${r.table_id}` : "Auto Assigned")}
+                              </span>
+                            </td>
+                            <td className="p-4 font-bold text-[#241A14]">{r.customer_name}</td>
+                            <td className="p-4 text-[#665448] font-mono">{r.customer_phone}</td>
+                            <td className="p-4 text-[#665448] font-semibold">{r.party_size} Guests</td>
+                            <td className="p-4 text-[#665448]">
+                              {r.booking_date} {r.time_slot ? `(${r.time_slot})` : ""}
+                            </td>
+                            <td className="p-4">
+                              <span className="text-emerald-700 font-bold">
+                                ₹{Number(r.advance_amount || 0)} ({r.payment_status})
+                              </span>
+                              {r.upi_utr && (
+                                <span className="block text-[10px] text-[#8C7A6D] font-mono">Ref: {r.upi_utr}</span>
+                              )}
+                            </td>
+                            <td className="p-4">
+                              <span
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                  r.status === "CONFIRMED"
+                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                    : r.status === "ARRIVED"
+                                    ? "bg-amber-100 text-amber-800 border border-amber-300"
+                                    : r.status === "SEATED"
+                                    ? "bg-indigo-100 text-indigo-800 border border-indigo-300"
+                                    : "bg-stone-100 text-stone-700 border border-stone-300"
+                                }`}
+                              >
+                                {r.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={8} className="p-6 text-center text-[#8C7A6D]">
+                            No recent reservations in the last 7 calendar days.
                           </td>
                         </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={8} className="p-8 text-center text-[#8C7A6D]">
-                          No reservations matching search criteria.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
+
+            {/* SECTION 2: RESERVATION HISTORY (> 7 DAYS - LIMITED DETAILS ONLY) */}
+            {historicalReservations.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-serif font-bold text-[#241A14]">Reservation History (Older than 7 Days)</h3>
+                    <span className="bg-stone-100 text-stone-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-stone-300">
+                      Limited Policy View ({historicalReservations.length})
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
+                        <tr>
+                          <th className="p-4">Reservation / Booking ID</th>
+                          <th className="p-4">Customer Name</th>
+                          <th className="p-4">Total Guests</th>
+                          <th className="p-4">Reservation Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#F0E8DC]">
+                        {historicalReservations.map((r) => (
+                          <tr key={r.id} className="hover:bg-[#FAF7F0] transition-colors">
+                            <td className="p-4 font-mono font-bold text-[#B85B43]">
+                              {r.booking_id || `RES-${String(r.id).padStart(4, "0")}`}
+                            </td>
+                            <td className="p-4 font-bold text-[#241A14]">{r.customer_name}</td>
+                            <td className="p-4 text-[#665448] font-semibold">{r.party_size} Guests</td>
+                            <td className="p-4 text-[#665448]">{r.booking_date}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -271,7 +271,7 @@ async def get_reservation(id: int = Path(...), db: AsyncSession = Depends(get_db
     reservation = res.scalar_one_or_none()
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
-    return reservation
+    return ReservationService.sanitize_reservation_response(reservation)
 
 
 @router.patch("/{id}", response_model=ReservationResponse)
@@ -294,10 +294,14 @@ async def list_reservations(
     branch_id: Optional[int] = Query(None),
     reservation_date: Optional[date] = Query(None),
     status: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     from sqlalchemy.orm import selectinload
-    query = select(Reservation).options(selectinload(Reservation.customer))
+    from sqlalchemy import or_
+    from app.models.customer import Customer
+
+    query = select(Reservation).join(Reservation.customer).options(selectinload(Reservation.customer))
     if branch_id:
         query = query.where(Reservation.branch_id == branch_id)
     if reservation_date:
@@ -305,9 +309,27 @@ async def list_reservations(
     if status:
         query = query.where(Reservation.status == status)
 
+    if search:
+        s = search.strip()
+        # Check if searching for canonical ID e.g. "RES-0004", "#4", "4"
+        clean_id_str = s.upper().replace("RES-", "").replace("RES", "").replace("#", "").strip()
+        conditions = [
+            Customer.name.ilike(f"%{s}%"),
+            Customer.phone.ilike(f"%{s}%"),
+            Reservation.table_name.ilike(f"%{s}%"),
+            Reservation.payment_reference.ilike(f"%{s}%"),
+            Reservation.upi_utr.ilike(f"%{s}%"),
+        ]
+        if clean_id_str.isdigit():
+            conditions.append(Reservation.id == int(clean_id_str))
+        query = query.where(or_(*conditions))
+
     query = query.order_by(Reservation.created_at.desc())
     result = await db.execute(query)
-    return result.scalars().all()
+    raw_list = result.scalars().all()
+
+    cutoff_date = ReservationService.get_seven_day_cutoff()
+    return [ReservationService.sanitize_reservation_response(r, cutoff_date) for r in raw_list]
 
 
 @router.get("/razorpay/config")
