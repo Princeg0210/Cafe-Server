@@ -1979,14 +1979,16 @@ export default function POSDashboard() {
               </div>
 
               {/* Breakdown metrics */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 text-xs font-sans pt-1">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-sans pt-1">
+                {/* 1. Total Dough Limit */}
                 <div className="bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
-                  <div className="text-[10px] text-stone-500 uppercase font-semibold">Allocated Used</div>
+                  <div className="text-[10px] text-stone-500 uppercase font-semibold">Total Dough Limit</div>
                   <div className="font-bold text-[#261C18] text-sm mt-0.5">
-                    {doughCapacity.total_allocated_dough}
+                    {doughCapacity.total_dough_limit}
                   </div>
                 </div>
 
+                {/* 2. Protected (Res.) */}
                 <div className="bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
                   <div className="text-[10px] text-blue-800 uppercase font-semibold">Protected (Res.)</div>
                   <div className="font-bold text-blue-900 text-sm mt-0.5">
@@ -1994,6 +1996,7 @@ export default function POSDashboard() {
                   </div>
                 </div>
 
+                {/* 3. Walk-In Available */}
                 <div className={`p-2 rounded-md border ${(doughCapacity.walk_in_available ?? 0) > 0
                   ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
                   : "bg-red-50/50 border-red-200 text-red-900"
@@ -2004,10 +2007,11 @@ export default function POSDashboard() {
                   </div>
                 </div>
 
-                <div className="hidden sm:block bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
-                  <div className="text-[10px] text-stone-500 uppercase font-semibold">Total Dough Limit</div>
+                {/* 4. Allocated Used */}
+                <div className="bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
+                  <div className="text-[10px] text-stone-500 uppercase font-semibold">Allocated Used</div>
                   <div className="font-bold text-[#261C18] text-sm mt-0.5">
-                    {doughCapacity.total_dough_limit}
+                    {doughCapacity.total_allocated_dough}
                   </div>
                 </div>
               </div>
