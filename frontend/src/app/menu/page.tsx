@@ -111,7 +111,7 @@ export default function MenuPage() {
             if (data.type === "MENU_UPDATED") {
               fetchLiveMenu();
             }
-          } catch {}
+          } catch { }
         };
 
         ws.onclose = () => {
@@ -176,12 +176,11 @@ export default function MenuPage() {
             Jaadoo Pizza Project Menu
           </h1>
           <p className="text-stone-300 font-sans font-medium text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
-            Wood-Fired Neapolitan Pizzas · 48h Natural Fermentation · Mountain Arabica and Tisanes
+            Wood-Fired Neapolitan Pizzas · 100% Vegetarian Pizzas · Mountain Arabica and Tisanes
           </p>
 
           <div className="pt-1 flex items-center justify-center gap-1.5 text-[10px] font-bold text-emerald-400">
             <Radio className="w-2.5 h-2.5 animate-pulse text-emerald-400" />
-            <span>Live Kitchen & Pricing Sync Active</span>
           </div>
         </div>
       </section>
@@ -191,11 +190,10 @@ export default function MenuPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 overflow-x-auto flex items-center justify-center sm:justify-start gap-1.5 no-scrollbar">
           <button
             onClick={() => setActiveCategoryFilter("all")}
-            className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-xs font-sans font-bold tracking-wider uppercase transition-all border cursor-pointer ${
-              activeCategoryFilter === "all"
-                ? "bg-[#140E0A] text-[#FAF8F5] border-[#140E0A] shadow-xs"
-                : "bg-[#F2ECE1] border-[#DDD3C4] text-[#140E0A] hover:border-[#9E3E26] hover:bg-white"
-            }`}
+            className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-xs font-sans font-bold tracking-wider uppercase transition-all border cursor-pointer ${activeCategoryFilter === "all"
+              ? "bg-[#140E0A] text-[#FAF8F5] border-[#140E0A] shadow-xs"
+              : "bg-[#F2ECE1] border-[#DDD3C4] text-[#140E0A] hover:border-[#9E3E26] hover:bg-white"
+              }`}
           >
             All Dishes
           </button>
@@ -203,11 +201,10 @@ export default function MenuPage() {
             <button
               key={c.id}
               onClick={() => setActiveCategoryFilter(c.id)}
-              className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-xs font-sans font-bold tracking-wider uppercase transition-all border cursor-pointer ${
-                activeCategoryFilter === c.id
-                  ? "bg-[#140E0A] text-[#FAF8F5] border-[#140E0A] shadow-xs"
-                  : "bg-[#F2ECE1] border-[#DDD3C4] text-[#140E0A] hover:border-[#9E3E26] hover:bg-white"
-              }`}
+              className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-xs font-sans font-bold tracking-wider uppercase transition-all border cursor-pointer ${activeCategoryFilter === c.id
+                ? "bg-[#140E0A] text-[#FAF8F5] border-[#140E0A] shadow-xs"
+                : "bg-[#F2ECE1] border-[#DDD3C4] text-[#140E0A] hover:border-[#9E3E26] hover:bg-white"
+                }`}
             >
               {c.name}
             </button>
@@ -256,11 +253,10 @@ export default function MenuPage() {
                       key={item.id}
                       whileHover={{ scale: 1.005 }}
                       transition={{ duration: 0.15 }}
-                      className={`group relative flex items-start sm:items-center justify-between py-3.5 px-3 sm:px-4 rounded-xl transition-all duration-150 border border-transparent ${
-                        isAvailable
-                          ? "hover:bg-[#F2ECE1]/90 hover:border-[#DDD3C4]"
-                          : "opacity-65 bg-stone-100/50"
-                      }`}
+                      className={`group relative flex items-start sm:items-center justify-between py-3.5 px-3 sm:px-4 rounded-xl transition-all duration-150 border border-transparent ${isAvailable
+                        ? "hover:bg-[#F2ECE1]/90 hover:border-[#DDD3C4]"
+                        : "opacity-65 bg-stone-100/50"
+                        }`}
                     >
                       {/* Left: Round Dish Illustration / Photo Thumbnail */}
                       <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-[#DDD3C4] shrink-0 bg-[#F0EAE0] flex items-center justify-center shadow-2xs mr-3 sm:mr-4 mt-0.5 sm:mt-0">
@@ -268,9 +264,8 @@ export default function MenuPage() {
                           <img
                             src={item.image_url}
                             alt={item.name}
-                            className={`w-full h-full object-cover transition-transform duration-300 ${
-                              isAvailable ? "group-hover:scale-108" : "grayscale"
-                            }`}
+                            className={`w-full h-full object-cover transition-transform duration-300 ${isAvailable ? "group-hover:scale-108" : "grayscale"
+                              }`}
                             loading="lazy"
                           />
                         ) : (
@@ -294,11 +289,10 @@ export default function MenuPage() {
                         </div>
 
                         <h3
-                          className={`text-sm sm:text-base font-serif font-bold uppercase tracking-wide leading-snug break-words whitespace-normal transition-colors ${
-                            isAvailable
-                              ? "text-[#140E0A] group-hover:text-[#9E3E26]"
-                              : "text-stone-500 line-through"
-                          }`}
+                          className={`text-sm sm:text-base font-serif font-bold uppercase tracking-wide leading-snug break-words whitespace-normal transition-colors ${isAvailable
+                            ? "text-[#140E0A] group-hover:text-[#9E3E26]"
+                            : "text-stone-500 line-through"
+                            }`}
                         >
                           {item.name}
                         </h3>
@@ -313,9 +307,8 @@ export default function MenuPage() {
                       {/* Right: Bold Price */}
                       <div className="flex flex-col items-end shrink-0 pl-2">
                         <span
-                          className={`text-base sm:text-lg font-sans font-extrabold ${
-                            isAvailable ? "text-[#140E0A]" : "text-stone-400"
-                          }`}
+                          className={`text-base sm:text-lg font-sans font-extrabold ${isAvailable ? "text-[#140E0A]" : "text-stone-400"
+                            }`}
                         >
                           ₹{item.price}
                         </span>
