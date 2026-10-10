@@ -8,6 +8,10 @@ class LoginRequest(BaseModel):
     password: str = Field(..., example="secret123")
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
 class TokenPayload(BaseModel):
     sub: Optional[str] = None
     type: Optional[str] = None

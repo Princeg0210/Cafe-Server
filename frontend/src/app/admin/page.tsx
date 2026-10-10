@@ -52,6 +52,7 @@ import QRCode from "qrcode";
 import { menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
+import { adminFetch, ADMIN_TOKEN_KEY, ADMIN_REFRESH_KEY, ADMIN_SESSION_EXPIRED, ADMIN_TOKEN_REFRESHED } from "@/lib/adminFetch";
 
 interface DashboardMetrics {
   total_revenue: number;
@@ -284,7 +285,7 @@ export default function AdminPortal() {
   const fetchRawItems = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${getApiBase()}/api/v1/inventory`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await adminFetch(`${getApiBase()}/api/v1/inventory`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) setRawItems(await res.json());
       else showToast("Could not load raw material inventory");
     } catch {
@@ -314,7 +315,7 @@ export default function AdminPortal() {
       return;
     }
     try {
-      const res = await fetch(`${getApiBase()}/api/v1/inventory/transactions`, {
+      const res = await adminFetch(`${getApiBase()}/api/v1/inventory/transactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -345,7 +346,7 @@ export default function AdminPortal() {
       return;
     }
     try {
-      const res = await fetch(`${getApiBase()}/api/v1/inventory/items`, {
+      const res = await adminFetch(`${getApiBase()}/api/v1/inventory/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -381,8 +382,8 @@ export default function AdminPortal() {
     const apiBase = getApiBase();
     try {
       const [catRes, itemRes] = await Promise.all([
-        fetch(`${apiBase}/api/v1/menu/categories`),
-        fetch(`${apiBase}/api/v1/menu/items`),
+        adminFetch(`${apiBase}/api/v1/menu/categories`),
+        adminFetch(`${apiBase}/api/v1/menu/items`),
       ]);
       if (catRes.ok) {
         const catData = await catRes.json();
@@ -451,10 +452,10 @@ export default function AdminPortal() {
     const apiBase = getApiBase();
     const headers = { Authorization: `Bearer ${token}` };
     const requests = token ? Promise.allSettled([
-      fetch(`${apiBase}/api/v1/analytics/dashboard`, { headers }),
-      fetch(`${apiBase}/api/v1/reservations`, { headers }),
-      fetch(`${apiBase}/api/v1/tables`, { headers }),
-      fetch(`${apiBase}/api/v1/pos/kots`, { headers }),
+      adminFetch(`${apiBase}/api/v1/analytics/dashboard`, { headers }),
+      adminFetch(`${apiBase}/api/v1/reservations`, { headers }),
+      adminFetch(`${apiBase}/api/v1/tables`, { headers }),
+      adminFetch(`${apiBase}/api/v1/pos/kots`, { headers }),
     ]) : null;
 
     // 1. Always sync menu
@@ -586,11 +587,11 @@ export default function AdminPortal() {
       const dateParam = target ? `?target_date=${target}` : "";
       try {
         const [sumRes, tablesRes, kotsRes, doughRes, resRes] = await Promise.all([
-          fetch(`${apiBase}/api/v1/pos/summary${dateParam}`, { headers }),
-          fetch(`${apiBase}/api/v1/pos/table-sessions${dateParam}`, { headers }),
-          fetch(`${apiBase}/api/v1/pos/kots${dateParam}`, { headers }),
-          fetch(`${apiBase}/api/v1/pos/daily-dough-capacity${target ? `?target_date=${target}` : ""}`, { headers }),
-          fetch(`${apiBase}/api/v1/reservations${target ? `?reservation_date=${target}` : ""}`, { headers }),
+          adminFetch(`${apiBase}/api/v1/pos/summary${dateParam}`, { headers }),
+          adminFetch(`${apiBase}/api/v1/pos/table-sessions${dateParam}`, { headers }),
+          adminFetch(`${apiBase}/api/v1/pos/kots${dateParam}`, { headers }),
+          adminFetch(`${apiBase}/api/v1/pos/daily-dough-capacity${target ? `?target_date=${target}` : ""}`, { headers }),
+          adminFetch(`${apiBase}/api/v1/reservations${target ? `?reservation_date=${target}` : ""}`, { headers }),
         ]);
 
         if (sumRes.ok) {
@@ -636,7 +637,7 @@ export default function AdminPortal() {
     if (!token) return;
     setIsCancellingRes(true);
     try {
-      const res = await fetch(`${getApiBase()}/api/v1/reservations/${resId}`, {
+      const res = await adminFetch(`${getApiBase()}/api/v1/reservations/${resId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -691,7 +692,7 @@ export default function AdminPortal() {
     }
     setIsCheckingIn(true);
     try {
-      const res = await fetch(`${getApiBase()}/api/v1/reservations/${r.id}/checkin`, {
+      const res = await adminFetch(`${getApiBase()}/api/v1/reservations/${r.id}/checkin`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ table_id: tableId }),
@@ -736,7 +737,7 @@ export default function AdminPortal() {
       if (newStatus === "SEATED") {
         const targetRes = opReservations.find((r) => r.id === resId) || reservations.find((r) => r.id === resId);
         if (targetRes && targetRes.table_id) {
-          const checkinRes = await fetch(`${apiBase}/api/v1/reservations/${resId}/checkin`, {
+          const checkinRes = await adminFetch(`${apiBase}/api/v1/reservations/${resId}/checkin`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -752,7 +753,7 @@ export default function AdminPortal() {
         }
       }
 
-      const res = await fetch(`${apiBase}/api/v1/reservations/${resId}/status`, {
+      const res = await adminFetch(`${apiBase}/api/v1/reservations/${resId}/status`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -871,7 +872,7 @@ export default function AdminPortal() {
 
     try {
       const apiBase = getApiBase();
-      const res = await fetch(`${apiBase}/api/v1/auth/login`, {
+      const res = await adminFetch(`${apiBase}/api/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -889,7 +890,8 @@ export default function AdminPortal() {
 
       const data = await res.json();
       setToken(data.access_token);
-      localStorage.setItem("jaadoo_admin_token", data.access_token);
+      localStorage.setItem(ADMIN_TOKEN_KEY, data.access_token);
+      if (data.refresh_token) localStorage.setItem(ADMIN_REFRESH_KEY, data.refresh_token);
     } catch {
       setLoginError("Could not reach backend server. Please verify network connection.");
     } finally {
@@ -900,8 +902,26 @@ export default function AdminPortal() {
   // Logout handler
   const handleLogout = () => {
     setToken(null);
-    localStorage.removeItem("jaadoo_admin_token");
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    localStorage.removeItem(ADMIN_REFRESH_KEY);
   };
+
+  // Keep React state in sync with adminFetch: renewed token, or session that could not be renewed
+  useEffect(() => {
+    const onRefreshed = (e: Event) => setToken((e as CustomEvent<string>).detail);
+    const onExpired = () => {
+      setToken(null);
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+      localStorage.removeItem(ADMIN_REFRESH_KEY);
+      setLoginError("Your session expired. Please log in again.");
+    };
+    window.addEventListener(ADMIN_TOKEN_REFRESHED, onRefreshed);
+    window.addEventListener(ADMIN_SESSION_EXPIRED, onExpired);
+    return () => {
+      window.removeEventListener(ADMIN_TOKEN_REFRESHED, onRefreshed);
+      window.removeEventListener(ADMIN_SESSION_EXPIRED, onExpired);
+    };
+  }, []);
 
   // Update menu item (Price, name, description, availability)
   const handleSaveMenuItem = async (item: MenuItem) => {
@@ -915,7 +935,7 @@ export default function AdminPortal() {
     );
 
     try {
-      const res = await fetch(`${apiBase}/api/v1/menu/items/${item.id}`, {
+      const res = await adminFetch(`${apiBase}/api/v1/menu/items/${item.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -960,7 +980,7 @@ export default function AdminPortal() {
     e.preventDefault();
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/menu/items`, {
+      const res = await adminFetch(`${apiBase}/api/v1/menu/items`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -996,7 +1016,7 @@ export default function AdminPortal() {
     if (!token || !newCategoryData.name.trim()) return;
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/menu/categories`, {
+      const res = await adminFetch(`${apiBase}/api/v1/menu/categories`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1029,7 +1049,7 @@ export default function AdminPortal() {
     if (!token || !editingCategory || !editCategoryData.name.trim()) return;
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/menu/categories/${editingCategory.id}`, {
+      const res = await adminFetch(`${apiBase}/api/v1/menu/categories/${editingCategory.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -1060,7 +1080,7 @@ export default function AdminPortal() {
     if (!token) return;
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/menu/categories/${catId}`, {
+      const res = await adminFetch(`${apiBase}/api/v1/menu/categories/${catId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -1079,7 +1099,7 @@ export default function AdminPortal() {
     if (!token) return;
     const apiBase = getApiBase();
     try {
-      const res = await fetch(`${apiBase}/api/v1/menu/items/${itemId}`, {
+      const res = await adminFetch(`${apiBase}/api/v1/menu/items/${itemId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

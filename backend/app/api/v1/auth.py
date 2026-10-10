@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import get_db, get_current_user
 from app.core.security import create_access_token, create_refresh_token, verify_password, decode_token
 from app.models.user import User, Role, Permission
-from app.schemas.auth import LoginRequest, Token, UserResponse, RoleResponse, PermissionResponse
+from app.schemas.auth import LoginRequest, RefreshRequest, Token, UserResponse, RoleResponse, PermissionResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -69,14 +69,21 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/refresh", response_model=Token)
-async def refresh(refresh_token: str, db: AsyncSession = Depends(get_db)):
-    payload = decode_token(refresh_token)
+async def refresh(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
+    # Token comes in the body (not the URL) so it never lands in access logs
+    payload = decode_token(data.refresh_token)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token.",
         )
     user_id = payload.get("sub")
+    user = await db.get(User, int(user_id)) if user_id and str(user_id).isdigit() else None
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account not found or inactive.",
+        )
     new_access = create_access_token(subject=user_id)
     new_refresh = create_refresh_token(subject=user_id)
     return Token(access_token=new_access, refresh_token=new_refresh)
