@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp,
-  DollarSign,
+  IndianRupee,
   Calendar,
   Utensils,
   QrCode,
@@ -41,7 +41,6 @@ import {
   UtensilsCrossed,
   Flame,
   CheckCircle2,
-  UserCheck,
   ChevronDown,
   Package,
   FolderPlus,
@@ -89,6 +88,15 @@ interface MenuItem {
   tax_rate: number | string;
   is_available: boolean;
   is_active: boolean;
+}
+
+interface RawMaterial {
+  id: number;
+  sku: string;
+  name: string;
+  unit_of_measure: string;
+  current_stock: string;
+  reorder_threshold: string;
 }
 
 interface MenuCategory {
@@ -144,6 +152,8 @@ interface Reservation {
   table_id?: number;
   table_name?: string;
   is_historical_limited?: boolean;
+  cancellation_refund_amount?: number | string;
+  cancellation_refund_status?: string;
 }
 
 interface TableOverview {
@@ -194,11 +204,9 @@ export default function AdminPortal() {
 
   // Operations Command Center State
   const [opDate, setOpDate] = useState<string>(() => getLocalDateString(0));
-  const [opSubTab, setOpSubTab] = useState<"tables" | "bookings" | "kots">("tables");
+  const [opSubTab, setOpSubTab] = useState<"kots">("kots");
   const [opTableFilter, setOpTableFilter] = useState<"all" | "active" | "available">("all");
   const [opFloorFilter, setOpFloorFilter] = useState<number | "all">("all");
-  const [opResFilter, setOpResFilter] = useState<string>("all");
-  const [opResSearch, setOpResSearch] = useState<string>("");
   const [opSummary, setOpSummary] = useState<any>(null);
   const [opTableOverviews, setOpTableOverviews] = useState<any[]>([]);
   const [opReservations, setOpReservations] = useState<any[]>([]);
@@ -206,8 +214,6 @@ export default function AdminPortal() {
   const [opDough, setOpDough] = useState<any>(null);
   const [isOpLoading, setIsOpLoading] = useState(false);
   const [selectedOpTable, setSelectedOpTable] = useState<any | null>(null);
-  const [opAssigningRes, setOpAssigningRes] = useState<any | null>(null);
-  const [selectedAssignTableId, setSelectedAssignTableId] = useState<number>(1);
 
   const isOpToday = opDate === getLocalDateString(0);
   const isOpFuture = opDate > getLocalDateString(0);
@@ -265,6 +271,100 @@ export default function AdminPortal() {
 
   const getWsBase = () => {
     return process.env.NEXT_PUBLIC_WS_URL || "wss://cafe-piza-api.onrender.com";
+  };
+
+  // Raw material inventory
+  const [rawItems, setRawItems] = useState<RawMaterial[]>([]);
+  const [rawSearch, setRawSearch] = useState("");
+  const [rawLowOnly, setRawLowOnly] = useState(false);
+  const [stockUpdate, setStockUpdate] = useState<{ item: RawMaterial; mode: "PURCHASE" | "WASTE" | "COUNT"; qty: string; ref: string } | null>(null);
+  const [newRaw, setNewRaw] = useState<{ name: string; sku: string; unit: string; stock: string; reorder: string } | null>(null);
+
+  const fetchRawItems = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${getApiBase()}/api/v1/inventory`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setRawItems(await res.json());
+      else showToast("Could not load raw material inventory");
+    } catch {
+      showToast("Network error loading inventory");
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (activeTab === "inventory") fetchRawItems();
+  }, [activeTab, fetchRawItems]);
+
+  const handleStockUpdate = async () => {
+    if (!stockUpdate || !token) return;
+    const qty = Number(stockUpdate.qty);
+    if (!Number.isFinite(qty) || qty < 0 || (stockUpdate.mode !== "COUNT" && qty === 0)) {
+      showToast("Enter a valid quantity");
+      return;
+    }
+    const current = Number(stockUpdate.item.current_stock);
+    const change = stockUpdate.mode === "PURCHASE" ? qty : stockUpdate.mode === "WASTE" ? -qty : qty - current;
+    if (stockUpdate.mode === "WASTE" && qty > current) {
+      showToast("Cannot remove more than is in stock");
+      return;
+    }
+    if (change === 0) {
+      setStockUpdate(null);
+      return;
+    }
+    try {
+      const res = await fetch(`${getApiBase()}/api/v1/inventory/transactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          inventory_item_id: stockUpdate.item.id,
+          transaction_type: stockUpdate.mode === "COUNT" ? "ADJUSTMENT" : stockUpdate.mode,
+          quantity_change: change,
+          reference_id: stockUpdate.ref.trim() || null,
+        }),
+      });
+      if (res.ok) {
+        showToast(`${stockUpdate.item.name} stock updated`);
+        setStockUpdate(null);
+        fetchRawItems();
+      } else {
+        showToast("Failed to update stock");
+      }
+    } catch {
+      showToast("Network error updating stock");
+    }
+  };
+
+  const handleCreateRawItem = async () => {
+    if (!newRaw || !token) return;
+    const stock = Number(newRaw.stock || 0);
+    const reorder = Number(newRaw.reorder || 0);
+    if (!newRaw.name.trim() || !newRaw.sku.trim() || !(stock >= 0) || !(reorder >= 0)) {
+      showToast("Name, SKU and valid quantities are required");
+      return;
+    }
+    try {
+      const res = await fetch(`${getApiBase()}/api/v1/inventory/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: newRaw.name.trim(),
+          sku: newRaw.sku.trim().toUpperCase(),
+          unit_of_measure: newRaw.unit,
+          current_stock: stock,
+          reorder_threshold: reorder,
+        }),
+      });
+      if (res.ok) {
+        showToast(`${newRaw.name.trim()} added to inventory`);
+        setNewRaw(null);
+        fetchRawItems();
+      } else {
+        showToast("Failed to add raw material (SKU may already exist)");
+      }
+    } catch {
+      showToast("Network error adding raw material");
+    }
   };
 
   // Check stored token
@@ -408,6 +508,8 @@ export default function AdminPortal() {
                 table_id: r.table_id,
                 table_name: r.table_name || (r.table_id ? `Table ${r.table_id}` : "Auto Assigned"),
                 is_historical_limited: Boolean(r.is_historical_limited),
+                cancellation_refund_amount: r.cancellation_refund_amount ?? 0,
+                cancellation_refund_status: r.cancellation_refund_status ?? undefined,
               };
             })
           );
@@ -525,6 +627,49 @@ export default function AdminPortal() {
     }
   }, [token, opDate, fetchOperationsData]);
 
+  // Cancel a reservation via the backend cancellation policy (computes refund, releases dough & reminders)
+  const [confirmCancelRes, setConfirmCancelRes] = useState(false);
+  const [isCancellingRes, setIsCancellingRes] = useState(false);
+
+  const handleCancelReservation = async (resId: number) => {
+    if (!token) return;
+    setIsCancellingRes(true);
+    try {
+      const res = await fetch(`${getApiBase()}/api/v1/reservations/${resId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(`Cannot cancel: ${String(data.detail || "Server error").replace("INVALID_STATUS_TRANSITION: ", "")}`);
+        return;
+      }
+      const refund = Number(data.cancellation_refund_amount || 0);
+      setSelectedResDetails((prev) =>
+        prev && prev.id === resId
+          ? {
+              ...prev,
+              status: data.status,
+              payment_status: data.payment_status,
+              cancellation_refund_amount: data.cancellation_refund_amount,
+              cancellation_refund_status: data.cancellation_refund_status,
+            }
+          : prev
+      );
+      setConfirmCancelRes(false);
+      showToast(
+        refund > 0
+          ? `Reservation cancelled. Refund due to guest: ₹${refund.toFixed(2)}`
+          : "Reservation cancelled. No refund due under the cancellation policy."
+      );
+      await Promise.all([fetchOperationsData(opDate, true), fetchData(true)]);
+    } catch {
+      showToast("Network error cancelling reservation");
+    } finally {
+      setIsCancellingRes(false);
+    }
+  };
+
   // Handle seating and reservation status update with live session check-in
   const handleUpdateOpReservationStatus = async (resId: number, newStatus: string) => {
     if (!token) return;
@@ -576,41 +721,6 @@ export default function AdminPortal() {
       showToast("Error updating reservation status");
     }
     return false;
-  };
-
-  // Assign table to reservation from Operations view
-  const handleAssignOpTable = async (reservationId: number, tableId: number) => {
-    if (!token) return;
-    const apiBase = getApiBase();
-    try {
-      const targetTbl = (opTableOverviews.length > 0 ? opTableOverviews : tables).find(
-        (t) => (t.table_id || t.id) === tableId
-      );
-      const floorInfo = getTableFloor(tableId, targetTbl?.floor_number);
-      const floorTableNum = targetTbl?.floor_table_num || floorInfo.floor_table_num;
-      const res = await fetch(`${apiBase}/api/v1/reservations/${reservationId}/assign-table`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          table_id: tableId,
-          table_name: `Table ${floorTableNum}`,
-          floor_number: floorInfo.floor,
-        }),
-      });
-      if (res.ok) {
-        showToast(`Table assigned to Reservation #${reservationId}`);
-        setOpAssigningRes(null);
-        await Promise.all([fetchOperationsData(opDate, true), fetchData(true)]);
-      } else {
-        const err = await res.json().catch(() => ({}));
-        showToast(`Cannot assign table: ${err.detail || "Server error"}`);
-      }
-    } catch {
-      showToast("Error assigning table");
-    }
   };
 
   // Real-time multi-channel WebSocket connection for live sync + background poll
@@ -1082,14 +1192,6 @@ export default function AdminPortal() {
     }));
   }, [opTableOverviews, tables]);
 
-  const displayOpReservations = useMemo(() => {
-    if (opReservations.length > 0) return opReservations;
-    if (reservations.length > 0) {
-      return reservations.filter((r) => !opDate || r.reservation_date === opDate || r.booking_date === opDate);
-    }
-    return [];
-  }, [opReservations, reservations, opDate]);
-
   const opActiveTablesCount = useMemo(() => {
     return displayTableOverviews.filter((t) => (t.active_session_count || 0) > 0).length;
   }, [displayTableOverviews]);
@@ -1110,20 +1212,6 @@ export default function AdminPortal() {
     }
     return list;
   }, [displayTableOverviews, opFloorFilter, opTableFilter]);
-
-  const filteredOpReservations = useMemo(() => {
-    return displayOpReservations.filter((r) => {
-      const matchesFilter = opResFilter === "all" || r.status?.toUpperCase() === opResFilter.toUpperCase();
-      const searchLower = opResSearch.trim().toLowerCase();
-      const matchesSearch =
-        !searchLower ||
-        (r.customer_name || r.customer?.name || "").toLowerCase().includes(searchLower) ||
-        (r.customer_phone || r.customer?.phone || "").toLowerCase().includes(searchLower) ||
-        (r.table_name || `table ${r.table_id || ""}`).toLowerCase().includes(searchLower) ||
-        String(r.id).includes(searchLower);
-      return matchesFilter && matchesSearch;
-    });
-  }, [displayOpReservations, opResFilter, opResSearch]);
 
   // ---------------------------------------------------------------------------
   // AUTH LOGIN SCREEN - WARM BEIGE ARTISANAL THEME
@@ -1305,13 +1393,14 @@ export default function AdminPortal() {
         {[
           { id: "analytics", label: "Executive Analytics", icon: TrendingUp },
           { id: "operations", label: "Operations", icon: SlidersHorizontal },
+          { id: "menu", label: "Menu", icon: Utensils },
           { id: "inventory", label: "Inventory", icon: Package },
           { id: "reservations", label: "Reservations CRM", icon: Calendar },
           { id: "tables", label: "Tables & QR Generator", icon: QrCode },
           { id: "ledger", label: "KOT & Billing Ledger", icon: FileText },
         ].map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id || (tab.id === "inventory" && activeTab === "menu");
+          const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
@@ -1340,7 +1429,7 @@ export default function AdminPortal() {
               <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
                   <span>Today&apos;s Revenue</span>
-                  <DollarSign className="w-4 h-4 text-[#B85B43]" />
+                  <IndianRupee className="w-4 h-4 text-[#B85B43]" />
                 </div>
                 <div className="text-3xl font-extrabold font-sans text-[#241A14] mt-2">
                   ₹{Number(metrics?.today_sales || 0).toLocaleString("en-IN")}
@@ -1393,6 +1482,193 @@ export default function AdminPortal() {
                   <span>{metrics?.total_tables || 12} Tables</span>
                 </div>
               </div>
+            </div>
+
+            {/* Floor Tables & Billing (moved from Operations) */}
+            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-6 shadow-sm space-y-4">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-serif font-bold uppercase tracking-wider text-[#241A14]">
+                    Floor Tables & Billing
+                  </h3>
+                  <span className="text-xs text-[#7A6A5E]">
+                    ({filteredOpTables.length} tables shown)
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Floor Filter Tabs matching POS */}
+                  <div className="flex flex-wrap items-center bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setOpFloorFilter("all")}
+                      className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer ${
+                        opFloorFilter === "all"
+                          ? "bg-[#261C18] text-white shadow-xs"
+                          : "text-[#665448] hover:text-[#241A14]"
+                      }`}
+                    >
+                      All Floors
+                    </button>
+                    {RESTAURANT_FLOORS.map((fl) => (
+                      <button
+                        key={fl.id}
+                        type="button"
+                        onClick={() => setOpFloorFilter(fl.id)}
+                        className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                          opFloorFilter === fl.id
+                            ? "bg-[#261C18] text-white shadow-xs"
+                            : "text-[#665448] hover:text-[#241A14]"
+                        }`}
+                      >
+                        <span>{fl.name}</span>
+                        {fl.isComingSoon && (
+                          <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.2 rounded font-normal">
+                            Soon
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Occupancy Filter */}
+                  <div className="flex items-center bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
+                    {(["all", "active", "available"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setOpTableFilter(mode)}
+                        className={`px-3 py-1 rounded-md capitalize font-bold transition-colors cursor-pointer ${
+                          opTableFilter === mode
+                            ? "bg-[#261C18] text-white shadow-xs"
+                            : "text-[#665448] hover:text-[#241A14]"
+                        }`}
+                      >
+                        {mode === "all"
+                          ? `All (${displayTableOverviews.length})`
+                          : mode === "active"
+                          ? `Occupied (${opActiveTablesCount})`
+                          : `Ready (${displayTableOverviews.length - opActiveTablesCount})`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {filteredOpTables.length === 0 ? (
+                <div className="text-center py-12 px-4 bg-[#FFFDF9] rounded-2xl border border-[#E4DCD0] space-y-2">
+                  {opFloorFilter === 6 ? (
+                    <>
+                      <div className="inline-block p-3 bg-amber-50 rounded-full border border-amber-200 mb-1">
+                        <Sparkles className="w-6 h-6 text-amber-700 mx-auto" />
+                      </div>
+                      <h4 className="text-sm font-bold text-[#241A14]">Floor 6: Everest Sky Deck</h4>
+                      <p className="text-xs text-[#7A6A5E] max-w-sm mx-auto">
+                        Exclusive rooftop sky deck with 360° views of Old City Udaipur & Lake Pichola is opening soon!
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <UtensilsCrossed className="w-8 h-8 text-[#A8988B] mx-auto" />
+                      <h4 className="text-sm font-bold text-[#241A14]">No Tables Found</h4>
+                      <p className="text-xs text-[#7A6A5E]">No tables match the selected filter on this date.</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {(opFloorFilter === "all"
+                    ? RESTAURANT_FLOORS.filter((f) => !f.isComingSoon)
+                    : RESTAURANT_FLOORS.filter((f) => f.id === opFloorFilter)
+                  ).map((floor) => {
+                    const floorTables = filteredOpTables.filter(
+                      (tbl) => (tbl.floor_number || getTableFloor(tbl.table_id).floor) === floor.id
+                    );
+                    if (floorTables.length === 0) return null;
+
+                    return (
+                      <div key={floor.id} className="space-y-3">
+                        <div className="flex items-center justify-between bg-[#F8F5F0] px-4 py-2.5 rounded-xl border border-[#E4DCD0] shadow-2xs">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#B85B43]" />
+                            <h3 className="font-serif font-bold text-sm text-[#241A14]">
+                              Floor {floor.id}: {floor.name}
+                            </h3>
+                            <span className="text-xs text-[#7A6A5E] font-sans">
+                              ({floorTables.length} {floorTables.length === 1 ? "Table" : "Tables"})
+                            </span>
+                          </div>
+                          <span className="text-xs text-[#7A6A5E] font-sans hidden sm:inline">
+                            {floor.desc}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {floorTables.map((tbl) => {
+                            const floorInfo = tbl.floor_number ? RESTAURANT_FLOORS.find((f) => f.id === tbl.floor_number) : getTableFloor(tbl.table_id);
+                            const floorDetail = getTableFloor(tbl.table_id, tbl.floor_number);
+                            const floorTableNum = tbl.floor_table_num || floorDetail.floor_table_num;
+                            const displayTableName = `TABLE ${String(floorTableNum).padStart(2, "0")}`;
+                            const floorDisplayName = tbl.floor_name || floorInfo?.name || floorDetail.name;
+                            const isOccupied = (tbl.active_session_count || 0) > 0;
+
+                            return (
+                              <div
+                                key={tbl.table_id}
+                                className={`rounded-2xl border p-4.5 space-y-3.5 transition-all shadow-sm ${
+                                  isOccupied
+                                    ? "bg-[#FFFDF9] border-amber-300 ring-1 ring-amber-200"
+                                    : "bg-[#FFFDF9] border-[#E6DCCF]"
+                                }`}
+                              >
+                                <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-2.5">
+                                  <div>
+                                    <div className="flex items-baseline gap-2">
+                                      <h4 className="font-sans font-extrabold text-base text-[#241A14]">
+                                        {displayTableName}
+                                      </h4>
+                                      <span className="text-xs font-semibold text-[#B85B43]">
+                                        • {floorDisplayName}
+                                      </span>
+                                    </div>
+                                    <span className="text-[11px] text-[#7A6A5E]">
+                                      {tbl.capacity || floorDetail.capacity} Seats Physical Capacity
+                                    </span>
+                                  </div>
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                              isOccupied
+                                ? "bg-amber-100 text-amber-900 border-amber-300"
+                                : "bg-emerald-100 text-emerald-900 border-emerald-300"
+                            }`}
+                          >
+                            {isOccupied ? "Occupied" : "Ready"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-[#241A14]">Total Bill:</span>
+                          <span className="font-mono font-extrabold text-sm text-[#B85B43]">
+                            ₹{(tbl.sessions || []).reduce((sum: number, s: any) => sum + Number(s.gross_amount || s.total_amount || 0), 0).toLocaleString("en-IN")}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOpTable(tbl)}
+                          className="w-full py-1.5 px-3 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#241A14] border border-[#E0D4C2] font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          Bill Summary
+                        </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             </div>
 
             {/* 14-Day Sales Trend Bar Chart */}
@@ -1710,33 +1986,8 @@ export default function AdminPortal() {
               </div>
             </div>
 
-            {/* 3. Operations Sub-Tabs (Floor Tables, Table Bookings, KOTs) */}
+            {/* 3. Operations Sub-Tabs (KOTs) */}
             <div className="flex items-center gap-2 border-b border-[#E4DCD0] pb-2">
-              <button
-                type="button"
-                onClick={() => setOpSubTab("tables")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
-                  opSubTab === "tables"
-                    ? "bg-[#261C18] text-[#FBF9F5] shadow-sm"
-                    : "bg-[#FFFDF9] text-[#665448] hover:text-[#241A14] hover:bg-[#F3EDE2] border border-[#E4DCD0]"
-                }`}
-              >
-                Floor Tables & Sessions ({displayTableOverviews.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpSubTab("bookings")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1.5 ${
-                  opSubTab === "bookings"
-                    ? "bg-[#261C18] text-[#FBF9F5] shadow-sm"
-                    : "bg-[#FFFDF9] text-[#665448] hover:text-[#241A14] hover:bg-[#F3EDE2] border border-[#E4DCD0]"
-                }`}
-              >
-                <span>Table Bookings on {opDate}</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-[#B85B43] text-white">
-                  {displayOpReservations.length}
-                </span>
-              </button>
               <button
                 type="button"
                 onClick={() => setOpSubTab("kots")}
@@ -1749,465 +2000,6 @@ export default function AdminPortal() {
                 KOT Orders ({opKots.length})
               </button>
             </div>
-
-            {/* SUB-VIEW 1: FLOOR TABLES & SESSIONS ON SELECTED DATE */}
-            {opSubTab === "tables" && (
-              <div className="space-y-4">
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-[#FFFDF9] p-3.5 rounded-xl border border-[#E4DCD0]">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-sans font-bold text-[#241A14]">
-                      Cafe Floor Layout & Dining Sessions
-                    </h3>
-                    <span className="text-xs text-[#7A6A5E]">
-                      ({filteredOpTables.length} tables shown)
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* Floor Filter Tabs matching POS */}
-                    <div className="flex flex-wrap items-center bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setOpFloorFilter("all")}
-                        className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer ${
-                          opFloorFilter === "all"
-                            ? "bg-[#261C18] text-white shadow-xs"
-                            : "text-[#665448] hover:text-[#241A14]"
-                        }`}
-                      >
-                        All Floors
-                      </button>
-                      {RESTAURANT_FLOORS.map((fl) => (
-                        <button
-                          key={fl.id}
-                          type="button"
-                          onClick={() => setOpFloorFilter(fl.id)}
-                          className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
-                            opFloorFilter === fl.id
-                              ? "bg-[#261C18] text-white shadow-xs"
-                              : "text-[#665448] hover:text-[#241A14]"
-                          }`}
-                        >
-                          <span>{fl.name}</span>
-                          {fl.isComingSoon && (
-                            <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.2 rounded font-normal">
-                              Soon
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Occupancy Filter */}
-                    <div className="flex items-center bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
-                      {(["all", "active", "available"] as const).map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          onClick={() => setOpTableFilter(mode)}
-                          className={`px-3 py-1 rounded-md capitalize font-bold transition-colors cursor-pointer ${
-                            opTableFilter === mode
-                              ? "bg-[#261C18] text-white shadow-xs"
-                              : "text-[#665448] hover:text-[#241A14]"
-                          }`}
-                        >
-                          {mode === "all"
-                            ? `All (${displayTableOverviews.length})`
-                            : mode === "active"
-                            ? `Occupied (${opActiveTablesCount})`
-                            : `Available (${displayTableOverviews.length - opActiveTablesCount})`}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {filteredOpTables.length === 0 ? (
-                  <div className="text-center py-12 px-4 bg-[#FFFDF9] rounded-2xl border border-[#E4DCD0] space-y-2">
-                    {opFloorFilter === 6 ? (
-                      <>
-                        <div className="inline-block p-3 bg-amber-50 rounded-full border border-amber-200 mb-1">
-                          <Sparkles className="w-6 h-6 text-amber-700 mx-auto" />
-                        </div>
-                        <h4 className="text-sm font-bold text-[#241A14]">Floor 6: Everest Sky Deck</h4>
-                        <p className="text-xs text-[#7A6A5E] max-w-sm mx-auto">
-                          Exclusive rooftop sky deck with 360° views of Old City Udaipur & Lake Pichola is opening soon!
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <UtensilsCrossed className="w-8 h-8 text-[#A8988B] mx-auto" />
-                        <h4 className="text-sm font-bold text-[#241A14]">No Tables Found</h4>
-                        <p className="text-xs text-[#7A6A5E]">No tables match the selected filter on this date.</p>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {(opFloorFilter === "all"
-                      ? RESTAURANT_FLOORS.filter((f) => !f.isComingSoon)
-                      : RESTAURANT_FLOORS.filter((f) => f.id === opFloorFilter)
-                    ).map((floor) => {
-                      const floorTables = filteredOpTables.filter(
-                        (tbl) => (tbl.floor_number || getTableFloor(tbl.table_id).floor) === floor.id
-                      );
-                      if (floorTables.length === 0) return null;
-
-                      return (
-                        <div key={floor.id} className="space-y-3">
-                          <div className="flex items-center justify-between bg-[#F8F5F0] px-4 py-2.5 rounded-xl border border-[#E4DCD0] shadow-2xs">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2.5 h-2.5 rounded-full bg-[#B85B43]" />
-                              <h3 className="font-serif font-bold text-sm text-[#241A14]">
-                                Floor {floor.id}: {floor.name}
-                              </h3>
-                              <span className="text-xs text-[#7A6A5E] font-sans">
-                                ({floorTables.length} {floorTables.length === 1 ? "Table" : "Tables"})
-                              </span>
-                            </div>
-                            <span className="text-xs text-[#7A6A5E] font-sans hidden sm:inline">
-                              {floor.desc}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {floorTables.map((tbl) => {
-                              const floorInfo = tbl.floor_number ? RESTAURANT_FLOORS.find((f) => f.id === tbl.floor_number) : getTableFloor(tbl.table_id);
-                              const floorDetail = getTableFloor(tbl.table_id, tbl.floor_number);
-                              const floorTableNum = tbl.floor_table_num || floorDetail.floor_table_num;
-                              const displayTableName = `TABLE ${String(floorTableNum).padStart(2, "0")}`;
-                              const floorDisplayName = tbl.floor_name || floorInfo?.name || floorDetail.name;
-                              const isOccupied = (tbl.active_session_count || 0) > 0;
-                              const activeSessions = (tbl.sessions || []).filter((s: any) => s.is_active);
-                              const currentSession = activeSessions[0] || (tbl.sessions && tbl.sessions[0]);
-
-                              // Match any active booking for this table on selected date (matching POS)
-                              const bookedReservation = displayOpReservations.find((r) => {
-                                const matchId = r.table_id === tbl.table_id;
-                                const matchName = r.table_name && (
-                                  (r.table_name.toLowerCase().replace(/\s+/g, "") === `table${floorTableNum}` ||
-                                   r.table_name.toLowerCase().replace(/\s+/g, "") === `table${tbl.table_id}`) &&
-                                  (!r.floor_number || r.floor_number === (tbl.floor_number || floorDetail.floor))
-                                );
-                                const isActive = ["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"].includes(r.status?.toUpperCase() || "");
-                                return (matchId || matchName) && isActive;
-                              });
-
-                              return (
-                                <div
-                                  key={tbl.table_id}
-                                  className={`rounded-2xl border p-4.5 space-y-3.5 transition-all shadow-sm ${
-                                    isOccupied
-                                      ? "bg-[#FFFDF9] border-amber-300 ring-1 ring-amber-200"
-                                      : "bg-[#FFFDF9] border-[#E6DCCF]"
-                                  }`}
-                                >
-                                  <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-2.5">
-                                    <div>
-                                      <div className="flex items-baseline gap-2">
-                                        <h4 className="font-sans font-extrabold text-base text-[#241A14]">
-                                          {displayTableName}
-                                        </h4>
-                                        <span className="text-xs font-semibold text-[#B85B43]">
-                                          • {floorDisplayName}
-                                        </span>
-                                      </div>
-                                      <span className="text-[11px] text-[#7A6A5E]">
-                                        {tbl.capacity || floorDetail.capacity} Seats Physical Capacity
-                                      </span>
-                                    </div>
-                            <span
-                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                                isOccupied
-                                  ? "bg-amber-100 text-amber-900 border-amber-300"
-                                  : "bg-emerald-100 text-emerald-900 border-emerald-300"
-                              }`}
-                            >
-                              {isOccupied ? "Occupied" : "Available"}
-                            </span>
-                          </div>
-
-                          {/* Booked Reservation Banner matching POS */}
-                          {bookedReservation && (
-                            <div className="p-2.5 bg-[#FAF0E1] border border-[#E8DFC9] rounded-xl text-xs space-y-1">
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold text-[#9E3E26] flex items-center gap-1 uppercase tracking-wider text-[10px]">
-                                  <UserCheck className="w-3.5 h-3.5 text-[#9E3E26]" />
-                                  Reserved Guest
-                                </span>
-                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                                  bookedReservation.status === "SEATED"
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : bookedReservation.status === "ARRIVED"
-                                    ? "bg-amber-100 text-amber-800"
-                                    : "bg-blue-100 text-blue-800"
-                                }`}>
-                                  {bookedReservation.status}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between text-stone-900 font-semibold text-xs">
-                                <span className="truncate">{bookedReservation.customer_name || bookedReservation.customer?.name || "Guest"}</span>
-                                <span className="text-[11px] font-mono text-stone-600 shrink-0 ml-1">
-                                  {bookedReservation.time_slot} ({bookedReservation.guest_count || bookedReservation.party_size}p)
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
-                          {currentSession ? (
-                            <div className="space-y-2.5 text-xs">
-                              <div className="flex items-center justify-between text-[#665448]">
-                                <span className="font-semibold">Session Status:</span>
-                                <span className="font-bold text-[#241A14]">
-                                  {currentSession.is_active ? "Active Floor Session" : "Closed / Settled"}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center justify-between text-[#665448]">
-                                <span className="font-semibold">Opened Time:</span>
-                                <span className="font-mono text-[#241A14]">
-                                  {currentSession.opened_at
-                                    ? new Date(currentSession.opened_at).toLocaleTimeString([], {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                      })
-                                    : "—"}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center justify-between text-[#665448]">
-                                <span className="font-semibold">Guest Count:</span>
-                                <span className="font-bold text-[#241A14]">
-                                  {currentSession.guest_count || tbl.capacity} Guests
-                                </span>
-                              </div>
-
-                              <div className="flex items-center justify-between pt-2 border-t border-[#F0E8DC]">
-                                <span className="font-bold text-[#241A14]">Current Bill:</span>
-                                <span className="font-mono font-extrabold text-sm text-[#B85B43]">
-                                  ₹{Number(currentSession.total_amount || 0).toLocaleString("en-IN")}
-                                </span>
-                              </div>
-
-                              {currentSession.items && currentSession.items.length > 0 && (
-                                <div className="pt-2 border-t border-[#F0E8DC]">
-                                  <div className="text-[11px] font-bold text-[#4A392F] mb-1">
-                                    Ordered Items ({currentSession.items.length}):
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {currentSession.items.slice(0, 4).map((it: any, idx: number) => (
-                                      <span
-                                        key={idx}
-                                        className="px-2 py-0.5 rounded-md bg-[#FAF7F0] border border-[#E0D4C2] text-[10px] text-[#241A14] font-medium"
-                                      >
-                                        {it.quantity}x {it.name}
-                                      </span>
-                                    ))}
-                                    {currentSession.items.length > 4 && (
-                                      <span className="text-[10px] text-[#7A6A5E] font-medium self-center">
-                                        +{currentSession.items.length - 4} more
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              <button
-                                type="button"
-                                onClick={() => setSelectedOpTable({ ...tbl, session: currentSession })}
-                                className="w-full mt-2 py-1.5 px-3 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#241A14] border border-[#E0D4C2] font-bold text-xs transition-colors cursor-pointer"
-                              >
-                                View Session Details
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="py-6 text-center text-xs text-[#8C7A6D] space-y-1">
-                              <p className="font-medium">No session opened on {opDate}.</p>
-                              <p className="text-[11px] text-[#A8988B]">Table is free for reservations or walk-ins.</p>
-                            </div>
-                          )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              </div>
-            )}
-
-            {/* SUB-VIEW 2: TABLE BOOKINGS ON SELECTED DATE (SPECIFICALLY REQUESTED) */}
-            {opSubTab === "bookings" && (
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#FFFDF9] p-3.5 rounded-xl border border-[#E4DCD0]">
-                  <div>
-                    <h3 className="text-sm font-sans font-bold text-[#241A14]">
-                      Table Bookings for <span className="font-mono">{opDate}</span>
-                    </h3>
-                    <p className="text-xs text-[#7A6A5E]">
-                      {filteredOpReservations.length} bookings recorded for this date
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="relative">
-                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
-                      <input
-                        type="text"
-                        value={opResSearch}
-                        onChange={(e) => setOpResSearch(e.target.value)}
-                        placeholder="Search guest, phone, table..."
-                        className="bg-[#FAF7F0] border border-[#E0D4C2] focus:border-[#B85B43] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[#241A14] outline-none"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-1 bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
-                      {(["all", "CONFIRMED", "ARRIVED", "SEATED", "COMPLETED", "CANCELLED"] as const).map((st) => (
-                        <button
-                          key={st}
-                          type="button"
-                          onClick={() => setOpResFilter(st)}
-                          className={`px-2.5 py-1 rounded-md capitalize font-bold transition-colors cursor-pointer ${
-                            opResFilter === st
-                              ? "bg-[#261C18] text-white shadow-xs"
-                              : "text-[#665448] hover:text-[#241A14]"
-                          }`}
-                        >
-                          {st.toLowerCase()}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {filteredOpReservations.length === 0 ? (
-                  <div className="text-center py-12 px-4 bg-[#FFFDF9] rounded-2xl border border-[#E4DCD0] space-y-2">
-                    <Calendar className="w-8 h-8 text-[#A8988B] mx-auto" />
-                    <h4 className="text-sm font-bold text-[#241A14]">No Table Bookings Found</h4>
-                    <p className="text-xs text-[#7A6A5E]">
-                      There are no reservations booked for {opDate}. Change the date above to inspect other days.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredOpReservations.map((res: any) => {
-                      const cust = res.customer;
-                      const custName = res.customer_name || cust?.name || "Guest";
-                      const custPhone = res.customer_phone || cust?.phone || "No phone provided";
-                      const st = String(res.status || "CONFIRMED").toUpperCase();
-
-                      const statusBadge =
-                        st === "CONFIRMED"
-                          ? "bg-blue-50 text-blue-800 border-blue-200"
-                          : st === "ARRIVED"
-                          ? "bg-amber-50 text-amber-800 border-amber-200"
-                          : st === "SEATED"
-                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                          : st === "COMPLETED"
-                          ? "bg-stone-100 text-stone-700 border-stone-200"
-                          : "bg-rose-50 text-rose-800 border-rose-200";
-
-                      return (
-                        <div
-                          key={res.id}
-                          className="bg-[#FFFDF9] rounded-2xl border border-[#E6DCCF] p-4.5 shadow-sm space-y-3.5 flex flex-col justify-between"
-                        >
-                          <div className="space-y-3">
-                            <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-2.5">
-                              <div>
-                                <span className="font-mono font-bold text-sm text-[#B85B43]">
-                                  #RES-{String(res.id).padStart(4, "0")}
-                                </span>
-                                <div className="text-xs font-semibold text-[#241A14] mt-0.5">
-                                  {res.reservation_date || res.booking_date} • {res.time_slot}
-                                </div>
-                              </div>
-                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusBadge}`}>
-                                {res.status}
-                              </span>
-                            </div>
-
-                            <div className="text-xs space-y-2 text-[#4A392F]">
-                              <div className="flex items-center justify-between">
-                                <span className="font-sans font-bold text-sm text-[#241A14]">{custName}</span>
-                                <span className="font-bold text-[#665448]">{res.party_size || res.guest_count} Guests</span>
-                              </div>
-
-                              <div className="text-[#7A6A5E] font-mono text-[11px]">{custPhone}</div>
-
-                              <div className="flex items-center justify-between text-xs bg-[#FAF7F0] p-2 rounded-lg border border-[#E0D4C2]">
-                                <span className="font-semibold text-[#665448]">Assigned Table:</span>
-                                <span className="font-bold text-[#241A14]">
-                                  {res.table_name || (res.table_id ? `Table #${res.table_id}` : "Unassigned")}
-                                </span>
-                              </div>
-
-                              {res.advance_amount !== undefined && Number(res.advance_amount) > 0 && (
-                                <div className="text-[11px] text-emerald-800 bg-emerald-50 p-2 rounded-lg border border-emerald-200 font-bold flex items-center justify-between">
-                                  <span>Deposit Paid:</span>
-                                  <span>₹{Number(res.advance_amount).toFixed(0)} ({res.payment_status || "PAID"})</span>
-                                </div>
-                              )}
-
-                              {res.upi_utr && (
-                                <div className="text-[10px] text-[#8C7A6D] font-mono">
-                                  UTR: {res.upi_utr}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex items-center gap-2 pt-2 border-t border-[#F0E8DC]">
-                            {!res.table_id && st !== "CANCELLED" && st !== "COMPLETED" && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpAssigningRes(res);
-                                  setSelectedAssignTableId(displayTableOverviews[0]?.table_id || 1);
-                                }}
-                                className="py-1.5 px-3 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#B85B43] border border-[#E0D4C2] font-bold text-xs transition-colors cursor-pointer shadow-xs"
-                              >
-                                Assign Table
-                              </button>
-                            )}
-                            {st !== "SEATED" && st !== "COMPLETED" && st !== "CANCELLED" && (
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateOpReservationStatus(res.id, "SEATED")}
-                                className="flex-1 py-1.5 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
-                              >
-                                Seat Guests
-                              </button>
-                            )}
-                            {st === "CONFIRMED" && (
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateOpReservationStatus(res.id, "ARRIVED")}
-                                className="py-1.5 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
-                              >
-                                Arrived
-                              </button>
-                            )}
-                            {st !== "CANCELLED" && st !== "COMPLETED" && (
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateOpReservationStatus(res.id, "CANCELLED")}
-                                className="py-1.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors cursor-pointer"
-                              >
-                                Cancel
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* SUB-VIEW 3: KOT ORDERS ON SELECTED DATE */}
             {opSubTab === "kots" && (
@@ -2306,21 +2098,21 @@ export default function AdminPortal() {
         )}
 
         {/* TAB 2: INVENTORY & FOOD CATEGORIES MANAGEMENT */}
-        {(activeTab === "inventory" || activeTab === "menu") && (
+        {activeTab === "menu" && (
           <div className="space-y-6">
             {/* 1. Header with Controls */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-sans font-bold text-[#241A14]">
-                    Food Inventory & Categories
+                    Menu & Categories
                   </h2>
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F3EDE2] text-[#B85B43] border border-[#E0D4C2]">
                     {categories.length} Categories • {menuItems.length} Food Items
                   </span>
                 </div>
                 <p className="text-xs text-[#7A6A5E] mt-1">
-                  Manage all food categories, add items directly to any category, and update real-time pricing and stock status across POS and customer digital ordering.
+                  Manage food categories, add items to any category, and edit names, descriptions, prices and stock status across POS and customer digital ordering.
                 </p>
               </div>
 
@@ -2586,7 +2378,7 @@ export default function AdminPortal() {
                                 className="inline-flex items-center gap-1 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#241A14] text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                               >
                                 <Edit3 className="w-3.5 h-3.5 text-[#B85B43]" />
-                                <span>Edit Rate</span>
+                                <span>Edit Item</span>
                               </button>
                               <button
                                 type="button"
@@ -2603,6 +2395,266 @@ export default function AdminPortal() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: RAW MATERIAL INVENTORY */}
+        {activeTab === "inventory" && (() => {
+          const qtyFmt = (v: string | number) => Number(v).toLocaleString("en-IN", { maximumFractionDigits: 3 });
+          const isLow = (r: RawMaterial) => Number(r.current_stock) <= Number(r.reorder_threshold);
+          const lowCount = rawItems.filter(isLow).length;
+          const q = rawSearch.trim().toLowerCase();
+          const shown = rawItems.filter(
+            (r) => (!rawLowOnly || isLow(r)) && (!q || r.name.toLowerCase().includes(q) || r.sku.toLowerCase().includes(q))
+          );
+          return (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-sans font-bold text-[#241A14]">Raw Material Inventory</h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F3EDE2] text-[#B85B43] border border-[#E0D4C2]">
+                    {rawItems.length} Materials • {lowCount} Low Stock
+                  </span>
+                </div>
+                <p className="text-xs text-[#7A6A5E] mt-1">
+                  Track kitchen and bar raw materials. Record purchases, wastage and stock counts to keep levels accurate.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNewRaw({ name: "", sku: "", unit: "kg", stock: "", reorder: "" })}
+                className="inline-flex items-center gap-1.5 bg-[#B85B43] hover:bg-[#A34B34] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Raw Material</span>
+              </button>
+            </div>
+
+            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+              <div className="relative min-w-[240px] flex-1">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
+                <input
+                  type="text"
+                  value={rawSearch}
+                  onChange={(e) => setRawSearch(e.target.value)}
+                  placeholder="Search material name or SKU..."
+                  aria-label="Search raw materials"
+                  className="w-full bg-[#FAF6EE] border border-[#E0D4C2] focus:border-[#B85B43] focus:bg-white rounded-xl pl-10 pr-4 py-2 text-xs text-[#241A14] placeholder-[#A8988B] outline-none"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                {([false, true] as const).map((low) => (
+                  <button
+                    key={String(low)}
+                    type="button"
+                    onClick={() => setRawLowOnly(low)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                      rawLowOnly === low
+                        ? "bg-[#241A14] text-white shadow-xs"
+                        : "bg-[#FAF6EE] border border-[#E0D4C2] text-[#665448] hover:bg-[#F0E8DA]"
+                    }`}
+                  >
+                    {low ? `Low Stock (${lowCount})` : `All (${rawItems.length})`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
+                    <tr>
+                      <th className="p-4">Material</th>
+                      <th className="p-4">In Stock</th>
+                      <th className="p-4">Reorder At</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#F0E8DC]">
+                    {shown.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-center py-12 text-[#8C7A6D]">
+                          <Package className="w-8 h-8 mx-auto mb-2 opacity-40 text-[#B85B43]" />
+                          <p className="font-semibold text-sm text-[#4A392F]">No raw materials found</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      shown.map((r) => {
+                        const stock = Number(r.current_stock);
+                        const status = stock <= 0 ? "Out of Stock" : isLow(r) ? "Low Stock" : "In Stock";
+                        return (
+                          <tr key={r.id} className="hover:bg-[#FAF7F0] transition-colors">
+                            <td className="p-4">
+                              <div className="font-bold text-[#241A14]">{r.name}</div>
+                              <div className="text-[10px] font-mono text-[#8C7A6D]">{r.sku}</div>
+                            </td>
+                            <td className="p-4 font-extrabold text-[#241A14] text-sm">
+                              {qtyFmt(r.current_stock)} <span className="text-[11px] font-semibold text-[#7A6A5E]">{r.unit_of_measure}</span>
+                            </td>
+                            <td className="p-4 text-[#665448]">
+                              {qtyFmt(r.reorder_threshold)} {r.unit_of_measure}
+                            </td>
+                            <td className="p-4">
+                              <span
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border whitespace-nowrap ${
+                                  status === "In Stock"
+                                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                    : status === "Low Stock"
+                                    ? "bg-amber-100 text-amber-800 border-amber-300"
+                                    : "bg-rose-100 text-rose-800 border-rose-300"
+                                }`}
+                              >
+                                {status}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <button
+                                type="button"
+                                onClick={() => setStockUpdate({ item: r, mode: "PURCHASE", qty: "", ref: "" })}
+                                className="inline-flex items-center gap-1 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#241A14] text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 text-[#B85B43]" />
+                                <span>Update Stock</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          );
+        })()}
+
+        {/* Update Stock Modal */}
+        {stockUpdate && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-xs">
+              <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-3">
+                <div>
+                  <h3 className="text-lg font-sans font-extrabold text-[#241A14]">Update Stock: {stockUpdate.item.name}</h3>
+                  <p className="text-[#7A6A5E] mt-0.5">
+                    Current: {Number(stockUpdate.item.current_stock).toLocaleString("en-IN", { maximumFractionDigits: 3 })} {stockUpdate.item.unit_of_measure}
+                  </p>
+                </div>
+                <button type="button" onClick={() => setStockUpdate(null)} aria-label="Close" className="p-1 rounded-lg text-[#8C7A6D] hover:text-[#241A14] hover:bg-[#F3EDE2] cursor-pointer">
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5">
+                {([
+                  ["PURCHASE", "Add (Purchase)"],
+                  ["WASTE", "Remove (Waste)"],
+                  ["COUNT", "Set Count"],
+                ] as const).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setStockUpdate({ ...stockUpdate, mode })}
+                    className={`py-2 rounded-xl font-bold cursor-pointer border ${
+                      stockUpdate.mode === mode ? "bg-[#261C18] text-white border-[#261C18]" : "bg-[#FAF7F0] text-[#665448] border-[#E0D4C2]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <label className="block space-y-1">
+                <span className="font-bold text-[#4A392F]">
+                  {stockUpdate.mode === "COUNT" ? "Actual quantity on hand" : "Quantity"} ({stockUpdate.item.unit_of_measure})
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  autoFocus
+                  value={stockUpdate.qty}
+                  onChange={(e) => setStockUpdate({ ...stockUpdate, qty: e.target.value })}
+                  className="w-full bg-[#FAF6EE] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl px-3 py-2 outline-none"
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="font-bold text-[#4A392F]">Reference / note (optional)</span>
+                <input
+                  type="text"
+                  value={stockUpdate.ref}
+                  onChange={(e) => setStockUpdate({ ...stockUpdate, ref: e.target.value })}
+                  placeholder="e.g. supplier invoice no."
+                  maxLength={100}
+                  className="w-full bg-[#FAF6EE] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl px-3 py-2 outline-none"
+                />
+              </label>
+
+              <div className="pt-2 border-t border-[#F0E8DC] flex justify-end gap-2">
+                <button type="button" onClick={() => setStockUpdate(null)} className="px-4 py-2 rounded-xl bg-[#FAF7F0] border border-[#E0D4C2] font-bold cursor-pointer">
+                  Cancel
+                </button>
+                <button type="button" onClick={handleStockUpdate} className="px-4 py-2 rounded-xl bg-[#B85B43] text-white font-bold cursor-pointer">
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Raw Material Modal */}
+        {newRaw && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-3 text-xs">
+              <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-3">
+                <h3 className="text-lg font-sans font-extrabold text-[#241A14]">Add Raw Material</h3>
+                <button type="button" onClick={() => setNewRaw(null)} aria-label="Close" className="p-1 rounded-lg text-[#8C7A6D] hover:text-[#241A14] hover:bg-[#F3EDE2] cursor-pointer">
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+              {([
+                ["name", "Name", "e.g. Parmesan Cheese", "text"],
+                ["sku", "SKU", "e.g. RM-PARMESAN", "text"],
+                ["stock", "Opening stock", "0", "number"],
+                ["reorder", "Reorder at", "0", "number"],
+              ] as const).map(([key, label, ph, type]) => (
+                <label key={key} className="block space-y-1">
+                  <span className="font-bold text-[#4A392F]">{label}</span>
+                  <input
+                    type={type}
+                    min={type === "number" ? "0" : undefined}
+                    step={type === "number" ? "any" : undefined}
+                    value={newRaw[key]}
+                    onChange={(e) => setNewRaw({ ...newRaw, [key]: e.target.value })}
+                    placeholder={ph}
+                    className="w-full bg-[#FAF6EE] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl px-3 py-2 outline-none"
+                  />
+                </label>
+              ))}
+              <label className="block space-y-1">
+                <span className="font-bold text-[#4A392F]">Unit</span>
+                <select
+                  value={newRaw.unit}
+                  onChange={(e) => setNewRaw({ ...newRaw, unit: e.target.value })}
+                  className="w-full bg-[#FAF6EE] border border-[#E0D4C2] rounded-xl px-3 py-2 outline-none"
+                >
+                  {["kg", "g", "l", "ml", "pcs"].map((u) => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="pt-2 border-t border-[#F0E8DC] flex justify-end gap-2">
+                <button type="button" onClick={() => setNewRaw(null)} className="px-4 py-2 rounded-xl bg-[#FAF7F0] border border-[#E0D4C2] font-bold cursor-pointer">
+                  Cancel
+                </button>
+                <button type="button" onClick={handleCreateRawItem} className="px-4 py-2 rounded-xl bg-[#B85B43] text-white font-bold cursor-pointer">
+                  Add Material
+                </button>
               </div>
             </div>
           </div>
@@ -2997,7 +3049,7 @@ export default function AdminPortal() {
               className="w-full max-w-lg bg-[#FFFDF9] border border-[#E6DCCF] rounded-3xl p-6 shadow-2xl space-y-4 text-[#241A14]"
             >
               <div className="flex items-center justify-between border-b border-[#F0E8DC] pb-3">
-                <h3 className="text-base font-serif font-bold text-[#241A14]">Edit Menu Item & Rate</h3>
+                <h3 className="text-base font-serif font-bold text-[#241A14]">Edit Menu Item</h3>
                 <button
                   type="button"
                   onClick={() => setEditingItem(null)}
@@ -3438,12 +3490,12 @@ export default function AdminPortal() {
                     const selNum = selectedOpTable.floor_table_num || selFloor.floor_table_num;
                     return (
                       <h3 className="text-xl font-sans font-extrabold text-[#241A14]">
-                        Table {selNum} ({selectedOpTable.floor_name || selFloor.name}) Session Details
+                        Table {selNum} ({selectedOpTable.floor_name || selFloor.name}) Bill Summary
                       </h3>
                     );
                   })()}
                   <p className="text-xs text-[#7A6A5E] mt-0.5">
-                    Operations Date: {opDate} • {selectedOpTable.session?.guest_count || selectedOpTable.capacity} Guests
+                    Date: {opDate} • {(selectedOpTable.sessions || []).length} Bills
                   </p>
                 </div>
                 <button
@@ -3457,33 +3509,81 @@ export default function AdminPortal() {
 
               <div className="space-y-3 text-xs">
                 <div className="flex items-center justify-between bg-[#FAF7F0] p-3 rounded-xl border border-[#E0D4C2]">
-                  <span className="font-semibold text-[#665448]">Total Bill Amount:</span>
+                  <span className="font-semibold text-[#665448]">Day Total:</span>
                   <span className="font-mono font-extrabold text-base text-[#B85B43]">
-                    ₹{Number(selectedOpTable.session?.total_amount || 0).toLocaleString("en-IN")}
+                    ₹{(selectedOpTable.sessions || []).reduce((sum: number, s: any) => sum + Number(s.gross_amount || s.total_amount || 0), 0).toLocaleString("en-IN")}
                   </span>
                 </div>
 
-                {selectedOpTable.session?.items && selectedOpTable.session.items.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="font-bold text-[#4A392F]">Ordered Items Breakdown:</div>
-                    <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 divide-y divide-[#F0E8DC]">
-                      {selectedOpTable.session.items.map((it: any, idx: number) => (
-                        <div key={idx} className="pt-1.5 flex items-center justify-between text-xs">
-                          <div>
-                            <span className="font-bold text-[#241A14]">{it.quantity}x {it.name}</span>
-                            {it.special_instructions && (
-                              <p className="text-[10px] text-[#7A6A5E] italic">{it.special_instructions}</p>
+                {(selectedOpTable.sessions || []).length > 0 ? (
+                  <div className="max-h-[60vh] overflow-y-auto space-y-3 pr-1">
+                    {(selectedOpTable.sessions || []).map((s: any) => {
+                      const time = (d?: string) =>
+                        d ? new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
+                      return (
+                        <div key={s.session_id} className="rounded-xl border border-[#E0D4C2] p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-[#241A14]">Bill #{s.session_seq}</span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                                s.is_active ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                              }`}
+                            >
+                              {s.is_active ? "Open" : s.is_settled ? "Settled" : "Closed"}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-[#7A6A5E]">
+                            {time(s.opened_at)} → {s.is_active ? "now" : time(s.closed_at)}
+                            {s.customer_name ? ` • ${s.customer_name}` : ""}
+                          </div>
+
+                          {(s.items || []).length > 0 ? (
+                            <div className="space-y-1 divide-y divide-[#F0E8DC]">
+                              {s.items.map((it: any, idx: number) => (
+                                <div key={idx} className="pt-1 flex items-center justify-between">
+                                  <span className="text-[#241A14]">{it.quantity}x {it.name}</span>
+                                  <span className="font-mono text-[#241A14]">
+                                    ₹{Number(it.subtotal || it.unit_price * it.quantity || 0).toLocaleString("en-IN")}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[#8C7A6D]">No items.</p>
+                          )}
+
+                          <div className="pt-2 border-t border-[#F0E8DC] space-y-0.5">
+                            <div className="flex justify-between text-[#665448]">
+                              <span>Subtotal</span>
+                              <span className="font-mono">₹{Number(s.subtotal || 0).toLocaleString("en-IN")}</span>
+                            </div>
+                            <div className="flex justify-between text-[#665448]">
+                              <span>Tax</span>
+                              <span className="font-mono">₹{Number(s.tax_amount || 0).toLocaleString("en-IN")}</span>
+                            </div>
+                            <div className="flex justify-between font-bold text-[#241A14]">
+                              <span>Total</span>
+                              <span className="font-mono text-[#B85B43]">₹{Number(s.gross_amount || s.total_amount || 0).toLocaleString("en-IN")}</span>
+                            </div>
+                            {Number(s.reservation_credit || 0) > 0 && (
+                              <>
+                                <div className="flex justify-between text-[#665448]">
+                                  <span>Advance Adjusted</span>
+                                  <span className="font-mono">−₹{Number(s.reservation_credit).toLocaleString("en-IN")}</span>
+                                </div>
+                                <div className="flex justify-between font-bold text-[#241A14]">
+                                  <span>Net Payable</span>
+                                  <span className="font-mono">₹{Number(s.net_amount_due || 0).toLocaleString("en-IN")}</span>
+                                </div>
+                              </>
                             )}
                           </div>
-                          <span className="font-mono font-bold text-[#241A14]">
-                            ₹{Number(it.subtotal || it.unit_price * it.quantity || 0).toLocaleString("en-IN")}
-                          </span>
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <p className="text-[#8C7A6D] text-center py-4">No items recorded in this session.</p>
+                  <p className="text-[#8C7A6D] text-center py-4">No bills for this table on {opDate}.</p>
                 )}
               </div>
 
@@ -3500,78 +3600,6 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* Table Assignment Modal for Operations Bookings */}
-        {opAssigningRes && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-[#FFFDF9] rounded-2xl border border-[#E4DCD0] shadow-2xl p-6 max-w-md w-full space-y-4">
-              <div className="flex items-center justify-between border-b border-[#F0E8DC] pb-3">
-                <h3 className="font-sans font-bold text-base text-[#241A14] flex items-center gap-2">
-                  <UtensilsCrossed className="w-4 h-4 text-[#B85B43]" />
-                  Assign Table to Reservation
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setOpAssigningRes(null)}
-                  className="text-stone-400 hover:text-[#241A14] cursor-pointer"
-                >
-                  <XCircle className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="p-3 bg-[#FAF7F0] rounded-xl border border-[#E0D4C2] text-xs space-y-1 text-[#4A392F]">
-                <p>
-                  <strong>Reservation:</strong> #RES-{String(opAssigningRes.id).padStart(4, "0")} • {opAssigningRes.customer_name || opAssigningRes.customer?.name || "Guest"}
-                </p>
-                <p>
-                  <strong>Party Size:</strong> {opAssigningRes.guest_count || opAssigningRes.party_size} Guests • {opAssigningRes.time_slot}
-                </p>
-                <p>
-                  <strong>Date:</strong> {opAssigningRes.reservation_date || opDate}
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#4A392F] uppercase tracking-wider block">
-                  Select Table:
-                </label>
-                <select
-                  value={selectedAssignTableId}
-                  onChange={(e) => setSelectedAssignTableId(Number(e.target.value))}
-                  className="w-full text-xs p-2.5 rounded-xl border border-[#E0D4C2] bg-[#FAF7F0] text-[#241A14] font-sans focus:outline-hidden focus:border-[#B85B43]"
-                >
-                  {displayTableOverviews.map((tbl) => {
-                    const fl = getTableFloor(tbl.table_id, tbl.floor_number);
-                    const relativeNum = tbl.floor_table_num || fl.floor_table_num;
-                    const floorName = tbl.floor_name || fl.name;
-                    const isOccupied = (tbl.active_session_count || 0) > 0;
-                    return (
-                      <option key={tbl.table_id} value={tbl.table_id}>
-                        Table {relativeNum} ({floorName} • {tbl.capacity || fl.capacity} Seats) — {isOccupied ? "Occupied" : "Available"}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              <div className="pt-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleAssignOpTable(opAssigningRes.id, selectedAssignTableId)}
-                  className="flex-1 bg-[#261C18] hover:bg-[#B85B43] text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer shadow-xs"
-                >
-                  Confirm Table Assignment
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOpAssigningRes(null)}
-                  className="px-4 py-2.5 border border-[#E0D4C2] hover:bg-[#FAF7F0] text-[#665448] rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Full Reservation Details Modal */}
         {selectedResDetails && (
@@ -3591,7 +3619,7 @@ export default function AdminPortal() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setSelectedResDetails(null)}
+                  onClick={() => { setSelectedResDetails(null); setConfirmCancelRes(false); }}
                   className="p-1 rounded-lg hover:bg-[#FAF7F0] text-[#665448] cursor-pointer"
                 >
                   <X className="w-5 h-5" />
@@ -3673,7 +3701,28 @@ export default function AdminPortal() {
                 </div>
               </div>
 
+              {/* Cancellation outcome */}
+              {selectedResDetails.status === "CANCELLED" && (
+                <div className="bg-rose-50 p-3.5 rounded-xl border border-rose-200 text-xs space-y-1">
+                  <h4 className="font-serif font-bold text-xs text-rose-900 uppercase tracking-wider">Reservation Cancelled</h4>
+                  <div className="flex justify-between text-rose-900">
+                    <span>Refund due to guest:</span>
+                    <span className="font-mono font-bold">₹{Number(selectedResDetails.cancellation_refund_amount || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-rose-900">
+                    <span>Refund status:</span>
+                    <span className="font-bold">{(selectedResDetails.cancellation_refund_status || "NO_REFUND").replace(/_/g, " ")}</span>
+                  </div>
+                  {Number(selectedResDetails.cancellation_refund_amount || 0) > 0 && (
+                    <p className="text-[11px] text-rose-800 pt-1">
+                      Refunds are not sent automatically. Return this amount to the guest via the original payment method.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Quick Status Actions */}
+              {!["CANCELLED", "NO_SHOW", "EXPIRED"].includes(selectedResDetails.status) && (
               <div className="space-y-1.5 pt-1">
                 <span className="text-xs font-bold text-[#4A392F] uppercase tracking-wider block">
                   Update Reservation Status:
@@ -3716,11 +3765,55 @@ export default function AdminPortal() {
                   )}
                 </div>
               </div>
+              )}
+
+              {/* Cancel Reservation (only for statuses the backend allows to cancel) */}
+              {["HOLD", "PAYMENT_PENDING", "PENDING", "CONFIRMED", "ARRIVED"].includes(selectedResDetails.status) &&
+                (confirmCancelRes ? (
+                  <div className="bg-rose-50 p-3.5 rounded-xl border border-rose-200 text-xs space-y-2.5">
+                    <p className="font-bold text-rose-900">
+                      Cancel {selectedResDetails.booking_id || `RES-${String(selectedResDetails.id).padStart(4, "0")}`} for{" "}
+                      {selectedResDetails.customer_name}?
+                    </p>
+                    <p className="text-rose-800">
+                      {Number(selectedResDetails.advance_amount || 0) > 0 && selectedResDetails.payment_status === "PAID"
+                        ? `The ₹${Number(selectedResDetails.advance_amount).toFixed(2)} advance will be refunded according to your cancellation policy. `
+                        : ""}
+                      The table and reserved pizza capacity will be released. This cannot be undone.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmCancelRes(false)}
+                        disabled={isCancellingRes}
+                        className="py-2 rounded-xl bg-white border border-[#E0D4C2] text-[#241A14] font-bold cursor-pointer disabled:opacity-50"
+                      >
+                        Keep Reservation
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCancelReservation(selectedResDetails.id)}
+                        disabled={isCancellingRes}
+                        className="py-2 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold cursor-pointer disabled:opacity-50"
+                      >
+                        {isCancellingRes ? "Cancelling..." : "Yes, Cancel"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmCancelRes(true)}
+                    className="w-full py-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Cancel Reservation
+                  </button>
+                ))}
 
               <div className="pt-3 border-t border-[#E0D4C2] flex justify-end">
                 <button
                   type="button"
-                  onClick={() => setSelectedResDetails(null)}
+                  onClick={() => { setSelectedResDetails(null); setConfirmCancelRes(false); }}
                   className="px-5 py-2.5 bg-[#261C18] hover:bg-[#B85B43] text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Close

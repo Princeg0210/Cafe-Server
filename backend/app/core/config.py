@@ -1,5 +1,5 @@
 import json
-from typing import List, Union
+from typing import List, Optional, Union
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # Celery Workers
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
+
+    # Default staff accounts, created on startup only if missing (never overwritten).
+    # Required outside development; unset means the account is not auto-created.
+    DEFAULT_ADMIN_PASSWORD: Optional[str] = None
+    DEFAULT_POS_PASSWORD: Optional[str] = None
 
     # JWT Authentication
     JWT_SECRET_KEY: str = "super-secret-jwt-key-jaadoo-udaipur"

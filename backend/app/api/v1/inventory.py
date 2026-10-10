@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.deps import get_db
+from app.api.deps import get_db, require_permission
 from app.models.inventory import InventoryItem
 from app.schemas.inventory import (
     InventoryItemCreate,
@@ -12,7 +12,11 @@ from app.schemas.inventory import (
 )
 from app.services.inventory_service import InventoryService
 
-router = APIRouter(prefix="/inventory", tags=["Inventory & Raw Stock"])
+router = APIRouter(
+    prefix="/inventory",
+    tags=["Inventory & Raw Stock"],
+    dependencies=[Depends(require_permission("pos:access"))],
+)
 
 
 @router.get("", response_model=List[InventoryItemResponse])

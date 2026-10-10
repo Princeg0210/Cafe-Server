@@ -445,8 +445,13 @@ class ReservationService:
         if not reservation:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
 
-        if reservation.status in ["CANCELLED", "COMPLETED"]:
+        if reservation.status == "CANCELLED":
             return reservation
+        if "CANCELLED" not in ALLOWED_STATE_TRANSITIONS.get(reservation.status, set()):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"INVALID_STATUS_TRANSITION: A reservation that is '{reservation.status}' cannot be cancelled.",
+            )
 
         # Apply configurable cancellation policy
         cancellation_policy = await SettingsService.get_cancellation_policy(db)
@@ -464,9 +469,9 @@ class ReservationService:
             elif policy_type == "REFUND_BEFORE_CUTOFF":
                 from app.utils.helpers import calculate_reservation_window
                 win = calculate_reservation_window(reservation.reservation_date, reservation.time_slot)
-                slot_start = win.get("slot_start")
-                now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
-                hours_until = (slot_start - now).total_seconds() / 3600.0 if slot_start else 0.0
+                # diff_minutes is IST-aware and only present when the time slot parses; unparseable => no refund
+                diff_minutes = win.get("diff_minutes")
+                hours_until = diff_minutes / 60.0 if diff_minutes is not None else 0.0
 
                 if hours_until >= cutoff_hours:
                     refund_amount = max(Decimal("0.00"), (advance * (refund_pct / Decimal("100"))).quantize(Decimal("0.01")) - cancellation_charge)

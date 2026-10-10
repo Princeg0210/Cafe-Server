@@ -282,7 +282,7 @@ async def on_startup():
                 await db.commit()
                 logger.info("Default branch and main kitchen seeded.")
 
-        # Ensure POS cashier user and Owner Admin user (admin:admin12) exist in any environment
+        # Create default POS cashier / owner admin accounts if missing (never overwrites existing ones)
         from app.utils.create_pos_user import ensure_default_users
         await ensure_default_users()
         logger.info("Default POS and Owner Admin users ensured.")
@@ -292,6 +292,11 @@ async def on_startup():
             from app.utils.init_tables import ensure_default_tables
             await ensure_default_tables(db)
         logger.info("Default tables and QR tokens ensured.")
+
+        async with AsyncSessionLocal() as db:
+            from app.utils.init_inventory import ensure_raw_materials
+            await ensure_raw_materials(db)
+        logger.info("Raw material inventory ensured.")
     except Exception as e:
         logger.warning(f"Database schema auto-init warning: {e}")
 

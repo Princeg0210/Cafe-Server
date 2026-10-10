@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.api.deps import get_db, get_current_user
-from app.core.security import create_access_token, create_refresh_token, verify_password, decode_token, hash_password
+from app.core.security import create_access_token, create_refresh_token, verify_password, decode_token
 from app.models.user import User, Role, Permission
 from app.schemas.auth import LoginRequest, Token, UserResponse, RoleResponse, PermissionResponse
 
@@ -43,38 +43,6 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
         uname = (data.username or "").strip()
         result = await db.execute(select(User).where(User.username.ilike(uname)))
         user = result.scalar_one_or_none()
-
-        is_master_admin = (uname.lower() == "admin" and data.password == "admin12")
-        is_master_pos = (uname.lower() == "jaadoo" and data.password == "Jaadoo_123")
-
-        if is_master_admin or is_master_pos:
-            role_name = "Admin" if is_master_admin else "Cashier"
-            role_res = await db.execute(select(Role).where(Role.name == role_name))
-            role = role_res.scalar_one_or_none()
-            if not role:
-                role = Role(name=role_name)
-                db.add(role)
-                await db.flush()
-
-            if not user:
-                user = User(
-                    username="admin" if is_master_admin else "Jaadoo",
-                    email="admin@jaadoo.local" if is_master_admin else "jaadoo@jaadoo.local",
-                    hashed_password=hash_password(data.password),
-                    role_id=role.id,
-                    is_active=True,
-                )
-                db.add(user)
-                await db.commit()
-                res = await db.execute(select(User).where(User.username.ilike(uname)))
-                user = res.scalar_one_or_none()
-            elif not verify_password(data.password, user.hashed_password):
-                user.hashed_password = hash_password(data.password)
-                user.role_id = role.id
-                user.is_active = True
-                await db.commit()
-                res = await db.execute(select(User).where(User.username.ilike(uname)))
-                user = res.scalar_one_or_none()
 
         if not user or not verify_password(data.password, user.hashed_password):
             raise HTTPException(

@@ -1,17 +1,24 @@
 import asyncio
 import argparse
-import sys
+import logging
 from sqlalchemy import select
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.user import User, Role, Permission, RolePermission
 
+logger = logging.getLogger("cafe_piza.users")
+
+# Local-development fallbacks only; never used when APP_ENV != "development".
+DEV_DEFAULT_PASSWORDS = {"admin": "admin12", "Jaadoo": "Jaadoo_123"}
+
 
 async def create_pos_user(
-    username: str = "Jaadoo",
-    password: str = "Jaadoo_123",
-    email: str = "jaadoo@jaadoo.local",
+    username: str,
+    password: str,
+    email: str,
     role_name: str = "Cashier",
+    update_existing: bool = True,
 ):
     async with AsyncSessionLocal() as db:
         # 1. Ensure 'pos:access' and 'admin:access' permissions exist
@@ -63,9 +70,13 @@ async def create_pos_user(
                 db.add(RolePermission(role_id=admin_role.id, permission_id=p.id))
                 await db.flush()
 
-        # 5. Create or update target user
+        # 5. Create the target user, or update it only when explicitly allowed
         user_res = await db.execute(select(User).where(User.username == username))
         user = user_res.scalar_one_or_none()
+        if user and not update_existing:
+            await db.commit()  # keep the roles/permissions ensured above
+            return
+
         hashed = hash_password(password)
         target_role = (await db.execute(select(Role).where(Role.name == role_name))).scalar_one_or_none() or cashier_role
 
@@ -89,17 +100,29 @@ async def create_pos_user(
 
 
 async def ensure_default_users():
-    """Ensures both Cashier POS user and Owner Admin user (admin:admin12) exist."""
-    # 1. POS Cashier user
-    await create_pos_user(username="Jaadoo", password="Jaadoo_123", email="jaadoo@jaadoo.local", role_name="Cashier")
-    # 2. Owner Admin user
-    await create_pos_user(username="admin", password="admin12", email="admin@jaadoo.local", role_name="Admin")
+    """Create the default POS cashier and owner admin accounts if they are missing.
+
+    Existing accounts are never modified, so passwords changed in production survive restarts.
+    Passwords come from DEFAULT_POS_PASSWORD / DEFAULT_ADMIN_PASSWORD; the hardcoded
+    fallbacks apply only when APP_ENV == "development".
+    """
+    is_dev = settings.APP_ENV == "development"
+    defaults = [
+        ("Jaadoo", settings.DEFAULT_POS_PASSWORD, "jaadoo@jaadoo.local", "Cashier"),
+        ("admin", settings.DEFAULT_ADMIN_PASSWORD, "admin@jaadoo.local", "Admin"),
+    ]
+    for username, password, email, role in defaults:
+        password = password or (DEV_DEFAULT_PASSWORDS[username] if is_dev else None)
+        if not password:
+            logger.warning(f"No default password configured for '{username}'; it will not be auto-created.")
+            continue
+        await create_pos_user(username, password, email, role, update_existing=False)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Securely create or update a POS / Admin user.")
-    parser.add_argument("--username", default="admin", help="Username")
-    parser.add_argument("--password", default="admin12", help="Password")
+    parser.add_argument("--username", required=True, help="Username")
+    parser.add_argument("--password", required=True, help="Password (updates the user if it already exists)")
     parser.add_argument("--email", default="admin@jaadoo.local", help="Email")
     parser.add_argument("--role", default="Admin", help="Role (Admin/Cashier/Manager)")
 
@@ -109,4 +132,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

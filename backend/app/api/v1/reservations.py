@@ -284,7 +284,7 @@ async def update_reservation_status(id: int, data: ReservationStatusUpdate, db: 
     return await ReservationService.update_reservation_status(db, id, data.status)
 
 
-@router.delete("/{id}", response_model=ReservationResponse)
+@router.delete("/{id}", response_model=ReservationResponse, dependencies=[Depends(require_permission("pos:access"))])
 async def cancel_reservation(id: int, db: AsyncSession = Depends(get_db)):
     return await ReservationService.cancel_reservation(db, id)
 

@@ -7,7 +7,7 @@ from app.models.branch import Branch
 from app.models.kitchen import Kitchen, MenuItemKitchenMapping
 from app.models.table import Table, TableQR
 from app.models.menu import MenuCategory, MenuItem
-from app.utils.create_pos_user import create_pos_user
+from app.utils.create_pos_user import ensure_default_users
 
 MENU_DATA = [
     {
@@ -198,7 +198,7 @@ async def seed():
                         mapping.kitchen_id = target_kitchen.id
 
         await db.commit()
-        await create_pos_user()
+        await ensure_default_users()
         print("Database seeded and synced with exact menu items, dual-kitchen mappings, and POS cashier user successfully!")
 
 if __name__ == "__main__":

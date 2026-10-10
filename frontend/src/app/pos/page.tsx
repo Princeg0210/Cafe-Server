@@ -276,6 +276,11 @@ export default function POSDashboard() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isRefreshingRes, setIsRefreshingRes] = useState(false);
   const [resFilter, setResFilter] = useState<"all" | "CONFIRMED" | "ARRIVED" | "SEATED" | "COMPLETED" | "CANCELLED">("all");
+  const [resSearch, setResSearch] = useState("");
+  const [resDate, setResDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
   const [updatingResId, setUpdatingResId] = useState<number | null>(null);
   const [pendingReviews, setPendingReviews] = useState<PendingPaymentReview[]>([]);
   const [assigningTableRes, setAssigningTableRes] = useState<Reservation | null>(null);
@@ -1491,8 +1496,16 @@ export default function POSDashboard() {
     });
 
   const filteredReservations = reservations.filter((r) => {
-    if (resFilter === "all") return true;
-    return r.status.toUpperCase() === resFilter;
+    if (resFilter !== "all" && r.status.toUpperCase() !== resFilter) return false;
+    if (resDate && r.reservation_date !== resDate) return false;
+    const q = resSearch.trim().toLowerCase();
+    return (
+      !q ||
+      (r.customer?.name || "").toLowerCase().includes(q) ||
+      (r.customer?.phone || "").toLowerCase().includes(q) ||
+      (r.table_name || `table ${r.table_id || ""}`).toLowerCase().includes(q) ||
+      String(r.id).includes(q)
+    );
   });
 
   return (
@@ -2620,8 +2633,26 @@ export default function POSDashboard() {
             {/* Header & Filter */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-3.5 rounded-lg border border-[#E4DCD0]">
               <h3 className="text-sm font-bold uppercase tracking-wider text-[#261C18]">
-                GUEST RESERVATIONS ({reservations.length})
+                GUEST RESERVATIONS ({filteredReservations.length})
               </h3>
+
+              <input
+                type="search"
+                value={resSearch}
+                onChange={(e) => setResSearch(e.target.value)}
+                placeholder="Search guest, phone, table..."
+                aria-label="Search reservations"
+                className="w-full sm:w-56 px-3 py-1.5 rounded-md border border-[#E4DCD0] bg-[#F6F3EC] text-xs focus:outline-none focus:ring-1 focus:ring-[#261C18]"
+              />
+
+              <input
+                type="date"
+                value={resDate}
+                onChange={(e) => setResDate(e.target.value)}
+                aria-label="Filter reservations by date (clear for all dates)"
+                title="Clear to show all dates"
+                className="px-3 py-1.5 rounded-md border border-[#E4DCD0] bg-[#F6F3EC] text-xs focus:outline-none focus:ring-1 focus:ring-[#261C18]"
+              />
 
               <div className="flex flex-wrap items-center gap-1 bg-[#F6F3EC] p-0.5 rounded-md border border-[#E4DCD0] text-xs">
                 {(["all", "CONFIRMED", "ARRIVED", "SEATED", "COMPLETED", "CANCELLED"] as const).map((st) => (

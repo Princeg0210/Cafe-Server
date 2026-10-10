@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.deps import get_db
+from app.api.deps import get_db, require_permission
 from app.models.menu import MenuCategory, MenuItem
 from app.models.capacity import ItemCapacityRule
 from app.schemas.menu import (
@@ -17,6 +17,9 @@ from app.api.websocket import ws_manager
 
 router = APIRouter(prefix="/menu", tags=["Menu & Production Capacity"])
 
+# Menu reads are public (website + QR ordering); every write requires a logged-in staff user.
+STAFF_ONLY = [Depends(require_permission("pos:access"))]
+
 
 @router.get("/categories", response_model=List[MenuCategoryResponse])
 async def list_categories(response: Response, db: AsyncSession = Depends(get_db)):
@@ -26,7 +29,7 @@ async def list_categories(response: Response, db: AsyncSession = Depends(get_db)
     return result.scalars().all()
 
 
-@router.post("/categories", response_model=MenuCategoryResponse, status_code=201)
+@router.post("/categories", response_model=MenuCategoryResponse, status_code=201, dependencies=STAFF_ONLY)
 async def create_category(data: MenuCategoryCreate, db: AsyncSession = Depends(get_db)):
     category = MenuCategory(**data.model_dump())
     db.add(category)
@@ -45,7 +48,7 @@ async def create_category(data: MenuCategoryCreate, db: AsyncSession = Depends(g
     return category
 
 
-@router.put("/categories/{category_id}", response_model=MenuCategoryResponse)
+@router.put("/categories/{category_id}", response_model=MenuCategoryResponse, dependencies=STAFF_ONLY)
 async def update_category(category_id: int, data: MenuCategoryUpdate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(MenuCategory).where(MenuCategory.id == category_id))
     category = result.scalar_one_or_none()
@@ -71,7 +74,7 @@ async def update_category(category_id: int, data: MenuCategoryUpdate, db: AsyncS
     return category
 
 
-@router.delete("/categories/{category_id}")
+@router.delete("/categories/{category_id}", dependencies=STAFF_ONLY)
 async def delete_category(category_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(MenuCategory).where(MenuCategory.id == category_id))
     category = result.scalar_one_or_none()
@@ -133,7 +136,7 @@ async def list_menu_items(response: Response, db: AsyncSession = Depends(get_db)
     return items
 
 
-@router.post("/items", response_model=MenuItemResponse, status_code=201)
+@router.post("/items", response_model=MenuItemResponse, status_code=201, dependencies=STAFF_ONLY)
 async def create_menu_item(data: MenuItemCreate, db: AsyncSession = Depends(get_db)):
     item = MenuItem(**data.model_dump())
     db.add(item)
@@ -167,7 +170,7 @@ async def create_menu_item(data: MenuItemCreate, db: AsyncSession = Depends(get_
     }
 
 
-@router.put("/items/{item_id}", response_model=MenuItemResponse)
+@router.put("/items/{item_id}", response_model=MenuItemResponse, dependencies=STAFF_ONLY)
 async def update_menu_item(item_id: int, data: MenuItemUpdate, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(MenuItem).where(MenuItem.id == item_id))
     item = result.scalar_one_or_none()
@@ -208,7 +211,7 @@ async def update_menu_item(item_id: int, data: MenuItemUpdate, db: AsyncSession 
     }
 
 
-@router.delete("/items/{item_id}")
+@router.delete("/items/{item_id}", dependencies=STAFF_ONLY)
 async def delete_menu_item(item_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(MenuItem).where(MenuItem.id == item_id))
     item = result.scalar_one_or_none()
