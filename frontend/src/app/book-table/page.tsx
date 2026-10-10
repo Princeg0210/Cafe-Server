@@ -32,7 +32,7 @@ import TanFooter from "@/components/TanFooter";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
 
-// Airmenus Reference Timings
+
 const DINNER_TIME_SLOTS = [
   { time: "07:00 PM", label: "07:00 PM" },
   { time: "08:15 PM", label: "08:15 PM" },
@@ -833,7 +833,7 @@ export default function BookTablePage() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-4"
+                className="flex flex-col space-y-4"
               >
                 {/* Back to Step 1 */}
                 <div className="flex items-center gap-2 pt-2">
@@ -850,7 +850,7 @@ export default function BookTablePage() {
                 </div>
 
                 {/* Card 1: Time */}
-                <div className="border border-[#E4DDD3] rounded-2xl p-5 bg-white shadow-2xs space-y-3">
+                <div className="order-3 border border-[#E4DDD3] rounded-2xl p-5 bg-white shadow-2xs space-y-3">
                   <h3 className="font-bold text-sm text-[#140E0A]">
                     Time
                   </h3>
@@ -876,7 +876,7 @@ export default function BookTablePage() {
                 </div>
 
                 {/* Card 2: Number of Guest(s) */}
-                <div className="border border-[#E4DDD3] rounded-2xl p-5 bg-white shadow-2xs space-y-3">
+                <div className="order-4 border border-[#E4DDD3] rounded-2xl p-5 bg-white shadow-2xs space-y-3">
                   <div>
                     <h3 className="font-bold text-sm text-[#140E0A]">
                       Number of Guest(s)
@@ -910,7 +910,7 @@ export default function BookTablePage() {
                 </div>
 
                 {/* Card 3: Note */}
-                <div className="border border-[#E4DDD3] rounded-2xl p-5 bg-white shadow-2xs space-y-2">
+                <div className="order-5 border border-[#E4DDD3] rounded-2xl p-5 bg-white shadow-2xs space-y-2">
                   <h3 className="font-bold text-sm text-[#140E0A]">
                     Note
                   </h3>
@@ -922,10 +922,10 @@ export default function BookTablePage() {
                 </div>
 
                 {/* Heritage Floor Preference (Optional quick selector) */}
-                <div className="border border-[#E4DDD3] rounded-2xl p-5 bg-white shadow-2xs space-y-2.5">
+                <div className="order-2 border border-[#E4DDD3] rounded-2xl p-5 bg-white shadow-2xs space-y-2.5">
                   <div className="flex items-center justify-between">
                     <h3 className="font-bold text-xs uppercase tracking-wider text-stone-600">
-                      Heritage Floor Level
+                      Choose your floor level
                     </h3>
                     <span className="text-[11px] text-stone-400">6 Heritage Floors</span>
                   </div>
@@ -949,7 +949,7 @@ export default function BookTablePage() {
                 </div>
 
                 {/* Continue to Step 3 */}
-                <div className="pt-3">
+                <div className="order-6 pt-3">
                   <button
                     type="button"
                     onClick={() => setStep(3)}
