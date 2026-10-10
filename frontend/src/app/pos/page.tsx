@@ -376,12 +376,16 @@ export default function POSDashboard() {
           localStorage.setItem("jaadoo_pos_user", JSON.stringify(u));
         } catch { }
         return true;
-      } else {
+      } else if (res.status === 401) {
         handleLogout();
         return false;
+      } else {
+        // Server sleeping / 502 / 503 / 504: retain session so POS does not kick cashier out
+        return true;
       }
     } catch {
-      return false;
+      // Network hiccup / offline: keep active session in POS
+      return true;
     } finally {
       setIsAuthChecking(false);
     }

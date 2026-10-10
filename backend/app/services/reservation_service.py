@@ -1139,8 +1139,10 @@ class ReservationService:
         """
         Retrieves recent Razorpay transactions for the Admin Razorpay Testing Portal.
         """
+        from sqlalchemy.orm import selectinload
         stmt = (
             select(Reservation)
+            .options(selectinload(Reservation.customer))
             .where(Reservation.payment_method == "RAZORPAY")
             .order_by(Reservation.created_at.desc())
             .limit(50)

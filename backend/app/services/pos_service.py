@@ -10,6 +10,7 @@ from fastapi import HTTPException, status
 from app.models.kot import KOT
 from app.models.order import Order, OrderItem
 from app.models.table import Table, DiningSession
+from app.models.reservation import Reservation
 from app.models.menu import MenuItem, MenuCategory
 from app.models.kitchen import PrintJob, KitchenPrinter
 from app.schemas.pos import (
