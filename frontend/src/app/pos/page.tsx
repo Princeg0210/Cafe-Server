@@ -2169,6 +2169,22 @@ export default function POSDashboard() {
               (r) => r.status.toUpperCase() === "CONFIRMED" || r.status.toUpperCase() === "ARRIVED"
             );
             const q = resVerifySearch.trim().toLowerCase();
+
+            // When no search query is typed and not explicitly looking at verified tab, show search lookup prompt
+            if (!q && resVerifyFilter !== "verified") {
+              return (
+                <div className="py-5 px-4 text-center border border-dashed border-[#E4DCD0] rounded-md bg-[#FAF8F5]/80 space-y-1">
+                  <div className="flex items-center justify-center gap-1.5 text-stone-700 font-medium text-xs">
+                    <Search className="w-3.5 h-3.5 text-[#B85B43]" />
+                    <span>Search Booking ID to Verify &amp; Allot Table</span>
+                  </div>
+                  <p className="text-[11px] text-stone-500 font-sans">
+                    Enter the guest&apos;s Reservation ID (e.g. <span className="font-mono font-bold text-[#261C18]">70</span> or <span className="font-mono font-bold text-[#261C18]">#RES-0070</span>) above to look up and approve their table.
+                  </p>
+                </div>
+              );
+            }
+
             const filtered = incoming.filter((res) => {
               const isVerified = Boolean(verifiedResIds[res.id]);
               if (resVerifyFilter === "unverified" && isVerified) return false;
@@ -2198,9 +2214,7 @@ export default function POSDashboard() {
               return (
                 <div className="py-6 text-center border border-dashed border-[#E4DCD0] rounded-md bg-[#FAF8F5]">
                   <p className="text-xs text-stone-500 font-sans">
-                    {incoming.length === 0
-                      ? "No incoming reservations pending today."
-                      : "No reservations found matching your search and filter criteria."}
+                    No reservations found matching &ldquo;{resVerifySearch}&rdquo;.
                   </p>
                 </div>
               );
