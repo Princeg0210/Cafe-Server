@@ -513,11 +513,10 @@ export default function POSDashboard() {
     const tok = overrideToken || posToken;
     if (!tok) return;
     setIsRefreshingRes(true);
-    const target = dateStr || selectedDate;
     const apiBase = getApiBase();
     try {
-      const dateParam = target ? `&reservation_date=${target}` : "";
-      const res = await fetch(`${apiBase}/api/v1/reservations?branch_id=1${dateParam}`, {
+      // Fetch all reservations for branch 1 so POS always has full active reservation data
+      const res = await fetch(`${apiBase}/api/v1/reservations?branch_id=1`, {
         headers: { Authorization: `Bearer ${tok}` },
       });
       if (res.ok) {
@@ -1706,19 +1705,28 @@ export default function POSDashboard() {
                               (!r.floor_number || r.floor_number === floorInfo.floor)
                             );
                             const isActive = ["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"].includes(r.status?.toUpperCase() || "");
-                            return (matchId || matchName) && isActive;
+                            const isDateMatch = !r.reservation_date || r.reservation_date === selectedDate;
+                            return (matchId || matchName) && isActive && isDateMatch;
                           });
+
+                          const isReserved = !!bookedReservation || tbl.status?.toUpperCase() === "RESERVED";
 
                           return (
                             <div
                               key={tbl.table_id}
                               className={`bg-white rounded-lg border transition-all overflow-hidden flex flex-col justify-between ${isOccupied
-                                ? "border-amber-400/80 shadow-xs"
-                                : "border-[#E4DCD0]"
+                                ? "border-emerald-500 shadow-xs"
+                                : isReserved
+                                  ? "border-amber-400 bg-amber-50/10 shadow-xs"
+                                  : "border-[#E4DCD0]"
                                 }`}
                             >
                               {/* Card Top Header */}
-                              <div className={`p-4 border-b ${isOccupied ? "bg-[#FAF7F2] border-amber-200/70" : "bg-[#FAF8F5] border-[#E4DCD0]/60"
+                              <div className={`p-4 border-b ${isOccupied
+                                ? "bg-[#FAF7F2] border-emerald-200/70"
+                                : isReserved
+                                  ? "bg-[#FAF0E1]/80 border-amber-200/70"
+                                  : "bg-[#FAF8F5] border-[#E4DCD0]/60"
                                 }`}>
                                 <div className="flex items-start justify-between gap-2">
                                   <div>
@@ -1769,8 +1777,13 @@ export default function POSDashboard() {
                                   <div>
                                     {isOccupied ? (
                                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
                                         OCCUPIED
+                                      </span>
+                                    ) : isReserved ? (
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
+                                        <UserCheck className="w-3 h-3 text-amber-700" />
+                                        RESERVED
                                       </span>
                                     ) : (
                                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium uppercase tracking-wider bg-stone-100 text-stone-600 border border-stone-200">

@@ -566,7 +566,24 @@ class POSService:
                     )
                 )
 
-            table_status = "Occupied" if active_count > 0 else tbl.status
+            # Check if table has an active reservation for target_date
+            res_stmt = select(Reservation).where(
+                (Reservation.table_id == tbl.id) | (
+                    (Reservation.table_name == f"Table {tbl.floor_table_num}") &
+                    (Reservation.floor_number == tbl.floor_number)
+                ),
+                Reservation.reservation_date == target_date,
+                Reservation.status.in_(["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"])
+            )
+            active_res_res = await db.execute(res_stmt)
+            active_res_record = active_res_res.scalars().first()
+
+            if active_count > 0:
+                table_status = "Occupied"
+            elif active_res_record:
+                table_status = "Reserved"
+            else:
+                table_status = tbl.status or "Available"
 
             results.append(
                 TableOverviewResponse(
