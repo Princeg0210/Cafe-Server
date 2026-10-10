@@ -260,39 +260,11 @@ export default function POSDashboard() {
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const getApiBase = () => {
-    if (typeof window !== "undefined") {
-      const h = window.location.hostname;
-      const isLocal =
-        h === "localhost" ||
-        h === "127.0.0.1" ||
-        h.startsWith("192.168.") ||
-        h.startsWith("10.") ||
-        h.endsWith(".local");
-
-      if (isLocal) {
-        return `http://${h}:8000`;
-      }
-      return process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
-    }
-    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    return process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
   };
 
   const getWsBase = () => {
-    if (typeof window !== "undefined") {
-      const h = window.location.hostname;
-      const isLocal =
-        h === "localhost" ||
-        h === "127.0.0.1" ||
-        h.startsWith("192.168.") ||
-        h.startsWith("10.") ||
-        h.endsWith(".local");
-
-      if (isLocal) {
-        return `ws://${h}:8000`;
-      }
-      return process.env.NEXT_PUBLIC_WS_URL || "wss://cafe-piza-api.onrender.com";
-    }
-    return process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
+    return process.env.NEXT_PUBLIC_WS_URL || "wss://cafe-piza-api.onrender.com";
   };
 
   // AudioContext unlock

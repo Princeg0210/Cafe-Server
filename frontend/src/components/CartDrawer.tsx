@@ -38,7 +38,7 @@ export default function CartDrawer({
 
   const sendOrderToBackend = async () => {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
       const payload = {
         qr_token: "tbl-04",
         items: items.map((it) => ({
