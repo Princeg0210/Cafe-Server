@@ -38,6 +38,17 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
     )
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    tb = traceback.format_exc()
+    logger.error(f"Global unhandled exception: {tb}")
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": str(exc), "type": type(exc).__name__, "traceback": tb},
+    )
+
+
 # Health checks
 @app.get("/health", tags=["Health Checks"])
 async def health_check():
