@@ -572,7 +572,12 @@ class ReservationService:
             if tbl:
                 reservation.table_name = tbl.table_number
 
-        reservation.status = "SEATED"
+        # Staff check-in (no QR session token) must seat the guest at a real table with a bill session
+        if not session_token and not reservation.table_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="TABLE_REQUIRED: Assign a table before checking the guest in.",
+            )
 
         # Link to DiningSession
         dining_session = None
@@ -582,6 +587,18 @@ class ReservationService:
             dining_session = sess_res.scalar_one_or_none()
         elif reservation.table_id:
             dining_session = await TableService.get_or_create_dining_session(db, reservation.table_id)
+            # Never merge into another party's running bill
+            other_reservation = dining_session.reservation_id not in (None, reservation.id)
+            other_walk_in = dining_session.reservation_id is None and dining_session.status in ("ACTIVE", "CHECKOUT")
+            if other_reservation or other_walk_in:
+                table_label = reservation.table_name or "This table"  # read before rollback expires attributes
+                await db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"TABLE_OCCUPIED: {table_label} still has another party's open bill. Settle it or choose a different table.",
+                )
+
+        reservation.status = "SEATED"
 
         if dining_session:
             dining_session.reservation_id = reservation.id

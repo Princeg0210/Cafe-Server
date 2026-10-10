@@ -671,6 +671,59 @@ export default function AdminPortal() {
     }
   };
 
+  // Guest Arrived = check in + seat in one step: opens/links the table's bill session and credits the deposit
+  const [arrivalTableId, setArrivalTableId] = useState<number | "">("");
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
+
+  // Open the details popup with fresh per-booking UI state (no leftover cancel confirm / table pick)
+  const openReservationDetails = (r: Reservation) => {
+    setConfirmCancelRes(false);
+    setArrivalTableId("");
+    setSelectedResDetails(r);
+  };
+
+  const handleGuestArrived = async (r: Reservation) => {
+    if (!token) return;
+    const tableId = r.table_id || (arrivalTableId === "" ? undefined : arrivalTableId);
+    if (!tableId) {
+      showToast("Choose a table for this guest first");
+      return;
+    }
+    setIsCheckingIn(true);
+    try {
+      const res = await fetch(`${getApiBase()}/api/v1/reservations/${r.id}/checkin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ table_id: tableId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(String(data.detail || "Could not check the guest in").replace(/^[A-Z_]+: /, ""));
+        return;
+      }
+      const tbl = RESTAURANT_TABLES.find((t) => t.id === tableId);
+      setSelectedResDetails((prev) =>
+        prev && prev.id === r.id
+          ? {
+              ...prev,
+              status: data.status || "SEATED",
+              table_id: tableId,
+              table_name: data.table_name || tbl?.table_number || prev.table_name,
+              floor_number: tbl?.floor || prev.floor_number,
+              floor_name: tbl ? getFloorName(tbl.floor) : prev.floor_name,
+            }
+          : prev
+      );
+      setArrivalTableId("");
+      showToast(`${r.customer_name} checked in and seated at ${tbl ? `${tbl.table_number} (${getFloorName(tbl.floor)})` : "their table"}`);
+      await Promise.all([fetchOperationsData(opDate, true), fetchData(true)]);
+    } catch {
+      showToast("Network error checking the guest in");
+    } finally {
+      setIsCheckingIn(false);
+    }
+  };
+
   // Handle seating and reservation status update with live session check-in
   const handleUpdateOpReservationStatus = async (resId: number, newStatus: string) => {
     if (!token) return;
@@ -681,7 +734,7 @@ export default function AdminPortal() {
     const apiBase = getApiBase();
     try {
       if (newStatus === "SEATED") {
-        const targetRes = (opReservations.length > 0 ? opReservations : reservations).find((r) => r.id === resId);
+        const targetRes = opReservations.find((r) => r.id === resId) || reservations.find((r) => r.id === resId);
         if (targetRes && targetRes.table_id) {
           const checkinRes = await fetch(`${apiBase}/api/v1/reservations/${resId}/checkin`, {
             method: "POST",
@@ -1328,7 +1381,7 @@ export default function AdminPortal() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 right-6 z-50 bg-[#2A1E17] text-[#FAF6F0] px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2 border border-[#E8AA62]/40"
+            className="fixed top-20 right-6 z-[60] bg-[#2A1E17] text-[#FAF6F0] px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2 border border-[#E8AA62]/40"
           >
             <Sparkles className="w-4 h-4 text-[#E8AA62] shrink-0" />
             <span>{toastMessage}</span>
@@ -2739,7 +2792,7 @@ export default function AdminPortal() {
                         recentReservations.map((r) => (
                           <tr
                             key={r.id}
-                            onClick={() => setSelectedResDetails(r)}
+                            onClick={() => openReservationDetails(r)}
                             className="hover:bg-[#FAF7F0] transition-colors cursor-pointer"
                           >
                             <td className="p-4 font-mono font-bold text-[#B85B43]">
@@ -2787,7 +2840,7 @@ export default function AdminPortal() {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setSelectedResDetails(r);
+                                  openReservationDetails(r);
                                 }}
                                 className="px-2.5 py-1 rounded-lg bg-[#FAF7F0] hover:bg-[#B85B43] hover:text-white text-[#4A392F] border border-[#E0D4C2] text-xs font-bold transition-colors cursor-pointer"
                               >
@@ -3620,7 +3673,7 @@ export default function AdminPortal() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => { setSelectedResDetails(null); setConfirmCancelRes(false); }}
+                  onClick={() => { setSelectedResDetails(null); setConfirmCancelRes(false); setArrivalTableId(""); }}
                   className="p-1 rounded-lg hover:bg-[#FAF7F0] text-[#665448] cursor-pointer"
                 >
                   <X className="w-5 h-5" />
@@ -3723,43 +3776,49 @@ export default function AdminPortal() {
               )}
 
               {/* Quick Status Actions */}
-              {!["CANCELLED", "NO_SHOW", "EXPIRED"].includes(selectedResDetails.status) && (
+              {["CONFIRMED", "ARRIVED", "SEATED"].includes(selectedResDetails.status) && (
               <div className="space-y-1.5 pt-1">
                 <span className="text-xs font-bold text-[#4A392F] uppercase tracking-wider block">
                   Update Reservation Status:
                 </span>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  {selectedResDetails.status !== "ARRIVED" && selectedResDetails.status !== "SEATED" && selectedResDetails.status !== "COMPLETED" && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (await handleUpdateOpReservationStatus(selectedResDetails.id, "ARRIVED")) setSelectedResDetails({ ...selectedResDetails, status: "ARRIVED" });
-                      }}
-                      className="py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-colors cursor-pointer"
-                    >
-                      Mark Arrived
-                    </button>
+                <div className="space-y-2">
+                  {["CONFIRMED", "ARRIVED"].includes(selectedResDetails.status) && (
+                    <>
+                      {!selectedResDetails.table_id && (
+                        <label className="block text-xs space-y-1">
+                          <span className="font-bold text-[#4A392F]">No table assigned — seat guest at:</span>
+                          <select
+                            value={arrivalTableId}
+                            onChange={(e) => setArrivalTableId(e.target.value ? Number(e.target.value) : "")}
+                            className="w-full bg-[#FAF6EE] border border-[#E0D4C2] rounded-xl px-3 py-2 outline-none"
+                          >
+                            <option value="">Choose a table…</option>
+                            {RESTAURANT_TABLES.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.table_number} · {getFloorName(t.floor)} ({t.capacity} seats)
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleGuestArrived(selectedResDetails)}
+                        disabled={isCheckingIn || (!selectedResDetails.table_id && arrivalTableId === "")}
+                        className="w-full py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isCheckingIn ? "Checking in…" : "Guest Arrived · Check In & Seat"}
+                      </button>
+                    </>
                   )}
 
-                  {selectedResDetails.status !== "SEATED" && selectedResDetails.status !== "COMPLETED" && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (await handleUpdateOpReservationStatus(selectedResDetails.id, "SEATED")) setSelectedResDetails({ ...selectedResDetails, status: "SEATED" });
-                      }}
-                      className="py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors cursor-pointer"
-                    >
-                      Seat Guests
-                    </button>
-                  )}
-
-                  {selectedResDetails.status !== "COMPLETED" && (
+                  {selectedResDetails.status === "SEATED" && (
                     <button
                       type="button"
                       onClick={async () => {
                         if (await handleUpdateOpReservationStatus(selectedResDetails.id, "COMPLETED")) setSelectedResDetails({ ...selectedResDetails, status: "COMPLETED" });
                       }}
-                      className="py-2 rounded-xl bg-[#261C18] hover:bg-[#B85B43] text-white font-bold text-xs transition-colors cursor-pointer"
+                      className="w-full py-2 rounded-xl bg-[#261C18] hover:bg-[#B85B43] text-white font-bold text-xs transition-colors cursor-pointer"
                     >
                       Complete
                     </button>
@@ -3814,7 +3873,7 @@ export default function AdminPortal() {
               <div className="pt-3 border-t border-[#E0D4C2] flex justify-end">
                 <button
                   type="button"
-                  onClick={() => { setSelectedResDetails(null); setConfirmCancelRes(false); }}
+                  onClick={() => { setSelectedResDetails(null); setConfirmCancelRes(false); setArrivalTableId(""); }}
                   className="px-5 py-2.5 bg-[#261C18] hover:bg-[#B85B43] text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Close
