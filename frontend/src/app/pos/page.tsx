@@ -458,8 +458,8 @@ export default function POSDashboard() {
       const floorTableNum = floorInfo.floor_table_num;
 
       // 1. Assign/Allot Table via API
-      const res = await fetch(`${apiBase}/api/v1/pos/reservations/${verifyingRes.id}/assign-table`, {
-        method: "PUT",
+      const res = await fetch(`${apiBase}/api/v1/reservations/${verifyingRes.id}/assign-table`, {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${posToken}`,

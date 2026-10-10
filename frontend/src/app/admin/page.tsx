@@ -1666,6 +1666,7 @@ export default function AdminPortal() {
               </div>
             </div>
 
+            {false && <>
             {/* Floor Tables & Billing (moved from Operations) */}
             <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-6 shadow-sm space-y-4">
               <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
@@ -1969,6 +1970,7 @@ export default function AdminPortal() {
                 </div>
               </div>
             </div>
+            </>}
           </div>
         )}
 
