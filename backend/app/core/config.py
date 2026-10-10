@@ -43,8 +43,14 @@ class Settings(BaseSettings):
     MERCHANT_UPI_ID: str = "9460555743-2@ybl"
     MERCHANT_NAME: str = "Jaadoo Cafe Piza"
 
-    # Reservation Deposit & Hold Settings
-    DEFAULT_DEPOSIT_PER_GUEST: str = "200.00"
+    # Razorpay Payment Gateway & Testing Portal
+    RAZORPAY_KEY_ID: str = "rzp_test_JaadooCafe10"
+    RAZORPAY_KEY_SECRET: str = "jaadoo_secret_test_2026"
+    RAZORPAY_WEBHOOK_SECRET: str = "jaadoo_webhook_secret_2026"
+    RAZORPAY_TEST_MODE: bool = True
+
+    # Reservation Deposit & Hold Settings (Airmenus standard: INR 150 per guest)
+    DEFAULT_DEPOSIT_PER_GUEST: str = "150.00"
     RESERVATION_HOLD_MINUTES: int = 7
     DEFAULT_RESERVATION_PIZZA_DEMAND_PER_GUEST: str = "0.75"
 

@@ -22,6 +22,9 @@ from app.schemas.reservation import (
     BankWebhookPayload,
     PaymentEventPayload,
     PolicySettingsUpdate,
+    RazorpayCreateOrderRequest,
+    RazorpayCreateOrderResponse,
+    RazorpayVerifyPaymentRequest,
 )
 from app.services.reservation_service import ReservationService
 from app.services.settings_service import SettingsService
@@ -305,3 +308,46 @@ async def list_reservations(
     query = query.order_by(Reservation.created_at.desc())
     result = await db.execute(query)
     return result.scalars().all()
+
+
+@router.get("/razorpay/config")
+async def get_razorpay_config(db: AsyncSession = Depends(get_db)):
+    """
+    Returns Razorpay key and settings for test mode / frontend integration.
+    """
+    deposit = await SettingsService.get_deposit_per_guest(db)
+    if deposit <= 0:
+        deposit = 150.0
+    return {
+        "key_id": settings.RAZORPAY_KEY_ID,
+        "is_test_mode": settings.RAZORPAY_TEST_MODE,
+        "currency": "INR",
+        "deposit_per_guest": float(deposit),
+        "merchant_name": "Jaadoo Pizza Project",
+        "description": "Artisanal Table Reservation Deposit",
+    }
+
+
+@router.post("/razorpay/create-order", response_model=RazorpayCreateOrderResponse, status_code=201)
+async def create_razorpay_order(data: RazorpayCreateOrderRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Generates a Razorpay Order ID for table reservation advance deposit.
+    """
+    return await ReservationService.create_razorpay_order(db, data)
+
+
+@router.post("/razorpay/verify-payment", response_model=ReservationResponse, status_code=201)
+async def verify_razorpay_payment(data: RazorpayVerifyPaymentRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Verifies Razorpay payment and confirms reservation with instant pass generation.
+    """
+    return await ReservationService.verify_razorpay_payment(db, data)
+
+
+@router.get("/razorpay/transactions")
+async def list_razorpay_transactions(db: AsyncSession = Depends(get_db)):
+    """
+    Returns recent Razorpay payments and simulations for the Admin Testing Portal.
+    """
+    return await ReservationService.get_razorpay_transactions(db)
+

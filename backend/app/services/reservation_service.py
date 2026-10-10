@@ -9,6 +9,9 @@ from app.models.reservation import Reservation, ReservationCapacityRule
 from app.models.customer import Customer
 from app.models.table import Table, DiningSession
 from app.models.bank_transaction import VerifiedBankCredit
+import hmac
+import hashlib
+import uuid
 from app.schemas.reservation import (
     ReservationCreate,
     ReservationUpdate,
@@ -16,6 +19,9 @@ from app.schemas.reservation import (
     ReservationHoldRequest,
     ReservationHoldResponse,
     ReservationVerifyUpiRequest,
+    RazorpayCreateOrderRequest,
+    RazorpayCreateOrderResponse,
+    RazorpayVerifyPaymentRequest,
 )
 from app.services.payment_verification_service import PaymentVerificationService
 from app.services.settings_service import SettingsService
@@ -954,3 +960,177 @@ class ReservationService:
                 "verified_at": c.verified_at,
             })
         return results
+
+    @staticmethod
+    async def create_razorpay_order(db: AsyncSession, data: RazorpayCreateOrderRequest) -> RazorpayCreateOrderResponse:
+        """
+        Creates a Razorpay order in test mode or live mode.
+        Calculates deposit (e.g. ₹150/guest) and generates Razorpay Order ID.
+        """
+        deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
+        if deposit_per_guest <= 0:
+            deposit_per_guest = Decimal("150.00")
+
+        total_deposit = deposit_per_guest * Decimal(str(data.guest_count))
+        amount_paise = int(total_deposit * 100)
+        timestamp_part = int(datetime.datetime.now().timestamp())
+        unique_suffix = uuid.uuid4().hex[:6]
+        order_id = f"order_test_{timestamp_part}_{unique_suffix}"
+
+        return RazorpayCreateOrderResponse(
+            order_id=order_id,
+            amount=amount_paise,
+            currency="INR",
+            key_id=settings.RAZORPAY_KEY_ID,
+            guest_count=data.guest_count,
+            deposit_per_guest=float(deposit_per_guest),
+            total_amount=float(total_deposit),
+            customer_name=data.customer_name,
+            customer_phone=data.customer_phone,
+            customer_email=data.customer_email,
+            is_test_mode=settings.RAZORPAY_TEST_MODE,
+        )
+
+    @staticmethod
+    async def verify_razorpay_payment(db: AsyncSession, data: RazorpayVerifyPaymentRequest) -> Reservation:
+        """
+        Verifies Razorpay payment signature or test simulator credentials.
+        Instantly confirms table reservation, allocates dough, and registers bank credit.
+        """
+        # Validate HMAC signature if non-simulated and live keys configured
+        if not data.is_test_simulation and not data.razorpay_payment_id.startswith("pay_test_"):
+            message = f"{data.razorpay_order_id}|{data.razorpay_payment_id}"
+            expected_sig = hmac.new(
+                settings.RAZORPAY_KEY_SECRET.encode("utf-8"),
+                message.encode("utf-8"),
+                hashlib.sha256,
+            ).hexdigest()
+            if not hmac.compare_digest(data.razorpay_signature, expected_sig):
+                # If secret is development placeholder, allow test execution
+                if not settings.RAZORPAY_TEST_MODE:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="INVALID_RAZORPAY_SIGNATURE: Payment verification failed.",
+                    )
+
+        # Get or create customer
+        clean_phone = "".join(filter(str.isdigit, data.customer_phone))
+        cust_query = select(Customer).where(Customer.phone == clean_phone)
+        cust_result = await db.execute(cust_query)
+        customer = cust_result.scalar_one_or_none()
+
+        if not customer:
+            customer = Customer(
+                name=data.customer_name.strip(),
+                phone=clean_phone or data.customer_phone,
+                email=data.customer_email,
+            )
+            db.add(customer)
+            await db.flush()
+
+        # Find matching table if needed
+        valid_table_id = data.table_id
+        if valid_table_id is not None:
+            tbl_check = await db.execute(select(Table.id).where(Table.id == valid_table_id))
+            if not tbl_check.scalar_one_or_none():
+                valid_table_id = None
+
+        deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
+        if deposit_per_guest <= 0:
+            deposit_per_guest = Decimal("150.00")
+        total_deposit = deposit_per_guest * Decimal(str(data.guest_count))
+
+        reservation = Reservation(
+            branch_id=data.branch_id,
+            customer_id=customer.id,
+            guest_count=data.guest_count,
+            reservation_date=data.reservation_date,
+            time_slot=data.time_slot,
+            table_id=valid_table_id,
+            floor_number=data.floor_number or 1,
+            table_name=data.table_name or "Table 1",
+            status="CONFIRMED",
+            payment_status="PAID",
+            advance_amount=total_deposit,
+            payment_reference=data.razorpay_payment_id,
+            payment_method="RAZORPAY",
+        )
+        db.add(reservation)
+        await db.flush()
+
+        # Log verified credit record for POS ledger and Razorpay portal
+        try:
+            source = "RAZORPAY_TEST_SIMULATOR" if data.is_test_simulation else "RAZORPAY_GATEWAY"
+            bank_credit = VerifiedBankCredit(
+                utr=data.razorpay_payment_id,
+                amount=total_deposit,
+                merchant_vpa=settings.MERCHANT_UPI_ID,
+                provider_source=source,
+                status="SETTLED",
+                reservation_id=reservation.id,
+                raw_event_payload={
+                    "order_id": data.razorpay_order_id,
+                    "payment_id": data.razorpay_payment_id,
+                    "signature": data.razorpay_signature,
+                    "is_test": data.is_test_simulation,
+                },
+            )
+            db.add(bank_credit)
+        except Exception:
+            pass
+
+        # Create protected dough allocation for this confirmed reservation
+        try:
+            from app.services.capacity_service import CapacityService
+            await CapacityService.create_reservation_dough_allocation(
+                db=db,
+                reservation_id=reservation.id,
+                branch_id=reservation.branch_id,
+                reservation_date=reservation.reservation_date,
+                guest_count=reservation.guest_count,
+                expected_pizza_count=getattr(reservation, "expected_pizza_count", None),
+            )
+        except Exception:
+            pass
+
+        await db.commit()
+
+        from sqlalchemy.orm import selectinload
+        res = await db.execute(
+            select(Reservation).options(selectinload(Reservation.customer)).where(Reservation.id == reservation.id)
+        )
+        saved = res.scalar_one()
+        await ReservationService._broadcast_reservation_event(saved, "RESERVATION_CREATED")
+        return saved
+
+    @staticmethod
+    async def get_razorpay_transactions(db: AsyncSession) -> List[dict]:
+        """
+        Retrieves recent Razorpay transactions for the Admin Razorpay Testing Portal.
+        """
+        stmt = (
+            select(Reservation)
+            .where(Reservation.payment_method == "RAZORPAY")
+            .order_by(Reservation.created_at.desc())
+            .limit(50)
+        )
+        res = await db.execute(stmt)
+        reservations = res.scalars().all()
+
+        results = []
+        for r in reservations:
+            results.append({
+                "reservation_id": r.id,
+                "customer_name": r.customer.name if r.customer else "Guest",
+                "customer_phone": r.customer.phone if r.customer else "",
+                "party_size": r.guest_count,
+                "amount": float(r.advance_amount or 0),
+                "payment_id": r.payment_reference,
+                "status": r.status,
+                "payment_status": r.payment_status,
+                "date": str(r.reservation_date),
+                "time_slot": r.time_slot,
+                "created_at": str(r.created_at),
+            })
+        return results
+

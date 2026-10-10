@@ -177,3 +177,58 @@ class PolicySettingsUpdate(BaseModel):
     no_show_policy: Optional[str] = Field(None, example="FORFEIT")
 
 
+class RazorpayCreateOrderRequest(BaseModel):
+    branch_id: int = Field(1, example=1)
+    customer_name: str = Field(..., example="Aarav Sharma")
+    customer_phone: str = Field(..., example="+919876543210")
+    customer_email: Optional[str] = None
+    guest_count: int = Field(..., ge=1, le=20, example=2)
+    reservation_date: date = Field(..., example="2026-10-18")
+    time_slot: str = Field(..., example="07:00 PM")
+    floor_number: Optional[int] = Field(None, example=1)
+    table_name: Optional[str] = Field(None, example="Table 1")
+    table_id: Optional[int] = None
+    special_requests: Optional[str] = None
+
+
+class RazorpayCreateOrderResponse(BaseModel):
+    order_id: str
+    amount: int  # Amount in paise (e.g. 30000 for ₹300.00)
+    currency: str = "INR"
+    key_id: str
+    guest_count: int
+    deposit_per_guest: float
+    total_amount: float
+    customer_name: str
+    customer_phone: str
+    customer_email: Optional[str] = None
+    is_test_mode: bool = True
+
+
+class RazorpayVerifyPaymentRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+    branch_id: int = Field(1, example=1)
+    customer_name: str
+    customer_phone: str
+    customer_email: Optional[str] = None
+    guest_count: int = Field(..., ge=1, le=20)
+    reservation_date: date
+    time_slot: str
+    floor_number: Optional[int] = 1
+    table_name: Optional[str] = "Table 1"
+    table_id: Optional[int] = None
+    special_requests: Optional[str] = None
+    is_test_simulation: Optional[bool] = False
+
+
+class RazorpaySimulateWebhookRequest(BaseModel):
+    event: str = Field("payment.captured", example="payment.captured")
+    payment_id: Optional[str] = None
+    order_id: Optional[str] = None
+    amount: Optional[int] = 30000
+    phone: Optional[str] = "+919876543210"
+
+
+
