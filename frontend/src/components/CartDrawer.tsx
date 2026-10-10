@@ -230,7 +230,7 @@ export default function CartDrawer({
                         <span>₹{subtotal}</span>
                       </div>
                       <div className="flex justify-between text-stone-600">
-                        <span>GST (5%)</span>
+                        <span>GST (5% · excluded from menu prices)</span>
                         <span>₹{tax}</span>
                       </div>
                       <div className="flex justify-between font-serif font-bold text-2xl text-[#261C18] pt-2 border-t border-[#E4DCD0]">

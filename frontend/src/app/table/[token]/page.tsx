@@ -83,6 +83,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const [qrErrorMessage, setQrErrorMessage] = useState<string | null>(null);
   const [showReservationIdPrompt, setShowReservationIdPrompt] = useState(false);
   const [reservationIdInput, setReservationIdInput] = useState("");
+  const [hasTableAccess, setHasTableAccess] = useState(false);
   const [reservationNotice, setReservationNotice] = useState<{
     is_reserved: boolean;
     reservation_id: number;
@@ -247,7 +248,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
   // 5. Multi-Device Shared Table Cart & Bill: Real-time background sync every 6s
   useEffect(() => {
-    if (!sessionId || !sessionToken) return;
+    if (!sessionId || !sessionToken || !hasTableAccess) return;
 
     let isMounted = true;
     const syncTableBill = async () => {
@@ -276,7 +277,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
       isMounted = false;
       clearInterval(interval);
     };
-  }, [sessionId, sessionToken]);
+  }, [sessionId, sessionToken, hasTableAccess]);
 
   // Quick Dine Countdown Timer
   useEffect(() => {
@@ -326,6 +327,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
       alert("Enter your reservation ID to continue.");
       return;
     }
+    setHasTableAccess(true);
     setShowReservationIdPrompt(false);
   };
 
@@ -355,6 +357,8 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
   const totalCartCount = Object.values(cart).reduce((sum, c) => sum + c.qty, 0);
   const totalCartPrice = Object.values(cart).reduce((sum, c) => sum + c.item.price * c.qty, 0);
+  const cartTax = Math.round(totalCartPrice * 0.05 * 100) / 100;
+  const cartGrandTotal = totalCartPrice + cartTax;
 
   const fetchBill = async () => {
     if (!sessionId || !sessionToken) return;
@@ -840,7 +844,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                       onClick={() => {
                         if (isAvailable && qtyInCart === 0) updateCart(item, 1);
                       }}
-                      className={`group transition-all ${isCompactDrinks ? "flex min-h-32 flex-col justify-between border-b border-[#D9C9AE] py-3" : "grid grid-cols-[76px_1fr_auto] gap-3 border-b border-[#D9C9AE] py-4 sm:grid-cols-[96px_1fr_auto] sm:gap-5"} ${
+                      className={`group transition-all ${isCompactDrinks ? "flex min-h-32 flex-col justify-between border-b border-[#D9C9AE] py-3" : "grid grid-cols-[64px_minmax(0,1fr)_84px] gap-3 border-b border-[#D9C9AE] py-4 sm:grid-cols-[96px_minmax(0,1fr)_96px] sm:gap-5"} ${
                         !isAvailable
                           ? "cursor-not-allowed opacity-50"
                           : qtyInCart > 0
@@ -884,7 +888,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                       </div>
 
                       {/* Price & Add Controls */}
-                      <div className={isCompactDrinks ? "mt-3 flex w-full items-center justify-between" : "flex shrink-0 flex-col items-end self-center pl-1"}>
+                      <div className={isCompactDrinks ? "mt-3 flex w-full items-center justify-between" : "flex w-[84px] shrink-0 flex-col items-end self-center sm:w-[96px]"}>
                         <span
                           className={`mb-1.5 text-right font-sans text-base font-bold ${
                             isAvailable ? "text-[#140E0A]" : "text-stone-400"
@@ -1040,6 +1044,14 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                   <span className="text-stone-500 uppercase text-xs tracking-wider">Subtotal</span>
                   <span className="text-[#B85B43] font-mono text-lg">₹{totalCartPrice}</span>
                 </div>
+                <div className="flex items-center justify-between text-xs text-stone-500">
+                  <span>GST (5% · excluded from menu prices)</span>
+                  <span className="font-mono">₹{cartTax.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-[#E4DCD0] pt-2 font-bold">
+                  <span className="uppercase text-xs tracking-wider">Total with GST</span>
+                  <span className="text-[#B85B43] font-mono text-lg">₹{cartGrandTotal.toFixed(2)}</span>
+                </div>
 
                 <button
                   onClick={handleSendOrderToKitchen}
@@ -1122,7 +1134,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                       <span className="font-bold">₹{billData?.subtotal.toFixed(2) || "0.00"}</span>
                     </div>
                     <div className="flex justify-between font-medium">
-                      <span>GST ({( (billData?.tax_rate || 0.05) * 100 ).toFixed(0)}%):</span>
+                      <span>GST ({( (billData?.tax_rate || 0.05) * 100 ).toFixed(0)}% · excluded from menu prices):</span>
                       <span className="font-bold">₹{billData?.tax_amount.toFixed(2) || "0.00"}</span>
                     </div>
                     <div className="flex justify-between text-[#9E3E26] font-extrabold text-base pt-2.5 border-t border-[#DDD3C4]">
