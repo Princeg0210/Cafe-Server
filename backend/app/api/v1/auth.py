@@ -3,11 +3,38 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.api.deps import get_db, get_current_user
-from app.core.security import create_access_token, create_refresh_token, verify_password, decode_token
-from app.models.user import User, Role
-from app.schemas.auth import LoginRequest, Token, UserResponse
+from app.core.security import create_access_token, create_refresh_token, verify_password, decode_token, hash_password
+from app.models.user import User, Role, Permission
+from app.schemas.auth import LoginRequest, Token, UserResponse, RoleResponse, PermissionResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+def _build_user_response(user: User) -> UserResponse:
+    role_resp = None
+    try:
+        if user.role:
+            perms = []
+            try:
+                if user.role.permissions:
+                    perms = [
+                        PermissionResponse(id=p.id, code=p.code, description=p.description)
+                        for p in user.role.permissions
+                    ]
+            except Exception:
+                perms = []
+            role_resp = RoleResponse(id=user.role.id, name=user.role.name, permissions=perms)
+    except Exception:
+        role_resp = None
+
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        is_active=user.is_active,
+        role=role_resp,
+        created_at=user.created_at,
+    )
 
 
 @router.post("/login", response_model=Token)
@@ -25,24 +52,15 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     is_master_pos = (uname.lower() == "jaadoo" and data.password == "Jaadoo_123")
 
     if is_master_admin or is_master_pos:
-        if not user:
-            try:
-                from app.utils.create_pos_user import ensure_default_users
-                await ensure_default_users()
-                result = await db.execute(query)
-                user = result.scalar_one_or_none()
-            except Exception:
-                pass
+        role_name = "Admin" if is_master_admin else "Cashier"
+        role_res = await db.execute(select(Role).where(Role.name == role_name))
+        role = role_res.scalar_one_or_none()
+        if not role:
+            role = Role(name=role_name)
+            db.add(role)
+            await db.flush()
 
         if not user:
-            from app.core.security import hash_password
-            role_name = "Admin" if is_master_admin else "Cashier"
-            role_res = await db.execute(select(Role).where(Role.name == role_name))
-            role = role_res.scalar_one_or_none()
-            if not role:
-                role = Role(name=role_name)
-                db.add(role)
-                await db.flush()
             user = User(
                 username="admin" if is_master_admin else "Jaadoo",
                 email="admin@jaadoo.local" if is_master_admin else "jaadoo@jaadoo.local",
@@ -52,15 +70,15 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
             )
             db.add(user)
             await db.commit()
-            result = await db.execute(query)
-            user = result.scalar_one_or_none()
-        elif not verify_password(data.password, user.hashed_password):
-            from app.core.security import hash_password
+        else:
             user.hashed_password = hash_password(data.password)
+            user.role_id = role.id
             user.is_active = True
             await db.commit()
-            result = await db.execute(query)
-            user = result.scalar_one_or_none()
+
+        # Reload with selectinload to ensure clean object
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
 
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(
@@ -75,7 +93,8 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     access_token = create_access_token(subject=user.id)
     refresh_token = create_refresh_token(subject=user.id)
-    return Token(access_token=access_token, refresh_token=refresh_token, user=user)
+    user_response = _build_user_response(user)
+    return Token(access_token=access_token, refresh_token=refresh_token, user=user_response)
 
 
 @router.post("/refresh", response_model=Token)
@@ -94,4 +113,5 @@ async def refresh(refresh_token: str, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
+    return _build_user_response(current_user)
+
