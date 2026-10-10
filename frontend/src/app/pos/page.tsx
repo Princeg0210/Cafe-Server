@@ -314,15 +314,15 @@ export default function POSDashboard() {
 
   const handleOpenVerifyModal = (res: Reservation) => {
     setVerifyingRes(res);
-    const initialTbl = tableOverviews.find((t) => t.table_id === res.table_id) || tableOverviews[0];
-    setVerifySelectedTableId(initialTbl ? initialTbl.table_id : 1);
+    const initialTblId = res.table_id || tableOverviews[0]?.table_id || RESTAURANT_TABLES[0]?.id || 1;
+    setVerifySelectedTableId(Number(initialTblId));
   };
 
   const handleConfirmVerifyAndAllot = async () => {
     if (!verifyingRes) return;
     setIsVerifyingAndAllotting(true);
     try {
-      const targetTableId = verifySelectedTableId || verifyingRes.table_id || tableOverviews[0]?.table_id || 1;
+      const targetTableId = verifySelectedTableId || verifyingRes.table_id || tableOverviews[0]?.table_id || RESTAURANT_TABLES[0]?.id || 1;
       const apiBase = getApiBase();
       const floorInfo = getTableFloor(targetTableId);
       const floorTableNum = floorInfo.floor_table_num;
@@ -3782,19 +3782,29 @@ export default function POSDashboard() {
                   <select
                     value={verifySelectedTableId}
                     onChange={(e) => setVerifySelectedTableId(Number(e.target.value))}
-                    className="w-full bg-[#FAF8F5] border border-[#E4DCD0] rounded-lg px-3 py-2.5 text-xs font-medium text-[#261C18] focus:outline-hidden focus:border-[#B85B43] focus:bg-white transition-all cursor-pointer appearance-none"
+                    className="w-full bg-[#FAF8F5] border border-[#E4DCD0] rounded-lg px-3 py-2.5 text-xs font-medium text-[#261C18] focus:outline-hidden focus:border-[#B85B43] focus:bg-white transition-all cursor-pointer"
                   >
-                    {tableOverviews.map((tbl) => {
+                    {(tableOverviews.length > 0
+                      ? tableOverviews
+                      : RESTAURANT_TABLES.map((t) => ({
+                          table_id: t.id,
+                          table_number: t.table_number,
+                          capacity: t.capacity,
+                          status: "Available",
+                          active_session_count: 0,
+                          total_sessions_today: 0,
+                          sessions: [],
+                        }))
+                    ).map((tbl) => {
                       const floorInfo = getTableFloor(tbl.table_id);
                       const isOcc = tbl.status === "Occupied" || (tbl.sessions && tbl.sessions.some((s) => s.is_active));
                       return (
-                        <option key={tbl.table_id} value={tbl.table_id}>
-                          {floorInfo.name} — Table {floorInfo.floor_table_num} ({tbl.capacity} Seats) {isOcc ? "• [Currently Active / Occupied]" : "• [Available]"}
+                        <option key={tbl.table_id} value={tbl.table_id} className="text-stone-900 bg-white py-1">
+                          {floorInfo.name} — Table {floorInfo.floor_table_num} ({tbl.capacity || 4} Seats) {isOcc ? "• [Occupied / In Use]" : "• [Available]"}
                         </option>
                       );
                     })}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
 
