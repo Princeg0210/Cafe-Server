@@ -925,7 +925,6 @@ export default function BookTablePage() {
                     <h3 className="font-bold text-xs uppercase tracking-wider text-stone-600">
                       Choose your floor level
                     </h3>
-                    <span className="text-[11px] text-stone-400">6 Heritage Floors</span>
                   </div>
                   <div className="relative">
                     <select
