@@ -1,10 +1,10 @@
 import datetime
 from decimal import Decimal
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.deps import get_db
+from app.api.deps import get_db, require_permission
 from app.models.order import Order, OrderItem
 from app.models.kot import KOT
 from app.models.billing import Bill, Payment
@@ -13,7 +13,33 @@ from app.models.menu import MenuItem, MenuCategory
 from app.models.table import DiningSession, Table
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/analytics", tags=["Analytics & Reporting"])
+# Revenue figures are owner/staff-only
+router = APIRouter(
+    prefix="/analytics",
+    tags=["Analytics & Reporting"],
+    dependencies=[Depends(require_permission("pos:access"))],
+)
+
+
+@router.get("/revenue")
+async def get_revenue_for_range(
+    start: datetime.date = Query(..., description="First business date (inclusive), YYYY-MM-DD"),
+    end: datetime.date = Query(..., description="Last business date (inclusive), YYYY-MM-DD"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revenue (sum of KOT totals) and KOT count for business dates start..end inclusive."""
+    if end < start:
+        raise HTTPException(status_code=400, detail="end must be on or after start")
+    if (end - start).days > 366:
+        raise HTTPException(status_code=400, detail="Range cannot exceed one year")
+    row = (
+        await db.execute(
+            select(func.coalesce(func.sum(KOT.total_amount), 0), func.count(KOT.id)).where(
+                KOT.business_date >= start, KOT.business_date <= end
+            )
+        )
+    ).one()
+    return {"start": start.isoformat(), "end": end.isoformat(), "revenue": float(row[0] or 0), "kots": int(row[1] or 0)}
 
 
 class AnalyticsSummary(BaseModel):
@@ -49,8 +75,8 @@ async def get_summary(db: AsyncSession = Depends(get_db)):
 async def get_owner_dashboard_analytics(db: AsyncSession = Depends(get_db)):
     """Comprehensive executive analytics for the Owner Portal."""
     try:
-        now = datetime.datetime.utcnow()
-        today_date = now.date()
+        from app.utils.helpers import ist_now
+        today_date = ist_now().date()  # business day in IST, not UTC
         yesterday_date = today_date - datetime.timedelta(days=1)
         week_start_date = today_date - datetime.timedelta(days=7)
         month_start_date = today_date - datetime.timedelta(days=30)

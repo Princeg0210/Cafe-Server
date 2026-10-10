@@ -637,6 +637,59 @@ export default function AdminPortal() {
     }
   }, [token, opDate, fetchOperationsData]);
 
+  // Dashboard revenue filters (each card queries /analytics/revenue for its own business-date range)
+  type RevenueFigure = { revenue: number; kots: number } | null;
+  const isoDate = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const shiftDays = (iso: string, days: number) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return isoDate(new Date(y, m - 1, d + days));
+  };
+  const shortDate = (iso: string) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  };
+  const todayIso = isoDate(new Date());
+  const [revDay, setRevDay] = useState(todayIso);
+  const [revWeekEnd, setRevWeekEnd] = useState(todayIso);
+  const [revMonth, setRevMonth] = useState(todayIso.slice(0, 7));
+  const [revYear, setRevYear] = useState(todayIso.slice(0, 4));
+  const [revFigures, setRevFigures] = useState<Record<"day" | "prevDay" | "week" | "month" | "year", RevenueFigure>>({
+    day: null,
+    prevDay: null,
+    week: null,
+    month: null,
+    year: null,
+  });
+
+  const fetchRevenue = useCallback(
+    async (start: string, end: string): Promise<RevenueFigure> => {
+      if (!token) return null;
+      try {
+        const res = await adminFetch(`${getApiBase()}/api/v1/analytics/revenue?start=${start}&end=${end}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        return res.ok ? await res.json() : null;
+      } catch {
+        return null;
+      }
+    },
+    [token]
+  );
+
+  useEffect(() => {
+    if (!token) return;
+    const [y, m] = revMonth.split("-").map(Number);
+    const monthEnd = isoDate(new Date(y, m, 0));
+    Promise.all([
+      fetchRevenue(revDay, revDay),
+      fetchRevenue(shiftDays(revDay, -1), shiftDays(revDay, -1)),
+      fetchRevenue(shiftDays(revWeekEnd, -6), revWeekEnd),
+      fetchRevenue(`${revMonth}-01`, monthEnd),
+      fetchRevenue(`${revYear}-01-01`, `${revYear}-12-31`),
+    ]).then(([day, prevDay, week, month, year]) => setRevFigures({ day, prevDay, week, month, year }));
+  }, [token, revDay, revWeekEnd, revMonth, revYear, fetchRevenue, metrics]); // metrics: refetch whenever the dashboard refreshes
+
   // Cancel a reservation via the backend cancellation policy (computes refund, releases dough & reminders)
   const [confirmCancelRes, setConfirmCancelRes] = useState(false);
   const [isCancellingRes, setIsCancellingRes] = useState(false);
@@ -1505,52 +1558,99 @@ export default function AdminPortal() {
         {/* TAB 1: EXECUTIVE ANALYTICS */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
-            {/* Primary KPI Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1: Today's Sales */}
+            {/* Primary KPI Metric Cards (each with its own business-date filter) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+              {/* Card 1: Daily revenue (any date in the last 7 days) */}
               <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
-                  <span>Today&apos;s Revenue</span>
+                  <span>{revDay === todayIso ? "Today's Revenue" : "Daily Revenue"}</span>
                   <IndianRupee className="w-4 h-4 text-[#B85B43]" />
                 </div>
+                <input
+                  type="date"
+                  value={revDay}
+                  min={shiftDays(todayIso, -6)}
+                  max={todayIso}
+                  onChange={(e) => e.target.value && setRevDay(e.target.value)}
+                  aria-label="Revenue date"
+                  className="mt-2 bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1 text-[11px] font-semibold text-[#4A392F] outline-none focus:border-[#B85B43] cursor-pointer"
+                />
                 <div className="text-3xl font-extrabold font-sans text-[#241A14] mt-2">
-                  ₹{Number(metrics?.today_sales || 0).toLocaleString("en-IN")}
+                  ₹{Number(revFigures.day?.revenue || 0).toLocaleString("en-IN")}
                 </div>
                 <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
-                  <span>Yesterday: ₹{Number(metrics?.yesterday_sales || 0).toLocaleString("en-IN")}</span>
-                  <span className="text-[#B85B43] font-bold">{metrics?.today_kots_count || 0} KOTs</span>
+                  <span>{shortDate(shiftDays(revDay, -1))}: ₹{Number(revFigures.prevDay?.revenue || 0).toLocaleString("en-IN")}</span>
+                  <span className="text-[#B85B43] font-bold">{revFigures.day?.kots || 0} {revFigures.day?.kots === 1 ? "KOT" : "KOTs"}</span>
                 </div>
               </div>
 
-              {/* Card 2: 7-Day Revenue */}
+              {/* Card 2: Weekly revenue (7-day weeks counting back from today) */}
               <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
-                  <span>Last 7 Days</span>
+                  <span>Weekly Revenue</span>
                   <TrendingUp className="w-4 h-4 text-emerald-600" />
                 </div>
+                <select value={revWeekEnd} onChange={(e) => setRevWeekEnd(e.target.value)} aria-label="Revenue week" className="mt-2 bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1 text-[11px] font-semibold text-[#4A392F] outline-none focus:border-[#B85B43] cursor-pointer">
+                  {Array.from({ length: 12 }, (_, i) => shiftDays(todayIso, -7 * i)).map((weekEnd, i) => (
+                    <option key={weekEnd} value={weekEnd}>
+                      {i === 0 ? "Last 7 days" : `${shortDate(shiftDays(weekEnd, -6))} – ${shortDate(weekEnd)}`}
+                    </option>
+                  ))}
+                </select>
                 <div className="text-3xl font-extrabold font-sans text-[#241A14] mt-2">
-                  ₹{Number(metrics?.week_sales || 0).toLocaleString("en-IN")}
+                  ₹{Number(revFigures.week?.revenue || 0).toLocaleString("en-IN")}
                 </div>
-                <div className="text-[11px] text-[#7A6A5E] mt-2">
-                  <span>Rolling weekly revenue</span>
+                <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
+                  <span>{shortDate(shiftDays(revWeekEnd, -6))} – {shortDate(revWeekEnd)}</span>
+                  <span className="text-[#B85B43] font-bold">{revFigures.week?.kots || 0} {revFigures.week?.kots === 1 ? "KOT" : "KOTs"}</span>
                 </div>
               </div>
 
-              {/* Card 3: 30-Day Monthly Revenue */}
+              {/* Card 3: Monthly revenue (any month, last 24 months) */}
               <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
-                  <span>Monthly Sales (30D)</span>
+                  <span>Monthly Revenue</span>
                   <Calendar className="w-4 h-4 text-[#B85B43]" />
                 </div>
+                <select value={revMonth} onChange={(e) => setRevMonth(e.target.value)} aria-label="Revenue month" className="mt-2 bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1 text-[11px] font-semibold text-[#4A392F] outline-none focus:border-[#B85B43] cursor-pointer">
+                  {Array.from({ length: 24 }, (_, i) => {
+                    const [y, m] = todayIso.split("-").map(Number);
+                    const d = new Date(y, m - 1 - i, 1);
+                    return { value: isoDate(d).slice(0, 7), label: d.toLocaleDateString("en-IN", { month: "long", year: "numeric" }) };
+                  }).map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
                 <div className="text-3xl font-extrabold font-sans text-[#241A14] mt-2">
-                  ₹{Number(metrics?.month_sales || 0).toLocaleString("en-IN")}
+                  ₹{Number(revFigures.month?.revenue || 0).toLocaleString("en-IN")}
                 </div>
-                <div className="text-[11px] text-[#7A6A5E] mt-2">
-                  <span>Avg Ticket: ₹{Math.round(metrics?.avg_ticket_value || 0).toLocaleString("en-IN")}</span>
+                <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
+                  <span>Avg Ticket: ₹{Math.round(revFigures.month?.kots ? revFigures.month.revenue / revFigures.month.kots : 0).toLocaleString("en-IN")}</span>
+                  <span className="text-[#B85B43] font-bold">{revFigures.month?.kots || 0} {revFigures.month?.kots === 1 ? "KOT" : "KOTs"}</span>
                 </div>
               </div>
 
-              {/* Card 4: Total Lifetime Revenue */}
+              {/* Card 4: Yearly revenue */}
+              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm relative overflow-hidden">
+                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
+                  <span>Yearly Revenue</span>
+                  <TrendingUp className="w-4 h-4 text-[#B85B43]" />
+                </div>
+                <select value={revYear} onChange={(e) => setRevYear(e.target.value)} aria-label="Revenue year" className="mt-2 bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1 text-[11px] font-semibold text-[#4A392F] outline-none focus:border-[#B85B43] cursor-pointer">
+                  {Array.from({ length: 5 }, (_, i) => String(Number(todayIso.slice(0, 4)) - i)).map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <div className="text-3xl font-extrabold font-sans text-[#241A14] mt-2">
+                  ₹{Number(revFigures.year?.revenue || 0).toLocaleString("en-IN")}
+                </div>
+                <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
+                  <span>Jan – Dec {revYear}</span>
+                  <span className="text-[#B85B43] font-bold">{revFigures.year?.kots || 0} {revFigures.year?.kots === 1 ? "KOT" : "KOTs"}</span>
+                </div>
+              </div>
+
+              {/* Card 5: Total Lifetime Revenue */}
               <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
                   <span>All-Time Sales</span>
