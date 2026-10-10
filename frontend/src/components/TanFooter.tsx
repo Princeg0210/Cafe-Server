@@ -1,28 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 
 export default function TanFooter() {
-  const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubscribed(true);
-      setTimeout(() => setSubscribed(false), 3000);
-      setEmail("");
-    }
-  };
-
   return (
     <footer className="mt-20 bg-[#261C18] text-[#FBF9F5] pt-16 pb-8 px-6 md:px-12 border-t border-[#E4DCD0]/20">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8 pb-12">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 gap-10 pb-12">
         
         {/* Column 1: Brand & Identity */}
-        <div className="md:col-span-5 space-y-4">
-          <div className="flex items-center gap-3.5">
+        <div className="space-y-4 flex flex-col items-center text-center">
+          <div className="flex items-center justify-center gap-3.5">
             <div className="relative w-24 h-14 rounded-xl overflow-hidden bg-white border-2 border-[#E4DCD0]/40 shadow-sm shrink-0">
               <img
                 src="/jaadoo_logo.jpg"
@@ -40,11 +27,11 @@ export default function TanFooter() {
             </div>
           </div>
           
-          <p className="text-xs text-stone-300 leading-relaxed font-sans max-w-sm">
+          <p className="text-xs text-stone-300 leading-relaxed font-sans max-w-xl">
             Authentic wood-fired Neapolitan pizza with 48-hour natural dough fermentation and wild-harvested Himalayan tisanes in the heart of Old City Udaipur.
           </p>
 
-          <div className="pt-2 flex flex-wrap items-center gap-4 text-xs font-sans text-stone-400">
+          <div className="pt-2 flex flex-wrap justify-center items-center gap-4 text-xs font-sans text-stone-400">
             <Link href="/privacy" className="hover:text-stone-200 underline underline-offset-2 transition-colors">
               Privacy Policy
             </Link>
@@ -55,81 +42,6 @@ export default function TanFooter() {
           </div>
         </div>
 
-        {/* Column 2: Contacts & Quick Links */}
-        <div className="md:col-span-3 space-y-3 font-sans">
-          <h3 className="font-serif font-bold text-base text-[#FBF9F5] border-b border-[#E4DCD0]/20 pb-1 inline-block">
-            Explore and Contact
-          </h3>
-          <ul className="space-y-2 text-xs text-stone-300">
-            <li className="font-mono text-stone-200">ciao@jaadooudaipur.com</li>
-            <li className="font-mono text-stone-200">+91 98290 12345</li>
-            <li className="pt-2">
-              <Link href="/menu" className="hover:text-[#B85B43] transition-colors font-medium text-stone-200">
-                Artisanal Menu
-              </Link>
-            </li>
-            <li>
-              <Link href="/book-table" className="hover:text-[#B85B43] transition-colors font-medium text-stone-200">
-                Book a Table
-              </Link>
-            </li>
-            <li>
-              <Link href="/about" className="hover:text-[#B85B43] transition-colors font-medium text-stone-200">
-                Our Story and Heritage
-              </Link>
-            </li>
-            <li>
-              <Link href="/location" className="hover:text-[#B85B43] transition-colors font-medium text-stone-200">
-                Brew Station and Location
-              </Link>
-            </li>
-            <li>
-              <Link href="/contact" className="hover:text-[#B85B43] transition-colors font-medium text-stone-200">
-                Contact Us
-              </Link>
-            </li>
-            <li className="pt-1">
-              <Link href="/pos" className="hover:text-[#B85B43] transition-colors font-medium text-stone-400 text-[11px] font-mono">
-                Staff POS Terminal →
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        {/* Column 3: Newsletter */}
-        <div className="md:col-span-4 space-y-3 font-sans">
-          <h3 className="font-serif font-bold text-base text-[#FBF9F5] border-b border-[#E4DCD0]/20 pb-1 inline-block">
-            Newsletters and Events
-          </h3>
-          <p className="text-xs text-stone-300">
-            Register your email to receive updates on seasonal chef specials and acoustic evening sessions.
-          </p>
-
-          {subscribed ? (
-            <div className="bg-[#4A5842]/40 border border-emerald-500/40 text-emerald-200 p-2.5 rounded-lg text-xs font-semibold text-center font-sans">
-              Grazie! Thank you for subscribing.
-            </div>
-          ) : (
-            <form onSubmit={handleSubscribe} className="flex gap-2 pt-1">
-              <label htmlFor="newsletter-email" className="sr-only">Email address</label>
-              <input
-                id="newsletter-email"
-                type="email"
-                required
-                placeholder="Email address..."
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-[#E4DCD0]/20 bg-[#1C1512] text-[#FBF9F5] placeholder-stone-400 focus:outline-hidden focus:border-[#B85B43] font-sans"
-              />
-              <button
-                type="submit"
-                className="bg-[#B85B43] hover:bg-[#A84E38] text-[#FBF9F5] px-5 py-2.5 rounded-lg font-sans font-semibold text-xs uppercase tracking-wider transition-all shadow-xs shrink-0 border border-[#E4DCD0]/20 active:scale-95"
-              >
-                Send
-              </button>
-            </form>
-          )}
-        </div>
       </div>
 
       {/* Bottom Footer Bar */}
