@@ -1108,6 +1108,102 @@ export default function AdminPortal() {
     });
   }, [displayOpReservations, opResFilter, opResSearch]);
 
+  // Fetch Razorpay Transactions
+  const fetchRazorpayTransactions = useCallback(async () => {
+    try {
+      const apiBase = getApiBase();
+      const res = await fetch(`${apiBase}/api/v1/reservations/razorpay/transactions`);
+      if (res.ok) {
+        const data = await res.json();
+        setRzpTransactions(data);
+      }
+    } catch (err) {
+      console.warn("Failed to load Razorpay transactions:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "razorpay") {
+      fetchRazorpayTransactions();
+    }
+  }, [activeTab, fetchRazorpayTransactions]);
+
+  const handleAdminSimulatePayment = async () => {
+    setIsSimulatingRzp(true);
+    setRzpSimSuccess(null);
+    setRzpSimError(null);
+    try {
+      const apiBase = getApiBase();
+      const simOrder = `order_test_${Date.now()}_sim`;
+      const simPay = `pay_test_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const cleanPhone = rzpSimPhone.replace(/\D/g, "");
+
+      const res = await fetch(`${apiBase}/api/v1/reservations/razorpay/verify-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          razorpay_order_id: simOrder,
+          razorpay_payment_id: simPay,
+          razorpay_signature: `sig_admin_sim_${Date.now()}`,
+          branch_id: 1,
+          customer_name: rzpSimName.trim(),
+          customer_phone: cleanPhone || "9829012345",
+          guest_count: rzpSimGuests,
+          reservation_date: getLocalDateString(0),
+          time_slot: rzpSimTime,
+          floor_number: rzpSimFloor,
+          table_name: `Table 1`,
+          is_test_simulation: true,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Simulation failed on backend");
+      }
+
+      const confirmedRes = await res.json();
+      setRzpSimSuccess(`Simulated payment verified! Created reservation #${confirmedRes.id} for ${rzpSimName} (₹${rzpSimGuests * 150}).`);
+      showToast("Razorpay test payment & table booked successfully!");
+      fetchRazorpayTransactions();
+    } catch (err: any) {
+      setRzpSimError(err.message || "Failed to simulate transaction");
+    } finally {
+      setIsSimulatingRzp(false);
+    }
+  };
+
+  const handleSimulateWebhook = (eventType: string) => {
+    const entry = {
+      id: `whk_${Date.now()}`,
+      event: eventType,
+      timestamp: new Date().toLocaleTimeString(),
+      amount: `₹${rzpSimGuests * 150}.00`,
+      status: eventType.includes("failed") ? "FAILED" : "PROCESSED",
+      payload: {
+        entity: "event",
+        account_id: "acc_jaadoo_test",
+        event: eventType,
+        contains: ["payment"],
+        payload: {
+          payment: {
+            entity: {
+              id: `pay_test_${Date.now()}`,
+              amount: rzpSimGuests * 150 * 100,
+              currency: "INR",
+              status: eventType.includes("failed") ? "failed" : "captured",
+              order_id: `order_test_${Date.now()}`,
+              method: "upi",
+              vpa: "success@razorpay",
+            },
+          },
+        },
+      },
+    };
+    setRzpWebhookLog((prev) => [entry, ...prev.slice(0, 19)]);
+    showToast(`Webhook event [${eventType}] logged!`);
+  };
+
   // ---------------------------------------------------------------------------
   // AUTH LOGIN SCREEN - WARM BEIGE ARTISANAL THEME
   // ---------------------------------------------------------------------------
@@ -1209,102 +1305,6 @@ export default function AdminPortal() {
       </div>
     );
   }
-
-  // Fetch Razorpay Transactions
-  const fetchRazorpayTransactions = useCallback(async () => {
-    try {
-      const apiBase = getApiBase();
-      const res = await fetch(`${apiBase}/api/v1/reservations/razorpay/transactions`);
-      if (res.ok) {
-        const data = await res.json();
-        setRzpTransactions(data);
-      }
-    } catch (err) {
-      console.warn("Failed to load Razorpay transactions:", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === "razorpay") {
-      fetchRazorpayTransactions();
-    }
-  }, [activeTab, fetchRazorpayTransactions]);
-
-  const handleAdminSimulatePayment = async () => {
-    setIsSimulatingRzp(true);
-    setRzpSimSuccess(null);
-    setRzpSimError(null);
-    try {
-      const apiBase = getApiBase();
-      const simOrder = `order_test_${Date.now()}_sim`;
-      const simPay = `pay_test_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      const cleanPhone = rzpSimPhone.replace(/\D/g, "");
-
-      const res = await fetch(`${apiBase}/api/v1/reservations/razorpay/verify-payment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          razorpay_order_id: simOrder,
-          razorpay_payment_id: simPay,
-          razorpay_signature: `sig_admin_sim_${Date.now()}`,
-          branch_id: 1,
-          customer_name: rzpSimName.trim(),
-          customer_phone: cleanPhone || "9829012345",
-          guest_count: rzpSimGuests,
-          reservation_date: getLocalDateString(0),
-          time_slot: rzpSimTime,
-          floor_number: rzpSimFloor,
-          table_name: `Table 1`,
-          is_test_simulation: true,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || "Simulation failed on backend");
-      }
-
-      const confirmedRes = await res.json();
-      setRzpSimSuccess(`Simulated payment verified! Created reservation #${confirmedRes.id} for ${rzpSimName} (₹${rzpSimGuests * 150}).`);
-      showToast("Razorpay test payment & table booked successfully!");
-      fetchRazorpayTransactions();
-    } catch (err: any) {
-      setRzpSimError(err.message || "Failed to simulate transaction");
-    } finally {
-      setIsSimulatingRzp(false);
-    }
-  };
-
-  const handleSimulateWebhook = (eventType: string) => {
-    const entry = {
-      id: `whk_${Date.now()}`,
-      event: eventType,
-      timestamp: new Date().toLocaleTimeString(),
-      amount: `₹${rzpSimGuests * 150}.00`,
-      status: eventType.includes("failed") ? "FAILED" : "PROCESSED",
-      payload: {
-        entity: "event",
-        account_id: "acc_jaadoo_test",
-        event: eventType,
-        contains: ["payment"],
-        payload: {
-          payment: {
-            entity: {
-              id: `pay_test_${Date.now()}`,
-              amount: rzpSimGuests * 150 * 100,
-              currency: "INR",
-              status: eventType.includes("failed") ? "failed" : "captured",
-              order_id: `order_test_${Date.now()}`,
-              method: "upi",
-              vpa: "success@razorpay",
-            },
-          },
-        },
-      },
-    };
-    setRzpWebhookLog((prev) => [entry, ...prev.slice(0, 19)]);
-    showToast(`Webhook event [${eventType}] logged!`);
-  };
 
   // ---------------------------------------------------------------------------
   // MAIN OWNER DASHBOARD - LUXURIOUS BEIGE ARTISANAL THEME
