@@ -54,12 +54,9 @@ class ReservationService:
         return ist_now().date() - datetime.timedelta(days=6)
 
     @staticmethod
-    def format_canonical_booking_id(reservation_id: int) -> str:
-        """
-        Returns canonical Booking ID / Reservation ID representation.
-        Guarantees BOOKING ID = RESERVATION ID across customer and admin portals.
-        """
-        return f"RES-{reservation_id:04d}"
+    def format_canonical_booking_id(reservation: Reservation) -> str:
+        """Booking ID shown everywhere; see Reservation.booking_id for the format."""
+        return reservation.booking_id
 
     @staticmethod
     def sanitize_reservation_response(reservation: Reservation, cutoff_date: Optional[datetime.date] = None):
@@ -76,7 +73,7 @@ class ReservationService:
         if cutoff_date is None:
             cutoff_date = ReservationService.get_seven_day_cutoff()
 
-        booking_id = ReservationService.format_canonical_booking_id(reservation.id)
+        booking_id = ReservationService.format_canonical_booking_id(reservation)
         is_recent = reservation.reservation_date >= cutoff_date
 
         if is_recent:
@@ -446,7 +443,11 @@ class ReservationService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
 
         if reservation.status == "CANCELLED":
-            return reservation
+            from sqlalchemy.orm import selectinload
+            res = await db.execute(
+                select(Reservation).options(selectinload(Reservation.customer)).where(Reservation.id == reservation.id)
+            )
+            return res.scalar_one()
         if "CANCELLED" not in ALLOWED_STATE_TRANSITIONS.get(reservation.status, set()):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

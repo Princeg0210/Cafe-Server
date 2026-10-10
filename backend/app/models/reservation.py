@@ -39,6 +39,22 @@ class Reservation(Base):
     customer = relationship("Customer", back_populates="reservations")
     table = relationship("Table", foreign_keys=[table_id], lazy="selectin")
 
+    @property
+    def booking_id(self) -> str:
+        """First 4 letters of guest name + last 4 phone digits (e.g. PRIN5743).
+
+        Not unique by design: repeat guests share an ID. Falls back to RES-0001 style
+        when name/phone are missing or the customer isn't loaded (never lazy-loads).
+        """
+        customer = self.__dict__.get("customer")
+        name = (customer.name or "") if customer else ""
+        phone = (customer.phone or "") if customer else ""
+        letters = "".join(ch for ch in name if ch.isalpha()).upper()[:4]
+        digits = "".join(ch for ch in phone if ch.isdigit())[-4:]
+        if not letters or not digits:
+            return f"RES-{self.id:04d}"
+        return f"{letters}{digits}"
+
 
 class ReservationCapacityRule(Base):
     __tablename__ = "reservation_capacity_rules"

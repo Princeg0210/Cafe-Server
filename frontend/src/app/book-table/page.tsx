@@ -30,6 +30,7 @@ import {
 import Navbar from "@/components/Navbar";
 import TanFooter from "@/components/TanFooter";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getFloorName } from "@/data/floors";
+import { formatBookingId } from "@/lib/bookingId";
 
 // Airmenus Reference Timings
 const DINNER_TIME_SLOTS = [
@@ -453,7 +454,7 @@ export default function BookTablePage() {
         resData = await res.json();
       }
 
-      const confirmedId = resData?.id ? `RES-${String(resData.id).padStart(4, "0")}` : `RES-${Math.floor(1000 + Math.random() * 9000)}`;
+      const confirmedId = resData?.booking_id || formatBookingId(name.trim(), cleanPhone, resData?.id);
 
       setConfirmedBooking({
         id: confirmedId,
@@ -477,7 +478,7 @@ export default function BookTablePage() {
     } catch (e) {
       // In offline scenario, still confirm reservation for testing
       setConfirmedBooking({
-        id: `RES-${Math.floor(1000 + Math.random() * 9000)}`,
+        id: formatBookingId(name.trim(), cleanPhone),
         name: name.trim(),
         phone: cleanPhone,
         email: email.trim(),

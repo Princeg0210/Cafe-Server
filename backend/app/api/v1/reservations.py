@@ -1,3 +1,4 @@
+import re
 import hmac
 import hashlib
 from typing import List, Optional
@@ -309,6 +310,7 @@ async def list_reservations(
     if status:
         query = query.where(Reservation.status == status)
 
+    booking_id_search = None
     if search:
         s = search.strip()
         # Check if searching for canonical ID e.g. "RES-0004", "#4", "4"
@@ -322,11 +324,26 @@ async def list_reservations(
         ]
         if clean_id_str.isdigit():
             conditions.append(Reservation.id == int(clean_id_str))
+        # Booking ID search, e.g. "PRIN5743": narrow by phone suffix in SQL, match exactly below
+        id_match = re.fullmatch(r"([A-Za-z]{1,4})(\d{4})", s)
+        if id_match:
+            booking_id_search = s.upper()
+            conditions.append(Customer.phone.like(f"%{id_match.group(2)}"))
         query = query.where(or_(*conditions))
 
     query = query.order_by(Reservation.created_at.desc())
     result = await db.execute(query)
     raw_list = result.scalars().all()
+    if booking_id_search:
+        # Drop rows that matched only via the broad phone-suffix condition
+        needle = booking_id_search.lower()
+        raw_list = [
+            r for r in raw_list
+            if r.booking_id == booking_id_search
+            or any(needle in (v or "").lower() for v in (
+                r.customer.name, r.customer.phone, r.table_name, r.payment_reference, r.upi_utr
+            ))
+        ]
 
     cutoff_date = ReservationService.get_seven_day_cutoff()
     return [ReservationService.sanitize_reservation_response(r, cutoff_date) for r in raw_list]

@@ -51,6 +51,7 @@ import Link from "next/link";
 import QRCode from "qrcode";
 import { menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
+import { formatBookingId } from "@/lib/bookingId";
 
 interface DashboardMetrics {
   total_revenue: number;
@@ -489,7 +490,7 @@ export default function AdminPortal() {
           setReservations(
             rData.map((r: any) => {
               const floorInfo = getTableFloor(r.table_id || r.table_name || 1);
-              const canonicalId = r.booking_id || `RES-${String(r.id).padStart(4, "0")}`;
+              const canonicalId = r.booking_id || formatBookingId(r.customer?.name, r.customer?.phone, r.id);
               return {
                 id: r.id,
                 booking_id: canonicalId,
@@ -2742,7 +2743,7 @@ export default function AdminPortal() {
                             className="hover:bg-[#FAF7F0] transition-colors cursor-pointer"
                           >
                             <td className="p-4 font-mono font-bold text-[#B85B43]">
-                              {r.booking_id || `RES-${String(r.id).padStart(4, "0")}`}
+                              {r.booking_id}
                             </td>
                             <td className="p-4">
                               <span className="font-bold text-[#B85B43] block">
@@ -2835,7 +2836,7 @@ export default function AdminPortal() {
                         {historicalReservations.map((r) => (
                           <tr key={r.id} className="hover:bg-[#FAF7F0] transition-colors">
                             <td className="p-4 font-mono font-bold text-[#B85B43]">
-                              {r.booking_id || `RES-${String(r.id).padStart(4, "0")}`}
+                              {r.booking_id}
                             </td>
                             <td className="p-4 font-bold text-[#241A14]">{r.customer_name}</td>
                             <td className="p-4 text-[#665448] font-semibold">{r.party_size} Guests</td>
@@ -3613,7 +3614,7 @@ export default function AdminPortal() {
                       Reservation Details
                     </h3>
                     <p className="text-xs font-mono font-bold text-[#B85B43]">
-                      {selectedResDetails.booking_id || `RES-${String(selectedResDetails.id).padStart(4, "0")}`}
+                      {selectedResDetails.booking_id}
                     </p>
                   </div>
                 </div>
@@ -3772,7 +3773,7 @@ export default function AdminPortal() {
                 (confirmCancelRes ? (
                   <div className="bg-rose-50 p-3.5 rounded-xl border border-rose-200 text-xs space-y-2.5">
                     <p className="font-bold text-rose-900">
-                      Cancel {selectedResDetails.booking_id || `RES-${String(selectedResDetails.id).padStart(4, "0")}`} for{" "}
+                      Cancel {selectedResDetails.booking_id} for{" "}
                       {selectedResDetails.customer_name}?
                     </p>
                     <p className="text-rose-800">

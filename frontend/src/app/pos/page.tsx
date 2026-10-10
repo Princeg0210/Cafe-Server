@@ -39,6 +39,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
+import { formatBookingId } from "@/lib/bookingId";
 
 interface SessionItem {
   name: string;
@@ -171,6 +172,7 @@ interface Reservation {
   table_id?: number;
   floor_number?: number;
   table_name?: string;
+  booking_id?: string;
   is_deposit_credited?: boolean;
   credited_bill_id?: number;
   created_at: string;
@@ -1504,7 +1506,8 @@ export default function POSDashboard() {
       (r.customer?.name || "").toLowerCase().includes(q) ||
       (r.customer?.phone || "").toLowerCase().includes(q) ||
       (r.table_name || `table ${r.table_id || ""}`).toLowerCase().includes(q) ||
-      String(r.id).includes(q)
+      String(r.id).includes(q) ||
+      (r.booking_id || "").toLowerCase().includes(q)
     );
   });
 
@@ -2704,7 +2707,7 @@ export default function POSDashboard() {
                         <div className="flex items-start justify-between border-b border-stone-100 pb-2">
                           <div>
                             <span className="font-mono font-bold text-sm text-[#261C18]">
-                              #RES-{String(res.id).padStart(4, "0")}
+                              {res.booking_id || formatBookingId(res.customer?.name, res.customer?.phone, res.id)}
                             </span>
                             <div className="text-[11px] text-stone-500 mt-0.5">
                               {res.reservation_date} • {res.time_slot}
