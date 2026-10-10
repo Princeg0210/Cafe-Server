@@ -37,6 +37,7 @@ import {
   EyeOff,
   Layers,
   Sparkles,
+  Search,
 } from "lucide-react";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
@@ -299,9 +300,62 @@ export default function POSDashboard() {
   const [verifiedResIds, setVerifiedResIds] = useState<Record<number, boolean>>({});
   const [showNeedsAttention, setShowNeedsAttention] = useState<boolean>(true);
 
+  // Reservation Verification Search & Table Allotment Modal State
+  const [resVerifySearch, setResVerifySearch] = useState<string>("");
+  const [resVerifyFilter, setResVerifyFilter] = useState<"all" | "unverified" | "verified">("all");
+  const [verifyingRes, setVerifyingRes] = useState<Reservation | null>(null);
+  const [verifySelectedTableId, setVerifySelectedTableId] = useState<number>(1);
+  const [isVerifyingAndAllotting, setIsVerifyingAndAllotting] = useState<boolean>(false);
+
   const handleVerifyReservation = (resId: number) => {
     setVerifiedResIds((prev) => ({ ...prev, [resId]: true }));
     setLastNotification(`Reservation #RES-${String(resId).padStart(4, "0")} verified. Customer details masked for POS privacy.`);
+  };
+
+  const handleOpenVerifyModal = (res: Reservation) => {
+    setVerifyingRes(res);
+    const initialTbl = tableOverviews.find((t) => t.table_id === res.table_id) || tableOverviews[0];
+    setVerifySelectedTableId(initialTbl ? initialTbl.table_id : 1);
+  };
+
+  const handleConfirmVerifyAndAllot = async () => {
+    if (!verifyingRes) return;
+    setIsVerifyingAndAllotting(true);
+    try {
+      const targetTableId = verifySelectedTableId || verifyingRes.table_id || tableOverviews[0]?.table_id || 1;
+      const apiBase = getApiBase();
+      const floorInfo = getTableFloor(targetTableId);
+      const floorTableNum = floorInfo.floor_table_num;
+
+      // 1. Assign/Allot Table via API
+      const res = await fetch(`${apiBase}/api/v1/pos/reservations/${verifyingRes.id}/assign-table`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${posToken}`,
+        },
+        body: JSON.stringify({
+          table_id: targetTableId,
+          table_name: `Table ${floorTableNum}`,
+          floor_number: floorInfo.floor,
+        }),
+      });
+
+      if (res.ok) {
+        // 2. Mark verified (masks PII in POS)
+        setVerifiedResIds((prev) => ({ ...prev, [verifyingRes.id]: true }));
+        setLastNotification(`Reservation #RES-${String(verifyingRes.id).padStart(4, "0")} verified & Table ${floorTableNum} (${floorInfo.short}) allotted.`);
+        setVerifyingRes(null);
+        await Promise.all([fetchReservations(), fetchData()]);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Cannot allot table: ${err.detail || "Server error"}`);
+      }
+    } catch {
+      alert("Network error during verification and table allotment.");
+    } finally {
+      setIsVerifyingAndAllotting(false);
+    }
   };
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -2024,7 +2078,7 @@ export default function POSDashboard() {
         </section>
 
         {/* RESERVATION VERIFICATION & PRIVACY SECTION (Between Capacity & Active Tables) */}
-        <section className="bg-white border border-[#E4DCD0] p-4 rounded-lg space-y-3 shadow-2xs">
+        <section className="bg-white border border-[#E4DCD0] p-4 rounded-lg space-y-3.5 shadow-2xs">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[#E4DCD0] pb-2.5">
             <div className="flex items-center gap-2 text-[#261C18]">
               <ShieldCheck className="w-4 h-4 text-[#B85B43]" />
@@ -2036,30 +2090,134 @@ export default function POSDashboard() {
               </span>
             </div>
             <span className="text-[11px] text-stone-500 font-sans">
-              Verify incoming bookings to mask customer identity in POS • Full details in Admin CRM
+              Search bookings, verify guests &amp; allot physical tables • Full details in Admin CRM
             </span>
           </div>
 
-          {reservations.filter((r) => r.status.toUpperCase() === "CONFIRMED" || r.status.toUpperCase() === "ARRIVED").length === 0 ? (
-            <p className="text-xs text-stone-500 italic">No incoming reservations pending verification today.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {reservations
-                .filter((r) => r.status.toUpperCase() === "CONFIRMED" || r.status.toUpperCase() === "ARRIVED")
-                .slice(0, 6)
-                .map((res) => {
+          {/* Search Bar & Filter Controls */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 pt-0.5">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              <input
+                type="text"
+                value={resVerifySearch}
+                onChange={(e) => setResVerifySearch(e.target.value)}
+                placeholder="Search by #RES ID (e.g. 70), time slot, or table..."
+                className="w-full pl-8 pr-7 py-1.5 bg-[#FAF8F5] border border-[#E4DCD0] rounded-md text-xs font-sans text-[#261C18] placeholder:text-stone-400 focus:outline-hidden focus:border-[#B85B43] focus:bg-white transition-all"
+              />
+              {resVerifySearch && (
+                <button
+                  type="button"
+                  onClick={() => setResVerifySearch("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs font-bold"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {(
+                [
+                  { id: "all", label: "All Incoming" },
+                  { id: "unverified", label: "Pending Verification" },
+                  { id: "verified", label: "Verified" },
+                ] as const
+              ).map((tab) => {
+                const isActive = resVerifyFilter === tab.id;
+                const incomingAll = reservations.filter(
+                  (r) => r.status.toUpperCase() === "CONFIRMED" || r.status.toUpperCase() === "ARRIVED"
+                );
+                const count =
+                  tab.id === "all"
+                    ? incomingAll.length
+                    : tab.id === "unverified"
+                    ? incomingAll.filter((r) => !verifiedResIds[r.id]).length
+                    : incomingAll.filter((r) => Boolean(verifiedResIds[r.id])).length;
+
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setResVerifyFilter(tab.id)}
+                    className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      isActive
+                        ? "bg-[#261C18] text-white shadow-2xs"
+                        : "bg-[#FAF8F5] text-stone-600 hover:bg-[#F3EFEA] border border-[#E4DCD0]"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span
+                      className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                        isActive ? "bg-white/20 text-white" : "bg-stone-200 text-stone-700"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Filtered Reservation Results */}
+          {(() => {
+            const incoming = reservations.filter(
+              (r) => r.status.toUpperCase() === "CONFIRMED" || r.status.toUpperCase() === "ARRIVED"
+            );
+            const q = resVerifySearch.trim().toLowerCase();
+            const filtered = incoming.filter((res) => {
+              const isVerified = Boolean(verifiedResIds[res.id]);
+              if (resVerifyFilter === "unverified" && isVerified) return false;
+              if (resVerifyFilter === "verified" && !isVerified) return false;
+
+              if (!q) return true;
+              const idFormatted = `res-${String(res.id).padStart(4, "0")}`;
+              const idNum = String(res.id);
+              const timeSlot = (res.time_slot || "").toLowerCase();
+              const tableName = (res.table_name || "").toLowerCase();
+              const bookingId = (res.booking_id || "").toLowerCase();
+              const customerName = (res.customer?.name || "").toLowerCase();
+              const customerPhone = (res.customer?.phone || "").toLowerCase();
+
+              return (
+                idFormatted.includes(q) ||
+                idNum.includes(q) ||
+                bookingId.includes(q) ||
+                timeSlot.includes(q) ||
+                tableName.includes(q) ||
+                customerName.includes(q) ||
+                customerPhone.includes(q)
+              );
+            });
+
+            if (filtered.length === 0) {
+              return (
+                <div className="py-6 text-center border border-dashed border-[#E4DCD0] rounded-md bg-[#FAF8F5]">
+                  <p className="text-xs text-stone-500 font-sans">
+                    {incoming.length === 0
+                      ? "No incoming reservations pending today."
+                      : "No reservations found matching your search and filter criteria."}
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {filtered.map((res) => {
                   const isVerified = Boolean(verifiedResIds[res.id]);
                   const resFl = res.floor_number ? getFloorName(res.floor_number) : getTableFloor(res.table_id || 1).name;
                   return (
                     <div
                       key={res.id}
-                      className={`p-3 rounded-md border text-xs flex items-center justify-between gap-2 transition-all ${
+                      className={`p-3 rounded-md border text-xs flex items-center justify-between gap-2.5 transition-all ${
                         isVerified
-                          ? "bg-emerald-50/50 border-emerald-200 text-stone-800"
-                          : "bg-[#FAF8F5] border-[#E4DCD0] text-[#261C18]"
+                          ? "bg-emerald-50/60 border-emerald-200 text-stone-800"
+                          : "bg-[#FAF8F5] border-[#E4DCD0] text-[#261C18] hover:border-stone-400"
                       }`}
                     >
-                      <div className="space-y-0.5">
+                      <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="font-mono font-bold text-[#261C18]">
                             #RES-{String(res.id).padStart(4, "0")}
@@ -2067,32 +2225,48 @@ export default function POSDashboard() {
                           <span className="text-stone-500 font-medium">
                             • {res.guest_count} Guests
                           </span>
+                          {isVerified ? (
+                            <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded border border-emerald-300">
+                              Verified
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded border border-amber-300">
+                              Pending
+                            </span>
+                          )}
                         </div>
-                        <div className="text-[11px] text-stone-600">
-                          {res.time_slot} • {resFl} {res.table_name ? `• ${res.table_name}` : ""}
+                        <div className="text-[11px] text-stone-600 truncate">
+                          {res.time_slot} • {resFl} {res.table_name ? `• ${res.table_name}` : "• Table unallotted"}
                         </div>
-                        <div className="text-[10px] text-stone-400">
-                          Customer: {isVerified ? "🔒 Masked / Verified" : "Pending Verification"}
+                        <div className="text-[10px] text-stone-400 flex items-center gap-1">
+                          {isVerified ? (
+                            <>
+                              <Lock className="w-3 h-3 text-emerald-600 inline" />
+                              <span className="text-emerald-700 font-medium">Guest Masked / Table Allotted</span>
+                            </>
+                          ) : (
+                            <span>Customer: Pending Verification</span>
+                          )}
                         </div>
                       </div>
 
                       <button
                         type="button"
-                        onClick={() => handleVerifyReservation(res.id)}
-                        disabled={isVerified}
-                        className={`px-3 py-1.5 rounded-md text-[11px] font-semibold uppercase tracking-wider transition-all shrink-0 ${
+                        onClick={() => handleOpenVerifyModal(res)}
+                        className={`px-3 py-1.5 rounded-md text-[11px] font-semibold uppercase tracking-wider transition-all shrink-0 cursor-pointer ${
                           isVerified
-                            ? "bg-emerald-700 text-white cursor-default"
-                            : "bg-[#261C18] hover:bg-[#B85B43] text-white shadow-2xs cursor-pointer"
+                            ? "bg-emerald-700 hover:bg-emerald-800 text-white shadow-2xs"
+                            : "bg-[#261C18] hover:bg-[#B85B43] text-white shadow-2xs"
                         }`}
                       >
-                        {isVerified ? "✓ Verified" : "Verify"}
+                        {isVerified ? "✓ Allotted" : "Verify & Allot"}
                       </button>
                     </div>
                   );
                 })}
-            </div>
-          )}
+              </div>
+            );
+          })()}
         </section>
 
         {/* ================= TAB 1: ACTIVE TABLES (PRIMARY OPERATIONAL SECTION) ================= */}
@@ -3524,6 +3698,110 @@ export default function POSDashboard() {
                 <button
                   type="button"
                   onClick={() => setBillSettleSession(null)}
+                  className="px-3.5 py-2.5 border border-stone-200 hover:bg-stone-100 text-stone-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Verification & Table Allotment Pop-up Modal */}
+        {verifyingRes && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+            <div className="bg-white rounded-xl shadow-2xl border border-[#E4DCD0] max-w-md w-full p-5 space-y-4 font-sans animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-[#E4DCD0] pb-3">
+                <div className="flex items-center gap-2 text-[#261C18]">
+                  <ShieldCheck className="w-5 h-5 text-[#B85B43]" />
+                  <div>
+                    <h3 className="font-serif font-bold text-base text-[#261C18]">
+                      Verify &amp; Allot Table
+                    </h3>
+                    <p className="text-[11px] text-stone-500">
+                      Confirm guest arrival, allot table, and apply POS privacy mask
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setVerifyingRes(null)}
+                  className="text-stone-400 hover:text-stone-700 p-1 rounded-md transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Booking Summary Box */}
+              <div className="bg-[#FAF8F5] border border-[#E4DCD0] rounded-lg p-3.5 space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-[#261C18] font-mono text-sm">
+                    #RES-{String(verifyingRes.id).padStart(4, "0")}
+                  </span>
+                  <span className="bg-[#FAF7F0] border border-[#E4DCD0] text-stone-700 px-2 py-0.5 rounded font-semibold text-[11px]">
+                    👥 {verifyingRes.guest_count} Guests
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-stone-600 pt-1 text-[11px]">
+                  <div>
+                    <span className="text-stone-400 block text-[10px] uppercase font-semibold">Date &amp; Slot</span>
+                    <span className="font-medium text-[#261C18]">{verifyingRes.reservation_date || resDate} • {verifyingRes.time_slot}</span>
+                  </div>
+                  <div>
+                    <span className="text-stone-400 block text-[10px] uppercase font-semibold">Advance Deposit</span>
+                    <span className="font-medium text-emerald-700">₹{verifyingRes.advance_amount ?? 0}</span>
+                  </div>
+                </div>
+
+                <div className="border-t border-[#E4DCD0]/60 pt-2 text-[11px] text-stone-500">
+                  <div className="flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-[#B85B43] shrink-0" />
+                    <span>Customer identity is masked in POS for staff privacy.</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Table Selection Dropdown */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-[#261C18] uppercase tracking-wider block">
+                  Select Physical Table to Allot:
+                </label>
+                <div className="relative">
+                  <select
+                    value={verifySelectedTableId}
+                    onChange={(e) => setVerifySelectedTableId(Number(e.target.value))}
+                    className="w-full bg-[#FAF8F5] border border-[#E4DCD0] rounded-lg px-3 py-2.5 text-xs font-medium text-[#261C18] focus:outline-hidden focus:border-[#B85B43] focus:bg-white transition-all cursor-pointer appearance-none"
+                  >
+                    {tableOverviews.map((tbl) => {
+                      const floorInfo = getTableFloor(tbl.table_id);
+                      const isOcc = tbl.status === "Occupied" || (tbl.sessions && tbl.sessions.some((s) => s.is_active));
+                      return (
+                        <option key={tbl.table_id} value={tbl.table_id}>
+                          {floorInfo.name} — Table {floorInfo.floor_table_num} ({tbl.capacity} Seats) {isOcc ? "• [Currently Active / Occupied]" : "• [Available]"}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleConfirmVerifyAndAllot}
+                  disabled={isVerifyingAndAllotting}
+                  className="flex-1 bg-[#261C18] hover:bg-[#B85B43] text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer shadow-2xs flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{isVerifyingAndAllotting ? "Allotting Table..." : "Confirm & Allot Table"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVerifyingRes(null)}
+                  disabled={isVerifyingAndAllotting}
                   className="px-3.5 py-2.5 border border-stone-200 hover:bg-stone-100 text-stone-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Cancel
