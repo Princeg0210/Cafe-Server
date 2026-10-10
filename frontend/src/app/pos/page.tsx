@@ -297,6 +297,7 @@ export default function POSDashboard() {
   const [assigningTableRes, setAssigningTableRes] = useState<Reservation | null>(null);
   const [selectedAssignTableId, setSelectedAssignTableId] = useState<number>(1);
   const [verifiedResIds, setVerifiedResIds] = useState<Record<number, boolean>>({});
+  const [showNeedsAttention, setShowNeedsAttention] = useState<boolean>(true);
 
   const handleVerifyReservation = (resId: number) => {
     setVerifiedResIds((prev) => ({ ...prev, [resId]: true }));
@@ -1755,129 +1756,63 @@ export default function POSDashboard() {
               </div>
             </div>
 
-            {/* Metric 4: Needs Attention */}
-            <div className={`p-4 rounded-lg border shadow-2xs ${needsAttentionCount > 0
-              ? "bg-amber-50/70 border-amber-300"
-              : "bg-white border-[#E4DCD0]"
-              }`}>
+            {/* Metric 4: Needs Attention (Clickable to toggle action items) */}
+            <div
+              onClick={() => {
+                if (needsAttentionCount > 0) {
+                  setShowNeedsAttention((prev) => !prev);
+                }
+              }}
+              className={`p-4 rounded-lg border shadow-2xs transition-all select-none ${
+                needsAttentionCount > 0
+                  ? "bg-amber-50/80 border-amber-300 hover:border-amber-400 hover:bg-amber-100/50 cursor-pointer ring-1 ring-amber-300/60"
+                  : "bg-white border-[#E4DCD0]"
+              }`}
+            >
               <div className="text-[11px] font-sans uppercase tracking-wider font-semibold flex items-center justify-between text-stone-500">
-                <span className={needsAttentionCount > 0 ? "text-amber-900 font-bold" : ""}>NEEDS ATTENTION</span>
-                <AlertTriangle className={`w-3.5 h-3.5 ${needsAttentionCount > 0 ? "text-amber-600" : "text-stone-400"}`} />
+                <span className={needsAttentionCount > 0 ? "text-amber-900 font-bold" : ""}>
+                  NEEDS ATTENTION
+                </span>
+                <div className="flex items-center gap-1">
+                  <AlertTriangle className={`w-3.5 h-3.5 ${needsAttentionCount > 0 ? "text-amber-600 animate-pulse" : "text-stone-400"}`} />
+                  {needsAttentionCount > 0 && (
+                    <ChevronDown className={`w-3.5 h-3.5 text-amber-800 transition-transform duration-200 ${showNeedsAttention ? "rotate-180" : ""}`} />
+                  )}
+                </div>
               </div>
-              <div className={`text-2xl font-bold font-sans mt-1.5 ${needsAttentionCount > 0 ? "text-amber-800" : "text-stone-600"}`}>
-                {needsAttentionCount}
+              <div className={`text-2xl font-bold font-sans mt-1.5 flex items-baseline justify-between ${needsAttentionCount > 0 ? "text-amber-800" : "text-stone-600"}`}>
+                <span>{needsAttentionCount}</span>
+                {needsAttentionCount > 0 && (
+                  <span className="text-[10px] font-sans font-semibold text-amber-800 bg-amber-200/70 border border-amber-300 px-2 py-0.5 rounded-full">
+                    {showNeedsAttention ? "Click to hide ▲" : "Click to view ▼"}
+                  </span>
+                )}
               </div>
             </div>
           </div>
         </section>
 
-        {/* 3. DAILY PIZZA CAPACITY (Restrained Operational Component) */}
-        <section className="bg-white p-4 rounded-lg border border-[#E4DCD0] shadow-2xs space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-[#B85B43]" />
-              <h3 className="text-xs font-sans font-bold uppercase tracking-wider text-[#261C18]">
-                DAILY PIZZA CAPACITY
-              </h3>
-              {isLoadingDoughCapacity ? (
-                <span className="text-[10px] text-stone-400 flex items-center gap-1">
-                  <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Loading...
-                </span>
-              ) : doughCapacity?.total_dough_limit == null ? (
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200">
-                  NO RULE SET
-                </span>
-              ) : (doughCapacity.walk_in_available ?? 0) === 0 ? (
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-red-50 text-red-700 border border-red-200">
-                  WALK-IN EXHAUSTED
-                </span>
-              ) : (
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  OPERATIONAL
-                </span>
-              )}
-            </div>
-
-            {doughCapacity?.total_dough_limit != null && (
-              <span className="text-xs font-sans text-stone-600">
-                <strong>{doughCapacity.total_allocated_dough}</strong> / {doughCapacity.total_dough_limit} used
-              </span>
-            )}
-          </div>
-
-          {/* Progress Bar & Breakdown */}
-          {doughCapacity?.total_dough_limit != null ? (
-            <div className="space-y-2">
-              {/* Progress Bar */}
-              <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden flex">
-                <div
-                  style={{
-                    width: `${Math.min(100, ((doughCapacity.total_allocated_dough) / (doughCapacity.total_dough_limit || 1)) * 100)}%`,
-                  }}
-                  className="bg-amber-600 transition-all duration-300"
-                  title="Allocated / Used"
-                />
-                <div
-                  style={{
-                    width: `${Math.min(100, ((doughCapacity.total_active_protected) / (doughCapacity.total_dough_limit || 1)) * 100)}%`,
-                  }}
-                  className="bg-blue-600 transition-all duration-300"
-                  title="Protected for Reservations"
-                />
-              </div>
-
-              {/* Breakdown metrics */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 text-xs font-sans pt-1">
-                <div className="bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
-                  <div className="text-[10px] text-stone-500 uppercase font-semibold">Allocated Used</div>
-                  <div className="font-bold text-[#261C18] text-sm mt-0.5">
-                    {doughCapacity.total_allocated_dough}
-                  </div>
-                </div>
-
-                <div className="bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
-                  <div className="text-[10px] text-blue-800 uppercase font-semibold">Protected (Res.)</div>
-                  <div className="font-bold text-blue-900 text-sm mt-0.5">
-                    {doughCapacity.total_active_protected}
-                  </div>
-                </div>
-
-                <div className={`p-2 rounded-md border ${(doughCapacity.walk_in_available ?? 0) > 0
-                  ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
-                  : "bg-red-50/50 border-red-200 text-red-900"
-                  }`}>
-                  <div className="text-[10px] uppercase font-semibold opacity-80">Walk-In Available</div>
-                  <div className="font-bold text-sm mt-0.5">
-                    {doughCapacity.walk_in_available ?? 0}
-                  </div>
-                </div>
-
-                <div className="hidden sm:block bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
-                  <div className="text-[10px] text-stone-500 uppercase font-semibold">Total Dough Limit</div>
-                  <div className="font-bold text-[#261C18] text-sm mt-0.5">
-                    {doughCapacity.total_dough_limit}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-stone-500 font-sans italic">
-              Standard kitchen dough limits apply.
-            </p>
-          )}
-        </section>
-
-        {/* 4. NEEDS ATTENTION COMPACT SECTION (if any exist) */}
-        {needsAttentionCount > 0 && (
-          <section className="bg-amber-50/80 border border-amber-300 p-4 rounded-lg space-y-3">
+        {/* 4. NEEDS ATTENTION EXPANDABLE REVIEW SECTION (Toggled by Needs Attention Metric Card) */}
+        {needsAttentionCount > 0 && showNeedsAttention && (
+          <section className="bg-amber-50/80 border border-amber-300 p-4 rounded-lg space-y-3 transition-all animate-in fade-in duration-200">
             <div className="flex items-center justify-between border-b border-amber-200 pb-2">
               <div className="flex items-center gap-2 text-amber-900 font-sans font-bold text-xs uppercase tracking-wider">
                 <AlertTriangle className="w-4 h-4 text-amber-700" />
                 <span>OPERATIONAL ATTENTION REQUIRED ({needsAttentionCount})</span>
               </div>
-              <span className="text-[10px] font-semibold text-amber-800 uppercase">
-                Action Items
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold text-amber-800 uppercase">
+                  Action Items
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowNeedsAttention(false)}
+                  className="text-amber-800 hover:text-amber-950 p-1 rounded-md hover:bg-amber-200/60 transition-colors cursor-pointer"
+                  title="Hide review section"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -1987,6 +1922,102 @@ export default function POSDashboard() {
             </div>
           </section>
         )}
+
+        {/* 3. DAILY PIZZA CAPACITY (Restrained Operational Component) */}
+        <section className="bg-white p-4 rounded-lg border border-[#E4DCD0] shadow-2xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Flame className="w-4 h-4 text-[#B85B43]" />
+              <h3 className="text-xs font-sans font-bold uppercase tracking-wider text-[#261C18]">
+                DAILY PIZZA CAPACITY
+              </h3>
+              {isLoadingDoughCapacity ? (
+                <span className="text-[10px] text-stone-400 flex items-center gap-1">
+                  <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Loading...
+                </span>
+              ) : doughCapacity?.total_dough_limit == null ? (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-stone-100 text-stone-600 border border-stone-200">
+                  NO RULE SET
+                </span>
+              ) : (doughCapacity.walk_in_available ?? 0) === 0 ? (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-red-50 text-red-700 border border-red-200">
+                  WALK-IN EXHAUSTED
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  OPERATIONAL
+                </span>
+              )}
+            </div>
+
+            {doughCapacity?.total_dough_limit != null && (
+              <span className="text-xs font-sans text-stone-600">
+                <strong>{doughCapacity.total_allocated_dough}</strong> / {doughCapacity.total_dough_limit} used
+              </span>
+            )}
+          </div>
+
+          {/* Progress Bar & Breakdown */}
+          {doughCapacity?.total_dough_limit != null ? (
+            <div className="space-y-2">
+              {/* Progress Bar */}
+              <div className="w-full h-2 bg-stone-100 rounded-full overflow-hidden flex">
+                <div
+                  style={{
+                    width: `${Math.min(100, ((doughCapacity.total_allocated_dough) / (doughCapacity.total_dough_limit || 1)) * 100)}%`,
+                  }}
+                  className="bg-amber-600 transition-all duration-300"
+                  title="Allocated / Used"
+                />
+                <div
+                  style={{
+                    width: `${Math.min(100, ((doughCapacity.total_active_protected) / (doughCapacity.total_dough_limit || 1)) * 100)}%`,
+                  }}
+                  className="bg-blue-600 transition-all duration-300"
+                  title="Protected for Reservations"
+                />
+              </div>
+
+              {/* Breakdown metrics */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 text-xs font-sans pt-1">
+                <div className="bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
+                  <div className="text-[10px] text-stone-500 uppercase font-semibold">Allocated Used</div>
+                  <div className="font-bold text-[#261C18] text-sm mt-0.5">
+                    {doughCapacity.total_allocated_dough}
+                  </div>
+                </div>
+
+                <div className="bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
+                  <div className="text-[10px] text-blue-800 uppercase font-semibold">Protected (Res.)</div>
+                  <div className="font-bold text-blue-900 text-sm mt-0.5">
+                    {doughCapacity.total_active_protected}
+                  </div>
+                </div>
+
+                <div className={`p-2 rounded-md border ${(doughCapacity.walk_in_available ?? 0) > 0
+                  ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
+                  : "bg-red-50/50 border-red-200 text-red-900"
+                  }`}>
+                  <div className="text-[10px] uppercase font-semibold opacity-80">Walk-In Available</div>
+                  <div className="font-bold text-sm mt-0.5">
+                    {doughCapacity.walk_in_available ?? 0}
+                  </div>
+                </div>
+
+                <div className="hidden sm:block bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
+                  <div className="text-[10px] text-stone-500 uppercase font-semibold">Total Dough Limit</div>
+                  <div className="font-bold text-[#261C18] text-sm mt-0.5">
+                    {doughCapacity.total_dough_limit}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-stone-500 font-sans italic">
+              Standard kitchen dough limits apply.
+            </p>
+          )}
+        </section>
 
         {/* RESERVATION VERIFICATION & PRIVACY SECTION (Between Capacity & Active Tables) */}
         <section className="bg-white border border-[#E4DCD0] p-4 rounded-lg space-y-3 shadow-2xs">
