@@ -689,6 +689,9 @@ export default function POSDashboard() {
 
         ws.onopen = () => {
           setIsConnected(true);
+          fetchData();
+          fetchReservations();
+          fetchPendingReviews();
         };
         ws.onclose = () => {
           setIsConnected(false);
@@ -709,6 +712,12 @@ export default function POSDashboard() {
             } else if (data.event === "SESSION_CLOSED") {
               const tableFl = getTableFloor(data.table_id || data.table_number);
               setLastNotification(`Table ${tableFl.floor_table_num} (${tableFl.name}) settled.`);
+              setTimeout(() => setLastNotification(null), 5000);
+              fetchData();
+              fetchReservations();
+            } else if (data.event === "RESERVATION_CREATED" || data.event === "RESERVATION_UPDATED") {
+              setLastNotification(`Table Reservation #${data.id} confirmed (${data.guest_count} guests)`);
+              playChime();
               setTimeout(() => setLastNotification(null), 5000);
               fetchData();
               fetchReservations();
@@ -1062,9 +1071,6 @@ export default function POSDashboard() {
               <h1 className="text-2xl font-serif font-extrabold text-[#2A1E17] tracking-tight">
                 JAADOO POS TERMINAL
               </h1>
-              <p className="text-[11px] uppercase tracking-[0.25em] text-[#B85B43] font-bold mt-0.5">
-                Staff Operations & Live Kitchen Access
-              </p>
             </div>
           </div>
 
@@ -1575,11 +1581,10 @@ export default function POSDashboard() {
                 <div className="flex flex-wrap items-center bg-[#F6F3EC] p-0.5 rounded-md border border-[#E4DCD0] text-xs">
                   <button
                     onClick={() => setFloorFilter("all")}
-                    className={`px-2.5 py-1 rounded-sm font-medium transition-colors cursor-pointer ${
-                      floorFilter === "all"
+                    className={`px-2.5 py-1 rounded-sm font-medium transition-colors cursor-pointer ${floorFilter === "all"
                         ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
                         : "text-stone-700 hover:text-[#261C18]"
-                    }`}
+                      }`}
                   >
                     All Floors
                   </button>
@@ -1587,11 +1592,10 @@ export default function POSDashboard() {
                     <button
                       key={fl.id}
                       onClick={() => setFloorFilter(fl.id)}
-                      className={`px-2.5 py-1 rounded-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
-                        floorFilter === fl.id
+                      className={`px-2.5 py-1 rounded-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${floorFilter === fl.id
                           ? "bg-[#261C18] text-[#FBF9F5] font-semibold"
                           : "text-stone-700 hover:text-[#261C18]"
-                      }`}
+                        }`}
                     >
                       <span>{fl.name}</span>
                       {fl.isComingSoon && (
@@ -1698,7 +1702,7 @@ export default function POSDashboard() {
                             const matchId = r.table_id === tbl.table_id;
                             const matchName = r.table_name && (
                               (r.table_name.toLowerCase().replace(/\s+/g, "") === `table${floorTableNum}` ||
-                               r.table_name.toLowerCase().replace(/\s+/g, "") === `table${tbl.table_id}`) &&
+                                r.table_name.toLowerCase().replace(/\s+/g, "") === `table${tbl.table_id}`) &&
                               (!r.floor_number || r.floor_number === floorInfo.floor)
                             );
                             const isActive = ["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"].includes(r.status?.toUpperCase() || "");
@@ -1731,232 +1735,231 @@ export default function POSDashboard() {
                                         {tbl.capacity || floorInfo.capacity} Seats
                                       </span>
                                       <span className="text-stone-300">•</span>
-                              {/* Clickable Session Button to show previous sessions of that table */}
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setShowClosedToday((prev) => ({
-                                    ...prev,
-                                    [tbl.table_id]: !prev[tbl.table_id],
-                                  }))
-                                }
-                                className={`text-[11px] font-sans font-semibold px-2 py-0.5 rounded-md border transition-colors cursor-pointer flex items-center gap-1 ${showHistory
-                                  ? "bg-[#261C18] text-white border-[#261C18]"
-                                  : settledSessions.length > 0
-                                    ? "bg-[#FAF8F5] text-[#B85B43] border-[#E4DCD0] hover:bg-[#B85B43]/10"
-                                    : "bg-stone-50 text-stone-500 border-stone-200"
-                                  }`}
-                                title={
-                                  settledSessions.length > 0
-                                    ? "Click to toggle previous sessions of this table today"
-                                    : "No past sessions yet today"
-                                }
-                              >
-                                <Clock className="w-3 h-3" />
-                                <span>
-                                  {tbl.total_sessions_today} {tbl.total_sessions_today === 1 ? "Session" : "Sessions"}
-                                  {settledSessions.length > 0 ? ` (${settledSessions.length} past)` : ""}
-                                </span>
-                                <ChevronDown className={`w-3 h-3 transition-transform ${showHistory ? "rotate-180" : ""}`} />
-                              </button>
-                            </div>
-                          </div>
-
-                          <div>
-                            {isOccupied ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                                OCCUPIED
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium uppercase tracking-wider bg-stone-100 text-stone-600 border border-stone-200">
-                                AVAILABLE
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Booked Reservation Banner */}
-                      {bookedReservation && (
-                        <div className="mx-3 mt-3 p-2.5 bg-[#FAF0E1] border border-[#E8DFC9] rounded-md text-xs space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-[#9E3E26] flex items-center gap-1 uppercase tracking-wider text-[10px]">
-                              <UserCheck className="w-3.5 h-3.5 text-[#9E3E26]" />
-                              Reserved Guest
-                            </span>
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                              bookedReservation.status === "SEATED"
-                                ? "bg-emerald-100 text-emerald-800"
-                                : bookedReservation.status === "ARRIVED"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}>
-                              {bookedReservation.status}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between text-stone-900 font-semibold text-xs">
-                            <span className="truncate">{bookedReservation.customer?.name || "Guest"}</span>
-                            <span className="text-[11px] font-mono text-stone-600 shrink-0 ml-1">
-                              {bookedReservation.time_slot} ({bookedReservation.guest_count}p)
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Card Body: Session Info & Running Bill */}
-                      <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
-                        {/* 1. Active Session Details (if occupied) */}
-                        {isOccupied && activeSession ? (
-                          <div className="space-y-2.5">
-                            <div className="flex items-center justify-between text-xs font-sans">
-                              <span className="text-stone-500">
-                                Opened: <strong>{new Date(activeSession.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong>
-                              </span>
-                              <span className="font-semibold text-stone-700">
-                                {activeSession.items_count} {activeSession.items_count === 1 ? "item" : "items"} ordered
-                              </span>
-                            </div>
-
-                            {activeSession.customer_name && (
-                              <div className="text-xs text-stone-700 font-medium">
-                                Guest: {activeSession.customer_name}
-                              </div>
-                            )}
-
-                            {/* Running Bill Total Box */}
-                            <div className="p-3 bg-[#FAF8F5] rounded-md border border-[#E4DCD0] flex items-center justify-between">
-                              <div>
-                                <span className="text-[10px] uppercase font-semibold text-stone-500 block">
-                                  Running Bill
-                                </span>
-                                <span className="text-xl font-bold font-sans text-[#261C18]">
-                                  ₹{Number(activeSession.total_amount || 0).toLocaleString("en-IN")}
-                                </span>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => toggleSession(activeSession.session_id)}
-                                className="inline-flex items-center gap-1 text-xs font-semibold text-[#B85B43] hover:underline cursor-pointer"
-                              >
-                                <span>{isSessionExpanded(activeSession) ? "Hide Details" : "View Items →"}</span>
-                              </button>
-                            </div>
-
-                            {/* Expandable Items List */}
-                            {isSessionExpanded(activeSession) && (
-                              <div className="pt-2 border-t border-stone-100 space-y-1.5">
-                                {activeSession.items.map((item, idx) => (
-                                  <div key={idx} className="flex items-center justify-between text-xs py-1 border-b border-stone-100 last:border-none">
-                                    <span className="text-stone-800">
-                                      <strong className="text-[#261C18]">{item.quantity}×</strong> {item.name}
-                                    </span>
-                                    <span className="font-semibold text-stone-700">₹{item.subtotal}</span>
+                                      {/* Clickable Session Button to show previous sessions of that table */}
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setShowClosedToday((prev) => ({
+                                            ...prev,
+                                            [tbl.table_id]: !prev[tbl.table_id],
+                                          }))
+                                        }
+                                        className={`text-[11px] font-sans font-semibold px-2 py-0.5 rounded-md border transition-colors cursor-pointer flex items-center gap-1 ${showHistory
+                                          ? "bg-[#261C18] text-white border-[#261C18]"
+                                          : settledSessions.length > 0
+                                            ? "bg-[#FAF8F5] text-[#B85B43] border-[#E4DCD0] hover:bg-[#B85B43]/10"
+                                            : "bg-stone-50 text-stone-500 border-stone-200"
+                                          }`}
+                                        title={
+                                          settledSessions.length > 0
+                                            ? "Click to toggle previous sessions of this table today"
+                                            : "No past sessions yet today"
+                                        }
+                                      >
+                                        <Clock className="w-3 h-3" />
+                                        <span>
+                                          {tbl.total_sessions_today} {tbl.total_sessions_today === 1 ? "Session" : "Sessions"}
+                                          {settledSessions.length > 0 ? ` (${settledSessions.length} past)` : ""}
+                                        </span>
+                                        <ChevronDown className={`w-3 h-3 transition-transform ${showHistory ? "rotate-180" : ""}`} />
+                                      </button>
+                                    </div>
                                   </div>
-                                ))}
+
+                                  <div>
+                                    {isOccupied ? (
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                                        OCCUPIED
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium uppercase tracking-wider bg-stone-100 text-stone-600 border border-stone-200">
+                                        AVAILABLE
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        ) : !showHistory ? (
-                          <div className="py-6 text-center text-xs text-stone-400 italic">
-                            Table is clean and ready for seating.
-                          </div>
-                        ) : null}
 
-                        {/* 2. Previous Settled Sessions of THIS table today (When Session Button is Clicked) */}
-                        {showHistory && (
-                          <div className="pt-2 space-y-2 border-t border-amber-200 bg-[#FAF8F5] p-3 rounded-md animate-in fade-in duration-150">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[11px] font-bold uppercase tracking-wider text-[#B85B43] flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5" />
-                                <span>Previous Sessions Today ({settledSessions.length})</span>
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setShowClosedToday((prev) => ({
-                                    ...prev,
-                                    [tbl.table_id]: false,
-                                  }))
-                                }
-                                className="text-[10px] text-stone-500 hover:text-stone-900 font-semibold underline cursor-pointer"
-                              >
-                                Close
-                              </button>
-                            </div>
+                              {/* Booked Reservation Banner */}
+                              {bookedReservation && (
+                                <div className="mx-3 mt-3 p-2.5 bg-[#FAF0E1] border border-[#E8DFC9] rounded-md text-xs space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-[#9E3E26] flex items-center gap-1 uppercase tracking-wider text-[10px]">
+                                      <UserCheck className="w-3.5 h-3.5 text-[#9E3E26]" />
+                                      Reserved Guest
+                                    </span>
+                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${bookedReservation.status === "SEATED"
+                                        ? "bg-emerald-100 text-emerald-800"
+                                        : bookedReservation.status === "ARRIVED"
+                                          ? "bg-amber-100 text-amber-800"
+                                          : "bg-blue-100 text-blue-800"
+                                      }`}>
+                                      {bookedReservation.status}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-stone-900 font-semibold text-xs">
+                                    <span className="truncate">{bookedReservation.customer?.name || "Guest"}</span>
+                                    <span className="text-[11px] font-mono text-stone-600 shrink-0 ml-1">
+                                      {bookedReservation.time_slot} ({bookedReservation.guest_count}p)
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
 
-                            {settledSessions.length === 0 ? (
-                              <p className="text-xs text-stone-400 italic py-1">
-                                No previous settled sessions recorded for this table today.
-                              </p>
-                            ) : (
-                              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                                {settledSessions.map((pastSess) => (
-                                  <div
-                                    key={pastSess.session_id}
-                                    className="bg-white p-2.5 rounded-md border border-stone-200 text-xs space-y-1.5 shadow-2xs"
-                                  >
-                                    <div className="flex items-center justify-between font-sans">
-                                      <span className="font-semibold text-stone-800">
-                                        Session #{pastSess.session_seq}
+                              {/* Card Body: Session Info & Running Bill */}
+                              <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                                {/* 1. Active Session Details (if occupied) */}
+                                {isOccupied && activeSession ? (
+                                  <div className="space-y-2.5">
+                                    <div className="flex items-center justify-between text-xs font-sans">
+                                      <span className="text-stone-500">
+                                        Opened: <strong>{new Date(activeSession.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong>
                                       </span>
-                                      <span className="font-bold text-[#261C18]">
-                                        ₹{Number(pastSess.total_amount || 0).toLocaleString("en-IN")}
+                                      <span className="font-semibold text-stone-700">
+                                        {activeSession.items_count} {activeSession.items_count === 1 ? "item" : "items"} ordered
                                       </span>
                                     </div>
 
-                                    <div className="text-[11px] text-stone-500 flex items-center justify-between">
-                                      <span>
-                                        {new Date(pastSess.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                        {pastSess.closed_at ? ` → ${new Date(pastSess.closed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
-                                      </span>
-                                      <span className="px-1.5 py-0.2 rounded-xs bg-stone-100 text-stone-600 text-[10px] font-medium">
-                                        Settled
-                                      </span>
+                                    {activeSession.customer_name && (
+                                      <div className="text-xs text-stone-700 font-medium">
+                                        Guest: {activeSession.customer_name}
+                                      </div>
+                                    )}
+
+                                    {/* Running Bill Total Box */}
+                                    <div className="p-3 bg-[#FAF8F5] rounded-md border border-[#E4DCD0] flex items-center justify-between">
+                                      <div>
+                                        <span className="text-[10px] uppercase font-semibold text-stone-500 block">
+                                          Running Bill
+                                        </span>
+                                        <span className="text-xl font-bold font-sans text-[#261C18]">
+                                          ₹{Number(activeSession.total_amount || 0).toLocaleString("en-IN")}
+                                        </span>
+                                      </div>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleSession(activeSession.session_id)}
+                                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#B85B43] hover:underline cursor-pointer"
+                                      >
+                                        <span>{isSessionExpanded(activeSession) ? "Hide Details" : "View Items →"}</span>
+                                      </button>
                                     </div>
 
-                                    {pastSess.items && pastSess.items.length > 0 && (
-                                      <div className="pt-1 border-t border-stone-100 text-[11px] space-y-0.5 text-stone-600">
-                                        {pastSess.items.map((item, idx) => (
-                                          <div key={idx} className="flex justify-between">
-                                            <span>{item.quantity}× {item.name}</span>
-                                            <span>₹{item.subtotal}</span>
+                                    {/* Expandable Items List */}
+                                    {isSessionExpanded(activeSession) && (
+                                      <div className="pt-2 border-t border-stone-100 space-y-1.5">
+                                        {activeSession.items.map((item, idx) => (
+                                          <div key={idx} className="flex items-center justify-between text-xs py-1 border-b border-stone-100 last:border-none">
+                                            <span className="text-stone-800">
+                                              <strong className="text-[#261C18]">{item.quantity}×</strong> {item.name}
+                                            </span>
+                                            <span className="font-semibold text-stone-700">₹{item.subtotal}</span>
                                           </div>
                                         ))}
                                       </div>
                                     )}
                                   </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                                ) : !showHistory ? (
+                                  <div className="py-6 text-center text-xs text-stone-400 italic">
+                                    Table is clean and ready for seating.
+                                  </div>
+                                ) : null}
 
-                        {/* Settle Action Button */}
-                        {isOccupied && activeSession && isTodaySelected && (
-                          <div className="pt-3 border-t border-stone-100">
-                            <button
-                              type="button"
-                              onClick={() => handleCloseSession(activeSession.session_id, `Table ${floorTableNum} (${floorInfo.name})`, tbl.table_id)}
-                              disabled={closingSessionIds[activeSession.session_id]}
-                              className="w-full bg-[#261C18] hover:bg-[#B85B43] text-white py-2 rounded-md font-sans font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                              <span>{closingSessionIds[activeSession.session_id] ? "Settling..." : "Settle Table"}</span>
-                            </button>
-                          </div>
-                        )}
+                                {/* 2. Previous Settled Sessions of THIS table today (When Session Button is Clicked) */}
+                                {showHistory && (
+                                  <div className="pt-2 space-y-2 border-t border-amber-200 bg-[#FAF8F5] p-3 rounded-md animate-in fade-in duration-150">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#B85B43] flex items-center gap-1.5">
+                                        <Clock className="w-3.5 h-3.5" />
+                                        <span>Previous Sessions Today ({settledSessions.length})</span>
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setShowClosedToday((prev) => ({
+                                            ...prev,
+                                            [tbl.table_id]: false,
+                                          }))
+                                        }
+                                        className="text-[10px] text-stone-500 hover:text-stone-900 font-semibold underline cursor-pointer"
+                                      >
+                                        Close
+                                      </button>
+                                    </div>
+
+                                    {settledSessions.length === 0 ? (
+                                      <p className="text-xs text-stone-400 italic py-1">
+                                        No previous settled sessions recorded for this table today.
+                                      </p>
+                                    ) : (
+                                      <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                        {settledSessions.map((pastSess) => (
+                                          <div
+                                            key={pastSess.session_id}
+                                            className="bg-white p-2.5 rounded-md border border-stone-200 text-xs space-y-1.5 shadow-2xs"
+                                          >
+                                            <div className="flex items-center justify-between font-sans">
+                                              <span className="font-semibold text-stone-800">
+                                                Session #{pastSess.session_seq}
+                                              </span>
+                                              <span className="font-bold text-[#261C18]">
+                                                ₹{Number(pastSess.total_amount || 0).toLocaleString("en-IN")}
+                                              </span>
+                                            </div>
+
+                                            <div className="text-[11px] text-stone-500 flex items-center justify-between">
+                                              <span>
+                                                {new Date(pastSess.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                {pastSess.closed_at ? ` → ${new Date(pastSess.closed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
+                                              </span>
+                                              <span className="px-1.5 py-0.2 rounded-xs bg-stone-100 text-stone-600 text-[10px] font-medium">
+                                                Settled
+                                              </span>
+                                            </div>
+
+                                            {pastSess.items && pastSess.items.length > 0 && (
+                                              <div className="pt-1 border-t border-stone-100 text-[11px] space-y-0.5 text-stone-600">
+                                                {pastSess.items.map((item, idx) => (
+                                                  <div key={idx} className="flex justify-between">
+                                                    <span>{item.quantity}× {item.name}</span>
+                                                    <span>₹{item.subtotal}</span>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Settle Action Button */}
+                                {isOccupied && activeSession && isTodaySelected && (
+                                  <div className="pt-3 border-t border-stone-100">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCloseSession(activeSession.session_id, `Table ${floorTableNum} (${floorInfo.name})`, tbl.table_id)}
+                                      disabled={closingSessionIds[activeSession.session_id]}
+                                      className="w-full bg-[#261C18] hover:bg-[#B85B43] text-white py-2 rounded-md font-sans font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                      <span>{closingSessionIds[activeSession.session_id] ? "Settling..." : "Settle Table"}</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
-          );
-        })}
-      </div>
-    )}
+            )}
           </section>
         )}
 

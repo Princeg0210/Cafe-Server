@@ -151,6 +151,18 @@ class ReservationService:
             tbl_match = await db.execute(tbl_stmt)
             valid_table_id = tbl_match.scalars().first()
 
+        if valid_table_id is None:
+            floor_table_ids = {
+                1: [1, 2, 3],
+                2: [4, 5, 6],
+                3: [7, 8],
+                4: [9, 10],
+                5: [11, 12, 13],
+            }
+            target_fl = data.floor_number or 1
+            if target_fl in floor_table_ids:
+                valid_table_id = floor_table_ids[target_fl][0]
+
         # Backend independently calculates the exact deposit from guest count
         deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
         exact_deposit = Decimal(str(data.guest_count)) * deposit_per_guest
@@ -1029,11 +1041,30 @@ class ReservationService:
             await db.flush()
 
         # Find matching table if needed
+        floor_table_ids = {
+            1: [1, 2, 3],
+            2: [4, 5, 6],
+            3: [7, 8],
+            4: [9, 10],
+            5: [11, 12, 13],
+        }
+        target_floor = data.floor_number or 1
+
         valid_table_id = data.table_id
         if valid_table_id is not None:
             tbl_check = await db.execute(select(Table.id).where(Table.id == valid_table_id))
             if not tbl_check.scalar_one_or_none():
                 valid_table_id = None
+
+        if valid_table_id is None and data.table_name:
+            tbl_stmt = select(Table.id).where(Table.table_number == data.table_name)
+            if target_floor in floor_table_ids:
+                tbl_stmt = tbl_stmt.where(Table.id.in_(floor_table_ids[target_floor]))
+            tbl_match = await db.execute(tbl_stmt)
+            valid_table_id = tbl_match.scalars().first()
+
+        if valid_table_id is None and target_floor in floor_table_ids:
+            valid_table_id = floor_table_ids[target_floor][0]
 
         deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
         if deposit_per_guest <= 0:
