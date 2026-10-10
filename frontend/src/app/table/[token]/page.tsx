@@ -26,7 +26,7 @@ import {
   ShieldCheck,
   HeartHandshake,
 } from "lucide-react";
-import { menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
+import { ITEM_MEDIA_MAP, menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
 import { getFloorName } from "@/data/floors";
 
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -69,32 +69,6 @@ interface BillData {
   tax_amount: number;
   grand_total: number;
 }
-
-const ITEM_MEDIA_MAP: Record<string, { image_url: string; badge?: string }> = {
-  s1: { image_url: "https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&w=800&q=80", badge: "Freshly Baked" },
-  s2: { image_url: "https://images.unsplash.com/photo-1541529086526-db283c563270?auto=format&fit=crop&w=800&q=80", badge: "Handcrafted" },
-  p1: { image_url: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&w=800&q=80", badge: "Oven Baked" },
-  pz1: { image_url: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80", badge: "Tipo 00 Crust" },
-  pz2: { image_url: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?auto=format&fit=crop&w=800&q=80", badge: "Best Seller" },
-  pz3: { image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80", badge: "Mediterranean" },
-  pz4: { image_url: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=800&q=80", badge: "Artisanal Crust" },
-  pz5: { image_url: "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?auto=format&fit=crop&w=800&q=80", badge: "4 Seasons Classic" },
-  pz6: { image_url: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80", badge: "Chef's Choice" },
-  pz7: { image_url: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=800&q=80", badge: "Feta Cream" },
-  pz8: { image_url: "https://images.unsplash.com/photo-1594007654729-407eedc4be65?auto=format&fit=crop&w=800&q=80", badge: "Trattoria Signature" },
-  pz9: { image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=80", badge: "Local Special" },
-  c1: { image_url: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&w=800&q=80", badge: "Mascarpone Special" },
-  c2: { image_url: "https://images.unsplash.com/photo-1560008511-11c63416e52d?auto=format&fit=crop&w=800&q=80", badge: "House Gelato" },
-  b1: { image_url: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80", badge: "Chilled Mint" },
-  b2: { image_url: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?auto=format&fit=crop&w=800&q=80", badge: "Sparkling" },
-  b3: { image_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=800&q=80", badge: "Cold Brewed" },
-  b4: { image_url: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=800&q=80", badge: "Probiotic Ferment" },
-  b5: { image_url: "/images/himalayan_mineral_water.jpg", badge: "Natural Spring" },
-  h1: { image_url: "https://images.unsplash.com/photo-1534778101976-62847782c213?auto=format&fit=crop&w=800&q=80", badge: "100% Arabica" },
-  h2: { image_url: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=800&q=80", badge: "Himalayan Tisane" },
-  h3: { image_url: "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=800&q=80", badge: "Rosehip Infusion" },
-  h4: { image_url: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=800&q=80", badge: "Immunity Tonic" },
-};
 
 export default function TableQRPage({ params }: { params: Promise<{ token: string }> }) {
   const resolvedParams = use(params);
@@ -159,22 +133,18 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         is_sold_out?: boolean;
       }> = await res.json();
 
-      const dbMapByName = new Map<string, typeof dbItems[0]>();
-      dbItems.forEach((item) => {
-        dbMapByName.set(item.name.trim().toLowerCase(), item);
-      });
+      const dbMapById = new Map(dbItems.map((item) => [item.id, item]));
 
       setLiveMenuData((prev) => {
         return prev.map((category) => {
           return {
             ...category,
             items: category.items.map((item) => {
-              const matched = dbMapByName.get(item.name.trim().toLowerCase());
+              const matched = dbMapById.get(MENU_ITEM_ID_MAP[String(item.id)]);
               if (matched) {
                 return {
                   ...item,
                   price: Number(matched.price),
-                  description: matched.description || item.description,
                   is_available: matched.is_available && !matched.is_sold_out,
                 };
               }
@@ -798,7 +768,9 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
           {(selectedCategory === "all"
             ? liveMenuData
             : liveMenuData.filter((c) => c.id === selectedCategory)
-          ).map((category) => (
+          ).map((category) => {
+            const isCompactDrinks = category.id === "beverages" || category.id === "hot-drinks";
+            return (
             <section id={category.id} key={category.id}>
               {/* Category Header */}
               <div className="flex items-center gap-2 pb-2.5 mb-2 border-b border-[#DDD3C4]">
@@ -816,7 +788,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
               </div>
 
               {/* Menu Items */}
-              <div className="divide-y divide-[#E6DDD0]">
+              <div className={isCompactDrinks ? "grid grid-cols-2 gap-2 sm:gap-3" : "divide-y divide-[#E6DDD0]"}>
                 {category.items.map((item) => {
                   const isAvailable = (item as any).is_available !== false;
                   const qtyInCart = cart[item.id]?.qty || 0;
@@ -830,7 +802,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                       onClick={() => {
                         if (isAvailable && qtyInCart === 0) updateCart(item, 1);
                       }}
-                      className={`group flex items-start sm:items-center justify-between py-3 px-2 sm:px-3 rounded-xl transition-all ${
+                      className={`group flex justify-between rounded-xl transition-all ${isCompactDrinks ? "min-h-36 flex-col border border-[#DDD3C4] bg-[#FAF7F2] p-3" : "items-start px-2 py-3 sm:items-center sm:px-3"} ${
                         !isAvailable
                           ? "opacity-60 bg-stone-100/60 cursor-not-allowed"
                           : qtyInCart > 0
@@ -839,7 +811,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                       }`}
                     >
                       {/* Thumbnail */}
-                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-[#DDD3C4] shrink-0 bg-[#F0EAE0] flex items-center justify-center shadow-2xs mr-3 mt-0.5 sm:mt-0">
+                      <div className={`${isCompactDrinks ? "hidden" : "flex"} w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-[#DDD3C4] shrink-0 bg-[#F0EAE0] items-center justify-center shadow-2xs mr-3 mt-0.5 sm:mt-0`}>
                         <img
                           src={imgUrl}
                           alt={item.name}
@@ -849,8 +821,8 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                       </div>
 
                       {/* Details */}
-                      <div className="flex-1 min-w-0 pr-3">
-                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                      <div className={`min-w-0 ${isCompactDrinks ? "w-full pr-0" : "flex-1 pr-3"}`}>
+                        <div className={`${isCompactDrinks ? "hidden" : "flex"} items-center gap-1.5 mb-1 flex-wrap`}>
                           {!isAvailable && (
                             <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-rose-800 bg-rose-100 px-2 py-0.5 rounded-full inline-block border border-rose-300">
                               Sold Out
@@ -863,7 +835,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                           )}
                         </div>
                         <h3
-                          className={`text-sm font-serif font-bold uppercase tracking-wide leading-snug break-words whitespace-normal transition-colors ${
+                          className={`font-serif font-bold uppercase tracking-wide leading-snug break-words whitespace-normal transition-colors ${isCompactDrinks ? "text-xs sm:text-sm" : "text-sm"} ${
                             isAvailable
                               ? "text-[#140E0A] group-hover:text-[#9E3E26]"
                               : "text-stone-500 line-through"
@@ -872,14 +844,14 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                           {item.name}
                         </h3>
                         {item.description && (
-                          <p className="text-xs font-sans font-normal text-[#2B1D14] mt-1 leading-relaxed break-words whitespace-normal">
+                          <p className={`font-sans font-normal text-[#2B1D14] mt-1 leading-relaxed break-words whitespace-normal ${isCompactDrinks ? "text-[11px]" : "text-xs"}`}>
                             {item.description}
                           </p>
                         )}
                       </div>
 
                       {/* Price & Add Controls */}
-                      <div className="flex flex-col items-end shrink-0 pl-2 pt-0.5 sm:pt-0">
+                      <div className={`flex shrink-0 flex-col items-end pt-0.5 sm:pt-0 ${isCompactDrinks ? "mt-3 w-full flex-row items-center justify-between pl-0" : "pl-2"}`}>
                         <span
                           className={`text-base font-sans font-extrabold text-right mb-1.5 ${
                             isAvailable ? "text-[#140E0A]" : "text-stone-400"
@@ -933,7 +905,8 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                 })}
               </div>
             </section>
-          ))}
+            );
+          })}
         </div>
       </main>
 

@@ -23,10 +23,10 @@ export const ITEM_MEDIA_MAP: Record<string, { image_url: string; badge: string }
   p1: { image_url: "/jaadoo-pizza-prep.png", badge: "OVEN BAKED" },
   pz1: { image_url: "/jaadoo-pizza-twilight.png", badge: "DAIRY-FREE" },
   pz2: { image_url: "/jaadoo-margherita-lakeside.png", badge: "NEAPOLITAN CLASSIC" },
-  pz3: { image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=400&q=80", badge: "MEDITERRANEAN" },
+  pz3: { image_url: "/pizza-olive-capers.webp", badge: "PREMIUM" },
   pz4: { image_url: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=400&q=80", badge: "VEGETARIAN" },
-  pz5: { image_url: "/jaadoo-margherita-board.jpg", badge: "SEASONAL" },
-  pz6: { image_url: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80", badge: "CHEF CHOICE" },
+  pz5: { image_url: "/pizza-quatro-stagione.webp", badge: "PREMIUM" },
+  pz6: { image_url: "/pizza-sophia-loren.webp", badge: "PREMIUM" },
   pz7: { image_url: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=400&q=80", badge: "SOPIA BASE" },
   pz8: { image_url: "https://images.unsplash.com/photo-1594007654729-407eedc4be65?auto=format&fit=crop&w=400&q=80", badge: "ITALA BASE" },
   pz9: { image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=400&q=80", badge: "LOCAL SPECIAL" },
@@ -48,14 +48,14 @@ export const MENU_ITEM_ID_MAP: Record<string, number> = {
   s1: 1,  // FOCACCIA WITH GARLIC DIP
   s2: 2,  // CHEESE & MUSHROOM TARTS (2 PCS)
   p1: 3,  // CANNELLONI (CHEESE & TOMATO)
-  pz1: 4, // MARINARA CLASSICA
-  pz2: 5, // MARGHERITA BUFALA
-  pz3: 6, // OLIVE & CAPERS
-  pz4: 7, // ZUCCHINI & PORTABELLO
-  pz5: 8, // QUATTRO STAGIONI (FOUR SEASONS)
-  pz6: 9, // SOPHIA LOREN GOURMET
-  pz7: 10, // MARIA CALLAS ARTICHOKE
-  pz8: 11, // ITALA BROCCOLI CREAM
+  pz1: 4, // MARINARA
+  pz2: 5, // MARGHERITA
+  pz3: 6, // OLIVE CAPERS
+  pz4: 7, // ZUCCHINI MUSHROOMS
+  pz5: 8, // QUATRO STAGIONE
+  pz6: 9, // SOPHIA LOREN
+  pz7: 10, // MARIA CALLAS
+  pz8: 11, // ITALA
   pz9: 12, // RESIDENCY UDAIPUR
   c1: 13, // CLASSIC TIRAMISU
   c2: 14, // COCONUT ICE CREAM WITH BITTER ORANGE SAUCE
@@ -81,7 +81,7 @@ export const menuData: MenuCategory[] = [
       { 
         id: 's1', 
         name: 'FOCACCIA WITH GARLIC DIP', 
-        description: 'House-baked focaccia with garlic oil dip', 
+        description: '',
         price: 300,
         details: 'House-baked focaccia served warm with creamy garlic oil dip.',
         tags: ['Freshly Baked', '48h Fermentation'],
@@ -110,7 +110,7 @@ export const menuData: MenuCategory[] = [
       { 
         id: 'p1', 
         name: 'CANNELLONI (CHEESE & TOMATO)', 
-        description: 'Cheese & tomato stuffed pasta rolls baked in Italian passata', 
+        description: '',
         price: 500,
         details: 'Hand-rolled pasta tubes stuffed with fresh cheese & tomato, slow-baked in rich Italian passata.',
         tags: ['House Special', 'Oven Baked'],
@@ -122,18 +122,18 @@ export const menuData: MenuCategory[] = [
   },
   {
     id: 'pizza',
-    name: 'WOOD-FIRED NEAPOLITAN PIZZAS',
-    subtitle: 'Artisanal Wood-Fired Crusts • 48h Slow Fermentation • 100% Vegetarian',
+    name: 'PIZZA',
+    subtitle: 'Wood-Fired Neapolitan Pizzas',
     items: [
-      { id: 'pz1', name: 'MARINARA CLASSICA', description: 'San Marzano tomato sauce, roasted garlic, wild oregano, extra virgin olive oil', price: 400, details: 'Classic Neapolitan base with intense roasted garlic, wild oregano & extra virgin olive oil.', tags: ['Dairy-Free', 'Tipo 00 Flour'], badge: 'DAIRY-FREE', image_url: ITEM_MEDIA_MAP.pz1.image_url, prepTime: '15 mins' },
-      { id: 'pz2', name: 'MARGHERITA BUFALA', description: 'San Marzano passata, Fior di Latte mozzarella, fresh basil leaves', price: 500, details: 'Traditional wood-fired crust layered with creamy mozzarella Fior di Latte & fresh basil leaves.', tags: ['Neapolitan Classic', 'Best Seller'], badge: 'NEAPOLITAN CLASSIC', image_url: ITEM_MEDIA_MAP.pz2.image_url, prepTime: '15 mins' },
-      { id: 'pz3', name: 'OLIVE & CAPERS', description: 'San Marzano tomato base, Mediterranean olives, Sicilian capers, herb oil', price: 600, details: 'Tangy brine-infused pizza topped with Mediterranean black olives, salted capers & fresh herb oil.', tags: ['Wood-Fired', 'Herbal Note'], badge: 'MEDITERRANEAN', image_url: ITEM_MEDIA_MAP.pz3.image_url, prepTime: '15 mins' },
-      { id: 'pz4', name: 'ZUCCHINI & PORTABELLO', description: 'Shaved tender zucchini ribbons, earthy portobello mushrooms, garlic butter crust', price: 600, details: 'Thinly sliced tender zucchini ribbons with earthy portobello mushrooms and garlic butter.', tags: ['Vegetarian', 'Artisanal Crust'], badge: 'VEGETARIAN', image_url: ITEM_MEDIA_MAP.pz4.image_url, prepTime: '15 mins' },
-      { id: 'pz5', name: 'QUATTRO STAGIONI (FOUR SEASONS)', description: 'Artichokes, portobello mushrooms, black olives, sweet bell peppers', price: 700, details: 'Four seasons represented with distinct sections of fresh garden vegetables & melted mozzarella.', tags: ['Seasonal', 'House Classic'], badge: 'SEASONAL', image_url: ITEM_MEDIA_MAP.pz5.image_url, prepTime: '15 mins' },
-      { id: 'pz6', name: 'SOPHIA LOREN GOURMET', description: 'Sundried tomatoes, pine nut pesto, wild rocket, Greek feta & mozzarella', price: 800, details: 'Gourmet creation featuring fragrant basil pesto, sharp Greek feta, peppery wild rocket & sun-ripened tomatoes.', tags: ['Gourmet Special', 'Chef Choice'], badge: 'CHEF CHOICE', image_url: ITEM_MEDIA_MAP.pz6.image_url, prepTime: '15 mins' },
-      { id: 'pz7', name: 'MARIA CALLAS ARTICHOKE', description: 'Velvety feta cream base, artichoke hearts, sweet cherry tomatoes, pine pesto', price: 800, details: 'Rich creamy feta emulsion topped with tender artichoke hearts & sweet blistered cherry tomatoes.', tags: ['Cream Base', 'Specialty'], badge: 'SOPIA BASE', image_url: ITEM_MEDIA_MAP.pz7.image_url, prepTime: '15 mins' },
-      { id: 'pz8', name: 'ITALA BROCCOLI CREAM', description: 'Broccoli cream base, double mozzarella, salted capers, cherry tomatoes', price: 800, details: 'Unique velvety broccoli cream base, double mozzarella, tart capers & juicy sweet tomatoes.', tags: ['Trattoria Signature', 'Creamy'], badge: 'ITALA BASE', image_url: ITEM_MEDIA_MAP.pz8.image_url, prepTime: '15 mins' },
-      { id: 'pz9', name: 'RESIDENCY UDAIPUR', description: 'Feta cream, crispy green tomato fritters, pine nut pesto & wild rocket', price: 700, details: 'Crispy fried green tomato slices over rich feta cream, drizzled with homemade pine nut pesto.', tags: ['Local Special', 'Crispy Fritters'], badge: 'LOCAL SPECIAL', image_url: ITEM_MEDIA_MAP.pz9.image_url, prepTime: '15 mins' },
+      { id: 'pz1', name: 'MARINARA', description: 'tomato sauce w/garlic, basil, oregano, capers', price: 400, details: 'Tomato sauce with garlic, basil, oregano and capers.', tags: ['Dairy-Free'], badge: 'DAIRY-FREE', image_url: ITEM_MEDIA_MAP.pz1.image_url, prepTime: '15 mins' },
+      { id: 'pz2', name: 'MARGHERITA', description: 'tomato sauce w/garlic, basil, oregano, capers', price: 500, details: 'Tomato sauce with garlic, basil, oregano and capers.', tags: ['Neapolitan Classic'], badge: 'NEAPOLITAN CLASSIC', image_url: ITEM_MEDIA_MAP.pz2.image_url, prepTime: '15 mins' },
+      { id: 'pz3', name: 'OLIVE CAPERS', description: 'tomato sauce w/garlic, basil, oregano, capers', price: 600, details: 'Tomato sauce with garlic, basil, oregano and capers.', tags: ['Premium'], badge: 'PREMIUM', image_url: ITEM_MEDIA_MAP.pz3.image_url, prepTime: '15 mins' },
+      { id: 'pz4', name: 'ZUCCHINI MUSHROOMS', description: '', price: 600, details: 'Zucchini and mushrooms on a wood-fired Neapolitan base.', tags: ['Vegetarian'], badge: 'VEGETARIAN', image_url: ITEM_MEDIA_MAP.pz4.image_url, prepTime: '15 mins' },
+      { id: 'pz5', name: 'QUATRO STAGIONE', description: 'zucchini, mushroom, olives, red & yellow capsicum', price: 700, details: 'Zucchini, mushroom, olives, red and yellow capsicum.', tags: ['Premium'], badge: 'PREMIUM', image_url: ITEM_MEDIA_MAP.pz5.image_url, prepTime: '15 mins' },
+      { id: 'pz6', name: 'SOPHIA LOREN', description: 'sundried tomatoes, pesto, capers, rocket, feta + mozzarella', price: 800, details: 'Sundried tomatoes, pesto, capers, rocket, feta and mozzarella.', tags: ['Premium'], badge: 'PREMIUM', image_url: ITEM_MEDIA_MAP.pz6.image_url, prepTime: '15 mins' },
+      { id: 'pz7', name: 'MARIA CALLAS', description: 'feta cream base, artichoke hearts, pesto, cherry tomatoes', price: 800, details: 'Feta cream base, artichoke hearts, pesto and cherry tomatoes.', tags: ['Cream Base'], badge: 'CREAM BASE', image_url: ITEM_MEDIA_MAP.pz7.image_url, prepTime: '15 mins' },
+      { id: 'pz8', name: 'ITALA', description: 'mozzarella cheese base, broccoli cream, cherry tomatoes, capers', price: 800, details: 'Mozzarella cheese base, broccoli cream, cherry tomatoes and capers.', tags: ['Cream Base'], badge: 'CREAM BASE', image_url: ITEM_MEDIA_MAP.pz8.image_url, prepTime: '15 mins' },
+      { id: 'pz9', name: 'RESIDENCY UDAIPUR', description: 'feta cream base w fried green tomatoes, capers, rocket and pesto', price: 700, details: 'Feta cream base with fried green tomatoes, capers, rocket and pesto.', tags: ['House Special'], badge: 'HOUSE SPECIAL', image_url: ITEM_MEDIA_MAP.pz9.image_url, prepTime: '15 mins' },
     ],
   },
   {
@@ -142,7 +142,7 @@ export const menuData: MenuCategory[] = [
     subtitle: 'Artisanal House Pastries and Gelato',
     items: [
       { id: 'c1', name: 'CLASSIC TIRAMISU', description: 'contains free-range eggs', price: 250, details: 'Traditional Italian tiramisu with espresso-soaked ladyfingers & mascarpone (contains free-range eggs).', tags: ['House Made', 'Arabica Coffee'], badge: 'HOUSE MADE', image_url: ITEM_MEDIA_MAP.c1.image_url, prepTime: 'Ready' },
-      { id: 'c2', name: 'COCONUT ICE CREAM WITH BITTER ORANGE SAUCE', description: 'Artisanal coconut ice cream served with bitter orange sauce', price: 200, details: 'House-churned coconut ice cream topped with warm bitter orange sauce reduction.', tags: ['Refreshing', 'Citrus Glaze'], badge: 'CITRUS GLAZE', image_url: ITEM_MEDIA_MAP.c2.image_url, prepTime: 'Ready' },
+      { id: 'c2', name: 'COCONUT ICE CREAM WITH BITTER ORANGE SAUCE', description: '', price: 200, details: 'Coconut ice cream with bitter orange sauce.', tags: ['Refreshing', 'Citrus Glaze'], badge: 'CITRUS GLAZE', image_url: ITEM_MEDIA_MAP.c2.image_url, prepTime: 'Ready' },
     ],
   },
   {
@@ -150,10 +150,10 @@ export const menuData: MenuCategory[] = [
     name: 'BEVERAGES',
     subtitle: 'Chilled Drinks and Refreshments',
     items: [
-      { id: 'b1', name: 'FRESH LIME SODA', description: 'Key lime juice, sparkling soda water, fresh garden mint', price: 100, details: 'Freshly squeezed Key lime juice with sparkling soda water & fresh mint leaves.', tags: ['Chilled', 'Fresh Mint'], badge: 'CHILLED', image_url: ITEM_MEDIA_MAP.b1.image_url, prepTime: '5 mins' },
-      { id: 'b2', name: 'LEMON GINGER SODA', description: 'House ginger reduction, fresh lemon juice, chilled soda water', price: 150, details: 'House ginger reduction brewed with fresh lemon juice and chilled soda.', tags: ['Digestive', 'House Brew'], badge: 'DIGESTIVE', image_url: ITEM_MEDIA_MAP.b2.image_url, prepTime: '5 mins' },
-      { id: 'b6', name: 'COKE', description: 'Chilled classic Coca-Cola', price: 100, details: 'Chilled refreshing classic Coca-Cola.', tags: ['Chilled', 'Classic'], badge: 'CHILLED', image_url: ITEM_MEDIA_MAP.b6.image_url, prepTime: 'Instant' },
-      { id: 'b5', name: 'HIMALAYAN MINERAL WATER', description: 'Pure mineral water bottled at origin', price: 50, details: 'Pure natural mineral water bottled at source in the Himalayas.', tags: ['Natural Spring'], badge: 'NATURAL SPRING', image_url: ITEM_MEDIA_MAP.b5.image_url, prepTime: 'Instant' },
+      { id: 'b1', name: 'FRESH LIME SODA', description: '', price: 100, details: 'Fresh lime soda.', tags: ['Chilled'], badge: 'CHILLED', image_url: ITEM_MEDIA_MAP.b1.image_url, prepTime: '5 mins' },
+      { id: 'b2', name: 'LEMON GINGER SODA', description: '', price: 150, details: 'Lemon ginger soda.', tags: ['Chilled'], badge: 'CHILLED', image_url: ITEM_MEDIA_MAP.b2.image_url, prepTime: '5 mins' },
+      { id: 'b6', name: 'COKE', description: '', price: 100, details: 'Chilled Coke.', tags: ['Chilled'], badge: 'CHILLED', image_url: ITEM_MEDIA_MAP.b6.image_url, prepTime: 'Instant' },
+      { id: 'b5', name: 'HIMALAYAN MINERAL WATER', description: '', price: 50, details: 'Himalayan mineral water.', tags: ['Natural Spring'], badge: 'NATURAL SPRING', image_url: ITEM_MEDIA_MAP.b5.image_url, prepTime: 'Instant' },
       { id: 'b3', name: 'ICE TEA', description: 'Lemon & Peach flavour', price: 150, details: 'Slow-brewed black tea infused with lemon & peach flavour.', tags: ['Cold Brewed'], badge: 'COLD BREWED', image_url: ITEM_MEDIA_MAP.b3.image_url, prepTime: '5 mins' },
       { id: 'b4', name: 'KOMBUCHA', description: 'with raw fruits: Lemongrass + mint, Kokum, Pineapple + rosemary, or Pomegranate', price: 250, details: 'Artisanal probiotic fermented tea infused with raw fruit botanicals.', tags: ['Probiotic', 'Artisanal'], badge: 'PROBIOTIC', image_url: ITEM_MEDIA_MAP.b4.image_url, prepTime: 'Instant' },
     ],
@@ -163,10 +163,10 @@ export const menuData: MenuCategory[] = [
     name: 'HOT DRINKS',
     subtitle: '100% Mountain Arabica Roasts and Himalayan Herbal Infusions',
     items: [
-      { id: 'h1', name: 'ESPRESSO', description: '100% mountain Arabica roast with rich crema', price: 150, details: 'Double shot of 100% Arabica mountain bean roast with thick caramel crema.', tags: ['100% Arabica', 'Espresso Extract'], badge: '100% ARABICA', image_url: ITEM_MEDIA_MAP.h1.image_url, prepTime: '3 mins' },
-      { id: 'h2', name: 'RHODODENDRON MINT & THYME TISANE', description: 'Wild red rhododendron petals, garden mint & thyme', price: 150, details: 'Wild Himalayan red rhododendron petals blended with garden mint and soothing thyme.', tags: ['Mountain Herbs', 'Caffeine-Free'], badge: 'MOUNTAIN HERBS', image_url: ITEM_MEDIA_MAP.h2.image_url, prepTime: '5 mins' },
-      { id: 'h3', name: 'HIMALAYAN ROSEHIP & MINT TISANE', description: 'Rosehip husks brewed with fragrant mint', price: 150, details: 'Vitamin C rich rosehip husks brewed with fragrant mountain mint.', tags: ['Antioxidant Rich', 'Organic'], badge: 'ANTIOXIDANT', image_url: ITEM_MEDIA_MAP.h3.image_url, prepTime: '5 mins' },
-      { id: 'h4', name: 'HIMALAYAN MIXED HERBS', description: 'High-altitude botanical blend of tulsi, lemongrass, ginger & black pepper', price: 150, details: 'Traditional high-altitude botanical infusion of herbs.', tags: ['Traditional', 'Immunity Tonic'], badge: 'IMMUNITY TONIC', image_url: ITEM_MEDIA_MAP.h4.image_url, prepTime: '5 mins' },
+      { id: 'h1', name: 'ESPRESSO', description: '', price: 150, details: 'Espresso.', tags: ['Hot'], badge: 'HOT', image_url: ITEM_MEDIA_MAP.h1.image_url, prepTime: '3 mins' },
+      { id: 'h2', name: 'RHODODENDRON MINT & THYME TISANE', description: '', price: 150, details: 'Rhododendron mint and thyme tisane.', tags: ['Tisane'], badge: 'TISANE', image_url: ITEM_MEDIA_MAP.h2.image_url, prepTime: '5 mins' },
+      { id: 'h3', name: 'HIMALAYAN ROSEHIP & MINT TISANE', description: '', price: 150, details: 'Himalayan rosehip and mint tisane.', tags: ['Tisane'], badge: 'TISANE', image_url: ITEM_MEDIA_MAP.h3.image_url, prepTime: '5 mins' },
+      { id: 'h4', name: 'HIMALAYAN MIXED HERBS', description: '', price: 150, details: 'Himalayan mixed herbs.', tags: ['Tisane'], badge: 'TISANE', image_url: ITEM_MEDIA_MAP.h4.image_url, prepTime: '5 mins' },
     ],
   },
 ];

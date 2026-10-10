@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     RAZORPAY_TEST_MODE: bool = True
 
     # Reservation Deposit & Hold Settings
-    DEFAULT_DEPOSIT_PER_GUEST: str = "200.00"
+    DEFAULT_DEPOSIT_PER_GUEST: str = "300.00"
     RESERVATION_HOLD_MINUTES: int = 7
     DEFAULT_RESERVATION_PIZZA_DEMAND_PER_GUEST: str = "0.75"
 

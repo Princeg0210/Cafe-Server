@@ -1,318 +1,163 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { motion } from "framer-motion";
-import { Coffee, Pizza, Wine, Utensils, CakeSlice, Sparkles, Radio } from "lucide-react";
-import { menuData as initialMenuData, MenuCategory, MenuItem as DataMenuItem } from "@/data/menu";
+import Image from "next/image";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Coffee, Flame, Leaf, UtensilsCrossed, Wine } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import TanFooter from "@/components/TanFooter";
+import { MENU_ITEM_ID_MAP, MenuCategory, MenuItem, menuData as initialMenuData } from "@/data/menu";
 
-const categoryIcons: Record<string, React.ReactNode> = {
-  starters: <Utensils className="w-4 h-4 text-[#9E3E26]" />,
-  primo: <Utensils className="w-4 h-4 text-[#9E3E26]" />,
-  pizza: <Pizza className="w-4 h-4 text-[#9E3E26]" />,
-  cakes: <CakeSlice className="w-4 h-4 text-[#9E3E26]" />,
-  beverages: <Wine className="w-4 h-4 text-[#9E3E26]" />,
-  "hot-drinks": <Coffee className="w-4 h-4 text-[#9E3E26]" />,
+const premiumIds = ["pz5", "pz6", "pz3"];
+const categoryLabels: Record<string, string> = {
+  all: "All dishes",
+  starters: "Starters",
+  primo: "Primo",
+  pizza: "Pizza",
+  cakes: "Cakes",
+  beverages: "Beverages",
+  "hot-drinks": "Hot drinks",
 };
 
+function MenuPrice({ price }: { price: number }) {
+  return <span className="shrink-0 font-sans text-base font-bold text-[#9E3E26]">₹{price}</span>;
+}
+
+function FoodRow({ item }: { item: MenuItem & { is_available?: boolean } }) {
+  const available = item.is_available !== false;
+  return (
+    <article className={`grid grid-cols-[76px_1fr_auto] gap-3 border-b border-[#D9C9AE] py-4 sm:grid-cols-[96px_1fr_auto] sm:gap-5 ${available ? "" : "opacity-50"}`}>
+      <div className="relative aspect-square overflow-hidden rounded-full border border-[#CDBB9C] bg-[#EFE5D3]">
+        {item.image_url ? (
+          <Image src={item.image_url} alt={item.name} fill sizes="(max-width: 640px) 76px, 96px" className="object-cover" />
+        ) : (
+          <UtensilsCrossed className="absolute inset-0 m-auto h-5 w-5 text-[#9E3E26]" />
+        )}
+      </div>
+      <div className="min-w-0 self-center">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="font-serif text-base font-bold leading-tight text-[#17251A] sm:text-lg">{item.name}</h3>
+          {!available && <span className="rounded-full bg-[#9E3E26] px-2 py-0.5 text-[10px] font-bold text-white">Sold out</span>}
+        </div>
+        {item.description && <p className="mt-1 max-w-xl text-sm italic leading-relaxed text-[#5B4A3E]">({item.description})</p>}
+      </div>
+      <div className="self-center pl-1"><MenuPrice price={item.price} /></div>
+    </article>
+  );
+}
+
+function DrinkCard({ item }: { item: MenuItem & { is_available?: boolean } }) {
+  return (
+    <article className={`min-w-0 border-b border-[#D9C9AE] py-3 ${item.is_available === false ? "opacity-50" : ""}`}>
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="font-serif text-[13px] font-bold leading-snug text-[#17251A] sm:text-base">{item.name}</h3>
+        <MenuPrice price={item.price} />
+      </div>
+      {item.description && <p className="mt-1 text-xs italic leading-relaxed text-[#5B4A3E]">({item.description})</p>}
+    </article>
+  );
+}
+
 export default function MenuPage() {
-  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("all");
-  const [liveMenuData, setLiveMenuData] = useState<MenuCategory[]>(initialMenuData);
-  const [isLiveConnected, setIsLiveConnected] = useState(false);
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [menuData, setMenuData] = useState<MenuCategory[]>(initialMenuData);
 
-  // Base API resolution
-  const getApiBase = () => {
-    return process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
-  };
-
-  // Sync live prices and stock availability from backend API
   const fetchLiveMenu = useCallback(async () => {
     try {
-      const apiBase = getApiBase();
-      const res = await fetch(`${apiBase}/api/v1/menu/items`);
-      if (!res.ok) return;
-      const dbItems: Array<{
-        id: number;
-        category_id: number;
-        name: string;
-        description?: string;
-        price: string | number;
-        is_available: boolean;
-        is_sold_out?: boolean;
-      }> = await res.json();
-
-      // Build mapping by normalized name or id
-      const dbMapByName = new Map<string, typeof dbItems[0]>();
-      dbItems.forEach((item) => {
-        dbMapByName.set(item.name.trim().toLowerCase(), item);
-      });
-
-      // Merge into categories
-      setLiveMenuData((prev) => {
-        return prev.map((category) => {
-          return {
-            ...category,
-            items: category.items.map((item) => {
-              const matched = dbMapByName.get(item.name.trim().toLowerCase());
-              if (matched) {
-                return {
-                  ...item,
-                  price: Number(matched.price),
-                  description: matched.description || item.description,
-                  is_available: matched.is_available && !matched.is_sold_out,
-                };
-              }
-              return item;
-            }),
-          };
-        });
-      });
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://cafe-piza-api.onrender.com";
+      const response = await fetch(`${apiBase}/api/v1/menu/items`);
+      if (!response.ok) return;
+      const liveItems: Array<{ id: number; price: string | number; is_available: boolean; is_sold_out?: boolean }> = await response.json();
+      const liveById = new Map(liveItems.map((item) => [item.id, item]));
+      setMenuData(initialMenuData.map((category) => ({
+        ...category,
+        items: category.items.map((item) => {
+          const live = liveById.get(MENU_ITEM_ID_MAP[item.id]);
+          return live ? { ...item, price: Number(live.price), is_available: live.is_available && !live.is_sold_out } : item;
+        }),
+      })));
     } catch {
-      // Fallback silently to existing data
+      // The printed menu remains available when live inventory is offline.
     }
   }, []);
 
-  // Initial fetch and WebSocket listener for instant hand-to-hand updates
   useEffect(() => {
     fetchLiveMenu();
-
-    let ws: WebSocket | null = null;
-    let reconnectTimeout: any = null;
-
-    const connectWS = () => {
-      try {
-        const apiBase = getApiBase();
-        const wsProto = apiBase.startsWith("https") ? "wss" : "ws";
-        const wsHost = apiBase.replace(/^https?:\/\//, "");
-        ws = new WebSocket(`${wsProto}://${wsHost}/ws/menu`);
-
-        ws.onopen = () => {
-          setIsLiveConnected(true);
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (data.type === "MENU_UPDATED") {
-              fetchLiveMenu();
-            }
-          } catch { }
-        };
-
-        ws.onclose = () => {
-          setIsLiveConnected(false);
-          reconnectTimeout = setTimeout(connectWS, 4000);
-        };
-      } catch {
-        reconnectTimeout = setTimeout(connectWS, 6000);
-      }
-    };
-
-    connectWS();
-
-    // Background interval poll (every 10s) as guaranteed fallback
-    const interval = setInterval(fetchLiveMenu, 10000);
-
-    return () => {
-      if (ws) ws.close();
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      clearInterval(interval);
-    };
+    const interval = window.setInterval(fetchLiveMenu, 15000);
+    return () => window.clearInterval(interval);
   }, [fetchLiveMenu]);
 
-  const filteredMenuData = useMemo(() => {
-    return activeCategoryFilter === "all"
-      ? liveMenuData
-      : liveMenuData.filter((c) => c.id === activeCategoryFilter);
-  }, [liveMenuData, activeCategoryFilter]);
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.04 },
-    },
-  };
-
-  const itemAnim = {
-    hidden: { opacity: 0, y: 12 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
-  };
+  const visibleCategories = useMemo(
+    () => activeCategory === "all" ? menuData : menuData.filter((category) => category.id === activeCategory),
+    [activeCategory, menuData],
+  );
+  const pizzaItems = menuData.find((category) => category.id === "pizza")?.items ?? [];
+  const premiumItems = premiumIds.map((id) => pizzaItems.find((item) => item.id === id)).filter((item): item is MenuItem => Boolean(item));
 
   return (
-    <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans relative selection:bg-[#9E3E26] selection:text-white">
-      <Navbar />
+    <div className="min-h-screen bg-[#F7EBD5] text-[#17251A] selection:bg-[#9E3E26] selection:text-white">
+      <Navbar showNavigation={false} />
 
-      {/* Header Banner - Authentic Italian Trattoria with Logo */}
-      <section className="bg-[#140E0A] text-[#FBF9F5] py-10 px-4 text-center border-b border-[#3A2A20] relative overflow-hidden">
-        <div className="max-w-4xl mx-auto space-y-3">
-          <div className="w-40 h-24 sm:w-48 sm:h-28 mx-auto rounded-2xl overflow-hidden border-2 border-[#D8A168]/60 shadow-xl bg-white mb-2">
-            <img
-              src="/jaadoo_logo.jpg"
-              alt="Jaadoo Pizza Project"
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          <span className="text-xs uppercase tracking-[0.35em] text-[#D8A168] font-serif font-semibold block">
-            — ESTRATTO DAL MENU · LA CARTA —
-          </span>
-          <h1 className="text-3xl sm:text-5xl font-serif font-bold text-white tracking-tight">
-            Jaadoo Pizza Project Menu
-          </h1>
-          <p className="text-stone-300 font-sans font-medium text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
-            Wood-Fired Neapolitan Pizzas · 100% Vegetarian Pizzas · Mountain Arabica and Tisanes
-          </p>
-
-          <div className="pt-1 flex items-center justify-center gap-1.5 text-[10px] font-bold text-emerald-400">
-            <Radio className="w-2.5 h-2.5 animate-pulse text-emerald-400" />
-          </div>
+      <header className="grid min-h-[430px] bg-[#1B120E] text-[#FFF8EA] lg:grid-cols-[42%_58%]">
+        <div className="flex flex-col justify-center px-6 py-12 sm:px-10 lg:px-[max(3rem,calc((100vw-1200px)/2))] lg:pr-10">
+          <div className="flex items-center gap-3 text-[#D59A5C]"><span className="h-px w-10 bg-current" /><span className="text-xs font-semibold tracking-[0.22em]">WOOD-FIRED · UDAIPUR</span></div>
+          <h1 className="mt-5 font-serif text-5xl font-bold leading-none sm:text-7xl">Our Menu</h1>
+          <p className="mt-3 font-serif text-2xl italic text-[#D59A5C]">Italian kitchen magic.</p>
+          <p className="mt-6 max-w-md text-sm leading-7 text-[#E7D9C7]">Vegetarian Neapolitan pizzas, handmade starters, cakes and mountain tisanes from our Old City kitchen.</p>
         </div>
-      </section>
+        <div className="relative min-h-[320px] lg:min-h-full">
+          <Image src="/pizza-sophia-loren.webp" alt="Sophia Loren wood-fired pizza" fill priority sizes="(max-width: 1024px) 100vw, 58vw" className="object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#1B120E]/40 to-transparent lg:from-[#1B120E]/70" />
+        </div>
+      </header>
 
-      {/* Editorial Category Navigation */}
-      <div className="sticky top-16 z-30 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#DDD3C4] py-3 shadow-2xs">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 overflow-x-auto flex items-center justify-center sm:justify-start gap-1.5 no-scrollbar">
-          <button
-            onClick={() => setActiveCategoryFilter("all")}
-            className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-xs font-sans font-bold tracking-wider uppercase transition-all border cursor-pointer ${activeCategoryFilter === "all"
-              ? "bg-[#140E0A] text-[#FAF8F5] border-[#140E0A] shadow-xs"
-              : "bg-[#F2ECE1] border-[#DDD3C4] text-[#140E0A] hover:border-[#9E3E26] hover:bg-white"
-              }`}
-          >
-            All Dishes
-          </button>
-          {liveMenuData.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setActiveCategoryFilter(c.id)}
-              className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-xs font-sans font-bold tracking-wider uppercase transition-all border cursor-pointer ${activeCategoryFilter === c.id
-                ? "bg-[#140E0A] text-[#FAF8F5] border-[#140E0A] shadow-xs"
-                : "bg-[#F2ECE1] border-[#DDD3C4] text-[#140E0A] hover:border-[#9E3E26] hover:bg-white"
-                }`}
-            >
-              {c.name}
+      <nav aria-label="Menu categories" className="sticky top-16 z-30 border-b border-[#D7C4A3] bg-[#F7EBD5]/95 py-3 backdrop-blur-md">
+        <div className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 sm:px-6">
+          {["all", ...menuData.map((category) => category.id)].map((id) => (
+            <button key={id} type="button" onClick={() => setActiveCategory(id)} aria-pressed={activeCategory === id} className={`min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold transition-colors ${activeCategory === id ? "border-[#9E3E26] text-[#9E3E26]" : "border-transparent text-[#49382D] hover:border-[#BFA47A]"}`}>
+              {categoryLabels[id]}
             </button>
           ))}
         </div>
-      </div>
+      </nav>
 
-      {/* Main Menu Container */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 my-8">
-        <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="space-y-12"
-        >
-          {filteredMenuData.map((category) => (
-            <motion.section id={category.id} key={category.id} variants={itemAnim} className="relative">
-              {/* Category Header */}
-              <div className="flex flex-col items-center justify-center text-center mb-3">
-                <div className="flex items-center justify-center flex-wrap gap-2 text-center">
-                  <div className="w-8 h-8 rounded-full border border-[#DDD3C4] bg-[#FAF7F2] flex items-center justify-center text-[#9E3E26] shrink-0 shadow-2xs">
-                    {categoryIcons[category.id] || <Utensils className="w-4 h-4 text-[#9E3E26]" />}
+      {(activeCategory === "all" || activeCategory === "pizza") && (
+        <section className="border-b border-[#D7C4A3] bg-[#FFF9EE] px-4 py-10 sm:px-6 sm:py-14">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-7 flex items-center justify-center gap-4 text-center"><span className="h-px w-10 bg-[#9E3E26]" /><div><h2 className="font-serif text-3xl font-bold sm:text-4xl">Premium Pizzas</h2><p className="mt-1 text-sm text-[#6C5848]">Signature creations from the printed menu</p></div><span className="h-px w-10 bg-[#9E3E26]" /></div>
+            <div className="grid gap-5 md:grid-cols-3">
+              {premiumItems.map((item) => (
+                <article key={item.id} className="overflow-hidden border border-[#D7C4A3] bg-[#F7EBD5]">
+                  <div className="relative aspect-[4/3] overflow-hidden"><Image src={item.image_url!} alt={item.name} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover transition-transform duration-500 hover:scale-[1.03]" /></div>
+                  <div className="p-5"><div className="flex items-start justify-between gap-4"><h3 className="font-serif text-xl font-bold">{item.name}</h3><MenuPrice price={item.price} /></div>{item.description && <p className="mt-2 text-sm italic leading-relaxed text-[#5B4A3E]">({item.description})</p>}</div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+        <div className="grid gap-x-12 gap-y-14 lg:grid-cols-2">
+          {visibleCategories.map((category) => {
+            const isDrinks = category.id === "beverages" || category.id === "hot-drinks";
+            return (
+              <section key={category.id} id={category.id} className={category.id === "pizza" ? "lg:col-span-2" : ""}>
+                <div className="flex items-end justify-between gap-4 border-b-2 border-[#17251A] pb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-10 w-10 place-items-center rounded-full border border-[#9E3E26] text-[#9E3E26]">{category.id === "pizza" ? <Flame className="h-5 w-5" /> : category.id === "beverages" ? <Wine className="h-5 w-5" /> : category.id === "hot-drinks" ? <Coffee className="h-5 w-5" /> : <Leaf className="h-5 w-5" />}</span>
+                    <div><h2 className="font-serif text-2xl font-bold sm:text-3xl">{category.name}</h2>{category.subtitle && <p className="mt-0.5 text-xs text-[#9E3E26] sm:text-sm">{category.subtitle}</p>}</div>
                   </div>
-                  <h2 className="text-base sm:text-lg md:text-xl font-serif font-bold text-[#140E0A] uppercase tracking-wider">
-                    {category.name}
-                  </h2>
-                  {category.subtitle && (
-                    <>
-                      <span className="text-[#9E3E26] font-serif font-bold">•</span>
-                      <span className="text-xs sm:text-sm font-sans font-semibold text-[#9E3E26]">
-                        {category.subtitle}
-                      </span>
-                    </>
-                  )}
                 </div>
-                <div className="w-full h-[1.5px] bg-[#DDD3C4] mt-3.5 mb-1" />
-              </div>
-
-              {/* Menu Item Strips */}
-              <div className="divide-y divide-[#E6DDD0]">
-                {category.items.map((item) => {
-                  const isAvailable = (item as any).is_available !== false;
-
-                  return (
-                    <motion.div
-                      key={item.id}
-                      whileHover={{ scale: 1.005 }}
-                      transition={{ duration: 0.15 }}
-                      className={`group relative flex items-start sm:items-center justify-between py-3.5 px-3 sm:px-4 rounded-xl transition-all duration-150 border border-transparent ${isAvailable
-                        ? "hover:bg-[#F2ECE1]/90 hover:border-[#DDD3C4]"
-                        : "opacity-65 bg-stone-100/50"
-                        }`}
-                    >
-                      {/* Left: Round Dish Illustration / Photo Thumbnail */}
-                      <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-[#DDD3C4] shrink-0 bg-[#F0EAE0] flex items-center justify-center shadow-2xs mr-3 sm:mr-4 mt-0.5 sm:mt-0">
-                        {item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.name}
-                            className={`w-full h-full object-cover transition-transform duration-300 ${isAvailable ? "group-hover:scale-108" : "grayscale"
-                              }`}
-                            loading="lazy"
-                          />
-                        ) : (
-                          <Utensils className="w-4 h-4 text-[#9E3E26]" />
-                        )}
-                      </div>
-
-                      {/* Middle: Tag Pill, Bold Uppercase Serif Title, Crisp Sans Description */}
-                      <div className="flex-1 min-w-0 pr-3 sm:pr-4 flex flex-col justify-center">
-                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                          {!isAvailable && (
-                            <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-rose-800 bg-rose-100 px-2.5 py-0.5 rounded-full inline-block border border-rose-300">
-                              Sold Out Today
-                            </span>
-                          )}
-                          {(item.badge || item.tags?.[0]) && (
-                            <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#140E0A] bg-[#E5DEC3] px-2.5 py-0.5 rounded-full inline-block border border-[#CCC2A5]">
-                              {item.badge || item.tags?.[0]}
-                            </span>
-                          )}
-                        </div>
-
-                        <h3
-                          className={`text-sm sm:text-base font-serif font-bold uppercase tracking-wide leading-snug break-words whitespace-normal transition-colors ${isAvailable
-                            ? "text-[#140E0A] group-hover:text-[#9E3E26]"
-                            : "text-stone-500 line-through"
-                            }`}
-                        >
-                          {item.name}
-                        </h3>
-
-                        {item.description && (
-                          <p className="text-xs sm:text-sm font-sans font-normal text-[#2B1D14] mt-1 leading-relaxed break-words whitespace-normal">
-                            {item.description}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Right: Bold Price */}
-                      <div className="flex flex-col items-end shrink-0 pl-2">
-                        <span
-                          className={`text-base sm:text-lg font-sans font-extrabold ${isAvailable ? "text-[#140E0A]" : "text-stone-400"
-                            }`}
-                        >
-                          ₹{item.price}
-                        </span>
-                        {!isAvailable && (
-                          <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider">
-                            Unavailable
-                          </span>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </motion.section>
-          ))}
-        </motion.div>
+                <div className={isDrinks ? "grid grid-cols-2 gap-x-5 sm:gap-x-8" : category.id === "pizza" ? "grid gap-x-10 md:grid-cols-2" : ""}>
+                  {category.items.map((item) => isDrinks ? <DrinkCard key={item.id} item={item} /> : <FoodRow key={item.id} item={item} />)}
+                </div>
+              </section>
+            );
+          })}
+        </div>
       </main>
 
+      <aside className="border-y border-[#D7C4A3] bg-[#17251A] px-5 py-8 text-center text-[#FFF8EA]"><p className="font-serif text-xl italic">All Jaadoo pizzas are vegetarian.</p><p className="mt-2 text-sm text-[#D8C9B7]">Ask the team about daily specials or customise your own pizza.</p></aside>
       <TanFooter />
     </div>
   );

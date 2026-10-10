@@ -14,7 +14,7 @@ MENU_DATA = [
         "category": "STARTERS",
         "is_kitchen_1": True,
         "items": [
-            ("FOCACCIA WITH GARLIC DIP", "House-baked focaccia with garlic oil dip", 300),
+            ("FOCACCIA WITH GARLIC DIP", "", 300),
             ("CHEESE & MUSHROOM TARTS (2 PCS)", "with lettuce garnish", 400),
         ]
     },
@@ -22,22 +22,22 @@ MENU_DATA = [
         "category": "PRIMO",
         "is_kitchen_1": True,
         "items": [
-            ("CANNELLONI (CHEESE & TOMATO)", "Cheese & tomato stuffed pasta rolls baked in Italian passata", 500),
+            ("CANNELLONI (CHEESE & TOMATO)", "", 500),
         ]
     },
     {
-        "category": "WOOD-FIRED NEAPOLITAN PIZZAS",
+        "category": "PIZZA",
         "is_kitchen_1": True,
         "items": [
-            ("MARINARA CLASSICA", "San Marzano tomato sauce, roasted garlic, wild oregano, extra virgin olive oil", 400),
-            ("MARGHERITA BUFALA", "San Marzano passata, Fior di Latte mozzarella, fresh basil leaves", 500),
-            ("OLIVE & CAPERS", "San Marzano tomato base, Mediterranean olives, Sicilian capers, herb oil", 600),
-            ("ZUCCHINI & PORTABELLO", "Shaved tender zucchini ribbons, earthy portobello mushrooms, garlic butter crust", 600),
-            ("QUATTRO STAGIONI (FOUR SEASONS)", "Artichokes, portobello mushrooms, black olives, sweet bell peppers", 700),
-            ("SOPHIA LOREN GOURMET", "Sundried tomatoes, pine nut pesto, wild rocket, Greek feta & mozzarella", 800),
-            ("MARIA CALLAS ARTICHOKE", "Velvety feta cream base, artichoke hearts, sweet cherry tomatoes, pine pesto", 800),
-            ("ITALA BROCCOLI CREAM", "Broccoli cream base, double mozzarella, salted capers, cherry tomatoes", 800),
-            ("RESIDENCY UDAIPUR", "Feta cream, crispy green tomato fritters, pine nut pesto & wild rocket", 700),
+            ("MARINARA", "tomato sauce w/garlic, basil, oregano, capers", 400),
+            ("MARGHERITA", "tomato sauce w/garlic, basil, oregano, capers", 500),
+            ("OLIVE CAPERS", "tomato sauce w/garlic, basil, oregano, capers", 600),
+            ("ZUCCHINI MUSHROOMS", "", 600),
+            ("QUATRO STAGIONE", "zucchini, mushroom, olives, red & yellow capsicum", 700),
+            ("SOPHIA LOREN", "sundried tomatoes, pesto, capers, rocket, feta + mozzarella", 800),
+            ("MARIA CALLAS", "feta cream base, artichoke hearts, pesto, cherry tomatoes", 800),
+            ("ITALA", "mozzarella cheese base, broccoli cream, cherry tomatoes, capers", 800),
+            ("RESIDENCY UDAIPUR", "feta cream base w fried green tomatoes, capers, rocket and pesto", 700),
         ]
     },
     {
@@ -45,17 +45,17 @@ MENU_DATA = [
         "is_kitchen_1": True,
         "items": [
             ("CLASSIC TIRAMISU", "contains free-range eggs", 250),
-            ("COCONUT ICE CREAM WITH BITTER ORANGE SAUCE", "Coconut ice cream served with bitter orange sauce", 200),
+            ("COCONUT ICE CREAM WITH BITTER ORANGE SAUCE", "", 200),
         ]
     },
     {
         "category": "BEVERAGES",
         "is_kitchen_1": False,
         "items": [
-            ("FRESH LIME SODA", "Key lime juice, sparkling soda water, fresh garden mint", 100),
-            ("LEMON GINGER SODA", "House ginger reduction, fresh lemon juice, chilled soda water", 150),
-            ("COKE", "Chilled classic Coca-Cola", 100),
-            ("HIMALAYAN MINERAL WATER", "Pure mineral water bottled at origin", 50),
+            ("FRESH LIME SODA", "", 100),
+            ("LEMON GINGER SODA", "", 150),
+            ("COKE", "", 100),
+            ("HIMALAYAN MINERAL WATER", "", 50),
             ("ICE TEA", "Lemon & Peach flavour", 150),
             ("KOMBUCHA", "with raw fruits: Lemongrass + mint, Kokum, Pineapple + rosemary, or Pomegranate", 250),
         ]
@@ -64,10 +64,10 @@ MENU_DATA = [
         "category": "HOT DRINKS",
         "is_kitchen_1": False,
         "items": [
-            ("ESPRESSO", "100% mountain Arabica roast with rich crema", 150),
-            ("RHODODENDRON MINT & THYME TISANE", "Wild red rhododendron petals, garden mint & thyme", 150),
-            ("HIMALAYAN ROSEHIP & MINT TISANE", "Rosehip husks brewed with fragrant mint", 150),
-            ("HIMALAYAN MIXED HERBS", "High-altitude botanical blend of tulsi, lemongrass, ginger & black pepper", 150),
+            ("ESPRESSO", "", 150),
+            ("RHODODENDRON MINT & THYME TISANE", "", 150),
+            ("HIMALAYAN ROSEHIP & MINT TISANE", "", 150),
+            ("HIMALAYAN MIXED HERBS", "", 150),
         ]
     }
 ]

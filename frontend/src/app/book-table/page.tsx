@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar as CalendarIcon,
@@ -18,8 +17,6 @@ import {
   Share2,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
   X,
   CreditCard,
   ShieldCheck,
@@ -41,7 +38,19 @@ const DINNER_TIME_SLOTS = [
   { time: "09:15 PM", label: "09:15 PM" },
 ];
 
-const DEPOSIT_PER_GUEST = 150; // INR 150 per guest as shown on reference site
+const DEPOSIT_PER_GUEST = 300;
+const OPEN_DAYS = new Set([0, 1, 4, 5, 6]); // Sunday, Monday, Thursday, Friday, Saturday
+
+function getNextOpenDate() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+
+  while (!OPEN_DAYS.has(date.getDay())) {
+    date.setDate(date.getDate() + 1);
+  }
+
+  return date;
+}
 
 interface ConfirmedBooking {
   id: number | string;
@@ -71,21 +80,11 @@ export default function BookTablePage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Month navigation state
-  const [viewYear, setViewYear] = useState(() => {
-    const today = new Date();
-    return today.getFullYear();
-  });
-  const [viewMonth, setViewMonth] = useState(() => {
-    const today = new Date();
-    return today.getMonth(); // 0-indexed
-  });
+  const [viewYear, setViewYear] = useState(() => getNextOpenDate().getFullYear());
+  const [viewMonth, setViewMonth] = useState(() => getNextOpenDate().getMonth()); // 0-indexed
 
   // Selected date
-  const [selectedDate, setSelectedDate] = useState<Date>(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return today;
-  });
+  const [selectedDate, setSelectedDate] = useState<Date>(getNextOpenDate);
 
   // Time & Guest selection (Step 2)
   const [selectedTime, setSelectedTime] = useState<string>("07:00 PM");
@@ -104,7 +103,7 @@ export default function BookTablePage() {
   const [policyWarning, setPolicyWarning] = useState<boolean>(false);
 
   // Modals & Expandables
-  const [isReadMoreExpanded, setIsReadMoreExpanded] = useState<boolean>(false);
+  const [showBookingInstructions, setShowBookingInstructions] = useState(true);
   const [showPolicyModal, setShowPolicyModal] = useState<boolean>(false);
   const [policyModalTab, setPolicyModalTab] = useState<"houseRules" | "cancellation">("houseRules");
 
@@ -179,6 +178,7 @@ export default function BookTablePage() {
       isCurrentMonth: boolean;
       isPast: boolean;
       isSelected: boolean;
+      isOpenDay: boolean;
     }> = [];
 
     const today = new Date();
@@ -195,6 +195,7 @@ export default function BookTablePage() {
         isCurrentMonth: false,
         isPast: d < today,
         isSelected: selectedDate.getTime() === d.getTime(),
+        isOpenDay: OPEN_DAYS.has(d.getDay()),
       });
     }
 
@@ -208,6 +209,7 @@ export default function BookTablePage() {
         isCurrentMonth: true,
         isPast: d < today,
         isSelected: selectedDate.getTime() === d.getTime(),
+        isOpenDay: OPEN_DAYS.has(d.getDay()),
       });
     }
 
@@ -222,6 +224,7 @@ export default function BookTablePage() {
         isCurrentMonth: false,
         isPast: d < today,
         isSelected: selectedDate.getTime() === d.getTime(),
+        isOpenDay: OPEN_DAYS.has(d.getDay()),
       });
     }
 
@@ -247,7 +250,7 @@ export default function BookTablePage() {
   };
 
   const handleSelectCalendarDate = (dateObj: Date, isPast: boolean) => {
-    if (isPast) return;
+    if (isPast || !OPEN_DAYS.has(dateObj.getDay())) return;
     setSelectedDate(dateObj);
   };
 
@@ -522,10 +525,67 @@ export default function BookTablePage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#140E0A] font-sans antialiased flex flex-col justify-between selection:bg-[#65C5A8]/30">
-      <Navbar />
+    <div className="min-h-screen bg-[#F8F5F0] text-[#140E0A] font-sans antialiased flex flex-col justify-between selection:bg-[#65C5A8]/30">
+      <Navbar showNavigation={false} />
 
-      <main className="w-full max-w-md mx-auto px-4 sm:px-6 pt-6 pb-24 flex-1">
+      <AnimatePresence>
+        {showBookingInstructions && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#140E0A]/60 px-4 py-6 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="booking-instructions-title"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full max-w-md rounded-2xl border border-[#E4DCD0] bg-[#FBF9F5] p-6 shadow-2xl"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-serif italic text-[#B85B43]">Before you book</p>
+                  <h1 id="booking-instructions-title" className="mt-1 font-serif text-2xl font-bold text-[#140E0A]">
+                    Table reservation details
+                  </h1>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowBookingInstructions(false)}
+                  className="rounded-lg p-1 text-stone-500 transition-colors hover:bg-stone-100 hover:text-[#140E0A]"
+                  aria-label="Close booking instructions"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mt-5 space-y-3 text-sm leading-relaxed text-[#4A423D]">
+                <p className="rounded-xl border border-[#E8D2B5] bg-[#FFF6EA] px-4 py-3 font-semibold text-[#6D3B1D]">
+                  Jaadoo is open Thursday through Monday.
+                </p>
+                <p>Choose an available date and dinner slot from the calendar.</p>
+                <p>Reservations are confirmed within 48 hours, subject to availability. If we cannot accommodate your request, your payment is refunded.</p>
+                <p>Confirmed reservations are final and cannot be changed or refunded.</p>
+                <p>The ₹300 per guest advance is fully adjustable against your food and beverage bill.</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowBookingInstructions(false)}
+                className="mt-6 w-full rounded-xl bg-[#140E0A] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#B85B43]"
+              >
+                Continue to booking
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <main className="w-full max-w-3xl mx-auto px-4 sm:px-6 pt-10 pb-24 flex-1">
         {/* ==================================================================== */}
         {/* SCREEN 0: CONFIRMED BOOKING PASS VOUCHER                            */}
         {/* ==================================================================== */}
@@ -656,103 +716,28 @@ export default function BookTablePage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="space-y-6"
+                className="space-y-8"
               >
-                {/* Header */}
-                <div className="text-center pt-2">
-                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#140E0A]">
-                    Reserve a Table
+                {/* Original editorial booking-page header */}
+                <div className="text-center">
+                  <span className="mb-1 block font-serif text-sm font-normal italic tracking-widest text-[#9E3E26]">
+                    Prenotazione Tavoli · Est. 2023 · Ganesh Ghati
+                  </span>
+                  <h1 className="font-serif text-4xl font-bold tracking-tight text-[#140E0A] sm:text-5xl">
+                    Reserve Your Table
                   </h1>
-                </div>
-
-                {/* Hero Graphic: Deluxe Lamp Matchbox Image */}
-                <div className="relative w-full aspect-16/9 rounded-2xl overflow-hidden border border-[#E6E0D5] shadow-xs bg-[#FAF7F2]">
-                  <Image
-                    src="/jaadoo_matchbox_lamp.jpg"
-                    alt="Jaadoo Pizza Project Deluxe Lamp Matchbox"
-                    fill
-                    className="object-cover object-center"
-                    priority
-                  />
-                </div>
-
-                {/* Bio / Description */}
-                <div className="space-y-2 text-center sm:text-left">
-                  <h2 className="font-bold text-lg text-[#140E0A] text-center">
-                    Jaadoo Pizza Project
-                  </h2>
-                  <p className="text-sm text-[#4A423D] leading-relaxed text-left">
-                    Jaadoo Pizza Project is an artisanal pizza destination nestled in the historic lanes of Old City, Udaipur. Known for handcrafted pizzas, thoughtfully curated ingredients, and a warm, intimate dining experience, Jaadoo offers a relaxed yet refined setting for pizza and Udaipur lovers.
+                  <div className="mx-auto my-4 h-0.5 w-12 bg-[#9E3E26]" />
+                  <p className="mx-auto max-w-lg text-sm leading-relaxed text-[#241711] md:text-base">
+                    Neapolitan sourdough pizzas and wild Himalayan tisanes with panoramic views of Lake Pichola.
                   </p>
                 </div>
 
-                {/* Instructions Section */}
-                <div className="space-y-2 pt-1">
-                  <h3 className="font-bold text-sm text-[#140E0A]">
-                    Instructions
-                  </h3>
-                  <ul className="space-y-2 text-sm text-[#4A423D] leading-relaxed">
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#140E0A] font-bold mt-1.5 block w-1.5 h-1.5 rounded-full bg-[#140E0A] shrink-0" />
-                      <span>
-                        Reservations are confirmed within 48 hours, subject to availability. In case of non-availability, a refund will be processed.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#140E0A] font-bold mt-1.5 block w-1.5 h-1.5 rounded-full bg-[#140E0A] shrink-0" />
-                      <span>
-                        All reservations made are final. We are unable to accommodate changes or refunds once confirmed.
-                      </span>
-                    </li>
-                  </ul>
-
-                  {/* Expandable Read More */}
-                  <div className="pt-1">
-                    <button
-                      type="button"
-                      onClick={() => setIsReadMoreExpanded((prev) => !prev)}
-                      className="inline-flex items-center gap-1 text-sm font-semibold text-[#B85B43] hover:text-[#9E3E26] transition-colors"
-                    >
-                      <span>Read More</span>
-                      {isReadMoreExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-[#B85B43]" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-[#B85B43]" />
-                      )}
-                    </button>
-
-                    <AnimatePresence>
-                      {isReadMoreExpanded && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="mt-3 p-4 bg-[#FAF7F2] rounded-xl border border-[#EFE9DF] text-xs text-[#524942] space-y-2 leading-relaxed"
-                        >
-                          <p>
-                            • <strong>Deposit Credit:</strong> Advance fee of ₹150 per guest is 100% adjustable against your food and beverage bill.
-                          </p>
-                          <p>
-                            • <strong>Grace Period:</strong> Tables are held for 15 minutes past your booked slot time.
-                          </p>
-                          <p>
-                            • <strong>6 Heritage Levels:</strong> Seating is assigned according to party size across Ground Floor, School Room, Balcony, Lower Top, and Top Top.
-                          </p>
-                          <p>
-                            • <strong>House Policy:</strong> Outside food, cakes, and beverages are not allowed inside the restaurant premises.
-                          </p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
-
                 {/* Calendar Section */}
-                <div className="border border-[#E4DDD3] rounded-2xl p-4 sm:p-5 bg-white shadow-2xs space-y-4">
+                <div className="space-y-5 rounded-2xl border border-[#DDD3C4] bg-[#FAF7F2] p-5 shadow-md sm:p-8">
                   {/* Calendar Navigation Header */}
-                  <div className="flex items-center justify-between pb-2">
-                    <span className="font-bold text-base text-[#140E0A]">
-                      Date
+                  <div className="flex items-center justify-between border-b border-[#DDD3C4] pb-3">
+                    <span className="font-serif text-lg font-bold text-[#140E0A]">
+                      Choose a date
                     </span>
                     <div className="flex items-center gap-3">
                       <button
@@ -778,7 +763,7 @@ export default function BookTablePage() {
                   </div>
 
                   {/* Day of Week Labels */}
-                  <div className="grid grid-cols-7 text-center text-xs font-semibold text-stone-700">
+                  <div className="grid grid-cols-7 text-center text-xs font-bold tracking-wider text-[#9E3E26]">
                     <div>MON</div>
                     <div>TUE</div>
                     <div>WED</div>
@@ -789,24 +774,27 @@ export default function BookTablePage() {
                   </div>
 
                   {/* Date Grid */}
-                  <div className="grid grid-cols-7 gap-y-2 gap-x-1 text-center text-sm">
+                  <div className="grid grid-cols-7 gap-x-1 gap-y-2 text-center text-sm">
                     {calendarDays.map((item, index) => {
                       const isPast = item.isPast;
                       const isSelected = item.isSelected;
                       const isOtherMonth = !item.isCurrentMonth;
+                      const isClosed = !item.isOpenDay;
+                      const isDisabled = isPast || isOtherMonth || isClosed;
 
                       return (
                         <div key={index} className="flex items-center justify-center">
                           <button
                             type="button"
-                            disabled={isPast}
+                            disabled={isDisabled}
                             onClick={() => handleSelectCalendarDate(item.date, isPast)}
+                            title={isClosed ? "Closed on Tuesday and Wednesday" : undefined}
                             className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center font-medium transition-all ${
                               isSelected
-                                ? "bg-[#65C5A8] text-white font-bold shadow-xs scale-105"
-                                : isPast || isOtherMonth
+                                ? "bg-[#9E3E26] text-white font-bold shadow-xs scale-105"
+                                : isDisabled
                                 ? "text-stone-300 cursor-not-allowed"
-                                : "text-[#140E0A] hover:bg-stone-100 cursor-pointer"
+                                : "text-[#140E0A] hover:bg-[#F0EAE0] cursor-pointer"
                             }`}
                           >
                             {item.dayNumber}
@@ -818,23 +806,26 @@ export default function BookTablePage() {
                 </div>
 
                 {/* Dinner Service Card */}
-                <div className="border border-[#E4DDD3] rounded-2xl p-4 sm:p-5 bg-white shadow-2xs space-y-2">
+                <div className="space-y-3 rounded-2xl border border-[#DDD3C4] bg-[#FAF7F2] p-5 shadow-md sm:p-6">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-lg text-[#140E0A]">
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#9E3E26]">Dinner service</span>
+                      <h4 className="font-serif text-xl font-bold text-[#140E0A]">
                       Dinner
-                    </h4>
+                      </h4>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setStep(2)}
-                      className="px-5 py-2 rounded-full bg-[#140E0A] hover:bg-black text-white text-xs font-extrabold tracking-wider uppercase transition-all shadow-xs cursor-pointer active:scale-95"
+                      className="rounded-lg bg-[#140E0A] px-5 py-3 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#9E3E26]"
                     >
                       BOOK
                     </button>
                   </div>
-                  <p className="text-xs text-[#6B635B] leading-relaxed">
-                    Slot Duration: 75 minutes per reservation.
+                  <p className="text-sm leading-relaxed text-[#524942]">
+                    Thursday to Monday · 75 minutes per reservation.
                     <br />
-                    The booking amount is fully adjustable against the final food bill.
+                    ₹300 per guest is fully adjustable against the final food bill.
                   </p>
                 </div>
               </motion.div>
@@ -897,7 +888,7 @@ export default function BookTablePage() {
                       Number of Guest(s)
                     </h3>
                     <p className="text-xs text-stone-500 font-medium mt-0.5">
-                      INR 150 per guest
+                      INR 300 per guest
                     </p>
                   </div>
 
@@ -1288,7 +1279,7 @@ export default function BookTablePage() {
                       Cancellation & Refund Policy
                     </h4>
                     <p>
-                      <strong>1. Adjustable Deposit:</strong> The advance deposit of INR 150 per guest is 100% adjustable against your final food and beverage bill.
+                      <strong>1. Adjustable Deposit:</strong> The advance deposit of INR 300 per guest is 100% adjustable against your final food and beverage bill.
                     </p>
                     <p>
                       <strong>2. Non-Availability Refund:</strong> In the rare event that your table request cannot be accommodated within 48 hours, a 100% full refund is issued instantly.
@@ -1382,7 +1373,7 @@ export default function BookTablePage() {
                   </div>
                   <div className="flex justify-between items-center text-[11px] text-stone-500 pb-1 border-b border-stone-200">
                     <span>GUESTS</span>
-                    <span className="font-bold text-stone-800">{guests} Guests (₹150/person)</span>
+                    <span className="font-bold text-stone-800">{guests} Guests (₹300/person)</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-sans font-bold text-stone-700">PAYABLE AMOUNT</span>

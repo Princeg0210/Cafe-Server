@@ -30,7 +30,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO menu_categories (id, name, display_order, is_active) VALUES
   (1, 'STARTERS', 1, true),
   (2, 'PRIMO', 2, true),
-  (3, 'WOOD-FIRED NEAPOLITAN PIZZAS', 3, true),
+  (3, 'PIZZA', 3, true),
   (4, 'CAKES', 4, true),
   (5, 'BEVERAGES', 5, true),
   (6, 'HOT DRINKS', 6, true)
@@ -41,18 +41,18 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- 4. Upsert Menu Items (id 1..24)
 INSERT INTO menu_items (id, category_id, name, description, price, tax_rate, is_available, is_active, created_at) VALUES
-  (1, 1, 'FOCACCIA WITH GARLIC DIP', 'House-baked focaccia with garlic oil dip', 300.00, 5.00, true, true, NOW()),
+  (1, 1, 'FOCACCIA WITH GARLIC DIP', '', 300.00, 5.00, true, true, NOW()),
   (2, 1, 'CHEESE & MUSHROOM TARTS (2 PCS)', 'with lettuce garnish', 400.00, 5.00, true, true, NOW()),
-  (3, 2, 'CANNELLONI (CHEESE & TOMATO)', 'Cheese & tomato stuffed pasta rolls baked in Italian passata', 500.00, 5.00, true, true, NOW()),
-  (4, 3, 'MARINARA CLASSICA', 'San Marzano tomato sauce, roasted garlic, wild oregano, extra virgin olive oil', 400.00, 5.00, true, true, NOW()),
-  (5, 3, 'MARGHERITA BUFALA', 'San Marzano passata, Fior di Latte mozzarella, fresh basil leaves', 500.00, 5.00, true, true, NOW()),
-  (6, 3, 'OLIVE & CAPERS', 'San Marzano tomato base, Mediterranean olives, Sicilian capers, herb oil', 600.00, 5.00, true, true, NOW()),
-  (7, 3, 'ZUCCHINI & PORTABELLO', 'Shaved tender zucchini ribbons, earthy portobello mushrooms, garlic butter crust', 600.00, 5.00, true, true, NOW()),
-  (8, 3, 'QUATTRO STAGIONI (FOUR SEASONS)', 'Artichokes, portobello mushrooms, black olives, sweet bell peppers', 700.00, 5.00, true, true, NOW()),
-  (9, 3, 'SOPHIA LOREN GOURMET', 'Sundried tomatoes, pine nut pesto, wild rocket, Greek feta & mozzarella', 800.00, 5.00, true, true, NOW()),
-  (10, 3, 'MARIA CALLAS ARTICHOKE', 'Velvety feta cream base, artichoke hearts, sweet cherry tomatoes, pine pesto', 800.00, 5.00, true, true, NOW()),
-  (11, 3, 'ITALA BROCCOLI CREAM', 'Broccoli cream base, double mozzarella, salted capers, cherry tomatoes', 800.00, 5.00, true, true, NOW()),
-  (12, 3, 'RESIDENCY UDAIPUR', 'Feta cream, crispy green tomato fritters, pine nut pesto & wild rocket', 700.00, 5.00, true, true, NOW()),
+  (3, 2, 'CANNELLONI (CHEESE & TOMATO)', '', 500.00, 5.00, true, true, NOW()),
+  (4, 3, 'MARINARA', 'tomato sauce w/garlic, basil, oregano, capers', 400.00, 5.00, true, true, NOW()),
+  (5, 3, 'MARGHERITA', 'tomato sauce w/garlic, basil, oregano, capers', 500.00, 5.00, true, true, NOW()),
+  (6, 3, 'OLIVE CAPERS', 'tomato sauce w/garlic, basil, oregano, capers', 600.00, 5.00, true, true, NOW()),
+  (7, 3, 'ZUCCHINI MUSHROOMS', '', 600.00, 5.00, true, true, NOW()),
+  (8, 3, 'QUATRO STAGIONE', 'zucchini, mushroom, olives, red & yellow capsicum', 700.00, 5.00, true, true, NOW()),
+  (9, 3, 'SOPHIA LOREN', 'sundried tomatoes, pesto, capers, rocket, feta + mozzarella', 800.00, 5.00, true, true, NOW()),
+  (10, 3, 'MARIA CALLAS', 'feta cream base, artichoke hearts, pesto, cherry tomatoes', 800.00, 5.00, true, true, NOW()),
+  (11, 3, 'ITALA', 'mozzarella cheese base, broccoli cream, cherry tomatoes, capers', 800.00, 5.00, true, true, NOW()),
+  (12, 3, 'RESIDENCY UDAIPUR', 'feta cream base w fried green tomatoes, capers, rocket and pesto', 700.00, 5.00, true, true, NOW()),
   (13, 4, 'CLASSIC TIRAMISU', 'contains free-range eggs', 250.00, 5.00, true, true, NOW()),
   (14, 4, 'COCONUT ICE CREAM WITH BITTER ORANGE SAUCE', 'Coconut ice cream served with bitter orange sauce', 200.00, 5.00, true, true, NOW()),
   (15, 5, 'FRESH LIME SODA', 'Key lime juice, sparkling soda water, fresh garden mint', 100.00, 5.00, true, true, NOW()),

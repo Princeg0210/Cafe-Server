@@ -21,20 +21,20 @@ CATEGORIES_CONFIG = [
 
 MENU_ITEMS_CONFIG = [
     # Starters (Category 1)
-    {"id": 1, "category_id": 1, "name": "FOCACCIA WITH GARLIC DIP", "description": "House-baked focaccia with garlic oil dip", "price": Decimal("300")},
+    {"id": 1, "category_id": 1, "name": "FOCACCIA WITH GARLIC DIP", "description": "", "price": Decimal("300")},
     {"id": 2, "category_id": 1, "name": "CHEESE & MUSHROOM TARTS (2 PCS)", "description": "with lettuce garnish", "price": Decimal("400")},
     # Primo (Category 2)
-    {"id": 3, "category_id": 2, "name": "CANNELLONI (CHEESE & TOMATO)", "description": "Cheese & tomato stuffed pasta rolls baked in Italian passata", "price": Decimal("500")},
+    {"id": 3, "category_id": 2, "name": "CANNELLONI (CHEESE & TOMATO)", "description": "", "price": Decimal("500")},
     # Pizzas (Category 3)
-    {"id": 4, "category_id": 3, "name": "MARINARA CLASSICA", "description": "San Marzano tomato sauce, roasted garlic, wild oregano, extra virgin olive oil", "price": Decimal("400")},
-    {"id": 5, "category_id": 3, "name": "MARGHERITA BUFALA", "description": "San Marzano passata, Fior di Latte mozzarella, fresh basil leaves", "price": Decimal("500")},
-    {"id": 6, "category_id": 3, "name": "OLIVE & CAPERS", "description": "San Marzano tomato base, Mediterranean olives, Sicilian capers, herb oil", "price": Decimal("600")},
-    {"id": 7, "category_id": 3, "name": "ZUCCHINI & PORTABELLO", "description": "Shaved tender zucchini ribbons, earthy portobello mushrooms, garlic butter crust", "price": Decimal("600")},
-    {"id": 8, "category_id": 3, "name": "QUATTRO STAGIONI (FOUR SEASONS)", "description": "Artichokes, portobello mushrooms, black olives, sweet bell peppers", "price": Decimal("700")},
-    {"id": 9, "category_id": 3, "name": "SOPHIA LOREN GOURMET", "description": "Sundried tomatoes, pine nut pesto, wild rocket, Greek feta & mozzarella", "price": Decimal("800")},
-    {"id": 10, "category_id": 3, "name": "MARIA CALLAS ARTICHOKE", "description": "Velvety feta cream base, artichoke hearts, sweet cherry tomatoes, pine pesto", "price": Decimal("800")},
-    {"id": 11, "category_id": 3, "name": "ITALA BROCCOLI CREAM", "description": "Broccoli cream base, double mozzarella, salted capers, cherry tomatoes", "price": Decimal("800")},
-    {"id": 12, "category_id": 3, "name": "RESIDENCY UDAIPUR", "description": "Feta cream, crispy green tomato fritters, pine nut pesto & wild rocket", "price": Decimal("700")},
+    {"id": 4, "category_id": 3, "name": "MARINARA", "description": "tomato sauce w/garlic, basil, oregano, capers", "price": Decimal("400")},
+    {"id": 5, "category_id": 3, "name": "MARGHERITA", "description": "tomato sauce w/garlic, basil, oregano, capers", "price": Decimal("500")},
+    {"id": 6, "category_id": 3, "name": "OLIVE CAPERS", "description": "tomato sauce w/garlic, basil, oregano, capers", "price": Decimal("600")},
+    {"id": 7, "category_id": 3, "name": "ZUCCHINI MUSHROOMS", "description": "", "price": Decimal("600")},
+    {"id": 8, "category_id": 3, "name": "QUATRO STAGIONE", "description": "zucchini, mushroom, olives, red & yellow capsicum", "price": Decimal("700")},
+    {"id": 9, "category_id": 3, "name": "SOPHIA LOREN", "description": "sundried tomatoes, pesto, capers, rocket, feta + mozzarella", "price": Decimal("800")},
+    {"id": 10, "category_id": 3, "name": "MARIA CALLAS", "description": "feta cream base, artichoke hearts, pesto, cherry tomatoes", "price": Decimal("800")},
+    {"id": 11, "category_id": 3, "name": "ITALA", "description": "mozzarella cheese base, broccoli cream, cherry tomatoes, capers", "price": Decimal("800")},
+    {"id": 12, "category_id": 3, "name": "RESIDENCY UDAIPUR", "description": "feta cream base w fried green tomatoes, capers, rocket and pesto", "price": Decimal("700")},
     # Cakes (Category 4)
     {"id": 13, "category_id": 4, "name": "CLASSIC TIRAMISU", "description": "contains free-range eggs", "price": Decimal("250")},
     {"id": 14, "category_id": 4, "name": "COCONUT ICE CREAM WITH BITTER ORANGE SAUCE", "description": "Coconut ice cream served with bitter orange sauce", "price": Decimal("200")},

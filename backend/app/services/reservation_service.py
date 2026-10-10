@@ -1089,11 +1089,11 @@ class ReservationService:
     async def create_razorpay_order(db: AsyncSession, data: RazorpayCreateOrderRequest) -> RazorpayCreateOrderResponse:
         """
         Creates a Razorpay order in test mode or live mode.
-        Calculates deposit (e.g. ₹150/guest) and generates Razorpay Order ID.
+        Calculates the reservation deposit and generates Razorpay Order ID.
         """
         deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
         if deposit_per_guest <= 0:
-            deposit_per_guest = Decimal("150.00")
+            deposit_per_guest = Decimal("300.00")
 
         total_deposit = deposit_per_guest * Decimal(str(data.guest_count))
         amount_paise = int(total_deposit * 100)
@@ -1180,7 +1180,7 @@ class ReservationService:
 
         deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
         if deposit_per_guest <= 0:
-            deposit_per_guest = Decimal("150.00")
+            deposit_per_guest = Decimal("300.00")
         total_deposit = deposit_per_guest * Decimal(str(data.guest_count))
 
         reservation = Reservation(

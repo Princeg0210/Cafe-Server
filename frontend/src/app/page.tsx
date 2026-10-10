@@ -1,19 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Utensils, ArrowRight, Calendar, MapPin, Leaf } from "lucide-react";
+import { Calendar, Mail, MapPin, Leaf, Utensils } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import CinematicBrandIntro from "@/components/CinematicBrandIntro";
 
 export default function Home() {
+  const [isGetStartedOpen, setIsGetStartedOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans flex flex-col justify-between">
       {/* 1.35s Cinematic Brand Opening Sequence */}
       <CinematicBrandIntro />
 
       {/* Editorial Navbar with Left-Aligned Links */}
-      <Navbar />
+      <Navbar showNavigation={false} />
 
       {/* Single-Screen Fine Dining Hero Screen */}
       <header className="relative flex-1 min-h-[calc(100vh-5.5rem)] flex items-center justify-start overflow-hidden mx-3 md:mx-6 my-3 rounded-2xl shadow-2xl border border-[#3A281E]/60 bg-[#120D0A]">
@@ -60,8 +63,8 @@ export default function Home() {
             transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
             className="text-4xl sm:text-6xl md:text-7xl font-serif font-bold text-white tracking-tight uppercase leading-[1.06] drop-shadow-2xl"
           >
-            <span className="text-white block font-bold drop-shadow-2xl">JAADOO GOURMET</span>
-            <span className="font-extrabold text-[#FBF9F5] drop-shadow-lg">WOOD-FIRED PIZZERIA</span>
+            <span className="text-white block font-bold drop-shadow-2xl">JAADOO</span>
+            <span className="font-extrabold text-[#FBF9F5] drop-shadow-lg">PIZZA PROJECT</span>
           </motion.h1>
 
           {/* Refined High-Contrast Subtitle (Clean & Highly Legible) */}
@@ -117,21 +120,46 @@ export default function Home() {
             className="mt-8 flex flex-wrap items-center gap-4"
           >
             <Link
-              href="/menu"
-              className="inline-flex items-center gap-2.5 border-2 border-[#E8AA62] bg-black/60 hover:bg-[#E8AA62] text-white hover:text-[#120D0A] px-8 py-3.5 rounded-xl font-sans text-xs sm:text-sm font-bold tracking-[0.2em] uppercase transition-all duration-300 backdrop-blur-md shadow-xl active:scale-95"
-            >
-              <Utensils className="w-4 h-4" />
-              <span>EXPLORE MENU</span>
-              <ArrowRight className="w-4 h-4 ml-1" />
-            </Link>
-
-            <Link
               href="/book-table"
               className="inline-flex items-center gap-2.5 bg-[#C88A48] hover:bg-[#DE9B52] text-[#120D0A] px-8 py-3.5 rounded-xl font-sans text-xs sm:text-sm font-extrabold tracking-[0.2em] uppercase transition-all duration-300 shadow-2xl active:scale-95"
             >
               <Calendar className="w-4 h-4" />
               <span>BOOK A TABLE</span>
             </Link>
+
+            <button
+              type="button"
+              aria-expanded={isGetStartedOpen}
+              aria-controls="get-started-links"
+              onClick={() => setIsGetStartedOpen((isOpen) => !isOpen)}
+              className="inline-flex items-center gap-2.5 border border-[#E8AA62]/70 bg-black/40 hover:bg-[#E8AA62] text-white hover:text-[#120D0A] px-6 py-3.5 rounded-xl font-sans text-xs sm:text-sm font-bold tracking-[0.16em] uppercase transition-all duration-300 backdrop-blur-md shadow-xl active:scale-95"
+            >
+              Get started
+            </button>
+
+            {isGetStartedOpen && (
+              <motion.nav
+                id="get-started-links"
+                aria-label="Get started links"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="basis-full grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 max-w-2xl"
+              >
+                <Link href="/menu" className="group rounded-xl border border-white/20 bg-black/40 hover:border-[#E8AA62] hover:bg-black/55 px-4 py-3 transition-colors">
+                  <Utensils className="w-4 h-4 text-[#E8AA62] mb-3" />
+                  <span className="block font-serif text-lg font-bold text-white">Menu</span>
+                </Link>
+                <Link href="/location" className="group rounded-xl border border-white/20 bg-black/40 hover:border-[#E8AA62] hover:bg-black/55 px-4 py-3 transition-colors">
+                  <MapPin className="w-4 h-4 text-[#E8AA62] mb-3" />
+                  <span className="block font-serif text-lg font-bold text-white">Location</span>
+                </Link>
+                <Link href="/contact" className="group rounded-xl border border-white/20 bg-black/40 hover:border-[#E8AA62] hover:bg-black/55 px-4 py-3 transition-colors">
+                  <Mail className="w-4 h-4 text-[#E8AA62] mb-3" />
+                  <span className="block font-serif text-lg font-bold text-white">Contact us</span>
+                </Link>
+              </motion.nav>
+            )}
           </motion.div>
         </div>
       </header>

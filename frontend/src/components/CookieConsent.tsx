@@ -1,31 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ShieldCheck, X } from "lucide-react";
 
-export default function CookieConsent() {
-  const [showBanner, setShowBanner] = useState(false);
+const CONSENT_KEY = "jaadoo_cookie_consent";
 
-  useEffect(() => {
-    try {
-      const consent = localStorage.getItem("jaadoo_cookie_consent");
-      if (!consent) {
-        setShowBanner(true);
-      }
-    } catch {
-      // Ignore localStorage access errors
-    }
-  }, []);
+function subscribeToConsent(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+
+function hasConsent() {
+  try {
+    return Boolean(localStorage.getItem(CONSENT_KEY));
+  } catch {
+    return false;
+  }
+}
+
+export default function CookieConsent() {
+  const pathname = usePathname();
+  const [isDismissed, setIsDismissed] = useState(false);
+  const hasStoredConsent = useSyncExternalStore(subscribeToConsent, hasConsent, () => false);
 
   const handleAccept = () => {
     try {
-      localStorage.setItem("jaadoo_cookie_consent", "accepted");
+      localStorage.setItem(CONSENT_KEY, "accepted");
     } catch {}
-    setShowBanner(false);
+    setIsDismissed(true);
   };
 
-  if (!showBanner) return null;
+  if (pathname !== "/" || hasStoredConsent || isDismissed) return null;
 
   return (
     <aside
@@ -58,7 +65,7 @@ export default function CookieConsent() {
               Got It
             </button>
             <button
-              onClick={() => setShowBanner(false)}
+              onClick={() => setIsDismissed(true)}
               className="text-stone-400 hover:text-stone-200 text-[11px] px-2 py-1 transition-colors"
             >
               Dismiss
@@ -66,7 +73,7 @@ export default function CookieConsent() {
           </div>
         </div>
         <button
-          onClick={() => setShowBanner(false)}
+          onClick={() => setIsDismissed(true)}
           className="text-stone-400 hover:text-stone-200 p-1 shrink-0 -mt-1 -mr-1"
           aria-label="Close Notice"
         >

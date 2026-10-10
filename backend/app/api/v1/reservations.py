@@ -339,7 +339,7 @@ async def get_razorpay_config(db: AsyncSession = Depends(get_db)):
     """
     deposit = await SettingsService.get_deposit_per_guest(db)
     if deposit <= 0:
-        deposit = 150.0
+        deposit = 300.0
     return {
         "key_id": settings.RAZORPAY_KEY_ID,
         "is_test_mode": settings.RAZORPAY_TEST_MODE,

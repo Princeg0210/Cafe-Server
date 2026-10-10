@@ -8,9 +8,10 @@ interface NavbarProps {
   cartCount?: number;
   onOpenCart?: () => void;
   tableNumber?: string;
+  showNavigation?: boolean;
 }
 
-export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarProps) {
+export default function Navbar({ cartCount, onOpenCart, tableNumber, showNavigation = true }: NavbarProps) {
   const pathname = usePathname();
 
   const navLinks = [
@@ -23,7 +24,7 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
 
   return (
     <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0]/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 sm:h-22 flex items-center justify-between gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 sm:h-22 relative flex items-center justify-center">
         
         {/* Left Side: Brand Logo + Typographic Navigation */}
         <div className="flex items-center gap-6 lg:gap-10 min-w-0">
@@ -47,7 +48,7 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
           </Link>
 
           {/* Desktop Typographic Navigation (Left-Aligned next to Logo) */}
-          <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+          {showNavigation && <nav className="hidden md:flex items-center gap-6 lg:gap-8">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (
@@ -67,11 +68,11 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
                 </Link>
               );
             })}
-          </nav>
+          </nav>}
         </div>
 
         {/* Right Actions: Table Badge + Cart / Bill */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="absolute right-4 sm:right-6 flex items-center gap-3 shrink-0">
           {tableNumber && (
             <div className="px-3 py-1 rounded-md bg-[#1B3618]/10 border border-[#1B3618]/25 text-[#1B3618] text-[11px] font-mono font-bold tracking-wider uppercase">
               {tableNumber}
@@ -97,7 +98,7 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
       </div>
 
       {/* Mobile Navigation */}
-      <div className="md:hidden flex items-center justify-start gap-6 bg-[#FAF7F2] border-t border-[#DDD3C4] px-5 py-2.5 overflow-x-auto no-scrollbar">
+      {showNavigation && <div className="md:hidden flex items-center justify-center gap-6 bg-[#FAF7F2] border-t border-[#DDD3C4] px-5 py-2.5 overflow-x-auto no-scrollbar">
         {navLinks.map((link) => {
           const isActive = pathname === link.href;
           return (
@@ -114,7 +115,7 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber }: NavbarPro
             </Link>
           );
         })}
-      </div>
+      </div>}
     </header>
   );
 }
