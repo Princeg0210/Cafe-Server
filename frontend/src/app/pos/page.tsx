@@ -2449,20 +2449,6 @@ export default function POSDashboard() {
                     <span>+ Walk-in Guest</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const firstOcc = tableOverviews.find((t) => t.status === "Occupied" || (t.sessions && t.sessions.some((s) => s.is_active)));
-                      const firstAvail = tableOverviews.find((t) => t.status === "Available" || t.table_id !== firstOcc?.table_id);
-                      setMergeSourceTableId(firstOcc ? firstOcc.table_id : (tableOverviews[0]?.table_id || 1));
-                      setMergeTargetTableId(firstAvail ? firstAvail.table_id : (tableOverviews[1]?.table_id || 2));
-                      setIsMergeModalOpen(true);
-                    }}
-                    className="px-2.5 py-1.5 rounded-md bg-[#F6F3EC] hover:bg-[#EAE4D6] text-[#261C18] border border-[#E4DCD0] text-xs font-semibold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
-                  >
-                    <Layers className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Merge Tables</span>
-                  </button>
                 </div>
               </div>
 

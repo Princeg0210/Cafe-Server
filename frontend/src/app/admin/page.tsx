@@ -3625,15 +3625,17 @@ export default function AdminPortal() {
                               .card { background: #fff; padding: 24px; border-radius: 16px; border: 2px solid #E2D6C5; max-width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
                               h1 { margin: 0 0 4px 0; font-size: 26px; font-weight: 800; }
                               p { color: #B85B43; font-size: 13px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 16px 0; }
-                              img { width: 280px; height: 280px; border-radius: 12px; }
+                              .logo { width: 150px; height: 86px; object-fit: cover; border-radius: 12px; margin-bottom: 10px; border: 2px solid #E2D6C5; }
+                              .qr { width: 280px; height: 280px; border-radius: 12px; }
                               .foot { margin-top: 16px; font-size: 11px; color: #776; font-weight: 500; }
                             </style>
                           </head>
                           <body onload="window.print()">
                             <div class="card">
+                              <img class="logo" src="${window.location.origin}/jaadoo_logo.jpg" alt="Jaadoo Pizza Project logo" />
                               <p>JAADOO PIZZA PROJECT</p>
                               <h1>Ground floor</h1>
-                              <img src="${qrModalTable.qrDataUrl}" />
+                              <img class="qr" src="${qrModalTable.qrDataUrl}" alt="Table QR code" />
                               <div class="foot">Scan to Order • 32 Sitaphal ki gali, Ganesh Ghati, Udaipur</div>
                             </div>
                           </body>
