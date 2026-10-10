@@ -296,6 +296,12 @@ export default function POSDashboard() {
   const [pendingReviews, setPendingReviews] = useState<PendingPaymentReview[]>([]);
   const [assigningTableRes, setAssigningTableRes] = useState<Reservation | null>(null);
   const [selectedAssignTableId, setSelectedAssignTableId] = useState<number>(1);
+  const [verifiedResIds, setVerifiedResIds] = useState<Record<number, boolean>>({});
+
+  const handleVerifyReservation = (resId: number) => {
+    setVerifiedResIds((prev) => ({ ...prev, [resId]: true }));
+    setLastNotification(`Reservation #RES-${String(resId).padStart(4, "0")} verified. Customer details masked for POS privacy.`);
+  };
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -875,8 +881,7 @@ export default function POSDashboard() {
       </head>
       <body>
         <div class="text-center">
-          <div class="title">JAADOO TRATTORIA</div>
-          <div class="subtitle">Woodfired Pizza & Artisanal Italian</div>
+          <div class="title">JAADOO Pizza Project</div>
           <div class="subtitle">32 Sitaphal ki gali, Udaipur</div>
           <div class="subtitle">GSTIN: 08AAACJ1234F1Z5</div>
         </div>
@@ -895,7 +900,7 @@ export default function POSDashboard() {
           <span>Time: ${receiptTime}</span>
           <span>Staff: ${staffUser?.username || "Cashier"}</span>
         </div>
-        ${session.customer_name ? `<div class="row"><span>Guest: ${session.customer_name}</span></div>` : ""}
+        ${session.reservation_id ? `<div class="row"><span>Guest ID: RES-${String(session.reservation_id).padStart(4, "0")}</span></div>` : `<div class="row"><span>Guest ID: GUEST-${session.session_seq || session.session_id}</span></div>`}
 
         <div class="divider"></div>
 
@@ -951,7 +956,7 @@ export default function POSDashboard() {
         <div class="footer">
           <div>*** CUSTOMER INVOICE ***</div>
           <div style="margin-top: 4px;">Thank you for dining with us!</div>
-          <div>Please visit Jaadoo Trattoria again.</div>
+          <div>Please visit Jaadoo Pizza Project again.</div>
         </div>
 
         <script>
@@ -1402,10 +1407,33 @@ export default function POSDashboard() {
   const openKotsCount = kots.filter((k) => k.status !== "COMPLETED").length;
   const totalSalesToday = kots.reduce((sum, k) => sum + (Number(k.total_amount) || 0), 0);
 
+  // Unsettled Sessions > 21 mins rule
+  const unsettledLongSessions: Array<{
+    table: TableOverview;
+    session: TableSession;
+    minutesOpen: number;
+  }> = [];
+
+  tableOverviews.forEach((tbl) => {
+    (tbl.sessions || []).forEach((sess) => {
+      if (sess.is_active && !sess.is_settled && sess.opened_at) {
+        const openTime = new Date(sess.opened_at).getTime();
+        const mins = Math.floor((Date.now() - openTime) / (1000 * 60));
+        if (mins >= 21) {
+          unsettledLongSessions.push({
+            table: tbl,
+            session: sess,
+            minutesOpen: mins,
+          });
+        }
+      }
+    });
+  });
+
   // Needs Attention Items from existing data
   const failedKots = kots.filter((k) => k.printed_status === "FAILED");
   const arrivedUnseatedRes = reservations.filter((r) => r.status.toUpperCase() === "ARRIVED");
-  const needsAttentionCount = failedKots.length + pendingReviews.length + arrivedUnseatedRes.length;
+  const needsAttentionCount = failedKots.length + pendingReviews.length + arrivedUnseatedRes.length + unsettledLongSessions.length;
 
   // 1. Initial Checking Screen
   if (isAuthChecking) {
@@ -1906,7 +1934,7 @@ export default function POSDashboard() {
               {arrivedUnseatedRes.map((res) => (
                 <div key={res.id} className="bg-white p-3 rounded-md border border-amber-200 text-xs flex items-center justify-between gap-2 shadow-2xs">
                   <div>
-                    <span className="font-bold text-stone-900">{res.customer?.name || "Guest"}</span>
+                    <span className="font-bold text-stone-900">#RES-{String(res.id).padStart(4, "0")}</span>
                     <span className="text-stone-500 ml-1.5">• {res.guest_count} Guests</span>
                     <p className="text-[11px] text-amber-800 font-medium mt-0.5">Arrived • Waiting for seating</p>
                   </div>
@@ -1922,9 +1950,115 @@ export default function POSDashboard() {
                   </button>
                 </div>
               ))}
+
+              {/* 21+ Minute Unsettled Active Tables */}
+              {unsettledLongSessions.map(({ table, session, minutesOpen }) => {
+                const tblFloor = getTableFloor(table.table_id);
+                return (
+                  <div key={`unsettled-${session.session_id}`} className="bg-white p-3 rounded-md border border-rose-300 text-xs flex items-center justify-between gap-2 shadow-2xs">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-rose-900">Table {tblFloor.floor_table_num} ({tblFloor.short})</span>
+                        <span className="bg-rose-100 text-rose-800 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                          {minutesOpen} mins open
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-600 font-medium mt-0.5">
+                        Session #{session.session_seq} unsettled (&gt;21 min limit) • ₹{Number(session.total_amount || 0).toFixed(0)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBillSettleSession(session);
+                        setBillSettleTableInfo({
+                          tableNumber: String(tblFloor.floor_table_num),
+                          floorName: tblFloor.name,
+                          tableId: table.table_id,
+                        });
+                      }}
+                      className="px-2.5 py-1.5 rounded-md bg-[#261C18] hover:bg-[#B85B43] text-white font-semibold text-[11px] uppercase tracking-wider transition-colors cursor-pointer shrink-0"
+                    >
+                      Review &amp; Settle
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
+
+        {/* RESERVATION VERIFICATION & PRIVACY SECTION (Between Capacity & Active Tables) */}
+        <section className="bg-white border border-[#E4DCD0] p-4 rounded-lg space-y-3 shadow-2xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[#E4DCD0] pb-2.5">
+            <div className="flex items-center gap-2 text-[#261C18]">
+              <ShieldCheck className="w-4 h-4 text-[#B85B43]" />
+              <h3 className="font-serif font-bold text-sm tracking-tight">
+                Incoming Reservations Verification &amp; Privacy
+              </h3>
+              <span className="text-[10px] font-sans bg-[#FAF7F0] border border-[#E4DCD0] text-stone-600 px-2 py-0.5 rounded font-medium">
+                POS Privacy Guard
+              </span>
+            </div>
+            <span className="text-[11px] text-stone-500 font-sans">
+              Verify incoming bookings to mask customer identity in POS • Full details in Admin CRM
+            </span>
+          </div>
+
+          {reservations.filter((r) => r.status.toUpperCase() === "CONFIRMED" || r.status.toUpperCase() === "ARRIVED").length === 0 ? (
+            <p className="text-xs text-stone-500 italic">No incoming reservations pending verification today.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {reservations
+                .filter((r) => r.status.toUpperCase() === "CONFIRMED" || r.status.toUpperCase() === "ARRIVED")
+                .slice(0, 6)
+                .map((res) => {
+                  const isVerified = Boolean(verifiedResIds[res.id]);
+                  const resFl = res.floor_number ? getFloorName(res.floor_number) : getTableFloor(res.table_id || 1).name;
+                  return (
+                    <div
+                      key={res.id}
+                      className={`p-3 rounded-md border text-xs flex items-center justify-between gap-2 transition-all ${
+                        isVerified
+                          ? "bg-emerald-50/50 border-emerald-200 text-stone-800"
+                          : "bg-[#FAF8F5] border-[#E4DCD0] text-[#261C18]"
+                      }`}
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-bold text-[#261C18]">
+                            #RES-{String(res.id).padStart(4, "0")}
+                          </span>
+                          <span className="text-stone-500 font-medium">
+                            • {res.guest_count} Guests
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-stone-600">
+                          {res.time_slot} • {resFl} {res.table_name ? `• ${res.table_name}` : ""}
+                        </div>
+                        <div className="text-[10px] text-stone-400">
+                          Customer: {isVerified ? "🔒 Masked / Verified" : "Pending Verification"}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleVerifyReservation(res.id)}
+                        disabled={isVerified}
+                        className={`px-3 py-1.5 rounded-md text-[11px] font-semibold uppercase tracking-wider transition-all shrink-0 ${
+                          isVerified
+                            ? "bg-emerald-700 text-white cursor-default"
+                            : "bg-[#261C18] hover:bg-[#B85B43] text-white shadow-2xs cursor-pointer"
+                        }`}
+                      >
+                        {isVerified ? "✓ Verified" : "Verify"}
+                      </button>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </section>
 
         {/* ================= TAB 1: ACTIVE TABLES (PRIMARY OPERATIONAL SECTION) ================= */}
         {activeTab === "tables" && (
@@ -2211,7 +2345,7 @@ export default function POSDashboard() {
                                   <div className="flex items-center justify-between">
                                     <span className="font-bold text-[#9E3E26] flex items-center gap-1 uppercase tracking-wider text-[10px]">
                                       <UserCheck className="w-3.5 h-3.5 text-[#9E3E26]" />
-                                      Reserved Guest
+                                      #RES-{String(bookedReservation.id).padStart(4, "0")}
                                     </span>
                                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${bookedReservation.status === "SEATED"
                                         ? "bg-emerald-100 text-emerald-800"
@@ -2223,7 +2357,9 @@ export default function POSDashboard() {
                                     </span>
                                   </div>
                                   <div className="flex items-center justify-between text-stone-900 font-semibold text-xs">
-                                    <span className="truncate">{bookedReservation.customer?.name || "Guest"}</span>
+                                    <span className="truncate">
+                                      {verifiedResIds[bookedReservation.id] ? "Guest (Verified)" : "Reserved Guest"}
+                                    </span>
                                     <span className="text-[11px] font-mono text-stone-600 shrink-0 ml-1">
                                       {bookedReservation.time_slot} ({bookedReservation.guest_count}p)
                                     </span>
@@ -2749,15 +2885,30 @@ export default function POSDashboard() {
                           </span>
                         </div>
 
-                        {/* Guest details */}
+                        {/* Guest details - POS Privacy Protection (Admin retains full CRM records) */}
                         <div className="text-xs space-y-1.5 text-stone-700">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm text-[#261C18]">{cust?.name || "Guest"}</span>
+                            <span className="font-bold text-sm text-[#261C18]">
+                              {verifiedResIds[res.id] ? "Guest (Verified)" : "Guest"}
+                            </span>
                             <span className="text-stone-500 font-semibold">{res.guest_count} Guests</span>
                           </div>
 
-                          <div className="text-stone-500 text-[11px]">
-                            {cust?.phone || "No phone"}
+                          <div className="flex items-center justify-between text-[11px] text-stone-400">
+                            <span>ID: #RES-{String(res.id).padStart(4, "0")}</span>
+                            {verifiedResIds[res.id] ? (
+                              <span className="text-emerald-700 font-medium text-[10px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                ✓ Masked &amp; Verified
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleVerifyReservation(res.id)}
+                                className="text-[#B85B43] hover:underline font-medium text-[10px] cursor-pointer"
+                              >
+                                Verify &amp; Mask
+                              </button>
+                            )}
                           </div>
 
                           {res.advance_amount !== undefined && Number(res.advance_amount) > 0 && (
