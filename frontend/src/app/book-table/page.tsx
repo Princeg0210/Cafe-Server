@@ -570,7 +570,7 @@ export default function BookTablePage() {
                 </p>
                 <p>Choose an available date and dinner slot from the calendar.</p>
                 <p>Your request is confirmed automatically when a matching table is available. If the selected date, time, or table is unavailable, your payment is refunded.</p>
-                <p>The ₹250 per guest advance is fully adjustable against your food and beverage bill. If you cancel or the booking cannot be fulfilled, ₹56 is retained as the cancellation charge and the balance is refunded.</p>
+                <p>The ₹250 per guest advance is fully adjustable against your food and beverage bill. If you cancel the booking, ₹56 will be retained as a cancellation charge and the remaining balance will be refunded.</p>
               </div>
 
               <button
