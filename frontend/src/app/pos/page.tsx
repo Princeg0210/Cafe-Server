@@ -1769,11 +1769,14 @@ export default function POSDashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
 
-        {/* 2. SUMMARY METRICS */}
-        <section className="space-y-3">
+        {/* ================= TAB 1: ACTIVE TABLES (PRIMARY OPERATIONAL SECTION) ================= */}
+        {activeTab === "tables" && (
+          <>
+            {/* 2. SUMMARY METRICS */}
+            <section className="space-y-3">
 
-          {/* 3 Primary Summary Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* 4 Primary Summary Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
 
             {/* Metric 1: Active Tables */}
             <div className="bg-white p-4 rounded-lg border border-[#E4DCD0] shadow-2xs">
@@ -1799,7 +1802,18 @@ export default function POSDashboard() {
               </div>
             </div>
 
-            {/* Metric 3: Needs Attention (Clickable to toggle action items) */}
+            {/* Metric 3: Today's Sales */}
+            <div className="bg-white p-4 rounded-lg border border-[#E4DCD0] shadow-2xs">
+              <div className="text-[11px] font-sans uppercase tracking-wider font-semibold text-stone-500 flex items-center justify-between">
+                <span>TODAY&apos;S SALES</span>
+                <TrendingUp className="w-3.5 h-3.5 text-[#4A5842]" />
+              </div>
+              <div className="text-2xl font-bold font-sans text-[#261C18] mt-1.5">
+                ₹{totalSalesToday.toLocaleString("en-IN")}
+              </div>
+            </div>
+
+            {/* Metric 4: Needs Attention (Clickable to toggle action items) */}
             <div
               onClick={() => {
                 if (needsAttentionCount > 0) {
@@ -2012,10 +2026,17 @@ export default function POSDashboard() {
                   className="bg-amber-600 transition-all duration-300"
                   title="Allocated / Used"
                 />
+                <div
+                  style={{
+                    width: `${Math.min(100, ((doughCapacity.total_active_protected) / (doughCapacity.total_dough_limit || 1)) * 100)}%`,
+                  }}
+                  className="bg-blue-600 transition-all duration-300"
+                  title="Protected for Reservations"
+                />
               </div>
 
               {/* Breakdown metrics */}
-              <div className="grid grid-cols-2 gap-2 text-xs font-sans pt-1">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-sans pt-1">
                 {/* 1. Total Dough Limit */}
                 <div className="bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
                   <div className="text-[10px] text-stone-500 uppercase font-semibold">Total Dough Limit</div>
@@ -2024,7 +2045,26 @@ export default function POSDashboard() {
                   </div>
                 </div>
 
-                {/* 2. Allocated Used */}
+                {/* 2. Protected (Res.) */}
+                <div className="bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
+                  <div className="text-[10px] text-blue-800 uppercase font-semibold">Protected (Res.)</div>
+                  <div className="font-bold text-blue-900 text-sm mt-0.5">
+                    {doughCapacity.total_active_protected}
+                  </div>
+                </div>
+
+                {/* 3. Walk-In Available */}
+                <div className={`p-2 rounded-md border ${(doughCapacity.walk_in_available ?? 0) > 0
+                  ? "bg-emerald-50/50 border-emerald-200 text-emerald-900"
+                  : "bg-red-50/50 border-red-200 text-red-900"
+                  }`}>
+                  <div className="text-[10px] uppercase font-semibold opacity-80">Walk-In Available</div>
+                  <div className="font-bold text-sm mt-0.5">
+                    {doughCapacity.walk_in_available ?? 0}
+                  </div>
+                </div>
+
+                {/* 4. Allocated Used */}
                 <div className="bg-[#FAF8F5] p-2 rounded-md border border-[#E4DCD0]/60">
                   <div className="text-[10px] text-stone-500 uppercase font-semibold">Allocated Used</div>
                   <div className="font-bold text-[#261C18] text-sm mt-0.5">
@@ -2226,9 +2266,8 @@ export default function POSDashboard() {
           })()}
         </section>
 
-        {/* ================= TAB 1: ACTIVE TABLES (PRIMARY OPERATIONAL SECTION) ================= */}
-        {activeTab === "tables" && (
-          <section className="space-y-4">
+        {/* Table Operations Section */}
+        <section className="space-y-4">
 
             {/* Table Controls Bar */}
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 bg-white p-3.5 rounded-lg border border-[#E4DCD0]">
@@ -2760,6 +2799,7 @@ export default function POSDashboard() {
               </div>
             )}
           </section>
+          </>
         )}
 
         {/* ================= TAB 2: LIVE KOT TICKETS ================= */}
