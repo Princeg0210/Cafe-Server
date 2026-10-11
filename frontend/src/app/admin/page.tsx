@@ -2901,16 +2901,16 @@ export default function AdminPortal() {
             (r) => (!rawLowOnly || isLow(r)) && (!q || r.name.toLowerCase().includes(q) || r.sku.toLowerCase().includes(q))
           );
           return (
-            <div className="space-y-6">
+            <div className="space-y-6 font-sans">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-sans font-bold text-[#241A14]">Raw Material Inventory</h2>
-                    <Badge variant="default" className="text-[10px]">
+                  <div className="flex items-center gap-2.5">
+                    <h2 className="text-xl font-sans font-bold text-stone-950 tracking-tight">Raw Material Inventory</h2>
+                    <Badge variant="default" className="text-xs font-semibold px-2.5 py-0.5 bg-stone-900 text-stone-50">
                       {rawItems.length} Materials • {lowCount} Low Stock
                     </Badge>
                   </div>
-                  <p className="text-xs text-[#7A6A5E] mt-1">
+                  <p className="text-sm font-sans text-stone-600 mt-1 font-medium">
                     Track kitchen and bar raw materials. Record purchases, wastage and stock counts to keep levels accurate.
                   </p>
                 </div>
@@ -2918,15 +2918,17 @@ export default function AdminPortal() {
                   <Button
                     variant="secondary"
                     onClick={() => setBillScan({ stage: "pick", supplier: "", billNumber: "", billDate: "", grandTotal: null, lines: [] })}
+                    className="font-sans font-semibold text-xs h-9 px-3.5"
                   >
-                    <ScanLine className="w-4 h-4 text-[#B85B43]" />
+                    <ScanLine className="w-4 h-4 text-[#B85B43] mr-1.5" />
                     <span>Scan Bill</span>
                   </Button>
                   <Button
                     variant="default"
                     onClick={() => setNewRaw({ name: "", sku: "", unit: "kg", stock: "", reorder: "" })}
+                    className="font-sans font-semibold text-xs h-9 px-3.5"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4 mr-1.5" />
                     <span>Add Raw Material</span>
                   </Button>
                 </div>
@@ -2934,24 +2936,24 @@ export default function AdminPortal() {
 
               <Card className="p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
                 <div className="relative min-w-[240px] flex-1">
-                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-500" />
                   <Input
                     type="text"
                     value={rawSearch}
                     onChange={(e) => setRawSearch(e.target.value)}
                     placeholder="Search material name or SKU..."
                     aria-label="Search raw materials"
-                    className="pl-10"
+                    className="pl-10 text-sm font-sans font-medium text-stone-900 placeholder:text-stone-400"
                   />
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   {([false, true] as const).map((low) => (
                     <Button
                       key={String(low)}
                       variant={rawLowOnly === low ? "default" : "secondary"}
                       size="sm"
                       onClick={() => setRawLowOnly(low)}
-                      className="text-xs h-8"
+                      className="text-xs font-sans font-semibold h-9 px-3.5"
                     >
                       {low ? `Low Stock (${lowCount})` : `All (${rawItems.length})`}
                     </Button>
@@ -2959,23 +2961,24 @@ export default function AdminPortal() {
                 </div>
               </Card>
 
-              <Card className="overflow-hidden shadow-xs">
+              <Card className="overflow-hidden shadow-xs border border-stone-200">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-stone-100/90 border-b border-stone-200">
                     <TableRow>
-                      <TableHead>Material</TableHead>
-                      <TableHead>In Stock</TableHead>
-                      <TableHead>Reorder At</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="font-sans font-bold text-xs uppercase tracking-wider text-stone-900 py-3.5">Material</TableHead>
+                      <TableHead className="font-sans font-bold text-xs uppercase tracking-wider text-stone-900 py-3.5">In Stock</TableHead>
+                      <TableHead className="font-sans font-bold text-xs uppercase tracking-wider text-stone-900 py-3.5">Reorder At</TableHead>
+                      <TableHead className="font-sans font-bold text-xs uppercase tracking-wider text-stone-900 py-3.5">Status</TableHead>
+                      <TableHead className="font-sans font-bold text-xs uppercase tracking-wider text-stone-900 py-3.5 text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {shown.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-12 text-[#8C7A6D]">
-                          <Package className="w-8 h-8 mx-auto mb-2 opacity-40 text-[#B85B43]" />
-                          <p className="font-semibold text-sm text-[#4A392F]">No raw materials found</p>
+                        <TableCell colSpan={5} className="text-center py-12 text-stone-500">
+                          <Package className="w-9 h-9 mx-auto mb-2 opacity-50 text-[#B85B43]" />
+                          <p className="font-sans font-bold text-base text-stone-800">No raw materials found</p>
+                          <p className="font-sans text-xs text-stone-500 mt-1">Try adjusting your search query or filter.</p>
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -2983,18 +2986,18 @@ export default function AdminPortal() {
                         const stock = Number(r.current_stock);
                         const status = stock <= 0 ? "Out of Stock" : isLow(r) ? "Low Stock" : "In Stock";
                         return (
-                          <TableRow key={r.id}>
-                            <TableCell>
-                              <div className="font-bold text-[#241A14]">{r.name}</div>
-                              <div className="text-[10px] font-mono text-[#8C7A6D]">{r.sku}</div>
+                          <TableRow key={r.id} className="hover:bg-amber-50/40 transition-colors">
+                            <TableCell className="py-3.5">
+                              <div className="font-sans font-bold text-stone-950 text-sm tracking-tight">{r.name}</div>
+                              <div className="text-xs font-mono font-medium text-stone-600 tracking-wider mt-0.5">{r.sku}</div>
                             </TableCell>
-                            <TableCell className="font-extrabold text-[#241A14] text-sm">
-                              {qtyFmt(r.current_stock)} <span className="text-[11px] font-semibold text-[#7A6A5E]">{r.unit_of_measure}</span>
+                            <TableCell className="py-3.5 font-sans font-extrabold text-stone-950 text-base">
+                              {qtyFmt(r.current_stock)} <span className="text-xs font-semibold text-stone-600 font-sans">{r.unit_of_measure}</span>
                             </TableCell>
-                            <TableCell className="text-[#665448]">
-                              {qtyFmt(r.reorder_threshold)} {r.unit_of_measure}
+                            <TableCell className="py-3.5 font-sans font-semibold text-stone-800 text-sm">
+                              {qtyFmt(r.reorder_threshold)} <span className="text-xs text-stone-500 font-medium font-sans">{r.unit_of_measure}</span>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="py-3.5">
                               <Badge
                                 variant={
                                   status === "In Stock"
@@ -3003,18 +3006,19 @@ export default function AdminPortal() {
                                       ? "warning"
                                       : "destructive"
                                 }
+                                className="font-sans font-bold text-xs px-2.5 py-0.5 tracking-wide"
                               >
                                 {status}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="py-3.5 text-right">
                               <Button
                                 variant="secondary"
                                 size="sm"
                                 onClick={() => setStockUpdate({ item: r, mode: "PURCHASE", qty: "", ref: "" })}
-                                className="text-xs h-7 px-2.5"
+                                className="font-sans font-semibold text-xs h-8 px-3 text-stone-900 border-stone-300 hover:bg-stone-100"
                               >
-                                <Edit3 className="w-3.5 h-3.5 text-[#B85B43] mr-1" />
+                                <Edit3 className="w-3.5 h-3.5 text-[#B85B43] mr-1.5" />
                                 <span>Update Stock</span>
                               </Button>
                             </TableCell>
@@ -3032,20 +3036,20 @@ export default function AdminPortal() {
         {/* Update Stock Modal */}
         {stockUpdate && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-xs">
+            <div className="bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 font-sans text-sm">
               <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-3">
                 <div>
-                  <h3 className="text-lg font-sans font-extrabold text-[#241A14]">Update Stock: {stockUpdate.item.name}</h3>
-                  <p className="text-[#7A6A5E] mt-0.5">
-                    Current: {Number(stockUpdate.item.current_stock).toLocaleString("en-IN", { maximumFractionDigits: 3 })} {stockUpdate.item.unit_of_measure}
+                  <h3 className="text-lg font-sans font-extrabold text-stone-950">Update Stock: {stockUpdate.item.name}</h3>
+                  <p className="text-stone-600 font-medium text-xs mt-0.5">
+                    Current: <span className="font-bold text-stone-900">{Number(stockUpdate.item.current_stock).toLocaleString("en-IN", { maximumFractionDigits: 3 })}</span> {stockUpdate.item.unit_of_measure}
                   </p>
                 </div>
-                <button type="button" onClick={() => setStockUpdate(null)} aria-label="Close" className="p-1 rounded-lg text-[#8C7A6D] hover:text-[#241A14] hover:bg-[#F3EDE2] cursor-pointer">
+                <button type="button" onClick={() => setStockUpdate(null)} aria-label="Close" className="p-1 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-[#F3EDE2] cursor-pointer">
                   <XCircle className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-3 gap-2">
                 {([
                   ["PURCHASE", "Add (Purchase)"],
                   ["WASTE", "Remove (Waste)"],
@@ -3055,7 +3059,7 @@ export default function AdminPortal() {
                     key={mode}
                     type="button"
                     onClick={() => setStockUpdate({ ...stockUpdate, mode })}
-                    className={`py-2 rounded-xl font-bold cursor-pointer border ${stockUpdate.mode === mode ? "bg-[#261C18] text-white border-[#261C18]" : "bg-[#FAF7F0] text-[#665448] border-[#E0D4C2]"
+                    className={`py-2 px-1 rounded-xl font-bold text-xs cursor-pointer border transition-all ${stockUpdate.mode === mode ? "bg-[#261C18] text-white border-[#261C18]" : "bg-[#FAF7F0] text-stone-700 border-[#E0D4C2] hover:bg-stone-100"
                       }`}
                   >
                     {label}
@@ -3063,8 +3067,8 @@ export default function AdminPortal() {
                 ))}
               </div>
 
-              <label className="block space-y-1">
-                <span className="font-bold text-[#4A392F]">
+              <label className="block space-y-1.5">
+                <span className="font-bold text-stone-800 text-xs">
                   {stockUpdate.mode === "COUNT" ? "Actual quantity on hand" : "Quantity"} ({stockUpdate.item.unit_of_measure})
                 </span>
                 <input
@@ -3074,26 +3078,26 @@ export default function AdminPortal() {
                   autoFocus
                   value={stockUpdate.qty}
                   onChange={(e) => setStockUpdate({ ...stockUpdate, qty: e.target.value })}
-                  className="w-full bg-[#FAF6EE] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl px-3 py-2 outline-none"
+                  className="w-full bg-white border border-stone-300 focus:border-[#B85B43] rounded-xl px-3 py-2.5 text-sm font-semibold text-stone-950 outline-none"
                 />
               </label>
-              <label className="block space-y-1">
-                <span className="font-bold text-[#4A392F]">Reference / note (optional)</span>
+              <label className="block space-y-1.5">
+                <span className="font-bold text-stone-800 text-xs">Reference / note (optional)</span>
                 <input
                   type="text"
                   value={stockUpdate.ref}
                   onChange={(e) => setStockUpdate({ ...stockUpdate, ref: e.target.value })}
                   placeholder="e.g. supplier invoice no."
                   maxLength={100}
-                  className="w-full bg-[#FAF6EE] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl px-3 py-2 outline-none"
+                  className="w-full bg-white border border-stone-300 focus:border-[#B85B43] rounded-xl px-3 py-2.5 text-sm font-medium text-stone-900 placeholder:text-stone-400 outline-none"
                 />
               </label>
 
-              <div className="pt-2 border-t border-[#F0E8DC] flex justify-end gap-2">
-                <button type="button" onClick={() => setStockUpdate(null)} className="px-4 py-2 rounded-xl bg-[#FAF7F0] border border-[#E0D4C2] font-bold cursor-pointer">
+              <div className="pt-2 border-t border-[#F0E8DC] flex justify-end gap-2.5">
+                <button type="button" onClick={() => setStockUpdate(null)} className="px-4 py-2 rounded-xl bg-[#FAF7F0] border border-stone-300 text-stone-700 font-bold text-xs cursor-pointer hover:bg-stone-100">
                   Cancel
                 </button>
-                <button type="button" onClick={handleStockUpdate} className="px-4 py-2 rounded-xl bg-[#B85B43] text-white font-bold cursor-pointer">
+                <button type="button" onClick={handleStockUpdate} className="px-5 py-2 rounded-xl bg-[#B85B43] hover:bg-[#9E3E26] text-white font-bold text-xs cursor-pointer transition-colors shadow-xs">
                   Save
                 </button>
               </div>
@@ -3104,28 +3108,28 @@ export default function AdminPortal() {
         {/* Scan Supplier Bill Modal */}
         {billScan && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-6 max-w-3xl w-full shadow-2xl space-y-4 text-xs max-h-[90vh] overflow-y-auto">
+            <div className="bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-6 max-w-3xl w-full shadow-2xl space-y-4 font-sans text-sm max-h-[90vh] overflow-y-auto">
               <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-3">
                 <div>
-                  <h3 className="text-lg font-sans font-extrabold text-[#241A14]">Scan Supplier Bill</h3>
-                  <p className="text-[#7A6A5E] mt-0.5">
+                  <h3 className="text-lg font-sans font-extrabold text-stone-950">Scan Supplier Bill</h3>
+                  <p className="text-stone-600 font-medium text-xs mt-0.5">
                     {billScan.stage === "review" || billScan.stage === "saving"
                       ? "Check every line before adding to stock. Nothing is saved until you confirm."
                       : "Take a clear photo of the bill, or upload a JPG, PNG or PDF (max 10 MB)."}
                   </p>
                 </div>
-                <button type="button" onClick={() => setBillScan(null)} aria-label="Close" disabled={billScan.stage === "scanning" || billScan.stage === "saving"} className="p-1 rounded-lg text-[#8C7A6D] hover:text-[#241A14] hover:bg-[#F3EDE2] cursor-pointer disabled:opacity-40">
+                <button type="button" onClick={() => setBillScan(null)} aria-label="Close" disabled={billScan.stage === "scanning" || billScan.stage === "saving"} className="p-1 rounded-lg text-stone-500 hover:text-stone-950 hover:bg-[#F3EDE2] cursor-pointer disabled:opacity-40">
                   <XCircle className="w-5 h-5" />
                 </button>
               </div>
 
-              {billScan.error && <p className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 font-semibold">{billScan.error}</p>}
+              {billScan.error && <p className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 font-bold text-xs">{billScan.error}</p>}
 
               {billScan.stage === "pick" && (
-                <label className="flex flex-col items-center justify-center gap-2 py-10 rounded-2xl border-2 border-dashed border-[#E0D4C2] bg-[#FAF7F0] cursor-pointer hover:border-[#B85B43]">
+                <label className="flex flex-col items-center justify-center gap-2 py-10 rounded-2xl border-2 border-dashed border-stone-300 bg-[#FAF7F0] cursor-pointer hover:border-[#B85B43] transition-colors">
                   <ScanLine className="w-8 h-8 text-[#B85B43]" />
-                  <span className="font-bold text-[#241A14] text-sm">Take photo or choose file</span>
-                  <span className="text-[#8C7A6D]">JPG, PNG or PDF</span>
+                  <span className="font-bold text-stone-900 text-sm">Take photo or choose file</span>
+                  <span className="text-stone-500 text-xs font-medium">JPG, PNG or PDF</span>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,application/pdf"
@@ -3144,44 +3148,44 @@ export default function AdminPortal() {
               {billScan.stage === "scanning" && (
                 <div className="py-12 text-center space-y-2">
                   <RefreshCw className="w-7 h-7 text-[#B85B43] mx-auto animate-spin" />
-                  <p className="font-bold text-[#241A14] text-sm">Reading the bill…</p>
-                  <p className="text-[#8C7A6D]">This usually takes 10–30 seconds.</p>
+                  <p className="font-bold text-stone-900 text-sm">Reading the bill…</p>
+                  <p className="text-stone-500 text-xs font-medium">This usually takes 10–30 seconds.</p>
                 </div>
               )}
 
               {(billScan.stage === "review" || billScan.stage === "saving") && (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                     {([
                       ["supplier", "Supplier", "text"],
                       ["billNumber", "Bill number", "text"],
                       ["billDate", "Bill date", "date"],
                     ] as const).map(([key, label, type]) => (
                       <label key={key} className="block space-y-1">
-                        <span className="font-bold text-[#4A392F]">{label}</span>
+                        <span className="font-bold text-stone-800 text-xs">{label}</span>
                         <input
                           type={type}
                           value={billScan[key]}
                           onChange={(e) => setBillScan({ ...billScan, [key]: e.target.value })}
-                          className="w-full bg-[#FAF6EE] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl px-3 py-2 outline-none"
+                          className="w-full bg-white border border-stone-300 focus:border-[#B85B43] rounded-xl px-3 py-2 text-sm font-medium text-stone-900 outline-none"
                         />
                       </label>
                     ))}
                   </div>
 
-                  <div className="space-y-2">
-                    {billScan.lines.length === 0 && <p className="text-center text-[#8C7A6D] py-4">No items were found on this bill.</p>}
+                  <div className="space-y-2.5">
+                    {billScan.lines.length === 0 && <p className="text-center text-stone-500 py-4 font-medium text-xs">No items were found on this bill.</p>}
                     {billScan.lines.map((l, idx) => {
                       const matId = l.choice.startsWith("MATCH:") ? Number(l.choice.split(":")[1]) : null;
                       const mat = matId ? rawItems.find((r) => r.id === matId) : undefined;
                       const unitLabel = mat ? mat.unit_of_measure : l.choice === "NEW" ? l.newUnit : "";
                       return (
-                        <div key={idx} className={`rounded-xl border p-3 space-y-2 ${l.choice === "SKIP" ? "border-[#EFE7DA] opacity-60" : "border-[#E0D4C2]"}`}>
+                        <div key={idx} className={`rounded-xl border p-3.5 space-y-2.5 ${l.choice === "SKIP" ? "border-stone-200 opacity-60 bg-stone-50" : "border-stone-300 bg-white"}`}>
                           <div className="flex items-start justify-between gap-2">
                             <div>
-                              <div className="font-bold text-[#241A14]">{l.description || "Unnamed item"}</div>
-                              <div className="text-[#8C7A6D]">
-                                On bill: {l.billQty} {l.billUnit}
+                              <div className="font-bold text-stone-950 text-sm">{l.description || "Unnamed item"}</div>
+                              <div className="text-stone-600 font-medium text-xs mt-0.5">
+                                On bill: <span className="font-bold text-stone-800">{l.billQty} {l.billUnit}</span>
                                 {l.amount != null ? ` · ₹${l.amount.toLocaleString("en-IN")}` : ""}
                               </div>
                             </div>
@@ -3189,7 +3193,7 @@ export default function AdminPortal() {
                               value={l.choice}
                               onChange={(e) => updateBillLine(idx, { choice: e.target.value, unitCheck: false })}
                               aria-label={`Raw material for ${l.description}`}
-                              className="max-w-[55%] bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1.5 font-semibold outline-none"
+                              className="max-w-[55%] bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 font-bold text-xs text-stone-900 outline-none"
                             >
                               <option value="SKIP">Skip this line</option>
                               <option value="NEW">+ Add as new raw material</option>
@@ -3200,50 +3204,50 @@ export default function AdminPortal() {
                           </div>
 
                           {l.choice !== "SKIP" && (
-                            <div className="flex flex-wrap items-end gap-2">
+                            <div className="flex flex-wrap items-end gap-2.5 pt-1 border-t border-stone-100">
                               {l.choice === "NEW" && (
                                 <>
                                   <label className="space-y-1 flex-1 min-w-[160px]">
-                                    <span className="font-semibold text-[#4A392F]">New material name</span>
-                                    <input value={l.newName} onChange={(e) => updateBillLine(idx, { newName: e.target.value })} className="w-full bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1.5 outline-none" />
+                                    <span className="font-bold text-stone-800 text-xs">New material name</span>
+                                    <input value={l.newName} onChange={(e) => updateBillLine(idx, { newName: e.target.value })} className="w-full bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-900 outline-none" />
                                   </label>
                                   <label className="space-y-1">
-                                    <span className="font-semibold text-[#4A392F]">Unit</span>
-                                    <select value={l.newUnit} onChange={(e) => updateBillLine(idx, { newUnit: e.target.value })} className="block bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1.5 outline-none">
+                                    <span className="font-bold text-stone-800 text-xs">Unit</span>
+                                    <select value={l.newUnit} onChange={(e) => updateBillLine(idx, { newUnit: e.target.value })} className="block bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-stone-900 outline-none">
                                       {["kg", "g", "l", "ml", "pcs"].map((u) => <option key={u} value={u}>{u}</option>)}
                                     </select>
                                   </label>
                                 </>
                               )}
                               <label className="space-y-1">
-                                <span className="font-semibold text-[#4A392F]">Add to stock ({unitLabel})</span>
-                                <input type="number" min="0" step="any" value={l.quantity} onChange={(e) => updateBillLine(idx, { quantity: e.target.value, unitCheck: false })} className="block w-28 bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1.5 outline-none" />
+                                <span className="font-bold text-stone-800 text-xs">Add to stock ({unitLabel})</span>
+                                <input type="number" min="0" step="any" value={l.quantity} onChange={(e) => updateBillLine(idx, { quantity: e.target.value, unitCheck: false })} className="block w-28 bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-stone-900 outline-none" />
                               </label>
                               <label className="space-y-1">
-                                <span className="font-semibold text-[#4A392F]">Cost per {unitLabel || "unit"} (₹)</span>
-                                <input type="number" min="0" step="any" value={l.unitCost} onChange={(e) => updateBillLine(idx, { unitCost: e.target.value })} className="block w-28 bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1.5 outline-none" />
+                                <span className="font-bold text-stone-800 text-xs">Cost per {unitLabel || "unit"} (₹)</span>
+                                <input type="number" min="0" step="any" value={l.unitCost} onChange={(e) => updateBillLine(idx, { unitCost: e.target.value })} className="block w-28 bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-stone-900 outline-none" />
                               </label>
-                              <div className="text-[#665448] pb-1.5">= ₹{((Number(l.quantity) || 0) * (Number(l.unitCost) || 0)).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div>
+                              <div className="text-stone-800 font-bold text-xs pb-1.5">= ₹{((Number(l.quantity) || 0) * (Number(l.unitCost) || 0)).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div>
                             </div>
                           )}
                           {l.unitCheck && l.choice !== "SKIP" && (
-                            <p className="text-amber-800 font-semibold">Check the quantity: the bill uses “{l.billUnit}” but {mat?.name} is tracked in {mat?.unit_of_measure}.</p>
+                            <p className="text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs font-bold">Check quantity: bill uses “{l.billUnit}” but {mat?.name} is tracked in {mat?.unit_of_measure}.</p>
                           )}
                         </div>
                       );
                     })}
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#F0E8DC]">
-                    <div className="text-[#665448]">
-                      Adding ₹{billScan.lines.filter((l) => l.choice !== "SKIP").reduce((sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.unitCost) || 0), 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })} before tax
-                      {billScan.grandTotal != null && <> · Bill total ₹{billScan.grandTotal.toLocaleString("en-IN")} incl. tax</>}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#F0E8DC]">
+                    <div className="text-stone-800 font-semibold text-xs">
+                      Adding <span className="font-bold text-stone-950">₹{billScan.lines.filter((l) => l.choice !== "SKIP").reduce((sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.unitCost) || 0), 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</span> before tax
+                      {billScan.grandTotal != null && <> · Bill total <span className="font-bold text-stone-950">₹{billScan.grandTotal.toLocaleString("en-IN")}</span> incl. tax</>}
                     </div>
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => setBillScan({ stage: "pick", supplier: "", billNumber: "", billDate: "", grandTotal: null, lines: [] })} disabled={billScan.stage === "saving"} className="px-4 py-2 rounded-xl bg-[#FAF7F0] border border-[#E0D4C2] font-bold cursor-pointer disabled:opacity-50">
+                      <button type="button" onClick={() => setBillScan({ stage: "pick", supplier: "", billNumber: "", billDate: "", grandTotal: null, lines: [] })} disabled={billScan.stage === "saving"} className="px-4 py-2 rounded-xl bg-[#FAF7F0] border border-stone-300 font-bold text-xs text-stone-800 cursor-pointer disabled:opacity-50 hover:bg-stone-100">
                         Scan another
                       </button>
-                      <button type="button" onClick={handleConfirmBill} disabled={billScan.stage === "saving"} className="px-4 py-2 rounded-xl bg-[#B85B43] text-white font-bold cursor-pointer disabled:opacity-50">
+                      <button type="button" onClick={handleConfirmBill} disabled={billScan.stage === "saving"} className="px-4 py-2 rounded-xl bg-[#B85B43] hover:bg-[#9E3E26] text-white font-bold text-xs cursor-pointer disabled:opacity-50 transition-colors shadow-xs">
                         {billScan.stage === "saving" ? "Saving…" : "Confirm & Add to Stock"}
                       </button>
                     </div>
@@ -3257,10 +3261,10 @@ export default function AdminPortal() {
         {/* Add Raw Material Modal */}
         {newRaw && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-3 text-xs">
+            <div className="bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-3.5 font-sans text-sm">
               <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-3">
-                <h3 className="text-lg font-sans font-extrabold text-[#241A14]">Add Raw Material</h3>
-                <button type="button" onClick={() => setNewRaw(null)} aria-label="Close" className="p-1 rounded-lg text-[#8C7A6D] hover:text-[#241A14] hover:bg-[#F3EDE2] cursor-pointer">
+                <h3 className="text-lg font-sans font-extrabold text-stone-950">Add Raw Material</h3>
+                <button type="button" onClick={() => setNewRaw(null)} aria-label="Close" className="p-1 rounded-lg text-stone-500 hover:text-stone-950 hover:bg-[#F3EDE2] cursor-pointer">
                   <XCircle className="w-5 h-5" />
                 </button>
               </div>
@@ -3271,7 +3275,7 @@ export default function AdminPortal() {
                 ["reorder", "Reorder at", "0", "number"],
               ] as const).map(([key, label, ph, type]) => (
                 <label key={key} className="block space-y-1">
-                  <span className="font-bold text-[#4A392F]">{label}</span>
+                  <span className="font-bold text-stone-800 text-xs">{label}</span>
                   <input
                     type={type}
                     min={type === "number" ? "0" : undefined}
@@ -3279,27 +3283,27 @@ export default function AdminPortal() {
                     value={newRaw[key]}
                     onChange={(e) => setNewRaw({ ...newRaw, [key]: e.target.value })}
                     placeholder={ph}
-                    className="w-full bg-[#FAF6EE] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl px-3 py-2 outline-none"
+                    className="w-full bg-white border border-stone-300 focus:border-[#B85B43] rounded-xl px-3 py-2 text-sm font-medium text-stone-900 placeholder:text-stone-400 outline-none"
                   />
                 </label>
               ))}
               <label className="block space-y-1">
-                <span className="font-bold text-[#4A392F]">Unit</span>
+                <span className="font-bold text-stone-800 text-xs">Unit</span>
                 <select
                   value={newRaw.unit}
                   onChange={(e) => setNewRaw({ ...newRaw, unit: e.target.value })}
-                  className="w-full bg-[#FAF6EE] border border-[#E0D4C2] rounded-xl px-3 py-2 outline-none"
+                  className="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-sm font-bold text-stone-900 outline-none"
                 >
                   {["kg", "g", "l", "ml", "pcs"].map((u) => (
                     <option key={u} value={u}>{u}</option>
                   ))}
                 </select>
               </label>
-              <div className="pt-2 border-t border-[#F0E8DC] flex justify-end gap-2">
-                <button type="button" onClick={() => setNewRaw(null)} className="px-4 py-2 rounded-xl bg-[#FAF7F0] border border-[#E0D4C2] font-bold cursor-pointer">
+              <div className="pt-2 border-t border-[#F0E8DC] flex justify-end gap-2.5">
+                <button type="button" onClick={() => setNewRaw(null)} className="px-4 py-2 rounded-xl bg-[#FAF7F0] border border-stone-300 text-stone-700 font-bold text-xs cursor-pointer hover:bg-stone-100">
                   Cancel
                 </button>
-                <button type="button" onClick={handleCreateRawItem} className="px-4 py-2 rounded-xl bg-[#B85B43] text-white font-bold cursor-pointer">
+                <button type="button" onClick={handleCreateRawItem} className="px-4 py-2 rounded-xl bg-[#B85B43] hover:bg-[#9E3E26] text-white font-bold text-xs cursor-pointer transition-colors shadow-xs">
                   Add Material
                 </button>
               </div>

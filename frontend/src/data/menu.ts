@@ -31,7 +31,7 @@ export const ITEM_MEDIA_MAP: Record<string, { image_url: string; badge: string }
   pz8: { image_url: "/pizza-itala.jpg", badge: "" },
   pz9: { image_url: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=400&q=80", badge: "LOCAL SPECIAL" },
   c1: { image_url: "/jaadoo-tiramisu-craft.jpg", badge: "HOUSE MADE" },
-  c2: { image_url: "https://images.unsplash.com/photo-1560008511-11c63416e52d?auto=format&fit=crop&w=400&q=80", badge: "CITRUS GLAZE" },
+  c2: { image_url: "/coconut-gelato-orange.webp", badge: "CITRUS GLAZE" },
   b1: { image_url: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=400&q=80", badge: "CHILLED" },
   b2: { image_url: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?auto=format&fit=crop&w=400&q=80", badge: "DIGESTIVE" },
   b3: { image_url: "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=400&q=80", badge: "COLD BREWED" },

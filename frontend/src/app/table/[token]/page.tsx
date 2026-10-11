@@ -353,13 +353,16 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
   // ponytail: simple walk-in registration auto-creates reservation on backend
   const handleWalkInSubmit = async () => {
-    if (!walkInName.trim()) {
-      setPromptError("Please enter your name.");
+    const trimmedName = walkInName.trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      setPromptError("Please enter your name (at least 2 letters).");
       return;
     }
-    const cleanPhone = walkInPhone.replace(/\D/g, "");
-    if (!cleanPhone || cleanPhone.length < 7) {
-      setPromptError("Please enter a valid phone number (at least 7 digits).");
+    let cleanPhone = walkInPhone.replace(/\D/g, "");
+    if (cleanPhone.length > 10 && cleanPhone.startsWith("91")) cleanPhone = cleanPhone.slice(2);
+    else if (cleanPhone.length > 10 && cleanPhone.startsWith("0")) cleanPhone = cleanPhone.slice(1);
+    if (cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setPromptError("Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.");
       return;
     }
 
@@ -690,27 +693,62 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                   /* Option 2: Walk-in Guest Form (Name & Phone only) */
                   <div className="mt-4 space-y-3">
                     <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#705844] mb-1">
-                        Your Name
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#705844]">
+                          Your Name
+                        </label>
+                        <span className="text-[10px] text-stone-500 font-medium">Letters only</span>
+                      </div>
                       <input
                         type="text"
+                        autoComplete="name"
+                        maxLength={60}
                         value={walkInName}
-                        onChange={(e) => { setWalkInName(e.target.value); setPromptError(null); }}
+                        onChange={(e) => {
+                          const cleaned = e.target.value.replace(/[^a-zA-Z\s\.\'\-]/g, "");
+                          setWalkInName(cleaned);
+                          setPromptError(null);
+                        }}
+                        onBlur={() => {
+                          setWalkInName((prev) =>
+                            prev
+                              .trim()
+                              .replace(/\s+/g, " ")
+                              .replace(/\b\w/g, (c) => c.toUpperCase())
+                          );
+                        }}
                         placeholder="e.g. Rajesh Sharma"
                         className="w-full rounded-xl border border-[#D7C4A3] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#B85B43]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#705844] mb-1">
-                        Phone Number
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-[#705844]">
+                          Phone Number
+                        </label>
+                        {walkInPhone.length === 10 && /^[6-9]\d{9}$/.test(walkInPhone) ? (
+                          <span className="text-[10px] text-emerald-700 font-bold">✓ 10 digits</span>
+                        ) : (
+                          <span className="text-[10px] text-stone-500 font-medium">{walkInPhone.length}/10</span>
+                        )}
+                      </div>
                       <input
                         type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={10}
+                        autoComplete="tel-national"
                         value={walkInPhone}
-                        onChange={(e) => { setWalkInPhone(e.target.value); setPromptError(null); }}
+                        onChange={(e) => {
+                          let digits = e.target.value.replace(/\D/g, "");
+                          if (digits.length > 10 && digits.startsWith("91")) digits = digits.slice(2);
+                          else if (digits.length > 10 && digits.startsWith("0")) digits = digits.slice(1);
+                          if (digits.length > 10) digits = digits.slice(0, 10);
+                          setWalkInPhone(digits);
+                          setPromptError(null);
+                        }}
                         placeholder="e.g. 9876543210"
-                        className="w-full rounded-xl border border-[#D7C4A3] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#B85B43]"
+                        className="w-full rounded-xl border border-[#D7C4A3] bg-white px-3 py-2.5 text-sm font-mono tracking-wider font-semibold outline-none focus:border-[#B85B43]"
                       />
                     </div>
                     {promptError && <p className="text-xs text-rose-600 font-medium">{promptError}</p>}
@@ -993,6 +1031,8 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                   const itemMedia = ITEM_MEDIA_MAP[item.id];
                   const imgUrl = itemMedia?.image_url || "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80";
 
+                  const isPizza = item.id.startsWith("pz") || category.id === "pizza";
+
                   return (
                     <div
                       key={item.id}
@@ -1012,7 +1052,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                         <img
                           src={imgUrl}
                           alt={item.name}
-                          className={`w-full h-full object-cover ${!isAvailable ? "grayscale" : ""}`}
+                          className={`w-full h-full object-cover transition-transform duration-300 ${isPizza ? "scale-140 group-hover:scale-155" : "group-hover:scale-110"} ${!isAvailable ? "grayscale" : ""}`}
                           loading="lazy"
                         />
                       </div>

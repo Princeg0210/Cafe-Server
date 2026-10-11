@@ -23,11 +23,18 @@ function MenuPrice({ price }: { price: number }) {
 
 function FoodRow({ item }: { item: MenuItem & { is_available?: boolean } }) {
   const available = item.is_available !== false;
+  const isPizza = item.id.startsWith("pz");
   return (
     <article className={`grid grid-cols-[76px_1fr_auto] gap-3 border-b border-[#D9C9AE] py-4 sm:grid-cols-[96px_1fr_auto] sm:gap-5 ${available ? "" : "opacity-50"}`}>
       <div className="relative aspect-square overflow-hidden rounded-full border border-[#CDBB9C] bg-[#EFE5D3]">
         {item.image_url ? (
-          <Image src={item.image_url} alt={item.name} fill sizes="(max-width: 640px) 76px, 96px" className="object-cover" />
+          <Image
+            src={item.image_url}
+            alt={item.name}
+            fill
+            sizes="(max-width: 640px) 76px, 96px"
+            className={`object-cover transition-transform duration-300 ${isPizza ? "scale-140 hover:scale-155" : "hover:scale-110"}`}
+          />
         ) : (
           <UtensilsCrossed className="absolute inset-0 m-auto h-5 w-5 text-[#9E3E26]" />
         )}

@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+from app.schemas.reservation import sanitize_customer_name, sanitize_customer_phone
 
 
 class TableResponse(BaseModel):
@@ -36,6 +37,16 @@ class QRWalkInRequest(BaseModel):
     customer_name: str
     phone_number: str
     guest_count: Optional[int] = 2
+
+    @field_validator("customer_name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        return sanitize_customer_name(v)
+
+    @field_validator("phone_number")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        return sanitize_customer_phone(v)
 
 
 class QRWalkInResponse(BaseModel):

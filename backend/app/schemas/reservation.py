@@ -1,8 +1,78 @@
-from datetime import date, datetime
+import re
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Optional, Any, Union
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+
+# ponytail: reservation input guardrails & sanitizers
+def sanitize_customer_name(v: str) -> str:
+    if not v or not isinstance(v, str):
+        raise ValueError("Customer name is required.")
+    cleaned = re.sub(r"<script.*?>.*?</script>", "", v, flags=re.IGNORECASE | re.DOTALL)
+    cleaned = re.sub(r"<[^>]+>", "", cleaned)
+    cleaned = re.sub(r"[^a-zA-Z\s\.\'\-]", "", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if len(cleaned) < 2:
+        raise ValueError("Customer name must be at least 2 characters long.")
+    if len(cleaned) > 60:
+        cleaned = cleaned[:60].strip()
+    if not any(c.isalpha() for c in cleaned):
+        raise ValueError("Customer name must contain valid alphabetic characters.")
+    return cleaned.title()
+
+
+def sanitize_customer_phone(v: str) -> str:
+    if not v or not isinstance(v, str):
+        raise ValueError("Customer phone number is required.")
+    digits = re.sub(r"\D", "", str(v))
+    if len(digits) == 12 and digits.startswith("91"):
+        digits = digits[2:]
+    elif len(digits) == 11 and digits.startswith("0"):
+        digits = digits[1:]
+
+    if len(digits) != 10:
+        raise ValueError("Phone number must be a valid 10-digit mobile number.")
+    if digits[0] not in "6789":
+        raise ValueError("Indian mobile numbers must start with 6, 7, 8, or 9.")
+    if len(set(digits)) == 1:
+        raise ValueError("Please provide a valid personal mobile number.")
+    if digits in ("1234567890", "9876543210", "0123456789"):
+        raise ValueError("Please provide a valid personal mobile number.")
+    return digits
+
+
+def sanitize_customer_email(v: Optional[str]) -> Optional[str]:
+    if not v or not isinstance(v, str):
+        return None
+    cleaned = v.strip().lower()
+    if not cleaned:
+        return None
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", cleaned) or len(cleaned) > 100:
+        raise ValueError("Please provide a valid email address.")
+    return cleaned
+
+
+def validate_reservation_date_guardrail(v: date) -> date:
+    today = date.today()
+    if v < today:
+        raise ValueError("Reservation date cannot be in the past.")
+    max_advance = today + timedelta(days=60)
+    if v > max_advance:
+        raise ValueError("Reservations cannot be booked more than 60 days in advance.")
+    return v
+
+
+def sanitize_special_requests(v: Optional[str]) -> Optional[str]:
+    if not v or not isinstance(v, str):
+        return None
+    cleaned = re.sub(r"<script.*?>.*?</script>", "", v, flags=re.IGNORECASE | re.DOTALL)
+    cleaned = re.sub(r"<[^>]+>", "", cleaned)
+    cleaned = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return None
+    return cleaned[:300]
 
 
 class CustomerBase(BaseModel):
@@ -15,6 +85,21 @@ class CustomerCreate(BaseModel):
     name: str
     phone: str
     email: Optional[str] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        return sanitize_customer_name(v)
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        return sanitize_customer_phone(v)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
+        return sanitize_customer_email(v)
 
 
 class CustomerResponse(CustomerBase):
@@ -29,7 +114,7 @@ class ReservationCreate(BaseModel):
     customer_name: str = Field(..., example="Rajesh Sharma")
     customer_phone: str = Field(..., example="+919876543210")
     customer_email: Optional[str] = Field(None, example="rajesh@example.com")
-    guest_count: int = Field(..., ge=1, le=20, example=4)
+    guest_count: int = Field(..., ge=1, le=12, example=4)
     reservation_date: date = Field(..., example="2026-09-25")
     time_slot: str = Field(..., example="19:00-20:00")
     table_id: Optional[int] = Field(None, example=1)
@@ -40,15 +125,42 @@ class ReservationCreate(BaseModel):
     payment_reference: Optional[str] = Field(None, example="TXN-UPI-987654321")
     payment_method: Optional[str] = Field(None, example="UPI")
 
+    @field_validator("customer_name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        return sanitize_customer_name(v)
+
+    @field_validator("customer_phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        return sanitize_customer_phone(v)
+
+    @field_validator("customer_email")
+    @classmethod
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
+        return sanitize_customer_email(v)
+
+    @field_validator("reservation_date")
+    @classmethod
+    def validate_date(cls, v: date) -> date:
+        return validate_reservation_date_guardrail(v)
+
 
 class ReservationUpdate(BaseModel):
-    guest_count: Optional[int] = Field(None, ge=1, le=20)
+    guest_count: Optional[int] = Field(None, ge=1, le=12)
     reservation_date: Optional[date] = None
     time_slot: Optional[str] = None
     table_id: Optional[int] = None
     floor_number: Optional[int] = None
     table_name: Optional[str] = None
     status: Optional[str] = None
+
+    @field_validator("reservation_date")
+    @classmethod
+    def validate_date(cls, v: Optional[date]) -> Optional[date]:
+        if v is None:
+            return None
+        return validate_reservation_date_guardrail(v)
 
 
 class ReservationStatusUpdate(BaseModel):
@@ -102,12 +214,32 @@ class ReservationHoldRequest(BaseModel):
     customer_name: str = Field(..., example="Aarav Sharma")
     customer_phone: str = Field(..., example="+919876543210")
     customer_email: Optional[str] = None
-    guest_count: int = Field(..., ge=1, le=20, example=3)
+    guest_count: int = Field(..., ge=1, le=12, example=3)
     reservation_date: date = Field(..., example="2026-09-30")
     time_slot: str = Field(..., example="19:30")
     floor_number: Optional[int] = Field(None, example=1)
     table_name: Optional[str] = Field(None, example="Table 1")
     table_id: Optional[int] = None
+
+    @field_validator("customer_name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        return sanitize_customer_name(v)
+
+    @field_validator("customer_phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        return sanitize_customer_phone(v)
+
+    @field_validator("customer_email")
+    @classmethod
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
+        return sanitize_customer_email(v)
+
+    @field_validator("reservation_date")
+    @classmethod
+    def validate_date(cls, v: date) -> date:
+        return validate_reservation_date_guardrail(v)
 
 
 class ReservationHoldResponse(BaseModel):
@@ -186,13 +318,38 @@ class RazorpayCreateOrderRequest(BaseModel):
     customer_name: str = Field(..., example="Aarav Sharma")
     customer_phone: str = Field(..., example="+919876543210")
     customer_email: Optional[str] = None
-    guest_count: int = Field(..., ge=1, le=20, example=2)
+    guest_count: int = Field(..., ge=1, le=12, example=2)
     reservation_date: date = Field(..., example="2026-10-18")
     time_slot: str = Field(..., example="07:00 PM")
     floor_number: Optional[int] = Field(None, example=1)
     table_name: Optional[str] = Field(None, example="Table 1")
     table_id: Optional[int] = None
     special_requests: Optional[str] = None
+
+    @field_validator("customer_name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        return sanitize_customer_name(v)
+
+    @field_validator("customer_phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        return sanitize_customer_phone(v)
+
+    @field_validator("customer_email")
+    @classmethod
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
+        return sanitize_customer_email(v)
+
+    @field_validator("reservation_date")
+    @classmethod
+    def validate_date(cls, v: date) -> date:
+        return validate_reservation_date_guardrail(v)
+
+    @field_validator("special_requests")
+    @classmethod
+    def validate_requests(cls, v: Optional[str]) -> Optional[str]:
+        return sanitize_special_requests(v)
 
 
 class RazorpayCreateOrderResponse(BaseModel):
@@ -217,7 +374,7 @@ class RazorpayVerifyPaymentRequest(BaseModel):
     customer_name: str
     customer_phone: str
     customer_email: Optional[str] = None
-    guest_count: int = Field(..., ge=1, le=20)
+    guest_count: int = Field(..., ge=1, le=12)
     reservation_date: date
     time_slot: str
     floor_number: Optional[int] = 1
@@ -225,6 +382,31 @@ class RazorpayVerifyPaymentRequest(BaseModel):
     table_id: Optional[int] = None
     special_requests: Optional[str] = None
     is_test_simulation: Optional[bool] = False
+
+    @field_validator("customer_name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        return sanitize_customer_name(v)
+
+    @field_validator("customer_phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        return sanitize_customer_phone(v)
+
+    @field_validator("customer_email")
+    @classmethod
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
+        return sanitize_customer_email(v)
+
+    @field_validator("reservation_date")
+    @classmethod
+    def validate_date(cls, v: date) -> date:
+        return validate_reservation_date_guardrail(v)
+
+    @field_validator("special_requests")
+    @classmethod
+    def validate_requests(cls, v: Optional[str]) -> Optional[str]:
+        return sanitize_special_requests(v)
 
 
 class RazorpaySimulateWebhookRequest(BaseModel):

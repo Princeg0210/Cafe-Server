@@ -91,8 +91,11 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/jaadoo-logo-circle.png",
-    apple: "/jaadoo-logo-circle.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: "/icon.png",
   },
 };
 

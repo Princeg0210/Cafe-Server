@@ -21,12 +21,10 @@ import {
   CreditCard,
   ShieldCheck,
   Edit2,
-  Sparkles,
   Info,
   HelpCircle,
   FileText,
   Zap,
-  Flame,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import TanFooter from "@/components/TanFooter";
@@ -278,14 +276,19 @@ export default function BookTablePage() {
   const handleInitiatePayment = async () => {
     setPaymentError(null);
 
-    // 1. Validate Form Fields
-    if (!name.trim()) {
-      setPaymentError("Please provide your full guest name.");
+    // 1. Validate Form Fields with Guardrails
+    const trimmedName = name.trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      setPaymentError("Please provide your full guest name (at least 2 letters).");
       return;
     }
     const cleanPhone = phone.replace(/\D/g, "");
-    if (cleanPhone.length < 10) {
-      setPaymentError("Please provide a valid 10-digit mobile number for reservation notification.");
+    if (cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setPaymentError("Please provide a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.");
+      return;
+    }
+    if (/^(\d)\1{9}$/.test(cleanPhone) || ["1234567890", "9876543210", "0123456789"].includes(cleanPhone)) {
+      setPaymentError("Please enter a valid personal mobile number.");
       return;
     }
 
@@ -696,10 +699,9 @@ export default function BookTablePage() {
                 exit={{ opacity: 0 }}
                 className="space-y-8"
               >
-                {/* Cinematic Wood-Fired Oven Hero Section */}
+                {/* Hero Section with High-Definition Video & Reserve Your Table Heading */}
                 <div className="relative w-full rounded-3xl overflow-hidden border border-[#E6DCCF] bg-[#140E0A] shadow-xl group">
-                  {/* Aspect Ratio Box with HTML5 Video */}
-                  <div className="relative w-full h-[280px] sm:h-[360px] md:h-[400px] overflow-hidden">
+                  <div className="relative w-full h-[220px] sm:h-[280px] md:h-[320px] overflow-hidden">
                     <video
                       autoPlay
                       muted
@@ -707,45 +709,20 @@ export default function BookTablePage() {
                       playsInline
                       preload="auto"
                       poster="/book-table-hero-poster.webp"
-                      className="absolute inset-0 w-full h-full object-cover opacity-85 transition-transform duration-1000 ease-out group-hover:scale-105"
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
                     >
-                      <source src="/book-table-hero.webm" type="video/webm" />
                       <source src="/book-table-hero.mp4" type="video/mp4" />
+                      <source src="/book-table-hero.webm" type="video/webm" />
                     </video>
 
-                    {/* Gradient & Vignette Overlay for Crisp Readability & Ambiance */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#140E0A] via-[#140E0A]/40 to-black/30 pointer-events-none" />
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-[#140E0A]/20 to-[#140E0A]/70 pointer-events-none" />
+                    {/* Subtle Gradient for Readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/20 pointer-events-none" />
 
-                    {/* Hero Content Over Video */}
-                    <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8 md:p-10 text-center sm:text-left z-10">
-                      <div className="max-w-xl space-y-3">
-                        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#B85B43]/30 backdrop-blur-md border border-[#B85B43]/50 text-[#F5C7BA] text-[11px] font-bold uppercase tracking-wider">
-                          <Flame className="w-3.5 h-3.5 text-[#E87A5D] animate-pulse" />
-                          <span>480°C Artisanal Wood-Fired Oven</span>
-                        </div>
-
-                        <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#FAF7F0] drop-shadow-md">
-                          Reserve Your Table
-                        </h1>
-
-                        <p className="text-xs sm:text-sm text-[#E6DCCF] font-medium leading-relaxed max-w-lg drop-shadow-xs">
-                          Slow-fermented sourdough pizzas, lakeside evening breezes, and intimate candlelit heritage dining in Old City Udaipur.
-                        </p>
-
-                        {/* Visual Highlights Badges */}
-                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1 text-[11px] text-[#FAF7F0]/90">
-                          <span className="px-2.5 py-1 rounded-lg bg-black/40 backdrop-blur-xs border border-white/10 flex items-center gap-1.5 font-medium">
-                            <Sparkles className="w-3 h-3 text-amber-400" /> 5 Heritage Floors
-                          </span>
-                          <span className="px-2.5 py-1 rounded-lg bg-black/40 backdrop-blur-xs border border-white/10 flex items-center gap-1.5 font-medium">
-                            <Clock className="w-3 h-3 text-[#65C5A8]" /> Thu – Mon · 7 PM – 10 PM
-                          </span>
-                          <span className="px-2.5 py-1 rounded-lg bg-black/40 backdrop-blur-xs border border-white/10 flex items-center gap-1.5 font-medium">
-                            <MapPin className="w-3 h-3 text-[#E87A5D]" /> Ganesh Ghati, Udaipur
-                          </span>
-                        </div>
-                      </div>
+                    {/* Reserve Your Table Heading ONLY */}
+                    <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8 md:p-10 z-10">
+                      <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#FAF7F0] drop-shadow-lg">
+                        Reserve Your Table
+                      </h1>
                     </div>
                   </div>
                 </div>
@@ -1038,36 +1015,77 @@ export default function BookTablePage() {
                 <div className="space-y-4">
                   {/* Name */}
                   <div>
-                    <label className="block text-xs font-bold text-[#140E0A] mb-1.5">
-                      Name <span className="text-red-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-[#140E0A]">
+                        Name <span className="text-red-500">*</span>
+                      </label>
+                      <span className="text-[10px] text-stone-500 font-medium">Letters only</span>
+                    </div>
                     <input
                       type="text"
                       required
+                      autoComplete="name"
+                      maxLength={60}
                       placeholder="e.g. Rahul Sharma"
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      onChange={(e) => {
+                        const cleaned = e.target.value.replace(/[^a-zA-Z\s\.\'\-]/g, "");
+                        setName(cleaned);
+                        if (paymentError) setPaymentError(null);
+                      }}
+                      onBlur={() => {
+                        setName((prev) =>
+                          prev
+                            .trim()
+                            .replace(/\s+/g, " ")
+                            .replace(/\b\w/g, (c) => c.toUpperCase())
+                        );
+                      }}
                       className="w-full text-sm p-3 rounded-xl border border-[#D5CCC0] focus:border-[#65C5A8] focus:outline-hidden bg-white text-[#140E0A]"
                     />
                   </div>
 
-
                   {/* Mobile Number with +91 */}
                   <div>
-                    <label className="block text-xs font-bold text-[#140E0A] mb-1.5">
-                      Mobile Number for Reservation Notification <span className="text-red-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-[#140E0A]">
+                        Mobile Number for Reservation Notification <span className="text-red-500">*</span>
+                      </label>
+                      {phone.length === 10 && /^[6-9]\d{9}$/.test(phone) ? (
+                        <span className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" /> Valid
+                        </span>
+                      ) : phone.length > 0 && phone[0] && !["6", "7", "8", "9"].includes(phone[0]) ? (
+                        <span className="text-[10px] text-amber-700 font-medium">Must start with 6-9</span>
+                      ) : (
+                        <span className="text-[10px] text-stone-500 font-medium">{phone.length}/10 digits</span>
+                      )}
+                    </div>
                     <div className="flex gap-2">
-                      <div className="w-16 px-3 py-3 rounded-xl border border-[#D5CCC0] bg-[#F7F5F0] text-xs font-bold text-[#140E0A] flex items-center justify-center">
+                      <div className="w-16 px-3 py-3 rounded-xl border border-[#D5CCC0] bg-[#F7F5F0] text-xs font-bold text-[#140E0A] flex items-center justify-center select-none">
                         +91
                       </div>
                       <input
                         type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={10}
+                        autoComplete="tel-national"
                         required
                         placeholder="9829012345"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="flex-1 text-sm p-3 rounded-xl border border-[#D5CCC0] focus:border-[#65C5A8] focus:outline-hidden bg-white text-[#140E0A]"
+                        onChange={(e) => {
+                          let digits = e.target.value.replace(/\D/g, "");
+                          if (digits.length > 10 && digits.startsWith("91")) {
+                            digits = digits.slice(2);
+                          } else if (digits.length > 10 && digits.startsWith("0")) {
+                            digits = digits.slice(1);
+                          }
+                          if (digits.length > 10) digits = digits.slice(0, 10);
+                          setPhone(digits);
+                          if (paymentError) setPaymentError(null);
+                        }}
+                        className="flex-1 text-sm p-3 rounded-xl border border-[#D5CCC0] focus:border-[#65C5A8] focus:outline-hidden bg-white text-[#140E0A] font-mono tracking-wider font-semibold"
                       />
                     </div>
                   </div>

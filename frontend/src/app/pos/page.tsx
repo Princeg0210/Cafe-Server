@@ -2808,9 +2808,6 @@ export default function POSDashboard() {
                               ({floorTables.length} {floorTables.length === 1 ? "Table" : "Tables"})
                             </span>
                           </div>
-                          <span className="text-xs text-stone-500 font-sans hidden sm:inline">
-                            {floor.desc}
-                          </span>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
