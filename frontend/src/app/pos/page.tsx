@@ -331,6 +331,112 @@ interface PendingPaymentReview {
   verified_at: string;
 }
 
+// ---------------------------------------------------------------------------
+// KOT printing from this browser (USB / network / Bluetooth printer installed on the device).
+// Silent printing needs Chrome started with --kiosk-printing; otherwise the print dialog shows.
+// ---------------------------------------------------------------------------
+type KotTicket = {
+  kot_id: number;
+  kot_number: string;
+  table_id: number;
+  table_number: string | null;
+  order_number: string | null;
+  created_at: string;
+  items: { name: string; quantity: number; special_instructions?: string | null }[];
+};
+
+const escapeHtml = (v: unknown) =>
+  String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+
+// Server timestamps are naive UTC; mark them as UTC so the local time is right
+const parseServerTime = (iso: string) => new Date(/[zZ]|[+-]\d\d:\d\d$/.test(iso) ? iso : `${iso}Z`);
+
+function kotTicketHtml(t: KotTicket, paperMm: number): string {
+  const floor = getTableFloor(t.table_id);
+  const time = parseServerTime(t.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  const big = paperMm >= 80 ? 22 : 18;
+  const rows = t.items
+    .map(
+      (it) => `<tr><td class="q">${escapeHtml(it.quantity)} ×</td><td class="n">${escapeHtml(it.name)}${
+        it.special_instructions ? `<div class="note">» ${escapeHtml(it.special_instructions)}</div>` : ""
+      }</td></tr>`
+    )
+    .join("");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(t.kot_number)}</title><style>
+    @page { size: ${paperMm}mm auto; margin: 2mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; width: ${paperMm - 4}mm; font-family: "Courier New", monospace; color: #000; font-size: 13px; }
+    .c { text-align: center; } .kot { font-size: ${big}px; font-weight: 800; margin: 2px 0; }
+    .tbl { font-size: ${big - 4}px; font-weight: 800; } .muted { font-size: 11px; }
+    hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
+    table { width: 100%; border-collapse: collapse; } td { vertical-align: top; padding: 3px 0; }
+    .q { width: 34px; font-weight: 800; font-size: 15px; } .n { font-weight: 700; font-size: 15px; }
+    .note { font-weight: 400; font-size: 12px; font-style: italic; }
+  </style></head><body>
+    <div class="c muted">JAADOO · KITCHEN ORDER</div>
+    <div class="c kot">${escapeHtml(t.kot_number)}</div>
+    <div class="c tbl">${escapeHtml(floor.name)} · TABLE ${escapeHtml(floor.floor_table_num)}</div>
+    <div class="c muted">${escapeHtml(time)}${t.order_number ? ` · ${escapeHtml(t.order_number)}` : ""}</div>
+    <hr><table>${rows}</table><hr>
+    <div class="c muted">${t.items.reduce((n, it) => n + Number(it.quantity || 0), 0)} item(s)</div>
+  </body></html>`;
+}
+
+// Print an HTML document. Auto-print uses a hidden iframe; a manual print passes a visible
+// window (opened on the tap) so staff see the ticket and the full print dialog.
+function printHtml(html: string, target?: Window | null): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let iframe: HTMLIFrameElement | null = null;
+    let win: Window | null = target ?? null;
+    if (!win) {
+      iframe = document.createElement("iframe");
+      iframe.setAttribute("aria-hidden", "true");
+      iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;";
+      document.body.appendChild(iframe);
+      win = iframe.contentWindow;
+    }
+    if (!win) {
+      iframe?.remove();
+      reject(new Error("no print frame"));
+      return;
+    }
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      if (target) target.close();
+      else setTimeout(() => iframe?.remove(), 1000);
+      resolve();
+    };
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.onafterprint = done;
+    setTimeout(() => {
+      try {
+        win.focus();
+        win.print();
+      } catch (e) {
+        if (target) target.close();
+        else iframe?.remove();
+        reject(e);
+        return;
+      }
+      if (target) {
+        // Manual: wait until the dialog is done (afterprint) or staff close the window
+        const watch = setInterval(() => {
+          if (target.closed) {
+            clearInterval(watch);
+            done();
+          }
+        }, 500);
+      } else {
+        setTimeout(done, 1500); // some browsers never fire afterprint
+      }
+    }, 250);
+  });
+}
+
 export default function POSDashboard() {
   const [activeTab, setActiveTab] = useState<"tables" | "kots" | "reservations">("tables");
 
@@ -361,6 +467,26 @@ export default function POSDashboard() {
   const [retryingIds, setRetryingIds] = useState<Record<number, boolean>>({});
   const [closingSessionIds, setClosingSessionIds] = useState<Record<number, boolean>>({});
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // KOT auto-print: a per-device setting (only the device wired to the kitchen printer turns it on)
+  // Read once on the client; the header with these controls only renders after login
+  const readSetting = (key: string) => {
+    try {
+      return typeof window !== "undefined" ? localStorage.getItem(key) : null;
+    } catch {
+      return null;
+    }
+  };
+  const [autoPrintKots, setAutoPrintKots] = useState(() => readSetting("jaadoo_kot_autoprint") === "on");
+  const [kotPaperMm, setKotPaperMm] = useState<80 | 58>(() => (readSetting("jaadoo_kot_paper") === "58" ? 58 : 80));
+  const autoPrintRef = useRef(false);
+  const printQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const printingIdsRef = useRef<Set<number>>(new Set());
+  const enqueueKotPrintRef = useRef<(kotId: number, force?: boolean) => void>(() => {});
+
+  useEffect(() => {
+    autoPrintRef.current = autoPrintKots;
+  }, [autoPrintKots]);
   const [lastNotification, setLastNotification] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<string>("");
 
@@ -458,7 +584,7 @@ export default function POSDashboard() {
       const floorTableNum = floorInfo.floor_table_num;
 
       // 1. Assign/Allot Table via API
-      const res = await fetch(`${apiBase}/api/v1/reservations/${verifyingRes.id}/assign-table`, {
+      const res = await posFetch(`${apiBase}/api/v1/reservations/${verifyingRes.id}/assign-table`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -967,7 +1093,12 @@ export default function POSDashboard() {
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            if (data.event === "KOT_CREATED" || data.event === "KOT_UPDATED") {
+            if (data.event === "KOT_CREATED" && autoPrintRef.current && data.kot_id) {
+              enqueueKotPrintRef.current(Number(data.kot_id));
+            }
+            if (data.event === "KOT_UPDATED") {
+              fetchData(); // print status changed: refresh quietly, no "new KOT" alert
+            } else if (data.event === "KOT_CREATED") {
               const tableFl = getTableFloor(data.table_id || data.table_number);
               setLastNotification(`New KOT ${data.kot_number} received for Table ${tableFl.floor_table_num} (${tableFl.name})`);
               playChime();
@@ -1005,20 +1136,72 @@ export default function POSDashboard() {
     };
   }, [posToken, soundEnabled]);
 
-  const handleRetryPrint = async (kotId: number) => {
-    if (!posToken) return;
-    setRetryingIds((prev) => ({ ...prev, [kotId]: true }));
+  // Claim the KOT (so only one device prints it), print it here, then report the result
+  const printKotOnThisDevice = async (kotId: number, force = false, manualWindow: Window | null = null) => {
+    if (!posToken || printingIdsRef.current.has(kotId)) {
+      manualWindow?.close();
+      return;
+    }
+    printingIdsRef.current.add(kotId);
     const apiBase = getApiBase();
     try {
-      const res = await posFetch(`${apiBase}/api/v1/pos/kots/${kotId}/retry-print`, {
+      const claim = await posFetch(`${apiBase}/api/v1/pos/kots/${kotId}/claim-print${force ? "?force=true" : ""}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${posToken}` },
       });
-      if (res.ok) {
-        await fetchData();
+      if (!claim.ok) {
+        manualWindow?.close();
+        return; // 409: another device already printed / is printing it
       }
+      const ticket: KotTicket = await claim.json();
+      let success = true;
+      try {
+        await printHtml(kotTicketHtml(ticket, kotPaperMm), manualWindow);
+      } catch {
+        success = false;
+      }
+      await posFetch(`${apiBase}/api/v1/pos/kots/${kotId}/printed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${posToken}` },
+        body: JSON.stringify({ success }),
+      });
     } catch (err) {
-      console.error("Retry print failed:", err);
+      manualWindow?.close();
+      console.error("KOT print failed:", err);
+    } finally {
+      printingIdsRef.current.delete(kotId);
+    }
+  };
+
+  // Print one KOT at a time, in arrival order
+  const enqueueKotPrint = (kotId: number, force = false) => {
+    printQueueRef.current = printQueueRef.current.then(() => printKotOnThisDevice(kotId, force)).catch(() => {});
+  };
+  useEffect(() => {
+    enqueueKotPrintRef.current = enqueueKotPrint;
+  });
+
+  // Catch-up: print recent KOTs this device missed (e.g. while the screen was closed or offline)
+  useEffect(() => {
+    if (!autoPrintKots) return;
+    const cutoff = Date.now() - 2 * 60 * 60 * 1000;
+    kots
+      .filter((k) => k.printed_status === "PENDING" && parseServerTime(k.created_at).getTime() >= cutoff)
+      .sort((a, b) => a.id - b.id)
+      .forEach((k) => enqueueKotPrint(k.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kots, autoPrintKots]);
+
+  // Manual Print / Reprint: open the print window right on the tap (browsers block it later),
+  // then show the ticket with the normal print dialog. Falls back to the hidden frame if blocked.
+  const handleRetryPrint = async (kotId: number) => {
+    if (!posToken) return;
+    const manualWindow = window.open("", "_blank", "width=420,height=640");
+    manualWindow?.document.write("<p style=\"font-family:sans-serif;padding:16px\">Preparing KOT…</p>");
+    setRetryingIds((prev) => ({ ...prev, [kotId]: true }));
+    try {
+      await printKotOnThisDevice(kotId, true, manualWindow);
+      await fetchData();
     } finally {
       setRetryingIds((prev) => ({ ...prev, [kotId]: false }));
     }
@@ -1335,6 +1518,7 @@ export default function POSDashboard() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${posToken}`,
         },
+        body: JSON.stringify({ payment_mode: settlePaymentMode }),
       });
 
       if (!res.ok && tableId) {
@@ -1344,6 +1528,7 @@ export default function POSDashboard() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${posToken}`,
           },
+          body: JSON.stringify({ payment_mode: settlePaymentMode }),
         });
       }
 
@@ -1901,6 +2086,40 @@ export default function POSDashboard() {
             >
               {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
             </button>
+
+            {/* KOT auto-print (this device) */}
+            <button
+              type="button"
+              onClick={() => {
+                const next = !autoPrintKots;
+                setAutoPrintKots(next);
+                try { localStorage.setItem("jaadoo_kot_autoprint", next ? "on" : "off"); } catch {}
+              }}
+              className={`p-1.5 rounded-md border text-xs cursor-pointer flex items-center gap-1 ${autoPrintKots
+                ? "bg-emerald-700 border-emerald-700 text-white"
+                : "bg-white border-[#E4DCD0] text-stone-500"
+                }`}
+              title={autoPrintKots ? "KOTs print automatically on this device" : "Auto-print KOTs on this device is OFF"}
+              aria-pressed={autoPrintKots}
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline font-semibold">{autoPrintKots ? "Auto-print ON" : "Auto-print OFF"}</span>
+            </button>
+            {autoPrintKots && (
+              <select
+                value={kotPaperMm}
+                onChange={(e) => {
+                  const mm = e.target.value === "58" ? 58 : 80;
+                  setKotPaperMm(mm);
+                  try { localStorage.setItem("jaadoo_kot_paper", String(mm)); } catch {}
+                }}
+                aria-label="KOT paper width"
+                className="p-1 rounded-md border border-[#E4DCD0] bg-white text-xs cursor-pointer"
+              >
+                <option value={80}>80mm</option>
+                <option value={58}>58mm</option>
+              </select>
+            )}
 
             {/* Refresh */}
             <button
@@ -3089,15 +3308,21 @@ export default function POSDashboard() {
                           </span>
 
                           <div className="flex items-center gap-2">
-                            {kot.printed_status === "FAILED" && (
-                              <button
-                                onClick={() => handleRetryPrint(kot.id)}
-                                disabled={retryingIds[kot.id]}
-                                className="px-2.5 py-1 rounded-md bg-rose-700 hover:bg-rose-800 text-white text-[11px] font-semibold uppercase tracking-wider transition-colors cursor-pointer"
-                              >
-                                {retryingIds[kot.id] ? "Printing..." : "Retry Print"}
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRetryPrint(kot.id)}
+                              disabled={retryingIds[kot.id]}
+                              className={`px-2.5 py-1 rounded-md text-white text-[11px] font-semibold uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1 ${kot.printed_status === "FAILED" ? "bg-rose-700 hover:bg-rose-800" : "bg-stone-600 hover:bg-stone-700"}`}
+                            >
+                              <Printer className="w-3 h-3" />
+                              {retryingIds[kot.id]
+                                ? "Printing..."
+                                : kot.printed_status === "FAILED"
+                                  ? "Retry Print"
+                                  : kot.printed_status === "PRINTED"
+                                    ? "Reprint"
+                                    : "Print KOT"}
+                            </button>
 
                             {kot.status !== "COMPLETED" && (
                               <button

@@ -1,5 +1,5 @@
 import datetime
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Dict, List, Optional, Tuple
 from collections import defaultdict
 from sqlalchemy import func, or_, select
@@ -229,6 +229,65 @@ class POSService:
         )
 
     @staticmethod
+    async def claim_kot_print(db: AsyncSession, kot_id: int, force: bool = False) -> dict:
+        """Atomically claim a KOT for printing on this device and return the ticket content.
+
+        Only one device can claim a KOT (PENDING/FAILED -> PRINTING), so two POS screens with
+        auto-print on never print it twice. force=True reprints regardless of status.
+        """
+        from sqlalchemy import update
+
+        stmt = update(KOT).where(KOT.id == kot_id)
+        if not force:
+            stmt = stmt.where(KOT.printed_status.in_(["PENDING", "FAILED"]))
+        claimed = (await db.execute(stmt.values(printed_status="PRINTING"))).rowcount
+        await db.commit()
+        if not claimed:
+            exists = await db.get(KOT, kot_id)
+            if not exists:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="KOT not found.")
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="ALREADY_CLAIMED: This KOT is already printed or printing.")
+
+        kot = (
+            await db.execute(
+                select(KOT)
+                .options(
+                    selectinload(KOT.table),
+                    selectinload(KOT.order).selectinload(Order.items).selectinload(OrderItem.menu_item),
+                )
+                .where(KOT.id == kot_id)
+            )
+        ).scalar_one()
+        items = [
+            {
+                "name": oi.menu_item.name if oi.menu_item else "Item",
+                "quantity": oi.quantity,
+                "special_instructions": oi.special_instructions,
+            }
+            for oi in (kot.order.items if kot.order else [])
+        ]
+        return {
+            "kot_id": kot.id,
+            "kot_number": kot.kot_number,
+            "table_id": kot.table_id,
+            "table_number": kot.table.table_number if kot.table else None,
+            "order_number": kot.order.order_number if kot.order else None,
+            "created_at": kot.created_at.isoformat(),
+            "items": items,
+        }
+
+    @staticmethod
+    async def mark_kot_printed(db: AsyncSession, kot_id: int, success: bool) -> dict:
+        kot = await db.get(KOT, kot_id)
+        if not kot:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="KOT not found.")
+        kot.printed_status = "PRINTED" if success else "FAILED"
+        await db.commit()
+        from app.api.websocket import ws_manager
+        await ws_manager.broadcast("pos", {"event": "KOT_UPDATED", "kot_id": kot.id, "kot_number": kot.kot_number, "printed_status": kot.printed_status})
+        return {"kot_id": kot.id, "printed_status": kot.printed_status}
+
+    @staticmethod
     async def retry_kot_print(db: AsyncSession, kot_id: int) -> dict:
         stmt = (
             select(KOT)
@@ -299,7 +358,7 @@ class POSService:
         }
 
     @staticmethod
-    async def close_dining_session(db: AsyncSession, session_id: int) -> dict:
+    async def close_dining_session(db: AsyncSession, session_id: int, payment_mode: Optional[str] = None) -> dict:
         stmt = select(DiningSession).options(selectinload(DiningSession.table)).where(DiningSession.id == session_id)
         res = await db.execute(stmt)
         sess = res.scalar_one_or_none()
@@ -328,6 +387,12 @@ class POSService:
         bill = await BillingService.get_or_calculate_bill(db, session_id)
         if bill:
             bill.is_paid = True
+            # Record how it was paid (feeds the dashboard payment breakdown); one payment per bill
+            if payment_mode and bill.total_amount and bill.total_amount > 0:
+                from app.models.billing import Payment
+                already = (await db.execute(select(func.count(Payment.id)).where(Payment.bill_id == bill.id))).scalar() or 0
+                if not already:
+                    db.add(Payment(bill_id=bill.id, payment_method=payment_mode, amount_paid=bill.total_amount))
 
         # Complete any seated reservations for this table or session
         from app.models.reservation import Reservation
@@ -358,7 +423,7 @@ class POSService:
         return {"message": f"Dining session #{session_id} settled and closed successfully. Table is now Available."}
 
     @staticmethod
-    async def settle_table_by_id(db: AsyncSession, table_id: int) -> dict:
+    async def settle_table_by_id(db: AsyncSession, table_id: int, payment_mode: Optional[str] = None) -> dict:
         session_stmt = (
             select(DiningSession)
             .where(
@@ -376,7 +441,7 @@ class POSService:
                 await db.commit()
             return {"message": f"Table #{table_id} is already Available (no active dining session)."}
 
-        return await POSService.close_dining_session(db, session_id=sess.id)
+        return await POSService.close_dining_session(db, session_id=sess.id, payment_mode=payment_mode)
 
     @staticmethod
     async def reset_all_sessions(db: AsyncSession) -> dict:
@@ -388,6 +453,18 @@ class POSService:
         active_sessions = res.scalars().all()
 
         count = len(active_sessions)
+
+        # Record each open table's bill (left unpaid) before force-closing, so totals aren't lost
+        from app.services.billing_service import BillingService
+        unbilled_ids = [
+            s.id for s in active_sessions
+            if (await db.execute(select(func.count(Order.id)).where(Order.dining_session_id == s.id))).scalar()
+        ]
+        for sid in unbilled_ids:
+            await BillingService.get_or_calculate_bill(db, sid)
+
+        res = await db.execute(session_stmt)  # reload after the billing commits
+        active_sessions = res.scalars().all()
         now = utc_now()
 
         for sess in active_sessions:
@@ -562,7 +639,7 @@ class POSService:
                     bill_rec.discount_type if bill_rec else None,
                     bill_rec.discount_value if bill_rec else 0,
                 )
-                tax_amt = ((session_total - disc_amt) * Decimal("0.05")).quantize(Decimal("0.01"))
+                tax_amt = ((session_total - disc_amt) * Decimal("0.05")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                 gross_amt = session_total - disc_amt + tax_amt
                 dep_paid = Decimal("0.00")
                 res_credit = Decimal("0.00")
@@ -733,6 +810,11 @@ class POSService:
         table = await db.get(Table, table_id)
         if not table:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Table not found.")
+        if guest_count is not None and table.capacity and guest_count > table.capacity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"{table.table_number or 'This table'} seats {table.capacity}. Choose a bigger table for {guest_count} guests.",
+            )
 
         session_stmt = (
             select(DiningSession)
@@ -746,6 +828,16 @@ class POSService:
         active_sess = sess_res.scalar_one_or_none()
 
         if active_sess:
+            # Only reuse a session nobody is using yet (e.g. the guest just scanned the QR);
+            # never seat a new party onto another party's running bill or reservation
+            has_orders = (
+                await db.execute(select(func.count(Order.id)).where(Order.dining_session_id == active_sess.id))
+            ).scalar() or 0
+            if has_orders or active_sess.reservation_id or active_sess.status in ("ACTIVE", "CHECKOUT"):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"{table.table_number or 'This table'} is occupied. Settle it first or choose another table.",
+                )
             return {
                 "message": f"Table #{table.table_number or table_id} already has an active session.",
                 "session_id": active_sess.id,
@@ -786,9 +878,40 @@ class POSService:
         session_id: int,
         items: List[dict],
     ) -> dict:
+        from app.schemas.order import MAX_ITEM_QUANTITY
+
         session = await db.get(DiningSession, session_id)
         if not session:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dining session not found.")
+        if session.status not in ("OPENED", "ACTIVE", "CHECKOUT"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This bill is already settled and can no longer be edited.")
+        if not isinstance(items, list):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Items must be a list.")
+
+        # Validate every requested line up front: real menu dish, whole-number quantity 0..MAX (0 removes)
+        req_item_map = {}
+        for it in items:
+            name = str((it or {}).get("name") or "").strip()
+            if not name:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Every item needs a name.")
+            raw_qty = (it or {}).get("quantity", 0)
+            if isinstance(raw_qty, bool) or not (isinstance(raw_qty, int) or (isinstance(raw_qty, str) and raw_qty.strip().isdigit())):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Quantity for {name} must be a whole number from 0 to {MAX_ITEM_QUANTITY}.")
+            qty = int(raw_qty)
+            if qty < 0 or qty > MAX_ITEM_QUANTITY:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Quantity for {name} must be a whole number from 0 to {MAX_ITEM_QUANTITY}.")
+            if qty > 0:
+                req_item_map[name.lower()] = {**it, "quantity": qty}
+
+        menu_by_name = {}
+        if req_item_map:
+            menu_rows = (
+                await db.execute(select(MenuItem).where(func.lower(MenuItem.name).in_(list(req_item_map)), MenuItem.is_active == True))
+            ).scalars().all()
+            menu_by_name = {m.name.strip().lower(): m for m in menu_rows}
+            unknown = [it["name"] for key, it in req_item_map.items() if key not in menu_by_name]
+            if unknown:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not on the menu: {', '.join(unknown)}.")
 
         orders_stmt = select(Order).options(selectinload(Order.items).selectinload(OrderItem.menu_item)).where(Order.dining_session_id == session_id)
         orders_res = await db.execute(orders_stmt)
@@ -798,7 +921,6 @@ class POSService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No orders found for this session to edit.")
 
         latest_order = orders[-1]
-        req_item_map = {it["name"].strip().lower(): it for it in items if int(it.get("quantity", 0)) > 0}
 
         for ord in orders:
             for oi in list(ord.items):
@@ -812,12 +934,10 @@ class POSService:
                     await db.delete(oi)
 
         for it_name_lower, it_data in req_item_map.items():
-            menu_stmt = select(MenuItem).where(func.lower(MenuItem.name) == it_name_lower)
-            m_res = await db.execute(menu_stmt)
-            m_item = m_res.scalar_one_or_none()
+            m_item = menu_by_name[it_name_lower]
             if m_item:
-                qty = int(it_data.get("quantity", 1))
-                price = Decimal(str(it_data.get("unit_price", m_item.price)))
+                qty = it_data["quantity"]
+                price = Decimal(str(m_item.price))  # always the menu price; client prices are ignored
                 new_oi = OrderItem(
                     order_id=latest_order.id,
                     menu_item_id=m_item.id,

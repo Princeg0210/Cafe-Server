@@ -1,10 +1,10 @@
 import datetime
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, require_permission
 from app.models.user import User
-from app.schemas.pos import KOTResponse, POSSummaryResponse, SessionDiscountRequest, TableOverviewResponse
+from app.schemas.pos import KOTResponse, POSSummaryResponse, SessionDiscountRequest, SettleRequest, TableOverviewResponse
 from app.services.billing_service import BillingService
 from app.services.pos_service import POSService
 
@@ -57,6 +57,27 @@ async def list_table_sessions(
     return await POSService.get_table_sessions(db, target_date=date_obj)
 
 
+@router.post("/kots/{id}/claim-print")
+async def claim_kot_print(
+    id: int,
+    force: bool = Query(False, description="Reprint even if already printed"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
+):
+    """Claim a KOT for printing on this device (prevents duplicate prints) and get its ticket."""
+    return await POSService.claim_kot_print(db, kot_id=id, force=force)
+
+
+@router.post("/kots/{id}/printed")
+async def mark_kot_printed(
+    id: int,
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
+):
+    return await POSService.mark_kot_printed(db, kot_id=id, success=bool(payload.get("success", True)))
+
+
 @router.post("/kots/{id}/retry-print")
 async def retry_kot_print(
     id: int,
@@ -69,19 +90,21 @@ async def retry_kot_print(
 @router.post("/sessions/{id}/close")
 async def close_session(
     id: int,
+    payload: Optional[SettleRequest] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_permission("pos:access")),
 ):
-    return await POSService.close_dining_session(db, session_id=id)
+    return await POSService.close_dining_session(db, session_id=id, payment_mode=payload.payment_mode if payload else None)
 
 
 @router.post("/tables/{table_id}/settle")
 async def settle_table(
     table_id: int,
+    payload: Optional[SettleRequest] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_permission("pos:access")),
 ):
-    return await POSService.settle_table_by_id(db, table_id=table_id)
+    return await POSService.settle_table_by_id(db, table_id=table_id, payment_mode=payload.payment_mode if payload else None)
 
 
 @router.post("/tables/merge")
@@ -101,14 +124,19 @@ async def seat_walk_in(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_permission("pos:access")),
 ):
-    table_id = int(payload.get("table_id", 0))
-    customer_name = payload.get("customer_name")
-    guest_count = payload.get("guest_count")
+    try:
+        table_id = int(payload.get("table_id") or 0)
+        guest_count = payload.get("guest_count")
+        guest_count = int(guest_count) if guest_count not in (None, "") else None
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Table and guest count must be numbers.")
+    if guest_count is not None and not 1 <= guest_count <= 20:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Guest count must be between 1 and 20.")
     return await POSService.seat_walk_in(
         db,
         table_id=table_id,
-        customer_name=customer_name,
-        guest_count=int(guest_count) if guest_count else None,
+        customer_name=payload.get("customer_name"),
+        guest_count=guest_count,
     )
 
 
