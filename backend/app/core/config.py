@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     # Required outside development; unset means the account is not auto-created.
     DEFAULT_ADMIN_PASSWORD: Optional[str] = None
     DEFAULT_POS_PASSWORD: Optional[str] = None
+    DEFAULT_MANAGER_PASSWORD: Optional[str] = None
 
     # JWT Authentication
     JWT_SECRET_KEY: str = "super-secret-jwt-key-jaadoo-udaipur"
