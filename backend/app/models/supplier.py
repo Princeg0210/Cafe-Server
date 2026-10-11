@@ -1,6 +1,6 @@
 import datetime
 from decimal import Decimal
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.utils.helpers import utc_now
@@ -25,6 +25,9 @@ class PurchaseOrder(Base):
     supplier_id: Mapped[int] = mapped_column(Integer, ForeignKey("suppliers.id", ondelete="CASCADE"), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="DRAFT", nullable=False)  # DRAFT, ORDERED, RECEIVED, CANCELLED
     total_cost: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"), nullable=False)
+    # Supplier's own bill/invoice reference, filled when a purchase is recorded from a scanned bill
+    invoice_number: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    invoice_date: Mapped[datetime.date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     supplier = relationship("Supplier", back_populates="purchase_orders")

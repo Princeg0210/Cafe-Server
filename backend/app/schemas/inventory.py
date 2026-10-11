@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -58,3 +58,51 @@ class RecipeResponse(BaseModel):
     name: str
     instructions: Optional[str] = None
     items: List[RecipeItemResponse] = []
+
+
+# ---- Supplier bill scanning ----
+
+class BillScanLine(BaseModel):
+    description: str
+    quantity: Optional[Decimal] = None
+    unit: str = ""
+    unit_price: Optional[Decimal] = None
+    amount: Optional[Decimal] = None
+    suggested_material_id: Optional[int] = None
+    match_score: float = 0.0
+    stock_quantity: Optional[Decimal] = None  # quantity in the suggested material's unit, if convertible
+
+
+class BillScanDraft(BaseModel):
+    supplier_name: Optional[str] = None
+    bill_number: Optional[str] = None
+    bill_date: Optional[str] = None
+    grand_total: Optional[Decimal] = None
+    lines: List[BillScanLine] = []
+
+
+class BillConfirmLine(BaseModel):
+    action: Literal["MATCH", "NEW", "SKIP"]
+    description: str = ""
+    inventory_item_id: Optional[int] = None  # MATCH
+    quantity: Decimal = Decimal("0")  # in the material's unit
+    unit_cost: Decimal = Decimal("0")  # INR per material unit, before tax
+    new_name: Optional[str] = None  # NEW
+    new_sku: Optional[str] = None
+    new_unit: Optional[str] = None
+    new_reorder_threshold: Decimal = Decimal("0")
+
+
+class BillConfirmRequest(BaseModel):
+    supplier_name: str = Field(..., min_length=1, max_length=100)
+    bill_number: str = Field(..., min_length=1, max_length=100)
+    bill_date: Optional[date] = None
+    lines: List[BillConfirmLine] = Field(..., min_length=1)
+
+
+class BillConfirmResponse(BaseModel):
+    purchase_order_id: int
+    supplier_id: int
+    items_received: int
+    materials_created: int
+    total_cost: Decimal

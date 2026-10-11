@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp,
   IndianRupee,
+  ScanLine,
   Calendar,
   Utensils,
   QrCode,
@@ -289,6 +290,119 @@ export default function AdminPortal() {
   const [rawLowOnly, setRawLowOnly] = useState(false);
   const [stockUpdate, setStockUpdate] = useState<{ item: RawMaterial; mode: "PURCHASE" | "WASTE" | "COUNT"; qty: string; ref: string } | null>(null);
   const [newRaw, setNewRaw] = useState<{ name: string; sku: string; unit: string; stock: string; reorder: string } | null>(null);
+
+  // Supplier bill scanning: photo/PDF -> Sarvam reads it -> review -> confirm into stock
+  type BillLine = {
+    description: string;
+    billQty: string;
+    billUnit: string;
+    amount: number | null;
+    choice: string; // "MATCH:<id>" | "NEW" | "SKIP"
+    quantity: string; // in the chosen material's unit
+    unitCost: string; // INR per material unit
+    unitCheck: boolean; // bill unit couldn't be converted to the material's unit
+    newName: string;
+    newUnit: string;
+  };
+  const [billScan, setBillScan] = useState<{
+    stage: "pick" | "scanning" | "review" | "saving";
+    error?: string;
+    supplier: string;
+    billNumber: string;
+    billDate: string;
+    grandTotal: number | null;
+    lines: BillLine[];
+  } | null>(null);
+
+  const handleScanBill = async (file: File) => {
+    if (!token) return;
+    setBillScan((p) => (p ? { ...p, stage: "scanning", error: undefined } : p));
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await adminFetch(`${getApiBase()}/api/v1/inventory/bills/scan`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setBillScan((p) => (p ? { ...p, stage: "pick", error: typeof data.detail === "string" ? data.detail : "Could not read the bill." } : p));
+        return;
+      }
+      const units = ["kg", "g", "l", "ml", "pcs"];
+      const lines: BillLine[] = (data.lines || []).map((l: any) => {
+        const matched = l.suggested_material_id ? rawItems.find((r) => r.id === l.suggested_material_id) : undefined;
+        const qty = Number(matched && l.stock_quantity != null ? l.stock_quantity : l.quantity || 0);
+        const amount = l.amount != null ? Number(l.amount) : null;
+        const billUnit = String(l.unit || "").toLowerCase().replace(/[^a-z]/g, "");
+        const normUnit = ({ ltr: "l", ltrs: "l", litre: "l", liter: "l", kgs: "kg", gm: "g", gms: "g", nos: "pcs", pc: "pcs" } as Record<string, string>)[billUnit] || billUnit;
+        return {
+          description: l.description || "",
+          billQty: l.quantity != null ? String(Number(l.quantity)) : "",
+          billUnit: l.unit || "",
+          amount,
+          choice: matched ? `MATCH:${matched.id}` : "NEW",
+          quantity: qty ? String(qty) : "",
+          unitCost: amount != null && qty ? (amount / qty).toFixed(2) : l.unit_price != null ? String(Number(l.unit_price)) : "",
+          unitCheck: !!matched && l.stock_quantity == null,
+          newName: l.description || "",
+          newUnit: units.includes(normUnit) ? normUnit : "kg",
+        };
+      });
+      setBillScan({
+        stage: "review",
+        supplier: data.supplier_name || "",
+        billNumber: data.bill_number || "",
+        billDate: /^\d{4}-\d{2}-\d{2}$/.test(data.bill_date || "") ? data.bill_date : "",
+        grandTotal: data.grand_total != null ? Number(data.grand_total) : null,
+        lines,
+      });
+    } catch {
+      setBillScan((p) => (p ? { ...p, stage: "pick", error: "Network error while reading the bill." } : p));
+    }
+  };
+
+  const updateBillLine = (idx: number, patch: Partial<BillLine>) =>
+    setBillScan((p) => (p ? { ...p, lines: p.lines.map((l, i) => (i === idx ? { ...l, ...patch } : l)) } : p));
+
+  const handleConfirmBill = async () => {
+    if (!billScan || !token) return;
+    if (!billScan.supplier.trim() || !billScan.billNumber.trim()) {
+      setBillScan({ ...billScan, error: "Supplier name and bill number are required." });
+      return;
+    }
+    const lines = billScan.lines.map((l) => {
+      if (l.choice === "SKIP") return { action: "SKIP", description: l.description };
+      const base = { description: l.description, quantity: Number(l.quantity) || 0, unit_cost: Number(l.unitCost) || 0 };
+      if (l.choice === "NEW") return { ...base, action: "NEW", new_name: l.newName.trim(), new_unit: l.newUnit };
+      return { ...base, action: "MATCH", inventory_item_id: Number(l.choice.split(":")[1]) };
+    });
+    setBillScan({ ...billScan, stage: "saving", error: undefined });
+    try {
+      const res = await adminFetch(`${getApiBase()}/api/v1/inventory/bills/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          supplier_name: billScan.supplier.trim(),
+          bill_number: billScan.billNumber.trim(),
+          bill_date: billScan.billDate || null,
+          lines,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = typeof data.detail === "string" ? data.detail.replace(/^[A-Z_]+: /, "") : "Could not save the bill.";
+        setBillScan((p) => (p ? { ...p, stage: "review", error: msg } : p));
+        return;
+      }
+      showToast(`Bill ${billScan.billNumber} added: ${data.items_received} items, ₹${Number(data.total_cost).toLocaleString("en-IN")}`);
+      setBillScan(null);
+      fetchRawItems();
+    } catch {
+      setBillScan((p) => (p ? { ...p, stage: "review", error: "Network error while saving the bill." } : p));
+    }
+  };
 
   const fetchRawItems = useCallback(async () => {
     if (!token) return;
@@ -2605,6 +2719,15 @@ export default function AdminPortal() {
                   Track kitchen and bar raw materials. Record purchases, wastage and stock counts to keep levels accurate.
                 </p>
               </div>
+              <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setBillScan({ stage: "pick", supplier: "", billNumber: "", billDate: "", grandTotal: null, lines: [] })}
+                className="inline-flex items-center gap-1.5 bg-[#261C18] hover:bg-[#3D2C24] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
+              >
+                <ScanLine className="w-4 h-4" />
+                <span>Scan Bill</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setNewRaw({ name: "", sku: "", unit: "kg", stock: "", reorder: "" })}
@@ -2613,6 +2736,7 @@ export default function AdminPortal() {
                 <Plus className="w-4 h-4" />
                 <span>Add Raw Material</span>
               </button>
+              </div>
             </div>
 
             <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
@@ -2785,6 +2909,159 @@ export default function AdminPortal() {
                   Save
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Scan Supplier Bill Modal */}
+        {billScan && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-[#FFFDF9] border border-[#E4DCD0] rounded-3xl p-6 max-w-3xl w-full shadow-2xl space-y-4 text-xs max-h-[90vh] overflow-y-auto">
+              <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-3">
+                <div>
+                  <h3 className="text-lg font-sans font-extrabold text-[#241A14]">Scan Supplier Bill</h3>
+                  <p className="text-[#7A6A5E] mt-0.5">
+                    {billScan.stage === "review" || billScan.stage === "saving"
+                      ? "Check every line before adding to stock. Nothing is saved until you confirm."
+                      : "Take a clear photo of the bill, or upload a JPG, PNG or PDF (max 10 MB)."}
+                  </p>
+                </div>
+                <button type="button" onClick={() => setBillScan(null)} aria-label="Close" disabled={billScan.stage === "scanning" || billScan.stage === "saving"} className="p-1 rounded-lg text-[#8C7A6D] hover:text-[#241A14] hover:bg-[#F3EDE2] cursor-pointer disabled:opacity-40">
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+
+              {billScan.error && <p className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 font-semibold">{billScan.error}</p>}
+
+              {billScan.stage === "pick" && (
+                <label className="flex flex-col items-center justify-center gap-2 py-10 rounded-2xl border-2 border-dashed border-[#E0D4C2] bg-[#FAF7F0] cursor-pointer hover:border-[#B85B43]">
+                  <ScanLine className="w-8 h-8 text-[#B85B43]" />
+                  <span className="font-bold text-[#241A14] text-sm">Take photo or choose file</span>
+                  <span className="text-[#8C7A6D]">JPG, PNG or PDF</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,application/pdf"
+                    capture="environment"
+                    className="sr-only"
+                    aria-label="Bill photo or PDF"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleScanBill(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
+
+              {billScan.stage === "scanning" && (
+                <div className="py-12 text-center space-y-2">
+                  <RefreshCw className="w-7 h-7 text-[#B85B43] mx-auto animate-spin" />
+                  <p className="font-bold text-[#241A14] text-sm">Reading the bill…</p>
+                  <p className="text-[#8C7A6D]">This usually takes 10–30 seconds.</p>
+                </div>
+              )}
+
+              {(billScan.stage === "review" || billScan.stage === "saving") && (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {([
+                      ["supplier", "Supplier", "text"],
+                      ["billNumber", "Bill number", "text"],
+                      ["billDate", "Bill date", "date"],
+                    ] as const).map(([key, label, type]) => (
+                      <label key={key} className="block space-y-1">
+                        <span className="font-bold text-[#4A392F]">{label}</span>
+                        <input
+                          type={type}
+                          value={billScan[key]}
+                          onChange={(e) => setBillScan({ ...billScan, [key]: e.target.value })}
+                          className="w-full bg-[#FAF6EE] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl px-3 py-2 outline-none"
+                        />
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    {billScan.lines.length === 0 && <p className="text-center text-[#8C7A6D] py-4">No items were found on this bill.</p>}
+                    {billScan.lines.map((l, idx) => {
+                      const matId = l.choice.startsWith("MATCH:") ? Number(l.choice.split(":")[1]) : null;
+                      const mat = matId ? rawItems.find((r) => r.id === matId) : undefined;
+                      const unitLabel = mat ? mat.unit_of_measure : l.choice === "NEW" ? l.newUnit : "";
+                      return (
+                        <div key={idx} className={`rounded-xl border p-3 space-y-2 ${l.choice === "SKIP" ? "border-[#EFE7DA] opacity-60" : "border-[#E0D4C2]"}`}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="font-bold text-[#241A14]">{l.description || "Unnamed item"}</div>
+                              <div className="text-[#8C7A6D]">
+                                On bill: {l.billQty} {l.billUnit}
+                                {l.amount != null ? ` · ₹${l.amount.toLocaleString("en-IN")}` : ""}
+                              </div>
+                            </div>
+                            <select
+                              value={l.choice}
+                              onChange={(e) => updateBillLine(idx, { choice: e.target.value, unitCheck: false })}
+                              aria-label={`Raw material for ${l.description}`}
+                              className="max-w-[55%] bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1.5 font-semibold outline-none"
+                            >
+                              <option value="SKIP">Skip this line</option>
+                              <option value="NEW">+ Add as new raw material</option>
+                              {rawItems.map((r) => (
+                                <option key={r.id} value={`MATCH:${r.id}`}>{r.name} ({r.unit_of_measure})</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {l.choice !== "SKIP" && (
+                            <div className="flex flex-wrap items-end gap-2">
+                              {l.choice === "NEW" && (
+                                <>
+                                  <label className="space-y-1 flex-1 min-w-[160px]">
+                                    <span className="font-semibold text-[#4A392F]">New material name</span>
+                                    <input value={l.newName} onChange={(e) => updateBillLine(idx, { newName: e.target.value })} className="w-full bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1.5 outline-none" />
+                                  </label>
+                                  <label className="space-y-1">
+                                    <span className="font-semibold text-[#4A392F]">Unit</span>
+                                    <select value={l.newUnit} onChange={(e) => updateBillLine(idx, { newUnit: e.target.value })} className="block bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1.5 outline-none">
+                                      {["kg", "g", "l", "ml", "pcs"].map((u) => <option key={u} value={u}>{u}</option>)}
+                                    </select>
+                                  </label>
+                                </>
+                              )}
+                              <label className="space-y-1">
+                                <span className="font-semibold text-[#4A392F]">Add to stock ({unitLabel})</span>
+                                <input type="number" min="0" step="any" value={l.quantity} onChange={(e) => updateBillLine(idx, { quantity: e.target.value, unitCheck: false })} className="block w-28 bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1.5 outline-none" />
+                              </label>
+                              <label className="space-y-1">
+                                <span className="font-semibold text-[#4A392F]">Cost per {unitLabel || "unit"} (₹)</span>
+                                <input type="number" min="0" step="any" value={l.unitCost} onChange={(e) => updateBillLine(idx, { unitCost: e.target.value })} className="block w-28 bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1.5 outline-none" />
+                              </label>
+                              <div className="text-[#665448] pb-1.5">= ₹{((Number(l.quantity) || 0) * (Number(l.unitCost) || 0)).toLocaleString("en-IN", { maximumFractionDigits: 2 })}</div>
+                            </div>
+                          )}
+                          {l.unitCheck && l.choice !== "SKIP" && (
+                            <p className="text-amber-800 font-semibold">Check the quantity: the bill uses “{l.billUnit}” but {mat?.name} is tracked in {mat?.unit_of_measure}.</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#F0E8DC]">
+                    <div className="text-[#665448]">
+                      Adding ₹{billScan.lines.filter((l) => l.choice !== "SKIP").reduce((sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.unitCost) || 0), 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })} before tax
+                      {billScan.grandTotal != null && <> · Bill total ₹{billScan.grandTotal.toLocaleString("en-IN")} incl. tax</>}
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setBillScan({ stage: "pick", supplier: "", billNumber: "", billDate: "", grandTotal: null, lines: [] })} disabled={billScan.stage === "saving"} className="px-4 py-2 rounded-xl bg-[#FAF7F0] border border-[#E0D4C2] font-bold cursor-pointer disabled:opacity-50">
+                        Scan another
+                      </button>
+                      <button type="button" onClick={handleConfirmBill} disabled={billScan.stage === "saving"} className="px-4 py-2 rounded-xl bg-[#B85B43] text-white font-bold cursor-pointer disabled:opacity-50">
+                        {billScan.stage === "saving" ? "Saving…" : "Confirm & Add to Stock"}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
