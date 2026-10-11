@@ -83,6 +83,12 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const [qrErrorMessage, setQrErrorMessage] = useState<string | null>(null);
   const [showReservationIdPrompt, setShowReservationIdPrompt] = useState(false);
   const [reservationIdInput, setReservationIdInput] = useState("");
+  // ponytail: minimal 2-option state: reservation ID or walk-in
+  const [guestMode, setGuestMode] = useState<"reservation" | "walkin">("reservation");
+  const [walkInName, setWalkInName] = useState("");
+  const [walkInPhone, setWalkInPhone] = useState("");
+  const [isSubmittingWalkIn, setIsSubmittingWalkIn] = useState(false);
+  const [promptError, setPromptError] = useState<string | null>(null);
   const [hasTableAccess, setHasTableAccess] = useState(false);
   const [reservationNotice, setReservationNotice] = useState<{
     is_reserved: boolean;
@@ -317,22 +323,85 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     }
   };
 
+  // ponytail: seamless match by numeric ID or 4-letter + 4-phone booking code
   const continueFromReservationPrompt = () => {
     const entered = reservationIdInput.trim();
-    const numericPart = entered.replace(/\D/g, "");
-    if (reservationNotice && entered) {
-      const enteredNum = Number(numericPart || entered);
-      if (enteredNum !== reservationNotice.reservation_id) {
-        alert("That reservation ID does not match this table.");
+    if (!entered) {
+      setPromptError("Please enter your reservation ID to continue.");
+      return;
+    }
+
+    if (reservationNotice) {
+      const numericPart = entered.replace(/\D/g, "");
+      const enteredNum = numericPart ? Number(numericPart) : NaN;
+      const cleanEntered = entered.toUpperCase().replace(/\s+/g, "");
+      const expectedLetters = (reservationNotice.customer_name || "").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 4);
+
+      const isIdMatch = !isNaN(enteredNum) && enteredNum === reservationNotice.reservation_id;
+      const isCodeMatch = cleanEntered.startsWith(expectedLetters) && cleanEntered.length >= 4;
+
+      if (!isIdMatch && !isCodeMatch) {
+        setPromptError("That reservation ID does not match this table.");
         return;
       }
     }
-    if (reservationNotice && !entered) {
-      alert("Enter your reservation ID to continue.");
-      return;
-    }
+
+    setPromptError(null);
     setHasTableAccess(true);
     setShowReservationIdPrompt(false);
+  };
+
+  // ponytail: simple walk-in registration auto-creates reservation on backend
+  const handleWalkInSubmit = async () => {
+    if (!walkInName.trim()) {
+      setPromptError("Please enter your name.");
+      return;
+    }
+    const cleanPhone = walkInPhone.replace(/\D/g, "");
+    if (!cleanPhone || cleanPhone.length < 7) {
+      setPromptError("Please enter a valid phone number (at least 7 digits).");
+      return;
+    }
+
+    setIsSubmittingWalkIn(true);
+    setPromptError(null);
+    try {
+      const apiBase = getApiBase();
+      const res = await fetch(`${apiBase}/api/v1/tables/qr/walk-in`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          qr_token: validatedQrToken || rawToken,
+          customer_name: walkInName.trim(),
+          phone_number: cleanPhone,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setPromptError(errData.detail || "Unable to register walk-in. Please notify staff.");
+        return;
+      }
+
+      const data = await res.json();
+      setReservationNotice({
+        is_reserved: true,
+        reservation_id: data.reservation_id,
+        customer_name: data.customer_name || walkInName.trim(),
+        guest_count: 2,
+        time_slot: "Walk-in",
+        reservation_date: new Date().toISOString().split("T")[0],
+        status: "SEATED",
+        table_name: data.table_number || tableNumber,
+      });
+      setCheckInSuccess(true);
+      setHasTableAccess(true);
+      setShowReservationIdPrompt(false);
+    } catch {
+      setPromptError("Network error. Please try again.");
+    } finally {
+      setIsSubmittingWalkIn(false);
+    }
   };
 
   // 4. Quick Dine Acceptance Handler
@@ -569,17 +638,92 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm rounded-2xl bg-[#FFF9EE] p-6 shadow-2xl">
                 <h2 className="font-serif text-2xl font-bold text-[#261C18]">Welcome to your table</h2>
-                <p className="mt-2 text-sm leading-relaxed text-[#5A4A3D]">Enter your reservation ID so we can connect your booking to this table.</p>
-                <input
-                  type="text"
-                  inputMode="text"
-                  value={reservationIdInput}
-                  onChange={(event) => setReservationIdInput(event.target.value)}
-                  placeholder="Reservation ID"
-                  className="mt-5 w-full rounded-xl border border-[#D7C4A3] bg-white px-3 py-3 text-sm outline-none focus:border-[#B85B43]"
-                />
-                <button type="button" onClick={continueFromReservationPrompt} className="mt-4 w-full rounded-xl bg-[#261C18] py-3 text-sm font-bold text-white">Continue to menu</button>
-                {!reservationNotice && <button type="button" onClick={() => setShowReservationIdPrompt(false)} className="mt-2 w-full py-2 text-xs font-semibold text-[#8C6C52]">Continue without a reservation</button>}
+                <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-[#5A4A3D]">Select an option to unlock your table menu.</p>
+
+                {/* ponytail: 2 options tabs - Reservation ID or Walk-in */}
+                <div className="mt-4 grid grid-cols-2 p-1 rounded-xl bg-[#EFE6D6] gap-1">
+                  <button
+                    type="button"
+                    onClick={() => { setGuestMode("reservation"); setPromptError(null); }}
+                    className={`py-2 text-xs font-bold rounded-lg transition-all ${guestMode === "reservation" ? "bg-[#261C18] text-white shadow-xs" : "text-[#705844] hover:text-[#261C18]"}`}
+                  >
+                    Reservation ID
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setGuestMode("walkin"); setPromptError(null); }}
+                    className={`py-2 text-xs font-bold rounded-lg transition-all ${guestMode === "walkin" ? "bg-[#261C18] text-white shadow-xs" : "text-[#705844] hover:text-[#261C18]"}`}
+                  >
+                    Walk-in
+                  </button>
+                </div>
+
+                {/* Option 1: Reservation ID Flow */}
+                {guestMode === "reservation" ? (
+                  <div className="mt-4 space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#705844] mb-1">
+                        Reservation ID / Booking Code
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="text"
+                        value={reservationIdInput}
+                        onChange={(event) => { setReservationIdInput(event.target.value); setPromptError(null); }}
+                        placeholder="e.g. 12 or JOHN3210"
+                        className="w-full rounded-xl border border-[#D7C4A3] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#B85B43]"
+                      />
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-[#F4EDE0] border border-[#E0D3BF] text-[11px] text-[#705844] leading-relaxed">
+                      <span className="font-bold text-[#B85B43]">Instruction:</span> Reservation ID is the first 4 letters of your name and last 4 numbers of your phone number (e.g. JOHN3210).
+                    </div>
+                    {promptError && <p className="text-xs text-rose-600 font-medium">{promptError}</p>}
+                    <button
+                      type="button"
+                      onClick={continueFromReservationPrompt}
+                      className="w-full rounded-xl bg-[#261C18] hover:bg-[#3D2D24] py-3 text-sm font-bold text-white transition-all shadow-sm active:scale-[0.98]"
+                    >
+                      Continue to menu
+                    </button>
+                  </div>
+                ) : (
+                  /* Option 2: Walk-in Guest Form (Name & Phone only) */
+                  <div className="mt-4 space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#705844] mb-1">
+                        Your Name
+                      </label>
+                      <input
+                        type="text"
+                        value={walkInName}
+                        onChange={(e) => { setWalkInName(e.target.value); setPromptError(null); }}
+                        placeholder="e.g. Rajesh Sharma"
+                        className="w-full rounded-xl border border-[#D7C4A3] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#B85B43]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-[#705844] mb-1">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={walkInPhone}
+                        onChange={(e) => { setWalkInPhone(e.target.value); setPromptError(null); }}
+                        placeholder="e.g. 9876543210"
+                        className="w-full rounded-xl border border-[#D7C4A3] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#B85B43]"
+                      />
+                    </div>
+                    {promptError && <p className="text-xs text-rose-600 font-medium">{promptError}</p>}
+                    <button
+                      type="button"
+                      disabled={isSubmittingWalkIn}
+                      onClick={handleWalkInSubmit}
+                      className="w-full rounded-xl bg-[#261C18] hover:bg-[#3D2D24] py-3 text-sm font-bold text-white transition-all shadow-sm disabled:opacity-50 active:scale-[0.98]"
+                    >
+                      {isSubmittingWalkIn ? "Connecting Table..." : "Enter Table & View Menu"}
+                    </button>
+                  </div>
+                )}
               </motion.div>
             </div>
           )}

@@ -10,6 +10,8 @@ from app.schemas.table import (
     TableQRResponse,
     QRValidateRequest,
     QRValidateResponse,
+    QRWalkInRequest,
+    QRWalkInResponse,
     DiningSessionResponse,
     SessionBillResponse,
 )
@@ -45,6 +47,18 @@ async def rotate_table_qr(id: int, db: AsyncSession = Depends(get_db)):
 @router.post("/qr/validate", response_model=QRValidateResponse)
 async def validate_qr(body: QRValidateRequest, db: AsyncSession = Depends(get_db)):
     return await TableService.validate_qr_token(db, body.qr_token)
+
+
+# ponytail: walk-in guest registration creates reservation and seats session immediately
+@router.post("/qr/walk-in", response_model=QRWalkInResponse)
+async def walk_in_qr(body: QRWalkInRequest, db: AsyncSession = Depends(get_db)):
+    return await TableService.create_walk_in_reservation(
+        db=db,
+        qr_token=body.qr_token,
+        customer_name=body.customer_name,
+        phone_number=body.phone_number,
+        guest_count=body.guest_count or 2,
+    )
 
 
 @router.post("/qr/session", response_model=DiningSessionResponse)

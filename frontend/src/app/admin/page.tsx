@@ -4348,9 +4348,12 @@ export default function AdminPortal() {
                 <img src={qrModalTable.qrDataUrl} alt={`QR Table ${qrModalTable.number}`} className="w-56 h-56 rounded-lg" />
               </div>
 
-              <p className="text-xs text-[#665448] font-sans">
-                Scan with phone camera to browse the artisanal menu and order directly from your table.
-              </p>
+              <div className="p-3 bg-[#FBF7EE] border border-dashed border-[#B85B43]/50 rounded-xl text-xs text-[#5A4A3D] space-y-1 text-center">
+                <p className="font-bold text-[#B85B43]">Reservation ID Instruction</p>
+                <p className="leading-relaxed">
+                  Reservation ID is the first 4 letters of your name and last 4 numbers of your phone number (e.g. JOHN3210).
+                </p>
+              </div>
 
               <div className="flex items-center gap-2 pt-2">
                 <button
@@ -4368,7 +4371,9 @@ export default function AdminPortal() {
                               p { color: #B85B43; font-size: 13px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 16px 0; }
                               .logo { width: 150px; height: 86px; object-fit: cover; border-radius: 12px; margin-bottom: 10px; border: 2px solid #E2D6C5; }
                               .qr { width: 280px; height: 280px; border-radius: 12px; }
-                              .foot { margin-top: 16px; font-size: 11px; color: #776; font-weight: 500; }
+                              .instruction { margin: 12px 0 6px 0; padding: 8px 12px; background: #FBF7EE; border: 1px dashed #B85B43; border-radius: 8px; font-size: 11px; line-height: 1.4; color: #4A392F; font-weight: 500; text-align: center; }
+                              .instruction strong { color: #B85B43; font-weight: 800; display: block; margin-bottom: 2px; }
+                              .foot { margin-top: 14px; font-size: 11px; color: #776; font-weight: 500; }
                             </style>
                           </head>
                           <body onload="window.print()">
@@ -4377,6 +4382,10 @@ export default function AdminPortal() {
                               <p>JAADOO PIZZA PROJECT</p>
                               <h1>Ground floor</h1>
                               <img class="qr" src="${qrModalTable.qrDataUrl}" alt="Table QR code" />
+                              <div class="instruction">
+                                <strong>Reservation ID Instruction</strong>
+                                Reservation ID is your first 4 letters of name and last 4 numbers of phone number (e.g. JOHN3210).
+                              </div>
                               <div class="foot">Scan to Order • 32 Sitaphal ki gali, Ganesh Ghati, Udaipur</div>
                             </div>
                           </body>

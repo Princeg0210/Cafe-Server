@@ -8,10 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.core.config import settings
 from app.models.table import Table, TableQR, DiningSession
+from app.models.customer import Customer
 from app.models.order import Order, OrderItem
 from app.models.reservation import Reservation
 from app.schemas.table import (
     QRValidateResponse,
+    QRWalkInResponse,
     ReservationNotice,
     DiningSessionResponse,
     SessionBillResponse,
@@ -326,3 +328,104 @@ class TableService:
         await db.commit()
         await db.refresh(session)
         return session
+
+    # ponytail: one-shot walk-in reservation generation reusing existing reservation & session models
+    @staticmethod
+    async def create_walk_in_reservation(
+        db: AsyncSession,
+        qr_token: str,
+        customer_name: str,
+        phone_number: str,
+        guest_count: int = 2,
+    ) -> QRWalkInResponse:
+        # 1. Resolve table from qr_token
+        qr_stmt = select(TableQR).where(TableQR.qr_token == qr_token, TableQR.is_active == True)
+        qr_res = await db.execute(qr_stmt)
+        qr = qr_res.scalar_one_or_none()
+        if not qr:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired QR token.")
+
+        table = await db.get(Table, qr.table_id)
+        if not table:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Table not found.")
+
+        # 2. Get or create Customer
+        clean_name = customer_name.strip()
+        clean_phone = "".join(filter(str.isdigit, phone_number))
+        if not clean_phone or len(clean_phone) < 7:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Please enter a valid phone number.")
+
+        cust_stmt = select(Customer).where(Customer.phone == clean_phone)
+        cust_res = await db.execute(cust_stmt)
+        customer = cust_res.scalar_one_or_none()
+        if not customer:
+            customer = Customer(
+                name=clean_name,
+                phone=clean_phone,
+            )
+            db.add(customer)
+            await db.flush()
+        else:
+            if clean_name and customer.name != clean_name:
+                customer.name = clean_name
+                await db.flush()
+
+        # 3. Get or create dining session
+        session = await TableService.get_or_create_dining_session(db, table.id)
+
+        # 4. Create Reservation for the walk-in
+        from decimal import Decimal
+        now = datetime.datetime.now()
+        walk_in_res = Reservation(
+            branch_id=table.branch_id,
+            customer_id=customer.id,
+            guest_count=guest_count or 2,
+            reservation_date=now.date(),
+            time_slot=now.strftime("%I:%M %p"),
+            table_id=table.id,
+            floor_number=table.floor_number or 1,
+            table_name=table.table_number,
+            status="SEATED",
+            payment_status="PAID",
+            advance_amount=Decimal("0.00"),
+            is_deposit_credited=True,
+        )
+        db.add(walk_in_res)
+        await db.flush()
+
+        # 5. Attach reservation to session and mark table occupied
+        session.reservation_id = walk_in_res.id
+        session.customer_id = customer.id
+        session.status = "ACTIVE"
+        table.status = "Occupied"
+
+        await db.commit()
+        await db.refresh(walk_in_res)
+        await db.refresh(session)
+
+        # 6. Broadcast event so POS, Manager, Admin update live
+        try:
+            from app.api.websocket import ws_manager
+            event = {
+                "event": "TABLE_OCCUPIED",
+                "table_id": table.id,
+                "session_id": session.id,
+                "customer_name": customer.name,
+                "reservation_id": walk_in_res.id,
+                "booking_id": walk_in_res.booking_id,
+            }
+            await ws_manager.broadcast("tables", event)
+            await ws_manager.broadcast("pos", event)
+        except Exception:
+            pass
+
+        return QRWalkInResponse(
+            success=True,
+            reservation_id=walk_in_res.id,
+            booking_id=walk_in_res.booking_id,
+            customer_name=customer.name,
+            table_number=table.table_number,
+            session_id=session.id,
+            session_token=session.session_token,
+            status="SEATED",
+        )

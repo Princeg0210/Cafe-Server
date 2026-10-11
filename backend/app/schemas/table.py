@@ -30,6 +30,25 @@ class QRValidateRequest(BaseModel):
     qr_token: str
 
 
+# ponytail: minimal walk-in request with name & phone
+class QRWalkInRequest(BaseModel):
+    qr_token: str
+    customer_name: str
+    phone_number: str
+    guest_count: Optional[int] = 2
+
+
+class QRWalkInResponse(BaseModel):
+    success: bool
+    reservation_id: int
+    booking_id: str
+    customer_name: str
+    table_number: str
+    session_id: int
+    session_token: str
+    status: str
+
+
 class ReservationNotice(BaseModel):
     is_reserved: bool = True
     reservation_id: int
