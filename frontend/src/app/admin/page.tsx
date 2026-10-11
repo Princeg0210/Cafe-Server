@@ -64,6 +64,13 @@ import { menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
 import { adminSession } from "@/lib/authFetch";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 const {
   fetch: adminFetch,
@@ -1764,63 +1771,61 @@ export default function AdminPortal() {
 
         {/* Global Action Header */}
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
-          <button
+          <Button
+            variant="secondary"
             onClick={() => fetchData(false)}
             disabled={isLoading}
-            className="inline-flex items-center gap-1.5 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#4A392F] px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-[#B85B43]" : ""}`} />
             <span>Refresh</span>
-          </button>
+          </Button>
 
-          <Link
-            href="/pos"
-            target="_blank"
-            className="inline-flex items-center gap-1.5 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#B85B43]/30 text-[#B85B43] px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs"
-          >
-            <Store className="w-3.5 h-3.5" />
-            <span>Open POS</span>
-            <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
+          <Link href="/pos" target="_blank" className="inline-flex">
+            <Button variant="secondary" className="text-[#B85B43] border-[#B85B43]/30">
+              <Store className="w-3.5 h-3.5" />
+              <span>Open POS</span>
+              <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
+            </Button>
           </Link>
 
-          <button
+          <Button
+            variant="ghost"
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+            className="text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Logout</span>
-          </button>
+          </Button>
         </div>
       </header>
 
-      {/* Sub-Header Navigation Tabs */}
-      <div className="bg-[#F3EDE2] border-b border-[#E4DCD0] px-4 sm:px-6 py-2.5 overflow-x-auto flex items-center gap-2">
-        {[
-          { id: "analytics", label: "Executive Analytics", icon: TrendingUp },
-          { id: "operations", label: "Operations", icon: SlidersHorizontal },
-          { id: "menu", label: "Menu", icon: Utensils },
-          { id: "inventory", label: "Inventory", icon: Package },
-          { id: "reservations", label: "Reservations CRM", icon: Calendar },
-          { id: "tables", label: "Tables & QR Generator", icon: QrCode },
-          { id: "ledger", label: "Billing & Finance Ledger", icon: Receipt },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-                isActive
-                  ? "bg-[#B85B43] text-white shadow-sm"
-                  : "text-[#665448] hover:text-[#241A14] hover:bg-[#EBE2D4]"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
+      {/* Sub-Header Navigation Tabs (Shadcn Tabs UI) */}
+      <div className="bg-[#F3EDE2] border-b border-[#E4DCD0] px-4 sm:px-6 py-2 overflow-x-auto">
+        <TabsList className="bg-transparent border-0 p-0 gap-1.5 flex">
+          {[
+            { id: "analytics", label: "Executive Analytics", icon: TrendingUp },
+            { id: "operations", label: "Operations", icon: SlidersHorizontal },
+            { id: "menu", label: "Menu", icon: Utensils },
+            { id: "inventory", label: "Inventory", icon: Package },
+            { id: "reservations", label: "Reservations CRM", icon: Calendar },
+            { id: "tables", label: "Tables & QR Generator", icon: QrCode },
+            { id: "ledger", label: "Billing & Finance Ledger", icon: Receipt },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <TabsTrigger
+                key={tab.id}
+                active={isActive}
+                onClick={() => setActiveTab(tab.id as any)}
+                className="px-3.5 py-1.5 uppercase tracking-wider text-[11px]"
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{tab.label}</span>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
       </div>
 
       {/* Main Tab Content */}
@@ -1828,10 +1833,10 @@ export default function AdminPortal() {
         {/* TAB 1: EXECUTIVE ANALYTICS */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
-            {/* Primary KPI Metric Cards (each with its own business-date filter) */}
+            {/* Primary KPI Metric Cards (Shadcn Card UI) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-              {/* Card 1: Daily revenue (any date in the last 7 days) */}
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm relative overflow-hidden">
+              {/* Card 1: Daily revenue */}
+              <Card className="p-5 relative overflow-hidden">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
                   <span>{revDay === todayIso ? "Today's Revenue" : "Daily Revenue"}</span>
                   <IndianRupee className="w-4 h-4 text-[#B85B43]" />
@@ -1850,12 +1855,12 @@ export default function AdminPortal() {
                 </div>
                 <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
                   <span>{shortDate(shiftDays(revDay, -1))}: ₹{Number(revFigures.prevDay?.revenue || 0).toLocaleString("en-IN")}</span>
-                  <span className="text-[#B85B43] font-bold">{revFigures.day?.kots || 0} {revFigures.day?.kots === 1 ? "KOT" : "KOTs"}</span>
+                  <Badge variant="default">{revFigures.day?.kots || 0} {revFigures.day?.kots === 1 ? "KOT" : "KOTs"}</Badge>
                 </div>
-              </div>
+              </Card>
 
-              {/* Card 2: Weekly revenue (7-day weeks counting back from today) */}
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm relative overflow-hidden">
+              {/* Card 2: Weekly revenue */}
+              <Card className="p-5 relative overflow-hidden">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
                   <span>Weekly Revenue</span>
                   <TrendingUp className="w-4 h-4 text-emerald-600" />
@@ -1872,12 +1877,12 @@ export default function AdminPortal() {
                 </div>
                 <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
                   <span>{shortDate(shiftDays(revWeekEnd, -6))} – {shortDate(revWeekEnd)}</span>
-                  <span className="text-[#B85B43] font-bold">{revFigures.week?.kots || 0} {revFigures.week?.kots === 1 ? "KOT" : "KOTs"}</span>
+                  <Badge variant="default">{revFigures.week?.kots || 0} {revFigures.week?.kots === 1 ? "KOT" : "KOTs"}</Badge>
                 </div>
-              </div>
+              </Card>
 
-              {/* Card 3: Monthly revenue (any month, last 24 months) */}
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm relative overflow-hidden">
+              {/* Card 3: Monthly revenue */}
+              <Card className="p-5 relative overflow-hidden">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
                   <span>Monthly Revenue</span>
                   <Calendar className="w-4 h-4 text-[#B85B43]" />
@@ -1896,12 +1901,12 @@ export default function AdminPortal() {
                 </div>
                 <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
                   <span>Avg Ticket: ₹{Math.round(revFigures.month?.kots ? revFigures.month.revenue / revFigures.month.kots : 0).toLocaleString("en-IN")}</span>
-                  <span className="text-[#B85B43] font-bold">{revFigures.month?.kots || 0} {revFigures.month?.kots === 1 ? "KOT" : "KOTs"}</span>
+                  <Badge variant="default">{revFigures.month?.kots || 0} {revFigures.month?.kots === 1 ? "KOT" : "KOTs"}</Badge>
                 </div>
-              </div>
+              </Card>
 
               {/* Card 4: Yearly revenue */}
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm relative overflow-hidden">
+              <Card className="p-5 relative overflow-hidden">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
                   <span>Yearly Revenue</span>
                   <TrendingUp className="w-4 h-4 text-[#B85B43]" />
@@ -1916,12 +1921,12 @@ export default function AdminPortal() {
                 </div>
                 <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
                   <span>Jan – Dec {revYear}</span>
-                  <span className="text-[#B85B43] font-bold">{revFigures.year?.kots || 0} {revFigures.year?.kots === 1 ? "KOT" : "KOTs"}</span>
+                  <Badge variant="default">{revFigures.year?.kots || 0} {revFigures.year?.kots === 1 ? "KOT" : "KOTs"}</Badge>
                 </div>
-              </div>
+              </Card>
 
               {/* Card 5: Total Lifetime Revenue */}
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm relative overflow-hidden">
+              <Card className="p-5 relative overflow-hidden">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
                   <span>All-Time Sales</span>
                   <Sparkles className="w-4 h-4 text-amber-600" />
@@ -1930,10 +1935,10 @@ export default function AdminPortal() {
                   ₹{Number(metrics?.total_revenue || 0).toLocaleString("en-IN")}
                 </div>
                 <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
-                  <span>{metrics?.total_kots || 0} Total Orders</span>
-                  <span>{metrics?.total_tables || 12} Tables</span>
+                  <Badge variant="secondary">{metrics?.total_kots || 0} Total Orders</Badge>
+                  <span className="text-[#665448]">{metrics?.total_tables || 13} Tables</span>
                 </div>
-              </div>
+              </Card>
             </div>
 
             {false && <>
@@ -2325,75 +2330,89 @@ export default function AdminPortal() {
             {/* Two-Column Grid: Payment Breakdown & Top Selling Items */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Payment Methods */}
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-6 shadow-sm space-y-4">
-                <h3 className="text-sm font-serif font-bold uppercase tracking-wider text-[#241A14] flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-[#B85B43]" />
-                  <span>Payment Method Distribution</span>
-                </h3>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-[#B85B43]" />
+                    <span>Payment Method Distribution</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Settled payments across customer payment channels
+                  </CardDescription>
+                </CardHeader>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-[#FAF6EE] p-4 rounded-xl border border-[#E6DCCF] text-center space-y-1">
-                    <Smartphone className="w-5 h-5 text-indigo-600 mx-auto" />
-                    <div className="text-xs uppercase font-bold text-[#7A6A5E]">UPI Payments</div>
-                    <div className="text-lg font-extrabold text-[#241A14]">
-                      ₹{Number(paymentBreakdown.UPI || 0).toLocaleString("en-IN")}
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-[#FAF6EE] p-4 rounded-xl border border-[#E6DCCF] text-center space-y-1">
+                      <Smartphone className="w-5 h-5 text-indigo-600 mx-auto" />
+                      <div className="text-xs uppercase font-bold text-[#7A6A5E]">UPI Payments</div>
+                      <div className="text-lg font-extrabold text-[#241A14]">
+                        ₹{Number(paymentBreakdown.UPI || 0).toLocaleString("en-IN")}
+                      </div>
+                    </div>
+
+                    <div className="bg-[#FAF6EE] p-4 rounded-xl border border-[#E6DCCF] text-center space-y-1">
+                      <Banknote className="w-5 h-5 text-emerald-600 mx-auto" />
+                      <div className="text-xs uppercase font-bold text-[#7A6A5E]">Cash Register</div>
+                      <div className="text-lg font-extrabold text-[#241A14]">
+                        ₹{Number(paymentBreakdown.CASH || 0).toLocaleString("en-IN")}
+                      </div>
+                    </div>
+
+                    <div className="bg-[#FAF6EE] p-4 rounded-xl border border-[#E6DCCF] text-center space-y-1">
+                      <CreditCard className="w-5 h-5 text-amber-600 mx-auto" />
+                      <div className="text-xs uppercase font-bold text-[#7A6A5E]">Card Terminal</div>
+                      <div className="text-lg font-extrabold text-[#241A14]">
+                        ₹{Number(paymentBreakdown.CARD || 0).toLocaleString("en-IN")}
+                      </div>
                     </div>
                   </div>
-
-                  <div className="bg-[#FAF6EE] p-4 rounded-xl border border-[#E6DCCF] text-center space-y-1">
-                    <Banknote className="w-5 h-5 text-emerald-600 mx-auto" />
-                    <div className="text-xs uppercase font-bold text-[#7A6A5E]">Cash Register</div>
-                    <div className="text-lg font-extrabold text-[#241A14]">
-                      ₹{Number(paymentBreakdown.CASH || 0).toLocaleString("en-IN")}
-                    </div>
-                  </div>
-
-                  <div className="bg-[#FAF6EE] p-4 rounded-xl border border-[#E6DCCF] text-center space-y-1">
-                    <CreditCard className="w-5 h-5 text-amber-600 mx-auto" />
-                    <div className="text-xs uppercase font-bold text-[#7A6A5E]">Card Terminal</div>
-                    <div className="text-lg font-extrabold text-[#241A14]">
-                      ₹{Number(paymentBreakdown.CARD || 0).toLocaleString("en-IN")}
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Top Selling Menu Items */}
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-6 shadow-sm space-y-4">
-                <h3 className="text-sm font-serif font-bold uppercase tracking-wider text-[#241A14] flex items-center gap-2">
-                  <Utensils className="w-4 h-4 text-[#B85B43]" />
-                  <span>Top Performing Menu Items</span>
-                </h3>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Utensils className="w-4 h-4 text-[#B85B43]" />
+                    <span>Top Performing Menu Items</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Highest grossing culinary items ordered in the restaurant
+                  </CardDescription>
+                </CardHeader>
 
-                <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                  {topItems.length > 0 ? (
-                    topItems.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="bg-[#FAF6EE] p-3 rounded-xl border border-[#E6DCCF] flex items-center justify-between text-xs"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-5 h-5 rounded-full bg-[#E8DFC9] text-[#B85B43] font-bold text-[10px] flex items-center justify-center">
-                            {idx + 1}
-                          </span>
-                          <div>
-                            <span className="font-bold text-[#241A14]">{item.name}</span>
-                            <span className="text-[10px] text-[#7A6A5E] block">{item.quantity} units ordered</span>
+                <CardContent>
+                  <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                    {topItems.length > 0 ? (
+                      topItems.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="bg-[#FAF6EE] p-3 rounded-xl border border-[#E6DCCF] flex items-center justify-between text-xs"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Badge variant="default" className="w-5 h-5 p-0 justify-center text-[10px]">
+                              {idx + 1}
+                            </Badge>
+                            <div>
+                              <span className="font-bold text-[#241A14]">{item.name}</span>
+                              <span className="text-[10px] text-[#7A6A5E] block">{item.quantity} units ordered</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-extrabold text-[#241A14]">₹{item.revenue.toLocaleString("en-IN")}</span>
+                            <span className="text-[10px] text-[#7A6A5E] block">₹{item.price} each</span>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <span className="font-extrabold text-[#241A14]">₹{item.revenue.toLocaleString("en-IN")}</span>
-                          <span className="text-[10px] text-[#7A6A5E] block">₹{item.price} each</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-[#8C7A6D] text-center py-6">
-                      No order items recorded yet for product performance ranking.
-                    </p>
-                  )}
-                </div>
-              </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-[#8C7A6D] text-center py-6">
+                        No order items recorded yet for product performance ranking.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}
@@ -2404,7 +2423,7 @@ export default function AdminPortal() {
         {activeTab === "operations" && (
           <div className="space-y-6">
             {/* 1. Header & Operational Date Controller Bar */}
-            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm space-y-4">
+            <Card className="p-5 shadow-xs space-y-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
@@ -2419,18 +2438,18 @@ export default function AdminPortal() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
+                    variant="secondary"
                     onClick={() => fetchOperationsData(opDate)}
                     disabled={isOpLoading}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#241A14] border border-[#E0D4C2] text-xs font-bold transition-colors cursor-pointer"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 text-[#B85B43] ${isOpLoading ? "animate-spin" : ""}`} />
                     <span>{isOpLoading ? "Syncing..." : "Refresh Data"}</span>
-                  </button>
+                  </Button>
                 </div>
               </div>
 
-              {/* Operational Date Controller (Exact Match with POS) */}
+              {/* Operational Date Controller */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#FAF7F0] p-3.5 rounded-xl border border-[#E4DCD0] text-xs">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <span className="font-sans font-bold uppercase text-[#4A392F] tracking-wider text-[11px] flex items-center gap-1.5">
@@ -2438,7 +2457,7 @@ export default function AdminPortal() {
                     OPERATIONS DATE:
                   </span>
 
-                  <div className="flex items-center gap-1.5 bg-[#FFFDF9] px-3 py-1.5 rounded-lg border border-[#E4DCD0] shadow-xs">
+                  <div className="flex items-center gap-1.5 bg-[#FFFDF9] px-3 py-1 rounded-lg border border-[#E4DCD0] shadow-xs">
                     <input
                       type="date"
                       value={opDate}
@@ -2449,84 +2468,65 @@ export default function AdminPortal() {
 
                   {/* Quick Switchers */}
                   <div className="flex items-center gap-1">
-                    <button
-                      type="button"
+                    <Button
+                      variant={isOpToday ? "default" : "secondary"}
+                      size="sm"
                       onClick={() => setOpDate(getLocalDateString(0))}
-                      className={`px-3 py-1.5 rounded-lg font-bold text-[11px] transition-colors cursor-pointer ${
-                        isOpToday
-                          ? "bg-[#261C18] text-white shadow-xs"
-                          : "bg-[#FFFDF9] text-[#665448] hover:bg-[#EBE2D4] border border-[#E4DCD0]"
-                      }`}
+                      className="text-[11px] h-7 px-2.5"
                     >
                       Today
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant={opDate === getLocalDateString(-1) ? "default" : "secondary"}
+                      size="sm"
                       onClick={() => setOpDate(getLocalDateString(-1))}
-                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
-                        opDate === getLocalDateString(-1)
-                          ? "bg-[#261C18] text-white shadow-xs"
-                          : "bg-[#FFFDF9] text-[#665448] hover:bg-[#EBE2D4] border border-[#E4DCD0]"
-                      }`}
+                      className="text-[11px] h-7 px-2.5"
                     >
                       Yesterday
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant={opDate === getLocalDateString(-2) ? "default" : "secondary"}
+                      size="sm"
                       onClick={() => setOpDate(getLocalDateString(-2))}
-                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
-                        opDate === getLocalDateString(-2)
-                          ? "bg-[#261C18] text-white shadow-xs"
-                          : "bg-[#FFFDF9] text-[#665448] hover:bg-[#EBE2D4] border border-[#E4DCD0]"
-                      }`}
+                      className="text-[11px] h-7 px-2.5"
                     >
                       2 Days Ago
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant={opDate === getLocalDateString(1) ? "default" : "secondary"}
+                      size="sm"
                       onClick={() => setOpDate(getLocalDateString(1))}
-                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors cursor-pointer ${
-                        opDate === getLocalDateString(1)
-                          ? "bg-[#261C18] text-white shadow-xs"
-                          : "bg-[#FFFDF9] text-[#665448] hover:bg-[#EBE2D4] border border-[#E4DCD0]"
-                      }`}
+                      className="text-[11px] h-7 px-2.5"
                     >
                       Tomorrow
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
-                      isOpToday
-                        ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                        : isOpFuture
-                        ? "bg-blue-50 text-blue-800 border-blue-200"
-                        : "bg-stone-100 text-stone-700 border-stone-200"
-                    }`}
-                  >
+                  <Badge variant={isOpToday ? "success" : isOpFuture ? "secondary" : "default"}>
                     {isOpToday ? "Live Shift" : isOpFuture ? "Future Booking" : "History Archive"}
-                  </span>
+                  </Badge>
 
                   {!isOpToday && (
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setOpDate(getLocalDateString(0))}
-                      className="inline-flex items-center gap-1 text-[11px] text-[#B85B43] font-bold hover:underline cursor-pointer ml-1"
+                      className="text-[11px] text-[#B85B43] h-7 px-2"
                     >
-                      <RotateCw className="w-3 h-3" />
+                      <RotateCw className="w-3 h-3 mr-1" />
                       <span>Return to Today</span>
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* 2. Top Summary KPI Cards for Selected Date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Card 1: Active Tables */}
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm">
+              <Card className="p-4 shadow-xs">
                 <div className="text-[11px] uppercase tracking-wider font-bold text-[#7A6A5E] flex items-center justify-between">
                   <span>ACTIVE TABLES</span>
                   <Users className="w-4 h-4 text-[#8C7A6D]" />
@@ -2540,10 +2540,10 @@ export default function AdminPortal() {
                 <p className="text-[11px] text-[#7A6A5E] mt-1">
                   {isOpToday ? "Currently seated dining sessions" : "Sessions active on this date"}
                 </p>
-              </div>
+              </Card>
 
               {/* Card 2: Open / Total KOTs */}
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm">
+              <Card className="p-4 shadow-xs">
                 <div className="text-[11px] uppercase tracking-wider font-bold text-[#7A6A5E] flex items-center justify-between">
                   <span>OPEN KOTS</span>
                   <Receipt className="w-4 h-4 text-[#8C7A6D]" />
@@ -2557,10 +2557,10 @@ export default function AdminPortal() {
                 <p className="text-[11px] text-[#7A6A5E] mt-1">
                   Kitchen tickets placed for this date
                 </p>
-              </div>
+              </Card>
 
               {/* Card 3: Operations Sales */}
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm">
+              <Card className="p-4 shadow-xs">
                 <div className="text-[11px] uppercase tracking-wider font-bold text-[#7A6A5E] flex items-center justify-between">
                   <span>OPERATIONS SALES</span>
                   <TrendingUp className="w-4 h-4 text-[#4A5842]" />
@@ -2571,10 +2571,10 @@ export default function AdminPortal() {
                 <p className="text-[11px] text-[#7A6A5E] mt-1">
                   {opSummary?.order_count || opKots.length} orders recorded
                 </p>
-              </div>
+              </Card>
 
               {/* Card 4: Daily Dough & Protected Capacity */}
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm">
+              <Card className="p-4 shadow-xs">
                 <div className="text-[11px] uppercase tracking-wider font-bold text-[#7A6A5E] flex items-center justify-between">
                   <span>DOUGH CAPACITY</span>
                   <Flame className="w-4 h-4 text-[#B85B43]" />
@@ -2588,115 +2588,109 @@ export default function AdminPortal() {
                 <p className="text-[11px] text-[#7A6A5E] mt-1">
                   {opDough?.total_active_protected ?? opDough?.protected_units ?? 0} units reserved for bookings
                 </p>
-              </div>
+              </Card>
             </div>
 
-            {/* 3. Operations Sub-Tabs (KOTs) */}
-            <div className="flex items-center gap-2 border-b border-[#E4DCD0] pb-2">
-              <button
-                type="button"
+            {/* 3. Operations Sub-Tabs */}
+            <TabsList>
+              <TabsTrigger
+                active={opSubTab === "kots"}
                 onClick={() => setOpSubTab("kots")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
-                  opSubTab === "kots"
-                    ? "bg-[#261C18] text-[#FBF9F5] shadow-sm"
-                    : "bg-[#FFFDF9] text-[#665448] hover:text-[#241A14] hover:bg-[#F3EDE2] border border-[#E4DCD0]"
-                }`}
+                className="text-xs font-bold"
               >
                 KOT Orders ({opKots.length})
-              </button>
-            </div>
+              </TabsTrigger>
+            </TabsList>
 
             {/* SUB-VIEW 3: KOT ORDERS ON SELECTED DATE */}
             {opSubTab === "kots" && (
               <div className="space-y-4">
-                <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
-                  <div className="p-4 border-b border-[#E6DCCF] flex items-center justify-between bg-[#F3EDE2]">
+                <Card className="overflow-hidden shadow-xs">
+                  <div className="p-4 border-b border-[#E6DCCF] flex items-center justify-between bg-[#F3EDE2]/60">
                     <h3 className="text-sm font-sans font-bold text-[#241A14]">
                       KOT Kitchen Tickets on <span className="font-mono">{opDate}</span>
                     </h3>
-                    <span className="text-xs font-bold text-[#B85B43]">
+                    <Badge variant="default" className="text-xs font-bold">
                       Total Sales: ₹{Number(opSalesTotal || 0).toLocaleString("en-IN")}
-                    </span>
+                    </Badge>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-[#FAF7F0] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
-                        <tr>
-                          <th className="p-4">KOT Ticket</th>
-                          <th className="p-4">Table</th>
-                          <th className="p-4">Order / Time</th>
-                          <th className="p-4">Items Summary</th>
-                          <th className="p-4">Total Amount</th>
-                          <th className="p-4">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#F0E8DC]">
-                        {opKots.length > 0 ? (
-                          opKots.map((k: any) => (
-                            <tr key={k.id} className="hover:bg-[#FAF7F0] transition-colors">
-                              <td className="p-4 font-mono font-bold text-[#B85B43]">
-                                {k.kot_number || `#KOT-${k.id}`}
-                              </td>
-                              <td className="p-4 font-bold text-[#241A14]">
-                                {(() => {
-                                  const kFl = getTableFloor(k.table_id || k.table_number);
-                                  return `Table #${kFl.floor_table_num} (${kFl.short})`;
-                                })()}
-                              </td>
-                              <td className="p-4 text-[#665448]">
-                                {k.created_at
-                                  ? new Date(k.created_at).toLocaleTimeString([], {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })
-                                  : "—"}
-                              </td>
-                              <td className="p-4">
-                                {k.items && k.items.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {k.items.map((it: any, idx: number) => (
-                                      <span
-                                        key={idx}
-                                        className="px-2 py-0.5 rounded bg-[#FAF7F0] border border-[#E0D4C2] text-[10px] text-[#241A14]"
-                                      >
-                                        {it.quantity}x {it.name}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span className="text-[#8C7A6D]">{k.items_count || 0} items</span>
-                                )}
-                              </td>
-                              <td className="p-4 font-mono font-bold text-[#241A14]">
-                                ₹{Number(k.total_amount || 0).toLocaleString("en-IN")}
-                              </td>
-                              <td className="p-4">
-                                <span
-                                  className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                    k.status === "SERVED"
-                                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                                      : k.status === "READY"
-                                      ? "bg-blue-100 text-blue-800 border border-blue-300"
-                                      : "bg-amber-100 text-amber-800 border border-amber-300"
-                                  }`}
-                                >
-                                  {k.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={6} className="p-8 text-center text-[#8C7A6D]">
-                              No KOT kitchen tickets placed on {opDate}.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>KOT Ticket</TableHead>
+                        <TableHead>Table</TableHead>
+                        <TableHead>Order / Time</TableHead>
+                        <TableHead>Items Summary</TableHead>
+                        <TableHead>Total Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {opKots.length > 0 ? (
+                        opKots.map((k: any) => (
+                          <TableRow key={k.id}>
+                            <TableCell className="font-mono font-bold text-[#B85B43]">
+                              {k.kot_number || `#KOT-${k.id}`}
+                            </TableCell>
+                            <TableCell className="font-bold text-[#241A14]">
+                              {(() => {
+                                const kFl = getTableFloor(k.table_id || k.table_number);
+                                return `Table #${kFl.floor_table_num} (${kFl.short})`;
+                              })()}
+                            </TableCell>
+                            <TableCell className="text-[#665448]">
+                              {k.created_at
+                                ? new Date(k.created_at).toLocaleTimeString([], {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : "—"}
+                            </TableCell>
+                            <TableCell>
+                              {k.items && k.items.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {k.items.map((it: any, idx: number) => (
+                                    <span
+                                      key={idx}
+                                      className="px-2 py-0.5 rounded bg-[#FAF7F0] border border-[#E0D4C2] text-[10px] text-[#241A14]"
+                                    >
+                                      {it.quantity}x {it.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-[#8C7A6D]">{k.items_count || 0} items</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-mono font-bold text-[#241A14]">
+                              ₹{Number(k.total_amount || 0).toLocaleString("en-IN")}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  k.status === "SERVED"
+                                    ? "success"
+                                    : k.status === "READY"
+                                    ? "secondary"
+                                    : "warning"
+                                }
+                              >
+                                {k.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="p-8 text-center text-[#8C7A6D]">
+                            No KOT kitchen tickets placed on {opDate}.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </Card>
               </div>
             )}
           </div>
@@ -2712,9 +2706,9 @@ export default function AdminPortal() {
                   <h2 className="text-xl font-sans font-bold text-[#241A14]">
                     Menu & Categories
                   </h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F3EDE2] text-[#B85B43] border border-[#E0D4C2]">
+                  <Badge variant="default" className="text-[10px]">
                     {categories.length} Categories • {menuItems.length} Food Items
-                  </span>
+                  </Badge>
                 </div>
                 <p className="text-xs text-[#7A6A5E] mt-1">
                   Manage food categories, add items to any category, and edit names, descriptions, prices and stock status across POS and customer digital ordering.
@@ -2722,19 +2716,18 @@ export default function AdminPortal() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     setNewCategoryData({ name: "", display_order: categories.length + 1 });
                     setIsCreatingCategory(true);
                   }}
-                  className="inline-flex items-center gap-1.5 bg-[#261C18] hover:bg-[#3D2C24] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
-                  <FolderPlus className="w-4 h-4 text-[#EAD8C7]" />
+                  <FolderPlus className="w-4 h-4 text-[#B85B43]" />
                   <span>+ New Category</span>
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="default"
                   onClick={() => {
                     setNewItemData({
                       name: "",
@@ -2744,16 +2737,15 @@ export default function AdminPortal() {
                     });
                     setIsCreatingItem(true);
                   }}
-                  className="inline-flex items-center gap-1.5 bg-[#B85B43] hover:bg-[#A34B34] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>+ Add Food Item</span>
-                </button>
+                </Button>
               </div>
             </div>
 
             {/* 2. CATEGORIES SECTION (CARDS HUB) */}
-            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm space-y-4">
+            <Card className="p-5 shadow-xs space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[#F0E8DC] pb-3">
                 <div>
                   <h3 className="font-sans font-bold text-sm text-[#241A14] flex items-center gap-2">
@@ -2777,12 +2769,12 @@ export default function AdminPortal() {
                   const isSelected = selectedCategoryFilter === c.id;
 
                   return (
-                    <div
+                    <Card
                       key={c.id}
-                      className={`rounded-2xl border p-4 flex flex-col justify-between transition-all ${
+                      className={`p-4 flex flex-col justify-between transition-all ${
                         isSelected
                           ? "bg-[#FAF5ED] border-[#B85B43] shadow-sm ring-1 ring-[#B85B43]"
-                          : "bg-[#FFFDF9] border-[#E8DFC9] hover:border-[#CDBFA8]"
+                          : "hover:border-[#CDBFA8]"
                       }`}
                     >
                       <div className="space-y-2">
@@ -2795,9 +2787,9 @@ export default function AdminPortal() {
                               {c.name}
                             </h4>
                           </div>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FAF0E1] text-[#9E3E26] border border-[#E8DFC9] shrink-0">
+                          <Badge variant="default" className="text-[10px]">
                             {catItems.length} {catItems.length === 1 ? "Item" : "Items"}
-                          </span>
+                          </Badge>
                         </div>
 
                         <div className="text-[11px] text-[#7A6A5E] flex items-center gap-1.5">
@@ -2808,200 +2800,194 @@ export default function AdminPortal() {
 
                       {/* Category Action Buttons */}
                       <div className="pt-3 mt-3 border-t border-[#F0E8DC] flex items-center gap-1.5">
-                        <button
-                          type="button"
+                        <Button
+                          variant="secondary"
+                          size="sm"
                           onClick={() => handleOpenAddItemForCategory(c.id)}
-                          className="flex-1 py-1.5 px-2 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#241A14] border border-[#E0D4C2] font-bold text-[11px] transition-colors cursor-pointer text-center"
+                          className="flex-1 text-[11px] h-7 px-2"
                           title={`Add a new food item into ${c.name}`}
                         >
                           + Add Item
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
                           onClick={() => {
                             setEditingCategory(c);
                             setEditCategoryData({ name: c.name, display_order: c.display_order || idx + 1 });
                           }}
-                          className="py-1.5 px-2.5 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#665448] hover:text-[#241A14] border border-[#E0D4C2] font-bold text-[11px] transition-colors cursor-pointer flex items-center gap-1"
+                          className="text-[11px] h-7 px-2.5"
                           title="Edit Category Name & Order"
                         >
-                          <Edit3 className="w-3 h-3 text-[#B85B43]" />
+                          <Edit3 className="w-3 h-3 text-[#B85B43] mr-1" />
                           <span>Edit</span>
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          variant={isSelected ? "default" : "secondary"}
+                          size="sm"
                           onClick={() => setSelectedCategoryFilter(isSelected ? "all" : c.id)}
-                          className={`py-1.5 px-2.5 rounded-xl font-bold text-[11px] transition-colors cursor-pointer ${
-                            isSelected
-                              ? "bg-[#241A14] text-white"
-                              : "bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#665448] border border-[#E0D4C2]"
-                          }`}
+                          className="text-[11px] h-7 px-2.5"
                           title="Filter table below to this category"
                         >
                           {isSelected ? "Active" : "View"}
-                        </button>
+                        </Button>
                       </div>
-                    </div>
+                    </Card>
                   );
                 })}
               </div>
-            </div>
+            </Card>
 
             {/* 3. Filter & Search Bar */}
-            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            <Card className="p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
               <div className="relative w-full min-w-0 flex-1 sm:w-auto sm:min-w-[240px]">
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
-                <input
+                <Input
                   type="text"
                   value={menuSearch}
                   onChange={(e) => setMenuSearch(e.target.value)}
                   placeholder="Search food item name, price, or ingredients..."
-                  className="w-full bg-[#FAF6EE] border border-[#E0D4C2] focus:border-[#B85B43] focus:bg-white rounded-xl pl-10 pr-4 py-2 text-xs text-[#241A14] placeholder-[#A8988B] outline-none"
+                  className="pl-10"
                 />
               </div>
 
               <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
-                <button
-                  type="button"
+                <Button
+                  variant={selectedCategoryFilter === "all" ? "default" : "secondary"}
+                  size="sm"
                   onClick={() => setSelectedCategoryFilter("all")}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
-                    selectedCategoryFilter === "all"
-                      ? "bg-[#241A14] text-white shadow-xs"
-                      : "bg-[#FAF6EE] border border-[#E0D4C2] text-[#665448] hover:bg-[#F0E8DA]"
-                  }`}
+                  className="text-xs h-8"
                 >
                   All Categories ({menuItems.length})
-                </button>
+                </Button>
                 {categories.map((c) => {
                   const count = menuItems.filter((i) => i.category_id === c.id).length;
+                  const isSelected = selectedCategoryFilter === c.id;
                   return (
-                    <button
+                    <Button
                       key={c.id}
-                      type="button"
+                      variant={isSelected ? "default" : "secondary"}
+                      size="sm"
                       onClick={() => setSelectedCategoryFilter(c.id)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                        selectedCategoryFilter === c.id
-                          ? "bg-[#241A14] text-white shadow-xs"
-                          : "bg-[#FAF6EE] border border-[#E0D4C2] text-[#665448] hover:bg-[#F0E8DA]"
-                      }`}
+                      className="text-xs h-8 flex items-center gap-1.5"
                     >
                       <span>{c.name}</span>
                       <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                        selectedCategoryFilter === c.id ? "bg-white/20 text-white" : "bg-[#EAE0D2] text-[#665448]"
+                        isSelected ? "bg-white/20 text-white" : "bg-[#EAE0D2] text-[#665448]"
                       }`}>
                         {count}
                       </span>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
-            </div>
+            </Card>
 
             {/* Selected Category Notice Bar */}
             {selectedCategoryFilter !== "all" && (
               <div className="flex items-center justify-between p-3.5 bg-[#FAF5ED] rounded-xl border border-[#E0D4C2] text-xs">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-[#241A14]">Filtered Category:</span>
-                  <span className="px-2.5 py-1 rounded-md bg-[#B85B43] text-white font-bold uppercase text-[10px] tracking-wider">
+                  <Badge variant="solid">
                     {categories.find((c) => c.id === selectedCategoryFilter)?.name || "Selected"}
-                  </span>
+                  </Badge>
                   <span className="text-[#7A6A5E]">
                     ({filteredMenuItems.length} items shown)
                   </span>
                 </div>
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => handleOpenAddItemForCategory(Number(selectedCategoryFilter))}
-                  className="inline-flex items-center gap-1 text-[#B85B43] hover:underline font-bold cursor-pointer"
+                  className="text-[#B85B43] hover:text-[#A34B34] text-xs font-bold"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-3.5 h-3.5 mr-1" />
                   <span>Add Item to this Category</span>
-                </button>
+                </Button>
               </div>
             )}
 
             {/* Food Items Table */}
-            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
-                    <tr>
-                      <th className="p-4">Food Item</th>
-                      <th className="p-4">Category</th>
-                      <th className="p-4">Description</th>
-                      <th className="p-4">Price (₹)</th>
-                      <th className="p-4">Live Stock Status</th>
-                      <th className="p-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F0E8DC]">
-                    {filteredMenuItems.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="text-center py-12 text-[#8C7A6D]">
-                          <Utensils className="w-8 h-8 mx-auto mb-2 opacity-40 text-[#B85B43]" />
-                          <p className="font-semibold text-sm text-[#4A392F]">No food items matching your filter</p>
-                          <p className="text-[11px] text-[#A8988B] mt-1">
-                            Use &quot;+ Add Food Item&quot; to add a new dish to this category.
-                          </p>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredMenuItems.map((item) => {
-                        const category = categories.find((c) => c.id === item.category_id);
-                        return (
-                          <tr key={item.id} className="hover:bg-[#FAF7F0] transition-colors">
-                            <td className="p-4 font-bold text-[#241A14]">{item.name}</td>
-                            <td className="p-4">
-                              <span className="px-2.5 py-1 rounded-md bg-[#FAF0E1] text-[10px] text-[#B85B43] font-bold uppercase tracking-wider border border-[#E8DFC9]">
-                                {category?.name || "General"}
-                              </span>
-                            </td>
-                            <td className="p-4 text-[#665448] max-w-xs truncate">{item.description || "—"}</td>
-                            <td className="p-4 font-extrabold text-[#B85B43] text-sm">₹{item.price}</td>
-                            <td className="p-4">
-                              <button
-                                type="button"
-                                onClick={() => handleToggleItemAvailability(item)}
-                                className={`px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
-                                  item.is_available
-                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200"
-                                    : "bg-rose-100 text-rose-800 border border-rose-300 hover:bg-rose-200"
+            <Card className="overflow-hidden shadow-xs">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Food Item</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Price (₹)</TableHead>
+                    <TableHead>Live Stock Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredMenuItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-12 text-[#8C7A6D]">
+                        <Utensils className="w-8 h-8 mx-auto mb-2 opacity-40 text-[#B85B43]" />
+                        <p className="font-semibold text-sm text-[#4A392F]">No food items matching your filter</p>
+                        <p className="text-[11px] text-[#A8988B] mt-1">
+                          Use &quot;+ Add Food Item&quot; to add a new dish to this category.
+                        </p>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredMenuItems.map((item) => {
+                      const category = categories.find((c) => c.id === item.category_id);
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-bold text-[#241A14]">{item.name}</TableCell>
+                          <TableCell>
+                            <Badge variant="default">
+                              {category?.name || "General"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-[#665448] max-w-xs truncate">{item.description || "—"}</TableCell>
+                          <TableCell className="font-extrabold text-[#B85B43] text-sm">₹{item.price}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant={item.is_available ? "success" : "destructive"}
+                              size="sm"
+                              onClick={() => handleToggleItemAvailability(item)}
+                              className="text-[10px] h-7 px-2.5 rounded-full"
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                                  item.is_available ? "bg-emerald-600" : "bg-rose-600"
                                 }`}
-                              >
-                                <span
-                                  className={`w-2 h-2 rounded-full ${
-                                    item.is_available ? "bg-emerald-600" : "bg-rose-600"
-                                  }`}
-                                />
-                                <span>{item.is_available ? "In Stock (Available)" : "86'd (Sold Out)"}</span>
-                              </button>
-                            </td>
-                            <td className="p-4 text-right space-x-2">
-                              <button
-                                type="button"
+                              />
+                              <span>{item.is_available ? "In Stock (Available)" : "86'd (Sold Out)"}</span>
+                            </Button>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                variant="secondary"
+                                size="sm"
                                 onClick={() => setEditingItem(item)}
-                                className="inline-flex items-center gap-1 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#241A14] text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                                className="text-xs h-7 px-2.5"
                               >
-                                <Edit3 className="w-3.5 h-3.5 text-[#B85B43]" />
+                                <Edit3 className="w-3.5 h-3.5 text-[#B85B43] mr-1" />
                                 <span>Edit Item</span>
-                              </button>
-                              <button
-                                type="button"
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
                                 onClick={() => handleDeleteMenuItem(item.id)}
-                                className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"
+                                className="h-7 w-7 p-0"
                                 title="Delete Food Item"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
           </div>
         )}
 
@@ -3020,131 +3006,125 @@ export default function AdminPortal() {
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-sans font-bold text-[#241A14]">Raw Material Inventory</h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F3EDE2] text-[#B85B43] border border-[#E0D4C2]">
+                  <Badge variant="default" className="text-[10px]">
                     {rawItems.length} Materials • {lowCount} Low Stock
-                  </span>
+                  </Badge>
                 </div>
                 <p className="text-xs text-[#7A6A5E] mt-1">
                   Track kitchen and bar raw materials. Record purchases, wastage and stock counts to keep levels accurate.
                 </p>
               </div>
               <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setBillScan({ stage: "pick", supplier: "", billNumber: "", billDate: "", grandTotal: null, lines: [] })}
-                className="inline-flex items-center gap-1.5 bg-[#261C18] hover:bg-[#3D2C24] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
-              >
-                <ScanLine className="w-4 h-4" />
-                <span>Scan Bill</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setNewRaw({ name: "", sku: "", unit: "kg", stock: "", reorder: "" })}
-                className="inline-flex items-center gap-1.5 bg-[#B85B43] hover:bg-[#A34B34] text-white px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Raw Material</span>
-              </button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setBillScan({ stage: "pick", supplier: "", billNumber: "", billDate: "", grandTotal: null, lines: [] })}
+                >
+                  <ScanLine className="w-4 h-4 text-[#B85B43]" />
+                  <span>Scan Bill</span>
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={() => setNewRaw({ name: "", sku: "", unit: "kg", stock: "", reorder: "" })}
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Raw Material</span>
+                </Button>
               </div>
             </div>
 
-            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            <Card className="p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
               <div className="relative min-w-[240px] flex-1">
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
-                <input
+                <Input
                   type="text"
                   value={rawSearch}
                   onChange={(e) => setRawSearch(e.target.value)}
                   placeholder="Search material name or SKU..."
                   aria-label="Search raw materials"
-                  className="w-full bg-[#FAF6EE] border border-[#E0D4C2] focus:border-[#B85B43] focus:bg-white rounded-xl pl-10 pr-4 py-2 text-xs text-[#241A14] placeholder-[#A8988B] outline-none"
+                  className="pl-10"
                 />
               </div>
               <div className="flex items-center gap-1.5">
                 {([false, true] as const).map((low) => (
-                  <button
+                  <Button
                     key={String(low)}
-                    type="button"
+                    variant={rawLowOnly === low ? "default" : "secondary"}
+                    size="sm"
                     onClick={() => setRawLowOnly(low)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
-                      rawLowOnly === low
-                        ? "bg-[#241A14] text-white shadow-xs"
-                        : "bg-[#FAF6EE] border border-[#E0D4C2] text-[#665448] hover:bg-[#F0E8DA]"
-                    }`}
+                    className="text-xs h-8"
                   >
                     {low ? `Low Stock (${lowCount})` : `All (${rawItems.length})`}
-                  </button>
+                  </Button>
                 ))}
               </div>
-            </div>
+            </Card>
 
-            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
-                    <tr>
-                      <th className="p-4">Material</th>
-                      <th className="p-4">In Stock</th>
-                      <th className="p-4">Reorder At</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F0E8DC]">
-                    {shown.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="text-center py-12 text-[#8C7A6D]">
-                          <Package className="w-8 h-8 mx-auto mb-2 opacity-40 text-[#B85B43]" />
-                          <p className="font-semibold text-sm text-[#4A392F]">No raw materials found</p>
-                        </td>
-                      </tr>
-                    ) : (
-                      shown.map((r) => {
-                        const stock = Number(r.current_stock);
-                        const status = stock <= 0 ? "Out of Stock" : isLow(r) ? "Low Stock" : "In Stock";
-                        return (
-                          <tr key={r.id} className="hover:bg-[#FAF7F0] transition-colors">
-                            <td className="p-4">
-                              <div className="font-bold text-[#241A14]">{r.name}</div>
-                              <div className="text-[10px] font-mono text-[#8C7A6D]">{r.sku}</div>
-                            </td>
-                            <td className="p-4 font-extrabold text-[#241A14] text-sm">
-                              {qtyFmt(r.current_stock)} <span className="text-[11px] font-semibold text-[#7A6A5E]">{r.unit_of_measure}</span>
-                            </td>
-                            <td className="p-4 text-[#665448]">
-                              {qtyFmt(r.reorder_threshold)} {r.unit_of_measure}
-                            </td>
-                            <td className="p-4">
-                              <span
-                                className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border whitespace-nowrap ${
-                                  status === "In Stock"
-                                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                                    : status === "Low Stock"
-                                    ? "bg-amber-100 text-amber-800 border-amber-300"
-                                    : "bg-rose-100 text-rose-800 border-rose-300"
-                                }`}
-                              >
-                                {status}
-                              </span>
-                            </td>
-                            <td className="p-4 text-right">
-                              <button
-                                type="button"
-                                onClick={() => setStockUpdate({ item: r, mode: "PURCHASE", qty: "", ref: "" })}
-                                className="inline-flex items-center gap-1 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#241A14] text-xs font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-                              >
-                                <Edit3 className="w-3.5 h-3.5 text-[#B85B43]" />
-                                <span>Update Stock</span>
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <Card className="overflow-hidden shadow-xs">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Material</TableHead>
+                    <TableHead>In Stock</TableHead>
+                    <TableHead>Reorder At</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {shown.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-12 text-[#8C7A6D]">
+                        <Package className="w-8 h-8 mx-auto mb-2 opacity-40 text-[#B85B43]" />
+                        <p className="font-semibold text-sm text-[#4A392F]">No raw materials found</p>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    shown.map((r) => {
+                      const stock = Number(r.current_stock);
+                      const status = stock <= 0 ? "Out of Stock" : isLow(r) ? "Low Stock" : "In Stock";
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell>
+                            <div className="font-bold text-[#241A14]">{r.name}</div>
+                            <div className="text-[10px] font-mono text-[#8C7A6D]">{r.sku}</div>
+                          </TableCell>
+                          <TableCell className="font-extrabold text-[#241A14] text-sm">
+                            {qtyFmt(r.current_stock)} <span className="text-[11px] font-semibold text-[#7A6A5E]">{r.unit_of_measure}</span>
+                          </TableCell>
+                          <TableCell className="text-[#665448]">
+                            {qtyFmt(r.reorder_threshold)} {r.unit_of_measure}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                status === "In Stock"
+                                  ? "success"
+                                  : status === "Low Stock"
+                                  ? "warning"
+                                  : "destructive"
+                              }
+                            >
+                              {status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setStockUpdate({ item: r, mode: "PURCHASE", qty: "", ref: "" })}
+                              className="text-xs h-7 px-2.5"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 text-[#B85B43] mr-1" />
+                              <span>Update Stock</span>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
           </div>
           );
         })()}
@@ -3441,14 +3421,14 @@ export default function AdminPortal() {
 
               {/* Filters */}
               <div className="flex flex-wrap items-center gap-3">
-                <div className="relative">
+                <div className="relative w-64">
                   <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
-                  <input
+                  <Input
                     type="text"
                     value={resSearch}
                     onChange={(e) => setResSearch(e.target.value)}
                     placeholder="Search by Reservation ID, name, phone..."
-                    className="bg-[#FFFDF9] border border-[#E0D4C2] focus:border-[#B85B43] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#241A14] placeholder-[#A8988B] outline-none w-64"
+                    className="pl-9"
                   />
                 </div>
 
@@ -3469,7 +3449,7 @@ export default function AdminPortal() {
                   type="date"
                   value={resDateFilter}
                   onChange={(e) => setResDateFilter(e.target.value)}
-                  className="bg-[#FFFDF9] border border-[#E0D4C2] rounded-xl px-3 py-1.5 text-xs text-[#241A14] outline-none"
+                  className="bg-[#FFFDF9] border border-[#E0D4C2] rounded-xl px-3 py-1.5 text-xs text-[#241A14] outline-none cursor-pointer"
                 />
               </div>
             </div>
@@ -3479,101 +3459,100 @@ export default function AdminPortal() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h3 className="text-sm font-serif font-bold text-[#241A14]">Recent Reservations (Last 7 Days)</h3>
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                  <Badge variant="success">
                     Full Details ({recentReservations.length})
-                  </span>
+                  </Badge>
                 </div>
               </div>
 
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
-                      <tr>
-                        <th className="p-4">Reservation ID</th>
-                        <th className="p-4">Floor & Table</th>
-                        <th className="p-4">Customer Name</th>
-                        <th className="p-4">Phone</th>
-                        <th className="p-4">Guests</th>
-                        <th className="p-4">Date & Time</th>
-                        <th className="p-4">Deposit</th>
-                        <th className="p-4">Status</th>
-                        <th className="p-4 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#F0E8DC]">
-                      {recentReservations.length > 0 ? (
-                        recentReservations.map((r) => (
-                          <tr
-                            key={r.id}
-                            onClick={() => openReservationDetails(r)}
-                            className="hover:bg-[#FAF7F0] transition-colors cursor-pointer"
-                          >
-                            <td className="p-4 font-mono font-bold text-[#B85B43]">
-                              {r.booking_id}
-                            </td>
-                            <td className="p-4">
-                              <span className="font-bold text-[#B85B43] block">
-                                {r.floor_name || (r.floor_number ? getFloorName(r.floor_number) : "Ground floor")}
-                              </span>
-                              <span className="text-[11px] font-mono text-[#665448]">
-                                {r.table_name || (r.table_id ? `Table ${r.table_id}` : "Auto Assigned")}
-                              </span>
-                            </td>
-                            <td className="p-4 font-bold text-[#241A14]">{r.customer_name}</td>
-                            <td className="p-4 text-[#665448] font-mono">{r.customer_phone}</td>
-                            <td className="p-4 text-[#665448] font-semibold">{r.party_size} Guests</td>
-                            <td className="p-4 text-[#665448]">
-                              {r.booking_date} {r.time_slot ? `(${r.time_slot})` : ""}
-                            </td>
-                            <td className="p-4">
-                              <span className="text-emerald-700 font-bold">
-                                ₹{Number(r.advance_amount || 0)} ({r.payment_status})
-                              </span>
-                              {r.upi_utr && (
-                                <span className="block text-[10px] text-[#8C7A6D] font-mono">Ref: {r.upi_utr}</span>
-                              )}
-                            </td>
-                            <td className="p-4">
-                              <span
-                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                  r.status === "CONFIRMED"
-                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                                    : r.status === "ARRIVED"
-                                    ? "bg-amber-100 text-amber-800 border border-amber-300"
-                                    : r.status === "SEATED"
-                                    ? "bg-indigo-100 text-indigo-800 border border-indigo-300"
-                                    : "bg-stone-100 text-stone-700 border border-stone-300"
-                                }`}
-                              >
-                                {r.status}
-                              </span>
-                            </td>
-                            <td className="p-4 text-right">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openReservationDetails(r);
-                                }}
-                                className="px-2.5 py-1 rounded-lg bg-[#FAF7F0] hover:bg-[#B85B43] hover:text-white text-[#4A392F] border border-[#E0D4C2] text-xs font-bold transition-colors cursor-pointer"
-                              >
-                                Details →
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={9} className="p-6 text-center text-[#8C7A6D]">
-                            No recent reservations in the last 7 calendar days.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <Card className="overflow-hidden shadow-xs">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Reservation ID</TableHead>
+                      <TableHead>Floor & Table</TableHead>
+                      <TableHead>Customer Name</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Guests</TableHead>
+                      <TableHead>Date & Time</TableHead>
+                      <TableHead>Deposit</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentReservations.length > 0 ? (
+                      recentReservations.map((r) => (
+                        <TableRow
+                          key={r.id}
+                          onClick={() => openReservationDetails(r)}
+                          className="cursor-pointer"
+                        >
+                          <TableCell className="font-mono font-bold text-[#B85B43]">
+                            {r.booking_id}
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-bold text-[#B85B43] block">
+                              {r.floor_name || (r.floor_number ? getFloorName(r.floor_number) : "Ground floor")}
+                            </span>
+                            <span className="text-[11px] font-mono text-[#665448]">
+                              {r.table_name || (r.table_id ? `Table ${r.table_id}` : "Auto Assigned")}
+                            </span>
+                          </TableCell>
+                          <TableCell className="font-bold text-[#241A14]">{r.customer_name}</TableCell>
+                          <TableCell className="text-[#665448] font-mono">{r.customer_phone}</TableCell>
+                          <TableCell className="text-[#665448] font-semibold">{r.party_size} Guests</TableCell>
+                          <TableCell className="text-[#665448]">
+                            {r.booking_date} {r.time_slot ? `(${r.time_slot})` : ""}
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-emerald-700 font-bold">
+                              ₹{Number(r.advance_amount || 0)} ({r.payment_status})
+                            </span>
+                            {r.upi_utr && (
+                              <span className="block text-[10px] text-[#8C7A6D] font-mono">Ref: {r.upi_utr}</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                r.status === "CONFIRMED"
+                                  ? "success"
+                                  : r.status === "ARRIVED"
+                                  ? "warning"
+                                  : r.status === "SEATED"
+                                  ? "secondary"
+                                  : "default"
+                              }
+                            >
+                              {r.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openReservationDetails(r);
+                              }}
+                              className="text-xs h-7 px-2.5"
+                            >
+                              Details →
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={9} className="p-6 text-center text-[#8C7A6D]">
+                          No recent reservations in the last 7 calendar days.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </Card>
             </div>
 
             {/* SECTION 2: RESERVATION HISTORY (> 7 DAYS - LIMITED DETAILS ONLY) */}
@@ -3582,38 +3561,36 @@ export default function AdminPortal() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-serif font-bold text-[#241A14]">Reservation History (Older than 7 Days)</h3>
-                    <span className="bg-stone-100 text-stone-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-stone-300">
+                    <Badge variant="secondary">
                       Limited Policy View ({historicalReservations.length})
-                    </span>
+                    </Badge>
                   </div>
                 </div>
 
-                <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
-                        <tr>
-                          <th className="p-4">Reservation / Booking ID</th>
-                          <th className="p-4">Customer Name</th>
-                          <th className="p-4">Total Guests</th>
-                          <th className="p-4">Reservation Date</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#F0E8DC]">
-                        {historicalReservations.map((r) => (
-                          <tr key={r.id} className="hover:bg-[#FAF7F0] transition-colors">
-                            <td className="p-4 font-mono font-bold text-[#B85B43]">
-                              {r.booking_id}
-                            </td>
-                            <td className="p-4 font-bold text-[#241A14]">{r.customer_name}</td>
-                            <td className="p-4 text-[#665448] font-semibold">{r.party_size} Guests</td>
-                            <td className="p-4 text-[#665448]">{r.booking_date}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                <Card className="overflow-hidden shadow-xs">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Reservation / Booking ID</TableHead>
+                        <TableHead>Customer Name</TableHead>
+                        <TableHead>Total Guests</TableHead>
+                        <TableHead>Reservation Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {historicalReservations.map((r) => (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-mono font-bold text-[#B85B43]">
+                            {r.booking_id}
+                          </TableCell>
+                          <TableCell className="font-bold text-[#241A14]">{r.customer_name}</TableCell>
+                          <TableCell className="text-[#665448] font-semibold">{r.party_size} Guests</TableCell>
+                          <TableCell className="text-[#665448]">{r.booking_date}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
               </div>
             )}
           </div>
@@ -3632,25 +3609,21 @@ export default function AdminPortal() {
 
               {/* Floor Filter Tabs */}
               <div className="flex flex-wrap items-center gap-1.5 bg-[#FAF7F0] p-1 rounded-xl border border-[#E6DCCF] text-xs">
-                <button
+                <Button
+                  variant={tableFloorFilter === "all" ? "default" : "ghost"}
+                  size="sm"
                   onClick={() => setTableFloorFilter("all")}
-                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                    tableFloorFilter === "all"
-                      ? "bg-[#B85B43] text-white shadow-xs"
-                      : "text-[#665448] hover:text-[#241A14]"
-                  }`}
+                  className="text-xs h-8"
                 >
                   All Floors ({filteredTables.length})
-                </button>
+                </Button>
                 {RESTAURANT_FLOORS.map((fl) => (
-                  <button
+                  <Button
                     key={fl.id}
+                    variant={tableFloorFilter === fl.id ? "default" : "ghost"}
+                    size="sm"
                     onClick={() => setTableFloorFilter(fl.id)}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      tableFloorFilter === fl.id
-                        ? "bg-[#B85B43] text-white shadow-xs"
-                        : "text-[#665448] hover:text-[#241A14]"
-                    }`}
+                    className="text-xs h-8 flex items-center gap-1.5"
                   >
                     <span>{fl.name}</span>
                     {fl.isComingSoon && (
@@ -3658,7 +3631,7 @@ export default function AdminPortal() {
                         Soon
                       </span>
                     )}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -3669,9 +3642,9 @@ export default function AdminPortal() {
                 const floorDetail = getTableFloor(tbl.id, tbl.floor_number);
                 const relativeNum = floorDetail.floor_table_num;
                 return (
-                  <div
+                  <Card
                     key={tbl.id}
-                    className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-5 shadow-sm space-y-4 hover:border-[#B85B43] transition-all group"
+                    className="p-5 shadow-xs space-y-4 hover:border-[#B85B43] transition-all group"
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -3682,9 +3655,9 @@ export default function AdminPortal() {
                           {tbl.floor_name || floorDetail.name}
                         </span>
                       </div>
-                      <span className="px-2.5 py-0.5 rounded-full bg-[#FAF0E1] text-[#B85B43] font-mono text-[10px] font-bold">
+                      <Badge variant="default" className="font-mono text-[10px]">
                         {tbl.capacity || floorDetail.capacity} Seats
-                      </span>
+                      </Badge>
                     </div>
 
                     <div className="p-3 bg-[#FAF7F0] rounded-xl border border-[#E8DFC9] space-y-1">
@@ -3695,31 +3668,33 @@ export default function AdminPortal() {
                     </div>
 
                     <div className="flex items-center gap-2 pt-2 border-t border-[#F0E8DC]">
-                      <button
+                      <Button
+                        variant="default"
+                        size="sm"
                         onClick={() => handleOpenTableQr(`Table ${relativeNum} (${floorDetail.name})`, tbl.qr_token)}
-                        className="flex-1 bg-[#B85B43] hover:bg-[#A34B34] text-white py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                        className="flex-1 text-xs h-8"
                       >
-                        <QrCode className="w-3.5 h-3.5" />
+                        <QrCode className="w-3.5 h-3.5 mr-1.5" />
                         <span>View Printable QR</span>
-                      </button>
+                      </Button>
 
                       <Link
                         href={`/table/${tbl.qr_token}`}
                         target="_blank"
-                        className="bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#4A392F] p-2 rounded-xl transition-colors"
+                        className="bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#4A392F] p-2 rounded-xl transition-colors flex items-center justify-center h-8 w-8"
                         title="Test Tabletop Ordering"
                       >
                         <ExternalLink className="w-4 h-4" />
                       </Link>
                     </div>
-                  </div>
+                  </Card>
                 );
               })}
             </div>
           </div>
         )}
 
-        {/* TAB 5: BILLING & FINANCE LEDGER */}
+        {/* TAB 5: BILLING & FINANCE LEDGER (Shadcn UI Components) */}
         {activeTab === "ledger" && (
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -3731,37 +3706,39 @@ export default function AdminPortal() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button
+                <Button
+                  variant="secondary"
                   onClick={() => fetchLedgerBills()}
                   disabled={isLedgerLoading}
-                  className="inline-flex items-center gap-1.5 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#665448] px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
                   title="Refresh bills"
                 >
                   <RotateCw className={`w-3.5 h-3.5 ${isLedgerLoading ? "animate-spin text-[#B85B43]" : ""}`} />
                   <span className="hidden sm:inline">Refresh</span>
-                </button>
+                </Button>
 
-                <button
+                <Button
+                  variant="secondary"
                   onClick={() => setActiveTab("inventory")}
-                  className="inline-flex items-center gap-1.5 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#B85B43] px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  className="text-[#B85B43]"
                 >
                   <ScanLine className="w-3.5 h-3.5" />
                   <span>Scan Supplier Bill</span>
-                </button>
+                </Button>
 
-                <button
+                <Button
+                  variant="default"
                   onClick={handleExportCSV}
-                  className="inline-flex items-center gap-1.5 bg-[#B85B43] hover:bg-[#9c4b36] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-sm cursor-pointer"
+                  className="uppercase tracking-wider"
                 >
                   <Download className="w-4 h-4" />
                   <span>Export CSV</span>
-                </button>
+                </Button>
               </div>
             </div>
 
-            {/* KPI Metric Summary Cards */}
+            {/* KPI Metric Summary Cards (Shadcn Card) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-xs">
+              <Card className="p-4 shadow-xs">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#7A6A5E]">
                     Scanned Inventory Purchases
@@ -3774,9 +3751,9 @@ export default function AdminPortal() {
                 <p className="text-[11px] text-[#7A6A5E] mt-1">
                   {scannedBills.length} confirmed supplier {scannedBills.length === 1 ? "bill" : "bills"}
                 </p>
-              </div>
+              </Card>
 
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-xs">
+              <Card className="p-4 shadow-xs">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#7A6A5E]">
                     Customer Dining Sales
@@ -3789,9 +3766,9 @@ export default function AdminPortal() {
                 <p className="text-[11px] text-[#7A6A5E] mt-1">
                   {customerBills.length} dining {customerBills.length === 1 ? "settlement" : "settlements"}
                 </p>
-              </div>
+              </Card>
 
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-xs">
+              <Card className="p-4 shadow-xs">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#7A6A5E]">
                     Operating Balance
@@ -3813,257 +3790,236 @@ export default function AdminPortal() {
                     </>
                   );
                 })()}
-              </div>
+              </Card>
             </div>
 
-            {/* Sub-tab Navigation and Search Bar */}
+            {/* Sub-tab Navigation and Search Bar (Shadcn Tabs & Input) */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-[#FAF6EE] p-2.5 rounded-2xl border border-[#E6DCCF]">
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
+              <TabsList className="bg-transparent border-0 p-0 gap-1.5 flex">
+                <TabsTrigger
+                  active={ledgerSubTab === "inventory"}
                   onClick={() => setLedgerSubTab("inventory")}
-                  className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    ledgerSubTab === "inventory"
-                      ? "bg-[#B85B43] text-white shadow-xs"
-                      : "text-[#665448] hover:bg-[#F0E8DA]"
-                  }`}
+                  className="gap-2"
                 >
                   <Package className="w-3.5 h-3.5" />
                   <span>Supplier Purchase Bills</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                    ledgerSubTab === "inventory" ? "bg-white/20 text-white" : "bg-[#E6DCCF] text-[#4A392F]"
-                  }`}>
+                  <Badge variant={ledgerSubTab === "inventory" ? "solid" : "secondary"} className="px-1.5 py-0 text-[10px]">
                     {scannedBills.length}
-                  </span>
-                </button>
+                  </Badge>
+                </TabsTrigger>
 
-                <button
-                  type="button"
+                <TabsTrigger
+                  active={ledgerSubTab === "sales"}
                   onClick={() => setLedgerSubTab("sales")}
-                  className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    ledgerSubTab === "sales"
-                      ? "bg-[#B85B43] text-white shadow-xs"
-                      : "text-[#665448] hover:bg-[#F0E8DA]"
-                  }`}
+                  className="gap-2"
                 >
                   <Receipt className="w-3.5 h-3.5" />
                   <span>Customer Sales Bills</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                    ledgerSubTab === "sales" ? "bg-white/20 text-white" : "bg-[#E6DCCF] text-[#4A392F]"
-                  }`}>
+                  <Badge variant={ledgerSubTab === "sales" ? "solid" : "secondary"} className="px-1.5 py-0 text-[10px]">
                     {customerBills.length}
-                  </span>
-                </button>
-              </div>
+                  </Badge>
+                </TabsTrigger>
+              </TabsList>
 
               <div className="relative flex-1 max-w-xs">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
-                <input
+                <Input
                   type="text"
                   placeholder={ledgerSubTab === "inventory" ? "Search Bill ID, Supplier..." : "Search Bill ID, Table..."}
                   value={ledgerSearch}
                   onChange={(e) => setLedgerSearch(e.target.value)}
-                  className="w-full bg-[#FFFDF9] border border-[#E2D6C5] focus:border-[#B85B43] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#241A14] outline-none"
+                  className="pl-9"
                 />
               </div>
             </div>
 
-            {/* SUB-VIEW 1: SCANNED INVENTORY SUPPLIER BILLS */}
+            {/* SUB-VIEW 1: SCANNED INVENTORY SUPPLIER BILLS (Shadcn Table) */}
             {ledgerSubTab === "inventory" && (
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-xs">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
-                      <tr>
-                        <th className="p-4">Bill ID / Invoice #</th>
-                        <th className="p-4">Supplier</th>
-                        <th className="p-4">Bill Date</th>
-                        <th className="p-4">Items Received</th>
-                        <th className="p-4">Total Amount</th>
-                        <th className="p-4">Status</th>
-                        <th className="p-4">Scanned At</th>
-                        <th className="p-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#F0E8DC]">
-                      {(() => {
-                        const filtered = scannedBills.filter((b) => {
-                          if (!ledgerSearch) return true;
-                          const q = ledgerSearch.toLowerCase();
-                          return (
-                            (b.bill_id && b.bill_id.toLowerCase().includes(q)) ||
-                            (b.bill_number && b.bill_number.toLowerCase().includes(q)) ||
-                            (b.supplier_name && b.supplier_name.toLowerCase().includes(q)) ||
-                            (b.bill_date && b.bill_date.includes(q))
-                          );
-                        });
+              <Card className="overflow-hidden shadow-xs">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Bill ID / Invoice #</TableHead>
+                      <TableHead>Supplier</TableHead>
+                      <TableHead>Bill Date</TableHead>
+                      <TableHead>Items Received</TableHead>
+                      <TableHead>Total Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Scanned At</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(() => {
+                      const filtered = scannedBills.filter((b) => {
+                        if (!ledgerSearch) return true;
+                        const q = ledgerSearch.toLowerCase();
+                        return (
+                          (b.bill_id && b.bill_id.toLowerCase().includes(q)) ||
+                          (b.bill_number && b.bill_number.toLowerCase().includes(q)) ||
+                          (b.supplier_name && b.supplier_name.toLowerCase().includes(q)) ||
+                          (b.bill_date && b.bill_date.includes(q))
+                        );
+                      });
 
-                        if (filtered.length === 0) {
-                          return (
-                            <tr>
-                              <td colSpan={8} className="p-10 text-center">
-                                <div className="max-w-md mx-auto space-y-3">
-                                  <div className="w-12 h-12 rounded-2xl bg-[#F3EDE2] text-[#B85B43] flex items-center justify-center mx-auto">
-                                    <ScanLine className="w-6 h-6" />
-                                  </div>
-                                  <p className="font-bold text-[#241A14]">
-                                    {ledgerSearch ? "No matching supplier bills found" : "No scanned supplier bills recorded yet"}
-                                  </p>
-                                  <p className="text-xs text-[#7A6A5E]">
-                                    Upload supplier invoices in <span className="font-semibold text-[#241A14]">Inventory &gt; Scan Supplier Bill</span>. Sarvam AI extracts line items, quantities, and bill ID into stock.
-                                  </p>
-                                  <button
-                                    onClick={() => setActiveTab("inventory")}
-                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#B85B43] hover:bg-[#9c4b36] text-white rounded-xl text-xs font-bold transition-colors shadow-xs cursor-pointer"
-                                  >
-                                    <ScanLine className="w-3.5 h-3.5" />
-                                    <span>Go to Inventory &amp; Scan Bill</span>
-                                  </button>
+                      if (filtered.length === 0) {
+                        return (
+                          <TableRow>
+                            <TableCell colSpan={8} className="p-10 text-center">
+                              <div className="max-w-md mx-auto space-y-3">
+                                <div className="w-12 h-12 rounded-2xl bg-[#F3EDE2] text-[#B85B43] flex items-center justify-center mx-auto">
+                                  <ScanLine className="w-6 h-6" />
                                 </div>
-                              </td>
-                            </tr>
-                          );
-                        }
+                                <p className="font-bold text-[#241A14]">
+                                  {ledgerSearch ? "No matching supplier bills found" : "No scanned supplier bills recorded yet"}
+                                </p>
+                                <p className="text-xs text-[#7A6A5E]">
+                                  Upload supplier invoices in <span className="font-semibold text-[#241A14]">Inventory &gt; Scan Supplier Bill</span>. Sarvam AI extracts line items, quantities, and bill ID into stock.
+                                </p>
+                                <Button
+                                  onClick={() => setActiveTab("inventory")}
+                                  className="mx-auto"
+                                >
+                                  <ScanLine className="w-3.5 h-3.5" />
+                                  <span>Go to Inventory &amp; Scan Bill</span>
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
 
-                        return filtered.map((b) => (
-                          <tr key={b.id} className="hover:bg-[#FAF7F0] transition-colors">
-                            <td className="p-4">
-                              <span className="font-mono font-bold bg-[#FAF6EE] text-[#B85B43] px-2.5 py-1 rounded-lg border border-[#E0D4C2]">
-                                {b.bill_id || b.bill_number}
-                              </span>
-                            </td>
-                            <td className="p-4 font-bold text-[#241A14]">
-                              {b.supplier_name}
-                            </td>
-                            <td className="p-4 text-[#665448]">
-                              {b.bill_date || "—"}
-                            </td>
-                            <td className="p-4">
-                              <button
-                                type="button"
-                                onClick={() => setSelectedScannedBill(b)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#4A392F] font-semibold text-[11px] transition-colors cursor-pointer"
-                              >
-                                <span>{b.items_count} {b.items_count === 1 ? "item" : "items"}</span>
-                                <ChevronRight className="w-3 h-3 text-[#8C7A6D]" />
-                              </button>
-                            </td>
-                            <td className="p-4 font-extrabold text-[#241A14]">
-                              ₹{Number(b.total_amount || 0).toLocaleString("en-IN")}
-                            </td>
-                            <td className="p-4">
-                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                {b.status || "RECEIVED"}
-                              </span>
-                            </td>
-                            <td className="p-4 text-[#8C7A6D] font-mono text-[11px]">
-                              {b.created_at ? new Date(b.created_at).toLocaleString("en-IN") : "—"}
-                            </td>
-                            <td className="p-4 text-right">
-                              <button
-                                type="button"
-                                onClick={() => setSelectedScannedBill(b)}
-                                className="inline-flex items-center gap-1.5 text-[#B85B43] hover:text-[#8E4432] font-bold text-xs cursor-pointer hover:underline"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                <span>Inspect Bill</span>
-                              </button>
-                            </td>
-                          </tr>
-                        ));
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                      return filtered.map((b) => (
+                        <TableRow key={b.id}>
+                          <TableCell>
+                            <Badge variant="default" className="font-mono text-xs">
+                              {b.bill_id || b.bill_number}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-bold text-[#241A14]">
+                            {b.supplier_name}
+                          </TableCell>
+                          <TableCell className="text-[#665448]">
+                            {b.bill_date || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setSelectedScannedBill(b)}
+                              className="text-[11px]"
+                            >
+                              <span>{b.items_count} {b.items_count === 1 ? "item" : "items"}</span>
+                              <ChevronRight className="w-3 h-3 text-[#8C7A6D]" />
+                            </Button>
+                          </TableCell>
+                          <TableCell className="font-extrabold text-[#241A14]">
+                            ₹{Number(b.total_amount || 0).toLocaleString("en-IN")}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="success">
+                              {b.status || "RECEIVED"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-[#8C7A6D] font-mono text-[11px]">
+                            {b.created_at ? new Date(b.created_at).toLocaleString("en-IN") : "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="link"
+                              onClick={() => setSelectedScannedBill(b)}
+                              className="text-xs"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Inspect Bill</span>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ));
+                    })()}
+                  </TableBody>
+                </Table>
+              </Card>
             )}
 
-            {/* SUB-VIEW 2: CUSTOMER DINING SALES BILLS */}
+            {/* SUB-VIEW 2: CUSTOMER DINING SALES BILLS (Shadcn Table) */}
             {ledgerSubTab === "sales" && (
-              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-xs">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
-                      <tr>
-                        <th className="p-4">Bill ID</th>
-                        <th className="p-4">Table</th>
-                        <th className="p-4">Customer</th>
-                        <th className="p-4">Subtotal</th>
-                        <th className="p-4">Discount</th>
-                        <th className="p-4">GST (5%)</th>
-                        <th className="p-4">Total Amount</th>
-                        <th className="p-4">Payment</th>
-                        <th className="p-4">Date Time</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#F0E8DC]">
-                      {(() => {
-                        const filtered = customerBills.filter((c) => {
-                          if (!ledgerSearch) return true;
-                          const q = ledgerSearch.toLowerCase();
-                          return (
-                            c.bill_id.toLowerCase().includes(q) ||
-                            c.table_number.toLowerCase().includes(q) ||
-                            (c.customer_name && c.customer_name.toLowerCase().includes(q))
-                          );
-                        });
+              <Card className="overflow-hidden shadow-xs">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Bill ID</TableHead>
+                      <TableHead>Table</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Subtotal</TableHead>
+                      <TableHead>Discount</TableHead>
+                      <TableHead>GST (5%)</TableHead>
+                      <TableHead>Total Amount</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Date Time</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(() => {
+                      const filtered = customerBills.filter((c) => {
+                        if (!ledgerSearch) return true;
+                        const q = ledgerSearch.toLowerCase();
+                        return (
+                          c.bill_id.toLowerCase().includes(q) ||
+                          c.table_number.toLowerCase().includes(q) ||
+                          (c.customer_name && c.customer_name.toLowerCase().includes(q))
+                        );
+                      });
 
-                        if (filtered.length === 0) {
-                          return (
-                            <tr>
-                              <td colSpan={9} className="p-8 text-center text-[#8C7A6D]">
-                                {ledgerSearch ? "No matching dining bills found." : "No dining bills generated yet."}
-                              </td>
-                            </tr>
-                          );
-                        }
+                      if (filtered.length === 0) {
+                        return (
+                          <TableRow>
+                            <TableCell colSpan={9} className="p-8 text-center text-[#8C7A6D]">
+                              {ledgerSearch ? "No matching dining bills found." : "No dining bills generated yet."}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
 
-                        return filtered.map((c) => (
-                          <tr key={c.id} className="hover:bg-[#FAF7F0] transition-colors">
-                            <td className="p-4">
-                              <span className="font-mono font-bold bg-[#FAF6EE] text-[#B85B43] px-2.5 py-1 rounded-lg border border-[#E0D4C2]">
-                                {c.bill_id}
-                              </span>
-                            </td>
-                            <td className="p-4 font-bold text-[#241A14]">
-                              {c.table_number}
-                            </td>
-                            <td className="p-4 text-[#665448]">
-                              {c.customer_name || "Walk-in Guest"}
-                            </td>
-                            <td className="p-4 text-[#665448]">
-                              ₹{Number(c.subtotal || 0).toLocaleString("en-IN")}
-                            </td>
-                            <td className="p-4 text-emerald-700 font-medium">
-                              {Number(c.discount_amount || 0) > 0 ? `-₹${Number(c.discount_amount).toLocaleString("en-IN")}` : "—"}
-                            </td>
-                            <td className="p-4 text-[#665448]">
-                              ₹{Number(c.tax_amount || 0).toLocaleString("en-IN")}
-                            </td>
-                            <td className="p-4 font-extrabold text-[#241A14]">
-                              ₹{Number(c.total_amount || 0).toLocaleString("en-IN")}
-                            </td>
-                            <td className="p-4">
-                              <span
-                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                  c.is_paid
-                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                                    : "bg-amber-100 text-amber-800 border border-amber-300"
-                                }`}
-                              >
-                                {c.is_paid ? "PAID" : "UNPAID"} • {c.payment_method || "CASH"}
-                              </span>
-                            </td>
-                            <td className="p-4 text-[#8C7A6D] font-mono text-[11px]">
-                              {c.created_at ? new Date(c.created_at).toLocaleString("en-IN") : "—"}
-                            </td>
-                          </tr>
-                        ));
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                      return filtered.map((c) => (
+                        <TableRow key={c.id}>
+                          <TableCell>
+                            <Badge variant="default" className="font-mono text-xs">
+                              {c.bill_id}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-bold text-[#241A14]">
+                            {c.table_number}
+                          </TableCell>
+                          <TableCell className="text-[#665448]">
+                            {c.customer_name || "Walk-in Guest"}
+                          </TableCell>
+                          <TableCell className="text-[#665448]">
+                            ₹{Number(c.subtotal || 0).toLocaleString("en-IN")}
+                          </TableCell>
+                          <TableCell className="text-emerald-700 font-medium">
+                            {Number(c.discount_amount || 0) > 0 ? `-₹${Number(c.discount_amount).toLocaleString("en-IN")}` : "—"}
+                          </TableCell>
+                          <TableCell className="text-[#665448]">
+                            ₹{Number(c.tax_amount || 0).toLocaleString("en-IN")}
+                          </TableCell>
+                          <TableCell className="font-extrabold text-[#241A14]">
+                            ₹{Number(c.total_amount || 0).toLocaleString("en-IN")}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={c.is_paid ? "success" : "warning"}>
+                              {c.is_paid ? "PAID" : "UNPAID"} • {c.payment_method || "CASH"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-[#8C7A6D] font-mono text-[11px]">
+                            {c.created_at ? new Date(c.created_at).toLocaleString("en-IN") : "—"}
+                          </TableCell>
+                        </TableRow>
+                      ));
+                    })()}
+                  </TableBody>
+                </Table>
+              </Card>
             )}
           </div>
         )}
