@@ -25,6 +25,7 @@ class KOT(Base):
     
     status: Mapped[str] = mapped_column(String(20), default="GENERATED", nullable=False)  # GENERATED, COMPLETED, CANCELLED
     printed_status: Mapped[str] = mapped_column(String(20), default="PENDING", nullable=False)  # PENDING, PRINTED, FAILED
+    allergy_info: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     table = relationship("Table")

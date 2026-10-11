@@ -116,3 +116,4 @@ class SessionBillResponse(BaseModel):
     tax_rate: float
     tax_amount: float
     grand_total: float
+    allergy_info: Optional[str] = None

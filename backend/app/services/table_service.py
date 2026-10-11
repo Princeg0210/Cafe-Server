@@ -310,6 +310,7 @@ class TableService:
             tax_rate=tax_rate,
             tax_amount=tax_amount,
             grand_total=grand_total,
+            allergy_info=session.allergy_info,
         )
 
     @staticmethod

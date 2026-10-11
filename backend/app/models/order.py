@@ -13,6 +13,7 @@ class Order(Base):
     dining_session_id: Mapped[int] = mapped_column(Integer, ForeignKey("dining_sessions.id", ondelete="CASCADE"), nullable=False)
     order_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(20), default="CREATED", nullable=False)  # CREATED, CONFIRMED, PREPARING, READY, SERVED, BILLED, CLOSED
+    allergy_info: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     dining_session = relationship("DiningSession", back_populates="orders")

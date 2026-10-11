@@ -26,6 +26,7 @@ class KOTResponse(BaseModel):
     items_count: int
     status: str
     printed_status: str
+    allergy_info: Optional[str] = None
     created_at: datetime
     items: List[KOTItemResponse] = []
     print_job_id: Optional[int] = None
@@ -97,6 +98,7 @@ class TableSessionDetail(BaseModel):
     items_count: int
     is_active: bool
     is_settled: bool
+    allergy_info: Optional[str] = None
     items: List[SessionItemDetail] = []
     reservation_id: Optional[int] = None
     subtotal: Decimal = Decimal("0.00")

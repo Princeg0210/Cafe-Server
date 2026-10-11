@@ -30,6 +30,7 @@ class OrderItemResponse(BaseModel):
 class OrderCreate(BaseModel):
     qr_token: str = Field(..., example="qr-tbl-1-sec-token-123456")
     session_token: Optional[str] = Field(None, example="sess_tok_123456")
+    allergy_info: Optional[str] = Field(None, max_length=500, example="Nut allergy, no onions")
     items: List[OrderItemCreate] = Field(..., min_length=1)
 
 
@@ -41,5 +42,6 @@ class OrderResponse(BaseModel):
     dining_session_id: int
     order_number: str
     status: str
+    allergy_info: Optional[str] = None
     created_at: datetime
     items: List[OrderItemResponse] = []

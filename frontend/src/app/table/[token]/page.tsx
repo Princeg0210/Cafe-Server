@@ -68,6 +68,7 @@ interface BillData {
   tax_rate: number;
   tax_amount: number;
   grand_total: number;
+  allergy_info?: string | null;
 }
 
 export default function TableQRPage({ params }: { params: Promise<{ token: string }> }) {
@@ -114,6 +115,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [liveMenuData, setLiveMenuData] = useState(menuData);
   const [cart, setCart] = useState<{ [key: string | number]: { item: MenuItem; qty: number } }>({});
+  const [allergyInfo, setAllergyInfo] = useState("");
   const [showCartDrawer, setShowCartDrawer] = useState(false);
   const [showBillModal, setShowBillModal] = useState(false);
   const [billData, setBillData] = useState<BillData | null>(null);
@@ -489,6 +491,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     const orderPayload = {
       qr_token: validatedQrToken,
       session_token: sessionToken,
+      allergy_info: allergyInfo.trim() || undefined,
       items: Object.values(cart).map((c) => {
         const idStr = String(c.item.id);
         const mappedId = MENU_ITEM_ID_MAP[idStr] || (typeof c.item.id === "number" ? c.item.id : parseInt(idStr, 10));
@@ -525,6 +528,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         setDispatchedItems((prev) => [...prev, ...newlyDispatched]);
         setOrderPlaced(true);
         setCart({});
+        setAllergyInfo("");
         setShowCartDrawer(false);
       } else {
         const errData = await res.json().catch(() => ({}));
@@ -1231,6 +1235,31 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                     </div>
                   ))}
                 </div>
+
+                {/* Optional Allergy & Dietary Info Input */}
+                <div className="mb-4 p-3.5 rounded-2xl bg-white border border-[#E4DCD0] shadow-2xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="allergy-info-input" className="flex items-center gap-1.5 text-xs font-bold text-[#261C18] uppercase tracking-wider font-sans">
+                      <AlertTriangle className="w-3.5 h-3.5 text-[#B85B43]" />
+                      <span>Allergy / Dietary Info</span>
+                    </label>
+                    <span className="text-[10px] font-mono text-stone-500 uppercase font-semibold bg-[#F5EFE6] px-1.5 py-0.5 rounded border border-[#E4DCD0]">
+                      Optional
+                    </span>
+                  </div>
+                  <textarea
+                    id="allergy-info-input"
+                    value={allergyInfo}
+                    onChange={(e) => setAllergyInfo(e.target.value)}
+                    rows={2}
+                    placeholder="E.g., Nut allergy, lactose intolerant, Jain preparation, no garlic/onion, gluten sensitive..."
+                    maxLength={400}
+                    className="w-full text-xs p-2.5 rounded-xl border border-[#DDD3C4] bg-[#FBF9F5] text-[#261C18] placeholder:text-stone-400 focus:outline-none focus:border-[#B85B43] focus:ring-1 focus:ring-[#B85B43] resize-none"
+                  />
+                  <p className="text-[10px] text-stone-500 leading-tight">
+                    This note will be printed directly on the kitchen ticket (KOT) for our chef.
+                  </p>
+                </div>
               </div>
 
               {/* Cart Footer */}
@@ -1304,6 +1333,21 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                     <span>Session Status:</span>
                     <span className="text-[#1B3618] bg-[#E2EDDE] px-2 py-0.5 rounded border border-[#B5CEAE]">{billData?.status || "ACTIVE"}</span>
                   </div>
+
+                  {/* Allergy / Dietary Note if present */}
+                  {billData?.allergy_info && (
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-600/30 text-[#261C18] text-xs flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <span className="font-bold text-amber-900 block uppercase text-[10px] tracking-wide font-sans">
+                          Allergy / Dietary Note:
+                        </span>
+                        <span className="text-stone-800 break-words whitespace-normal text-xs font-sans">
+                          {billData.allergy_info}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Dispatched items */}
                   {billData?.items && billData.items.length > 0 ? (

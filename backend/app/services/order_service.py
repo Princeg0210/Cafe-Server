@@ -66,6 +66,14 @@ class OrderService:
             today_date = datetime.date.today()
             date_prefix = today_date.strftime("%Y%m%d")
 
+            allergy_note = (data.allergy_info or "").strip() or None
+            if allergy_note:
+                if dining_session.allergy_info:
+                    if allergy_note.lower() not in dining_session.allergy_info.lower():
+                        dining_session.allergy_info = f"{dining_session.allergy_info}; {allergy_note}"
+                else:
+                    dining_session.allergy_info = allergy_note
+
             order = None
             max_order_retries = 10
             for order_attempt in range(max_order_retries):
@@ -92,6 +100,7 @@ class OrderService:
                             dining_session_id=dining_session.id,
                             order_number=order_number,
                             status="CONFIRMED",
+                            allergy_info=allergy_note,
                         )
                         db.add(order)
                         await db.flush()
@@ -226,6 +235,7 @@ class OrderService:
                             items_count=total_order_items,
                             status="GENERATED",
                             printed_status="PENDING",
+                            allergy_info=allergy_note,
                         )
                         db.add(kot)
                         await db.flush()
@@ -240,6 +250,13 @@ class OrderService:
                             f"Time: {order.created_at.strftime('%I:%M %p')}",
                             "--------------------------------",
                         ]
+                        if allergy_note:
+                            kot_lines.extend([
+                                "********************************",
+                                f"ALLERGY NOTE: {allergy_note.upper()}",
+                                "********************************",
+                                "--------------------------------",
+                            ])
                         for r_item in all_kot_items:
                             line = f"{r_item['qty']} x {r_item['name']}"
                             if r_item["instructions"]:
@@ -278,6 +295,8 @@ class OrderService:
                 created_kitchen_orders.append(k_order)
 
                 ticket_lines = [f"=== KITCHEN TICKET #{k_order.id} ===", f"Order #: {order_number}"]
+                if allergy_note:
+                    ticket_lines.append(f"*** ALLERGY NOTE: {allergy_note.upper()} ***")
                 for r_item in routed_items:
                     line = f"- {r_item['qty']}x {r_item['name']}"
                     if r_item["instructions"]:
@@ -308,6 +327,7 @@ class OrderService:
                 "total_amount": float(total_order_amount),
                 "items_count": total_order_items,
                 "printed_status": kot.printed_status,
+                "allergy_info": kot.allergy_info,
                 "created_at": kot.created_at.isoformat(),
             })
 

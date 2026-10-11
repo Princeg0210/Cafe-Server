@@ -96,6 +96,7 @@ class POSService:
                     items_count=kot.items_count,
                     status=kot.status,
                     printed_status=kot.printed_status,
+                    allergy_info=kot.allergy_info or (kot.order.allergy_info if kot.order else None),
                     created_at=kot.created_at,
                     items=items_list,
                     print_job_id=print_job_id,
@@ -272,6 +273,7 @@ class POSService:
             "table_id": kot.table_id,
             "table_number": kot.table.table_number if kot.table else None,
             "order_number": kot.order.order_number if kot.order else None,
+            "allergy_info": kot.allergy_info or (kot.order.allergy_info if kot.order else None),
             "created_at": kot.created_at.isoformat(),
             "items": items,
         }
@@ -315,6 +317,14 @@ class POSService:
                 f"Time: {kot.created_at.strftime('%I:%M %p')}",
                 "--------------------------------",
             ]
+            allergy_txt = kot.allergy_info or (kot.order.allergy_info if kot.order else None)
+            if allergy_txt:
+                ticket_lines.extend([
+                    "********************************",
+                    f"ALLERGY NOTE: {allergy_txt.upper()}",
+                    "********************************",
+                    "--------------------------------",
+                ])
             if kot.order and kot.order.items:
                 for oi in kot.order.items:
                     name = oi.menu_item.name if oi.menu_item else "Item"
@@ -682,6 +692,7 @@ class POSService:
                         items_count=total_items_count,
                         is_active=is_active,
                         is_settled=is_settled,
+                        allergy_info=sess.allergy_info,
                         items=items_list,
                         reservation_id=sess.reservation_id,
                         subtotal=session_total,

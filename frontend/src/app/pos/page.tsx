@@ -211,6 +211,7 @@ interface TableSession {
   discount_value?: number;
   discount_amount?: number;
   discount_reason?: string | null;
+  allergy_info?: string | null;
 }
 
 interface TableOverview {
@@ -248,6 +249,7 @@ interface KOT {
   items_count: number;
   status: string;
   printed_status: string;
+  allergy_info?: string | null;
   created_at: string;
   items: KOTItem[];
   print_job_id?: number;
@@ -341,6 +343,7 @@ type KotTicket = {
   table_id: number;
   table_number: string | null;
   order_number: string | null;
+  allergy_info?: string | null;
   created_at: string;
   items: { name: string; quantity: number; special_instructions?: string | null }[];
 };
@@ -372,11 +375,13 @@ function kotTicketHtml(t: KotTicket, paperMm: number): string {
     table { width: 100%; border-collapse: collapse; } td { vertical-align: top; padding: 3px 0; }
     .q { width: 34px; font-weight: 800; font-size: 15px; } .n { font-weight: 700; font-size: 15px; }
     .note { font-weight: 400; font-size: 12px; font-style: italic; }
+    .allergy-box { border: 2px solid #000; padding: 4px; margin: 6px 0; text-align: center; font-size: 13px; font-weight: 800; background: #fff; }
   </style></head><body>
     <div class="c muted">JAADOO · KITCHEN ORDER</div>
     <div class="c kot">${escapeHtml(t.kot_number)}</div>
     <div class="c tbl">${escapeHtml(floor.name)} · TABLE ${escapeHtml(floor.floor_table_num)}</div>
     <div class="c muted">${escapeHtml(time)}${t.order_number ? ` · ${escapeHtml(t.order_number)}` : ""}</div>
+    ${t.allergy_info ? `<div class="allergy-box">⚠️ ALLERGY / DIETARY INFO:<br>${escapeHtml(t.allergy_info.toUpperCase())}</div>` : ""}
     <hr><table>${rows}</table><hr>
     <div class="c muted">${t.items.reduce((n, it) => n + Number(it.quantity || 0), 0)} item(s)</div>
   </body></html>`;
@@ -1299,6 +1304,7 @@ export default function POSDashboard() {
           <span>Staff: ${staffUser?.username || "Cashier"}</span>
         </div>
         ${session.reservation_id ? `<div class="row"><span>Guest ID: RES-${String(session.reservation_id).padStart(4, "0")}</span></div>` : `<div class="row"><span>Guest ID: GUEST-${session.session_seq || session.session_id}</span></div>`}
+        ${session.allergy_info ? `<div class="row" style="margin: 4px 0; padding: 3px; border: 1px dashed #000; font-size: 11px;"><span>⚠️ Allergy/Dietary:</span><strong>${escapeHtml(session.allergy_info)}</strong></div>` : ""}
 
         <div class="divider"></div>
 
@@ -3279,6 +3285,13 @@ export default function POSDashboard() {
                           </div>
                         </div>
 
+                        {kot.allergy_info && (
+                          <div className="p-2 rounded-md bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center gap-1.5 font-sans">
+                            <span className="font-bold shrink-0">⚠️ Allergy:</span>
+                            <span className="font-semibold break-words">{kot.allergy_info}</span>
+                          </div>
+                        )}
+
                         {/* Items */}
                         <div className="divide-y divide-stone-100 text-xs font-sans">
                           {kot.items.map((item, idx) => (
@@ -3810,6 +3823,13 @@ export default function POSDashboard() {
                   <span>{new Date(billPreviewSession.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
 
+                {billPreviewSession.allergy_info && (
+                  <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                    <span className="font-bold shrink-0">⚠️ Allergy/Dietary:</span>
+                    <span className="font-medium break-words">{billPreviewSession.allergy_info}</span>
+                  </div>
+                )}
+
                 {/* Items List */}
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                   {billPreviewSession.items && billPreviewSession.items.length > 0 ? (
@@ -4028,6 +4048,13 @@ export default function POSDashboard() {
                   <span>{billSettleTableInfo.tableNumber}</span>
                   <span>Session #{billSettleSession.session_seq}</span>
                 </div>
+
+                {billSettleSession.allergy_info && (
+                  <div className="p-2 rounded bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-1.5">
+                    <span className="font-bold shrink-0">⚠️ Allergy:</span>
+                    <span className="font-medium break-words">{billSettleSession.allergy_info}</span>
+                  </div>
+                )}
 
                 <div className="border-t border-stone-200 pt-2 space-y-1 text-stone-600">
                   <div className="flex justify-between">

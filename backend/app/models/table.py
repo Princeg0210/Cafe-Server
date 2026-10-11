@@ -91,6 +91,7 @@ class DiningSession(Base):
     reservation_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("reservations.id", ondelete="SET NULL", use_alter=True), nullable=True)
     session_token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(20), default="OPENED", nullable=False)  # OPENED, ACTIVE, CHECKOUT, PAID, CLOSED
+    allergy_info: Mapped[str | None] = mapped_column(String(500), nullable=True)
     opened_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     closed_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
 
