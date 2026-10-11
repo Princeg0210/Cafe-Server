@@ -26,6 +26,7 @@ import {
   HelpCircle,
   FileText,
   Zap,
+  Flame,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import TanFooter from "@/components/TanFooter";
@@ -718,12 +719,58 @@ export default function BookTablePage() {
                 exit={{ opacity: 0 }}
                 className="space-y-8"
               >
-                {/* Original editorial booking-page header */}
-                <div className="text-center">
-                  <h1 className="font-serif text-4xl font-bold tracking-tight text-[#140E0A] sm:text-5xl">
-                    Reserve Your Table
-                  </h1>
-                  <div className="mx-auto my-4 h-0.5 w-12 bg-[#9E3E26]" />
+                {/* Cinematic Wood-Fired Oven Hero Section */}
+                <div className="relative w-full rounded-3xl overflow-hidden border border-[#E6DCCF] bg-[#140E0A] shadow-xl group">
+                  {/* Aspect Ratio Box with HTML5 Video */}
+                  <div className="relative w-full h-[280px] sm:h-[360px] md:h-[400px] overflow-hidden">
+                    <video
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="auto"
+                      poster="/book-table-hero-poster.webp"
+                      className="absolute inset-0 w-full h-full object-cover opacity-85 transition-transform duration-1000 ease-out group-hover:scale-105"
+                    >
+                      <source src="/book-table-hero.webm" type="video/webm" />
+                      <source src="/book-table-hero.mp4" type="video/mp4" />
+                    </video>
+
+                    {/* Gradient & Vignette Overlay for Crisp Readability & Ambiance */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#140E0A] via-[#140E0A]/40 to-black/30 pointer-events-none" />
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-[#140E0A]/20 to-[#140E0A]/70 pointer-events-none" />
+
+                    {/* Hero Content Over Video */}
+                    <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8 md:p-10 text-center sm:text-left z-10">
+                      <div className="max-w-xl space-y-3">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#B85B43]/30 backdrop-blur-md border border-[#B85B43]/50 text-[#F5C7BA] text-[11px] font-bold uppercase tracking-wider">
+                          <Flame className="w-3.5 h-3.5 text-[#E87A5D] animate-pulse" />
+                          <span>480°C Artisanal Wood-Fired Oven</span>
+                        </div>
+
+                        <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#FAF7F0] drop-shadow-md">
+                          Reserve Your Table
+                        </h1>
+
+                        <p className="text-xs sm:text-sm text-[#E6DCCF] font-medium leading-relaxed max-w-lg drop-shadow-xs">
+                          Slow-fermented sourdough pizzas, lakeside evening breezes, and intimate candlelit heritage dining in Old City Udaipur.
+                        </p>
+
+                        {/* Visual Highlights Badges */}
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1 text-[11px] text-[#FAF7F0]/90">
+                          <span className="px-2.5 py-1 rounded-lg bg-black/40 backdrop-blur-xs border border-white/10 flex items-center gap-1.5 font-medium">
+                            <Sparkles className="w-3 h-3 text-amber-400" /> 5 Heritage Floors
+                          </span>
+                          <span className="px-2.5 py-1 rounded-lg bg-black/40 backdrop-blur-xs border border-white/10 flex items-center gap-1.5 font-medium">
+                            <Clock className="w-3 h-3 text-[#65C5A8]" /> Thu – Mon · 7 PM – 10 PM
+                          </span>
+                          <span className="px-2.5 py-1 rounded-lg bg-black/40 backdrop-blur-xs border border-white/10 flex items-center gap-1.5 font-medium">
+                            <MapPin className="w-3 h-3 text-[#E87A5D]" /> Ganesh Ghati, Udaipur
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Calendar Section */}
