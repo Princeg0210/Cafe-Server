@@ -699,32 +699,11 @@ export default function BookTablePage() {
                 exit={{ opacity: 0 }}
                 className="space-y-8"
               >
-                {/* Hero Section with High-Definition Video & Reserve Your Table Heading */}
-                <div className="relative w-full rounded-3xl overflow-hidden border border-[#E6DCCF] bg-[#140E0A] shadow-xl group">
-                  <div className="relative w-full h-[220px] sm:h-[280px] md:h-[320px] overflow-hidden">
-                    <video
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      preload="auto"
-                      poster="/book-table-hero-poster.webp"
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
-                    >
-                      <source src="/book-table-hero.mp4" type="video/mp4" />
-                      <source src="/book-table-hero.webm" type="video/webm" />
-                    </video>
-
-                    {/* Subtle Gradient for Readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/20 pointer-events-none" />
-
-                    {/* Reserve Your Table Heading ONLY */}
-                    <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8 md:p-10 z-10">
-                      <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#FAF7F0] drop-shadow-lg">
-                        Reserve Your Table
-                      </h1>
-                    </div>
-                  </div>
+                {/* Header: Reserve Your Table */}
+                <div className="pt-2 pb-1 text-center sm:text-left">
+                  <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#140E0A]">
+                    Reserve Your Table
+                  </h1>
                 </div>
 
                 {/* Calendar Section */}
