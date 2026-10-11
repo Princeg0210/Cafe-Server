@@ -33,11 +33,12 @@ export default function Home() {
             loop
             muted
             playsInline
-            preload="metadata"
-            poster="/hero-bg.jpg"
+            preload="auto"
+            poster="/book-table-hero-poster.webp"
             className="w-full h-full object-cover object-center brightness-105 contrast-105"
           >
-            <source src="/hero-fire-optimized.mp4" type="video/mp4" />
+            <source src="/book-table-hero.webm" type="video/webm" />
+            <source src="/book-table-hero.mp4" type="video/mp4" />
           </video>
           {/* Refined luminous overlay - balanced for maximum brightness while keeping text crisp */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/10" />
