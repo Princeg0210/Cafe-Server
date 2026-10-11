@@ -331,6 +331,9 @@ class PaymentVerificationService:
         await db.commit()
         await db.refresh(matched_res)
 
+        from app.services.whatsapp_service import notify_booking_confirmed
+        notify_booking_confirmed(matched_res.id)
+
         return {
             "status": "SUCCESS",
             "message": "Payment verified and reservation confirmed.",

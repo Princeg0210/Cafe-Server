@@ -26,6 +26,7 @@ from app.schemas.reservation import (
 from app.services.payment_verification_service import PaymentVerificationService
 from app.services.settings_service import SettingsService
 from app.workers.celery_app import celery_app, send_reservation_reminder
+from app.services.whatsapp_service import notify_booking_cancelled, notify_booking_confirmed
 
 # Strict Allowed State Machine Map
 ALLOWED_STATE_TRANSITIONS = {
@@ -500,6 +501,7 @@ class ReservationService:
             reservation.celery_task_id = None
 
         await db.commit()
+        notify_booking_cancelled(reservation_id)
 
         from sqlalchemy.orm import selectinload
         res = await db.execute(
@@ -922,6 +924,7 @@ class ReservationService:
             pass
 
         await ReservationService._broadcast_reservation_event(reservation, "RESERVATION_UPDATED")
+        notify_booking_confirmed(reservation.id)
         return reservation
 
     @staticmethod
@@ -1019,6 +1022,7 @@ class ReservationService:
                 reservation.hold_expires_at = None
                 await db.commit()
                 confirmed_reservation_id = reservation.id
+                notify_booking_confirmed(reservation.id)
 
         return {
             "status": "SUCCESS",
@@ -1146,6 +1150,7 @@ class ReservationService:
         Instantly confirms table reservation, allocates dough, and registers bank credit.
         """
         # Validate HMAC signature if non-simulated and live keys configured
+        signature_verified = False  # only genuinely verified payments trigger WhatsApp messages
         if not data.is_test_simulation and not data.razorpay_payment_id.startswith("pay_test_"):
             message = f"{data.razorpay_order_id}|{data.razorpay_payment_id}"
             expected_sig = hmac.new(
@@ -1160,6 +1165,8 @@ class ReservationService:
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="INVALID_RAZORPAY_SIGNATURE: Payment verification failed.",
                     )
+            else:
+                signature_verified = True
 
         # Get or create customer
         clean_phone = "".join(filter(str.isdigit, data.customer_phone))
@@ -1268,6 +1275,8 @@ class ReservationService:
         )
         saved = res.scalar_one()
         await ReservationService._broadcast_reservation_event(saved, "RESERVATION_CREATED")
+        if signature_verified:
+            notify_booking_confirmed(saved.id)
         return saved
 
     @staticmethod

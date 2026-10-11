@@ -54,6 +54,14 @@ class Settings(BaseSettings):
     RAZORPAY_WEBHOOK_SECRET: str = "jaadoo_webhook_secret_2026"
     RAZORPAY_TEST_MODE: bool = True
 
+    # WhatsApp booking notifications (Meta WhatsApp Cloud API). Unset token/phone ID = disabled.
+    WHATSAPP_ACCESS_TOKEN: Optional[str] = None
+    WHATSAPP_PHONE_NUMBER_ID: Optional[str] = None
+    WHATSAPP_API_VERSION: str = "v21.0"
+    WHATSAPP_TEMPLATE_LANGUAGE: str = "en"
+    WHATSAPP_CONFIRMATION_TEMPLATE: str = "booking_confirmation"
+    WHATSAPP_CANCELLATION_TEMPLATE: str = "booking_cancellation"
+
     # Reservation Deposit & Hold Settings
     DEFAULT_DEPOSIT_PER_GUEST: str = "250.00"
     RESERVATION_HOLD_MINUTES: int = 7
