@@ -42,6 +42,15 @@ import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+} from "recharts";
 
 const {
   fetch: managerFetch,
@@ -276,6 +285,25 @@ export default function KunalManagerPortal() {
   const [formCatId, setFormCatId] = useState<number>(1);
   const [formAvailable, setFormAvailable] = useState(true);
   const [newCatName, setNewCatName] = useState("");
+
+  // Chart mounting and data preprocessing
+  const [isChartMounted, setIsChartMounted] = useState(false);
+  useEffect(() => {
+    setIsChartMounted(true);
+  }, []);
+
+  const chartData = useMemo(() => {
+    if (!analytics?.time_series) return [];
+    return analytics.time_series.map((d) => ({
+      ...d,
+      salesNum: parseFloat(d.net_sales || "0"),
+      colNum: parseFloat(d.collections || "0"),
+    }));
+  }, [analytics?.time_series]);
+
+  const hasActivityInPeriod = useMemo(() => {
+    return chartData.some((d) => d.salesNum > 0 || d.colNum > 0);
+  }, [chartData]);
 
   // Generic status/action notification toast
   const [toastMessage, setToastMessage] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null);
@@ -1050,16 +1078,16 @@ export default function KunalManagerPortal() {
 
         {/* NAVIGATION BAR & DATE FILTER STRIP */}
         <div className="bg-[#FAF8F5] border-t border-[#EAE3D9] px-4 sm:px-6 lg:px-8 py-2">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div className="max-w-7xl mx-auto flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
             {/* 6 Core Tabs */}
-            <TabsList className="bg-transparent border-none p-0 flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none h-auto">
+            <TabsList className="bg-transparent border-none p-0 flex items-center gap-1 sm:gap-1.5 overflow-x-auto pb-1 xl:pb-0 scrollbar-none h-auto shrink-0">
               {[
-                { id: "overview", label: "Overview", icon: Layers },
-                { id: "analytics", label: "Financial Analytics", icon: TrendingUp },
-                { id: "payments", label: "Payments & Collections", icon: CreditCard },
-                { id: "petty_cash", label: "Petty Cash", icon: Wallet },
-                { id: "reservations", label: "Reservations CRM", icon: CalendarDays },
-                { id: "menu", label: "Menu Management", icon: UtensilsCrossed },
+                { id: "overview", label: "Overview", fullLabel: "Overview", icon: Layers },
+                { id: "analytics", label: "Analytics", fullLabel: "Financial Analytics", icon: TrendingUp },
+                { id: "payments", label: "Payments", fullLabel: "Payments & Collections", icon: CreditCard },
+                { id: "petty_cash", label: "Petty Cash", fullLabel: "Petty Cash", icon: Wallet },
+                { id: "reservations", label: "Reservations", fullLabel: "Reservations CRM", icon: CalendarDays },
+                { id: "menu", label: "Menu", fullLabel: "Menu Management", icon: UtensilsCrossed },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -1068,21 +1096,22 @@ export default function KunalManagerPortal() {
                     key={tab.id}
                     active={isActive}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-sans font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-sans font-semibold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                       isActive
                         ? "bg-[#1B4332] text-white shadow-xs"
                         : "text-[#4A5568] hover:text-[#133826] hover:bg-[#F0EBE1]"
                     }`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
-                    <span>{tab.label}</span>
+                    <span className="hidden 2xl:inline">{tab.fullLabel}</span>
+                    <span className="inline 2xl:hidden">{tab.label}</span>
                   </TabsTrigger>
                 );
               })}
             </TabsList>
 
             {/* Date Range Selector Strip (Asia/Kolkata Calendar Dates) */}
-            <div className="flex items-center gap-1.5 self-end md:self-auto bg-white p-1 rounded-xl border border-[#E2DACF] shadow-2xs">
+            <div className="flex items-center gap-1.5 self-end xl:self-auto bg-white p-1 rounded-xl border border-[#E2DACF] shadow-2xs shrink-0">
               <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#718074] px-2 hidden sm:inline">
                 Period:
               </span>
@@ -1447,51 +1476,105 @@ export default function KunalManagerPortal() {
               </CardHeader>
 
               <CardContent className="pt-2">
-                {/* Responsive SVG Chart */}
-                {analytics?.time_series && analytics.time_series.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="h-64 flex items-end gap-2 pt-8 pb-4 px-2 border-b border-[#EAE3D9] overflow-x-auto scrollbar-none">
-                      {(() => {
-                        const maxVal = Math.max(
-                          ...analytics.time_series.map((d) => Math.max(parseFloat(d.net_sales), parseFloat(d.collections))),
-                          1000
-                        );
-                        return analytics.time_series.map((point) => {
-                          const netH = (parseFloat(point.net_sales) / maxVal) * 100;
-                          const colH = (parseFloat(point.collections) / maxVal) * 100;
-                          return (
-                            <div
-                              key={point.date}
-                              className="flex-1 min-w-[36px] flex flex-col items-center gap-1.5 group relative"
-                            >
-                              <div className="absolute -top-12 bg-[#133826] text-white text-[10px] py-1 px-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none shadow-lg">
-                                <div className="font-medium">{point.formatted_date}</div>
-                                <div>Sales: <span className="font-sans font-bold tabular-nums">{formatINR(point.net_sales)}</span></div>
-                                <div>Paid: <span className="font-sans font-bold tabular-nums">{formatINR(point.collections)}</span></div>
-                              </div>
-
-                              <div className="w-full flex items-end justify-center gap-1 h-44">
-                                <div
-                                  style={{ height: `${Math.max(netH, 2)}%` }}
-                                  className="w-3.5 bg-[#1B4332] rounded-t-sm transition-all group-hover:bg-[#2D6A4F]"
-                                />
-                                <div
-                                  style={{ height: `${Math.max(colH, 2)}%` }}
-                                  className="w-3.5 bg-[#52B788] rounded-t-sm transition-all group-hover:bg-[#74C69D]"
-                                />
-                              </div>
-                              <span className="text-[10px] text-[#718074] font-medium font-sans tabular-nums truncate w-full text-center">
-                                {point.formatted_date}
-                              </span>
-                            </div>
-                          );
-                        });
-                      })()}
+                {isChartMounted && chartData.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="w-full h-64 pt-2">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={chartData}
+                          margin={{ top: 12, right: 12, left: -10, bottom: 4 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EAE3D9" />
+                          <XAxis
+                            dataKey="formatted_date"
+                            stroke="#718074"
+                            fontSize={11}
+                            tickLine={false}
+                            axisLine={{ stroke: "#E2DACF" }}
+                            dy={6}
+                          />
+                          <YAxis
+                            stroke="#718074"
+                            fontSize={11}
+                            tickLine={false}
+                            axisLine={false}
+                            tickFormatter={(val) =>
+                              val >= 1000
+                                ? `₹${(val / 1000).toFixed(0)}k`
+                                : `₹${val}`
+                            }
+                            dx={-4}
+                          />
+                          <RechartsTooltip
+                            cursor={{ fill: "#FAF8F5", opacity: 0.8 }}
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0].payload;
+                                return (
+                                  <div className="bg-[#133826] text-white p-3 rounded-xl shadow-xl border border-[#2D6A4F] text-xs space-y-1.5 min-w-[170px]">
+                                    <div className="font-bold border-b border-white/10 pb-1 text-[#FAF8F5]">
+                                      {data.formatted_date}
+                                    </div>
+                                    <div className="flex justify-between items-center text-[#B7E4C7]">
+                                      <span>Dining Sales:</span>
+                                      <span className="font-sans font-bold tabular-nums text-white">
+                                        {formatINR(data.net_sales)}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-[#74C69D]">
+                                      <span>Collections:</span>
+                                      <span className="font-sans font-bold tabular-nums text-white">
+                                        {formatINR(data.collections)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Bar
+                            dataKey="salesNum"
+                            name="Dining Sales"
+                            fill="#1B4332"
+                            radius={[4, 4, 0, 0]}
+                            maxBarSize={36}
+                          />
+                          <Bar
+                            dataKey="colNum"
+                            name="Collections"
+                            fill="#52B788"
+                            radius={[4, 4, 0, 0]}
+                            maxBarSize={36}
+                          />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
+
+                    {!hasActivityInPeriod && (
+                      <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-[#FAF8F5] border border-[#E2DACF] text-xs text-[#5A6A5E]">
+                        <div className="flex items-center gap-2">
+                          <Info className="w-4 h-4 text-[#2D6A4F] shrink-0" />
+                          <span>
+                            No dining sales or collections recorded yet for this period. As orders are completed in POS, bars populate in real-time.
+                          </span>
+                        </div>
+                        {datePreset === "today" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDatePreset("7d")}
+                            className="text-xs h-7 border-[#D7CDBF] text-[#133826] hover:bg-white shrink-0 ml-auto"
+                          >
+                            View Past 7 Days
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="py-16 text-center text-sm text-[#718074]">
-                    No sales recorded for the selected period.
+                    Loading sales trend analytics...
                   </div>
                 )}
               </CardContent>
@@ -1537,8 +1620,24 @@ export default function KunalManagerPortal() {
                       ))}
                     </div>
                   ) : (
-                    <div className="py-12 text-center text-xs text-[#718074]">
-                      No menu item orders in this period.
+                    <div className="py-8 px-4 text-center flex flex-col items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[#FAF8F5] border border-[#E2DACF] flex items-center justify-center text-[#718074] mb-2.5">
+                        <UtensilsCrossed className="w-5 h-5 text-[#2D6A4F]" />
+                      </div>
+                      <span className="font-bold text-xs text-[#133826]">No Menu Orders in this Period</span>
+                      <p className="text-[11px] text-[#718074] max-w-xs mt-1">
+                        Dishes ordered through POS or Table QR will automatically rank here with real revenue.
+                      </p>
+                      {datePreset === "today" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDatePreset("7d")}
+                          className="mt-3 text-xs h-7 border-[#D7CDBF] text-[#133826]"
+                        >
+                          Check 7-Day Velocity
+                        </Button>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -1574,8 +1673,24 @@ export default function KunalManagerPortal() {
                       ))}
                     </div>
                   ) : (
-                    <div className="py-12 text-center text-xs text-[#718074]">
-                      No supplier invoices recorded for this period.
+                    <div className="py-8 px-4 text-center flex flex-col items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-[#FAF8F5] border border-[#E2DACF] flex items-center justify-center text-[#718074] mb-2.5">
+                        <Receipt className="w-5 h-5 text-[#2D6A4F]" />
+                      </div>
+                      <span className="font-bold text-xs text-[#133826]">No Supplier Purchases in this Period</span>
+                      <p className="text-[11px] text-[#718074] max-w-xs mt-1">
+                        Procurement orders marked as RECEIVED will be categorized and summarized here.
+                      </p>
+                      {datePreset === "today" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDatePreset("30d")}
+                          className="mt-3 text-xs h-7 border-[#D7CDBF] text-[#133826]"
+                        >
+                          Check 30-Day Expenses
+                        </Button>
+                      )}
                     </div>
                   )}
                 </CardContent>
