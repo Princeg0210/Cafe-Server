@@ -35,6 +35,13 @@ import {
 } from "lucide-react";
 import { managerSession } from "@/lib/authFetch";
 import { formatBookingId } from "@/lib/bookingId";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 const {
   fetch: managerFetch,
@@ -849,11 +856,11 @@ export default function KunalManagerPortal() {
     return (
       <div className="min-h-screen bg-[#FAF8F5] flex flex-col justify-between font-sans selection:bg-[#52B788]/20">
         <div className="flex-1 flex items-center justify-center px-4 py-12">
-          <div className="w-full max-w-md bg-white rounded-3xl border border-[#E2DACF] p-8 shadow-xl relative overflow-hidden">
+          <Card className="w-full max-w-md bg-white rounded-3xl border-[#E2DACF] p-8 shadow-xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-44 h-44 bg-[#EBF5EE] rounded-full blur-3xl -z-0 pointer-events-none" />
 
             <div className="text-center relative z-10 mb-8">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-2xl overflow-hidden border border-[#E2DACF] shadow-sm bg-white p-1">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-2xl overflow-hidden border border-[#E2DACF] shadow-xs bg-white p-1">
                 <Image
                   src="/jaadoo_logo.jpg"
                   alt="Jaadoo Pizza Project"
@@ -863,9 +870,9 @@ export default function KunalManagerPortal() {
                   priority
                 />
               </div>
-              <span className="text-[11px] font-sans font-bold tracking-[0.2em] uppercase text-[#2D6A4F] block">
+              <Badge variant="success" className="bg-[#EBF5EE] text-[#2D6A4F] border-[#B7E4C7] font-sans font-bold tracking-[0.2em] uppercase text-[10px] mb-2">
                 Official Staff Access
-              </span>
+              </Badge>
               <h1 className="text-3xl font-serif font-bold text-[#133826] mt-1">
                 Kunal Manager Portal
               </h1>
@@ -883,37 +890,37 @@ export default function KunalManagerPortal() {
 
             <form onSubmit={handleLogin} className="space-y-4 relative z-10">
               <div>
-                <label className="block text-xs font-semibold text-[#133826] mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-semibold text-[#133826] mb-1.5 uppercase tracking-wider font-sans">
                   Username / Staff ID
                 </label>
-                <input
+                <Input
                   type="text"
                   required
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
                   placeholder="e.g. kunal"
-                  className="w-full px-4 py-3 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-[#133826] placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] transition-all text-sm"
+                  className="h-11 rounded-xl border-[#D7CDBF] bg-[#FAF8F5] text-[#133826] placeholder:text-stone-400 focus-visible:ring-[#2D6A4F] text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#133826] mb-1.5 uppercase tracking-wider">
+                <label className="block text-xs font-semibold text-[#133826] mb-1.5 uppercase tracking-wider font-sans">
                   Password
                 </label>
-                <input
+                <Input
                   type="password"
                   required
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-[#133826] placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F] transition-all text-sm"
+                  className="h-11 rounded-xl border-[#D7CDBF] bg-[#FAF8F5] text-[#133826] placeholder:text-stone-400 focus-visible:ring-[#2D6A4F] text-sm"
                 />
               </div>
 
-              <button
+              <Button
                 type="submit"
                 disabled={isLoggingIn}
-                className="w-full mt-2 py-3.5 px-4 bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-sans font-bold text-sm tracking-wide rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full mt-2 h-12 bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-sans font-bold text-sm tracking-wide rounded-xl shadow-md hover:shadow-lg transition-all disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isLoggingIn ? (
                   <>
@@ -923,13 +930,14 @@ export default function KunalManagerPortal() {
                 ) : (
                   <span>Access Manager Portal</span>
                 )}
-              </button>
+              </Button>
             </form>
 
-            <div className="mt-8 pt-6 border-t border-[#EAE3D9] text-center text-[11px] text-[#718074]">
+            <Separator className="mt-8 mb-4 bg-[#EAE3D9]" />
+            <div className="text-center text-[11px] text-[#718074] font-sans">
               Protected Management System · Café Piza / Jaadoo Pizza Project
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     );
@@ -978,9 +986,9 @@ export default function KunalManagerPortal() {
                 <span className="font-serif font-bold text-lg sm:text-xl text-[#133826] leading-none">
                   Jaadoo Pizza Project
                 </span>
-                <span className="hidden sm:inline-block bg-[#EBF5EE] text-[#2D6A4F] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border border-[#B7E4C7]">
+                <Badge variant="success" className="hidden sm:inline-flex bg-[#EBF5EE] text-[#2D6A4F] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border-[#B7E4C7]">
                   Manager
-                </span>
+                </Badge>
               </div>
               <p className="text-[11px] font-serif italic text-[#5A6A5E] mt-0.5">
                 Wood-fired · Udaipur · Est. 2024
@@ -994,7 +1002,7 @@ export default function KunalManagerPortal() {
               <h2 className="font-serif font-bold text-base text-[#1B4332] leading-tight">
                 Kunal Manager Portal
               </h2>
-              <div className="flex items-center justify-end gap-1.5 text-[11px] text-[#5A6A5E]">
+              <div className="flex items-center justify-end gap-1.5 text-[11px] text-[#5A6A5E] font-sans">
                 <span
                   className={`w-2 h-2 rounded-full ${
                     syncStatus === "connected"
@@ -1004,7 +1012,7 @@ export default function KunalManagerPortal() {
                       : "bg-amber-500"
                   }`}
                 />
-                <span>
+                <span className="tabular-nums">
                   {syncStatus === "connected"
                     ? "Live Connected"
                     : syncStatus === "connecting"
@@ -1016,23 +1024,27 @@ export default function KunalManagerPortal() {
             </div>
 
             {/* Refresh Button */}
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               onClick={handleRefresh}
               disabled={isRefreshing}
               title="Refresh Authoritative Data"
-              className="p-2.5 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] hover:bg-[#F3EFEA] text-[#133826] transition-colors cursor-pointer"
+              className="h-9 w-9 rounded-xl border-[#D7CDBF] bg-[#FAF8F5] hover:bg-[#F3EFEA] text-[#133826] transition-colors cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin text-[#2D6A4F]" : ""}`} />
-            </button>
+            </Button>
 
             {/* Logout Button */}
-            <button
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-200 bg-red-50/50 hover:bg-red-100/70 text-red-700 text-xs font-semibold transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-red-200 bg-red-50/70 hover:bg-red-100/80 text-red-700 text-xs font-semibold transition-colors cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
+              <span className="hidden sm:inline font-sans">Logout</span>
+            </Button>
           </div>
         </div>
 
@@ -1040,7 +1052,7 @@ export default function KunalManagerPortal() {
         <div className="bg-[#FAF8F5] border-t border-[#EAE3D9] px-4 sm:px-6 lg:px-8 py-2">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* 6 Core Tabs */}
-            <nav className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+            <TabsList className="bg-transparent border-none p-0 flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none h-auto">
               {[
                 { id: "overview", label: "Overview", icon: Layers },
                 { id: "analytics", label: "Financial Analytics", icon: TrendingUp },
@@ -1052,10 +1064,11 @@ export default function KunalManagerPortal() {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
                 return (
-                  <button
+                  <TabsTrigger
                     key={tab.id}
+                    active={isActive}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-sans font-semibold transition-all whitespace-nowrap cursor-pointer ${
                       isActive
                         ? "bg-[#1B4332] text-white shadow-xs"
                         : "text-[#4A5568] hover:text-[#133826] hover:bg-[#F0EBE1]"
@@ -1063,44 +1076,46 @@ export default function KunalManagerPortal() {
                   >
                     <Icon className="w-4 h-4 shrink-0" />
                     <span>{tab.label}</span>
-                  </button>
+                  </TabsTrigger>
                 );
               })}
-            </nav>
+            </TabsList>
 
             {/* Date Range Selector Strip (Asia/Kolkata Calendar Dates) */}
             <div className="flex items-center gap-1.5 self-end md:self-auto bg-white p-1 rounded-xl border border-[#E2DACF] shadow-2xs">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#718074] px-2 hidden sm:inline">
+              <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#718074] px-2 hidden sm:inline">
                 Period:
               </span>
               {(["today", "yesterday", "7d", "30d", "custom"] as const).map((preset) => (
-                <button
+                <Button
                   key={preset}
+                  size="sm"
+                  variant={datePreset === preset ? "default" : "ghost"}
                   onClick={() => setDatePreset(preset)}
-                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg capitalize transition-colors cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-sans font-semibold rounded-lg capitalize transition-colors cursor-pointer ${
                     datePreset === preset
-                      ? "bg-[#2D6A4F] text-white"
+                      ? "bg-[#2D6A4F] text-white hover:bg-[#2D6A4F]"
                       : "text-[#5A6A5E] hover:text-[#133826] hover:bg-stone-100"
                   }`}
                 >
                   {preset === "7d" ? "7 Days" : preset === "30d" ? "30 Days" : preset}
-                </button>
+                </Button>
               ))}
 
               {datePreset === "custom" && (
                 <div className="flex items-center gap-1.5 pl-2 border-l border-stone-200">
-                  <input
+                  <Input
                     type="date"
                     value={customStart}
                     onChange={(e) => setCustomStart(e.target.value)}
-                    className="text-xs p-1 rounded border border-stone-300 bg-stone-50"
+                    className="h-7 text-xs px-2 py-0.5 rounded-lg border-stone-300 bg-stone-50 w-auto font-sans tabular-nums"
                   />
-                  <span className="text-xs text-stone-400">to</span>
-                  <input
+                  <span className="text-xs text-stone-400 font-sans">to</span>
+                  <Input
                     type="date"
                     value={customEnd}
                     onChange={(e) => setCustomEnd(e.target.value)}
-                    className="text-xs p-1 rounded border border-stone-300 bg-stone-50"
+                    className="h-7 text-xs px-2 py-0.5 rounded-lg border-stone-300 bg-stone-50 w-auto font-sans tabular-nums"
                   />
                 </div>
               )}
@@ -1150,205 +1165,219 @@ export default function KunalManagerPortal() {
             {/* 7 TOP-LEVEL METRIC CARDS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Card 1: Total Dining Sales (Clarified Consumption vs POS Due) */}
-              <div className="bg-white rounded-2xl p-5 border border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#2D6A4F] transition-all">
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#5A6A5E]">
-                  <span>Total Dining Sales</span>
-                  <Receipt className="w-4 h-4 text-[#2D6A4F]" />
-                </div>
-                <div className="mt-3">
-                  <div className="text-2xl sm:text-3xl font-serif font-bold text-[#133826]">
-                    {formatINR(overview?.revenue?.total_dining_consumption || overview?.revenue?.net_sales)}
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#2D6A4F] transition-all">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
+                    <span>Total Dining Sales</span>
+                    <Receipt className="w-4 h-4 text-[#2D6A4F]" />
                   </div>
-                  <div className="mt-2 text-[11px] text-[#718074] space-y-0.5">
-                    <div className="flex justify-between">
-                      <span>Gross Food & Beverage:</span>
-                      <span className="font-semibold text-stone-700">{formatINR(overview?.revenue?.gross_subtotal)}</span>
+                  <div className="mt-3">
+                    <div className="text-2xl sm:text-3xl font-sans font-bold tabular-nums tracking-tight text-[#133826]">
+                      {formatINR(overview?.revenue?.total_dining_consumption || overview?.revenue?.net_sales)}
                     </div>
-                    <div className="flex justify-between">
-                      <span>Discounts Applied:</span>
-                      <span className="font-semibold text-amber-700">-{formatINR(overview?.revenue?.discounts)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>GST Tax (5%):</span>
-                      <span className="font-semibold text-stone-700">+{formatINR(overview?.revenue?.taxes)}</span>
-                    </div>
-                    <div className="flex justify-between text-emerald-800 font-semibold border-t border-dashed border-stone-200 pt-1 mt-1">
-                      <span>Advance Deposits Credited:</span>
-                      <span>-{formatINR(overview?.revenue?.reservation_credits_applied)}</span>
-                    </div>
-                    <div className="flex justify-between text-[#133826] font-bold">
-                      <span>Net POS Checkout Due:</span>
-                      <span>{formatINR(overview?.revenue?.net_pos_checkout_due)}</span>
+                    <div className="mt-2 text-[11px] text-[#718074] space-y-0.5 font-sans">
+                      <div className="flex justify-between">
+                        <span>Gross Food & Beverage:</span>
+                        <span className="font-semibold tabular-nums text-stone-700">{formatINR(overview?.revenue?.gross_subtotal)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Discounts Applied:</span>
+                        <span className="font-semibold tabular-nums text-amber-700">-{formatINR(overview?.revenue?.discounts)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>GST Tax (5%):</span>
+                        <span className="font-semibold tabular-nums text-stone-700">+{formatINR(overview?.revenue?.taxes)}</span>
+                      </div>
+                      <div className="flex justify-between text-emerald-800 font-semibold border-t border-dashed border-stone-200 pt-1 mt-1">
+                        <span>Advance Deposits Credited:</span>
+                        <span className="tabular-nums">-{formatINR(overview?.revenue?.reservation_credits_applied)}</span>
+                      </div>
+                      <div className="flex justify-between text-[#133826] font-bold">
+                        <span>Net POS Checkout Due:</span>
+                        <span className="tabular-nums">{formatINR(overview?.revenue?.net_pos_checkout_due)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Card 2: UPI Collections */}
-              <div className="bg-white rounded-2xl p-5 border border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#2D6A4F] transition-all">
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#5A6A5E]">
-                  <span>Verified UPI Collections</span>
-                  <CreditCard className="w-4 h-4 text-emerald-700" />
-                </div>
-                <div className="mt-3">
-                  <div className="text-2xl sm:text-3xl font-serif font-bold text-[#133826]">
-                    {formatINR(overview?.upi_reconciliation?.verified_settled_amount)}
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#2D6A4F] transition-all">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
+                    <span>Verified UPI Collections</span>
+                    <CreditCard className="w-4 h-4 text-emerald-700" />
                   </div>
-                  <div className="mt-2 text-[11px] text-[#718074] space-y-0.5">
-                    <div className="flex justify-between">
-                      <span>Bank Settled Credits:</span>
-                      <span className="font-semibold text-emerald-700">
-                        {overview?.upi_reconciliation?.verified_settled_count || 0} txn
-                      </span>
+                  <div className="mt-3">
+                    <div className="text-2xl sm:text-3xl font-sans font-bold tabular-nums tracking-tight text-[#133826]">
+                      {formatINR(overview?.upi_reconciliation?.verified_settled_amount)}
                     </div>
-                    <div className="flex justify-between">
-                      <span>Requires Staff Review:</span>
-                      <span className="font-semibold text-amber-700">
-                        {formatINR(overview?.upi_reconciliation?.review_required_amount)} ({overview?.upi_reconciliation?.review_required_count || 0})
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>POS Ledger UPI Total:</span>
-                      <span className="font-semibold text-stone-700">{formatINR(overview?.collections?.by_method?.UPI)}</span>
+                    <div className="mt-2 text-[11px] text-[#718074] space-y-0.5 font-sans">
+                      <div className="flex justify-between">
+                        <span>Bank Settled Credits:</span>
+                        <span className="font-semibold tabular-nums text-emerald-700">
+                          {overview?.upi_reconciliation?.verified_settled_count || 0} txn
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Requires Staff Review:</span>
+                        <span className="font-semibold tabular-nums text-amber-700">
+                          {formatINR(overview?.upi_reconciliation?.review_required_amount)} ({overview?.upi_reconciliation?.review_required_count || 0})
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>POS Ledger UPI Total:</span>
+                        <span className="font-semibold tabular-nums text-stone-700">{formatINR(overview?.collections?.by_method?.UPI)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Card 3: Total Recorded Purchases / Expenses */}
-              <div className="bg-white rounded-2xl p-5 border border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#2D6A4F] transition-all">
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#5A6A5E]">
-                  <span>Recorded Purchases</span>
-                  <DollarSign className="w-4 h-4 text-stone-600" />
-                </div>
-                <div className="mt-3">
-                  <div className="text-2xl sm:text-3xl font-serif font-bold text-[#133826]">
-                    {formatINR(overview?.expenses?.received_expenses)}
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#2D6A4F] transition-all">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
+                    <span>Recorded Purchases</span>
+                    <DollarSign className="w-4 h-4 text-stone-600" />
                   </div>
-                  <div className="mt-2 text-[11px] text-[#718074] space-y-0.5">
-                    <div className="flex justify-between">
-                      <span>Received Invoices:</span>
-                      <span className="font-semibold text-stone-700">{overview?.expenses?.received_count || 0} orders</span>
+                  <div className="mt-3">
+                    <div className="text-2xl sm:text-3xl font-sans font-bold tabular-nums tracking-tight text-[#133826]">
+                      {formatINR(overview?.expenses?.received_expenses)}
                     </div>
-                    <div className="flex justify-between">
-                      <span>Ordered / Committed:</span>
-                      <span className="font-semibold text-stone-600">
-                        {formatINR(overview?.expenses?.ordered_commitments)} ({overview?.expenses?.ordered_count || 0})
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Category Source:</span>
-                      <span className="font-semibold text-stone-700">Inventory POs</span>
+                    <div className="mt-2 text-[11px] text-[#718074] space-y-0.5 font-sans">
+                      <div className="flex justify-between">
+                        <span>Received Invoices:</span>
+                        <span className="font-semibold tabular-nums text-stone-700">{overview?.expenses?.received_count || 0} orders</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Ordered / Committed:</span>
+                        <span className="font-semibold tabular-nums text-stone-600">
+                          {formatINR(overview?.expenses?.ordered_commitments)} ({overview?.expenses?.ordered_count || 0})
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Category Source:</span>
+                        <span className="font-semibold text-stone-700">Inventory POs</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Card 4: Profit & Loss (Provisional) */}
-              <div className="bg-white rounded-2xl p-5 border border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#2D6A4F] transition-all">
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#5A6A5E]">
-                  <span>Operating Surplus</span>
-                  <span className="bg-amber-100 text-amber-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded">
-                    Provisional
-                  </span>
-                </div>
-                <div className="mt-3">
-                  <div className="text-2xl sm:text-3xl font-serif font-bold text-[#133826]">
-                    {formatINR(overview?.profit_and_loss?.provisional_surplus)}
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#2D6A4F] transition-all">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
+                    <span>Operating Surplus</span>
+                    <Badge variant="warning" className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 font-sans">
+                      Provisional
+                    </Badge>
                   </div>
-                  <div className="mt-2 text-[11px] text-[#718074] space-y-0.5">
-                    <div className="flex justify-between">
-                      <span>Total Dining Sales:</span>
-                      <span className="font-semibold text-stone-700">{formatINR(overview?.profit_and_loss?.net_sales)}</span>
+                  <div className="mt-3">
+                    <div className="text-2xl sm:text-3xl font-sans font-bold tabular-nums tracking-tight text-[#133826]">
+                      {formatINR(overview?.profit_and_loss?.provisional_surplus)}
                     </div>
-                    <div className="flex justify-between">
-                      <span>Less Received Purchases:</span>
-                      <span className="font-semibold text-stone-700">-{formatINR(overview?.expenses?.received_expenses)}</span>
-                    </div>
-                    <div className="flex justify-between text-[10px] text-amber-700 font-medium italic">
-                      <span>Recipe COGS:</span>
-                      <span>Linkage pending</span>
+                    <div className="mt-2 text-[11px] text-[#718074] space-y-0.5 font-sans">
+                      <div className="flex justify-between">
+                        <span>Total Dining Sales:</span>
+                        <span className="font-semibold tabular-nums text-stone-700">{formatINR(overview?.profit_and_loss?.net_sales)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Less Received Purchases:</span>
+                        <span className="font-semibold tabular-nums text-stone-700">-{formatINR(overview?.expenses?.received_expenses)}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] text-amber-700 font-medium italic">
+                        <span>Recipe COGS:</span>
+                        <span>Linkage pending</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Card 5: Petty Cash Status */}
-              <div className="bg-white rounded-2xl p-5 border border-[#E2DACF] shadow-xs relative overflow-hidden">
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#5A6A5E]">
-                  <span>Petty Cash Balance</span>
-                  <Wallet className="w-4 h-4 text-amber-600" />
-                </div>
-                <div className="mt-3">
-                  <div className="text-lg font-serif font-bold text-stone-500 italic">
-                    Not Configured
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
+                    <span>Petty Cash Balance</span>
+                    <Wallet className="w-4 h-4 text-amber-600" />
                   </div>
-                  <p className="mt-2 text-[11px] text-[#718074] leading-snug">
-                    A dedicated petty cash ledger does not currently exist in the database. Balance is reported honestly without fabricating numbers.
-                  </p>
-                </div>
-              </div>
+                  <div className="mt-3">
+                    <div className="text-lg font-sans font-semibold text-stone-500 italic">
+                      Not Configured
+                    </div>
+                    <p className="mt-2 text-[11px] text-[#718074] leading-snug font-sans">
+                      A dedicated petty cash ledger does not currently exist in the database. Balance is reported honestly without fabricating numbers.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Card 6: Outstanding Amounts */}
-              <div className="bg-white rounded-2xl p-5 border border-[#E2DACF] shadow-xs relative overflow-hidden">
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#5A6A5E]">
-                  <span>Outstanding Receivables</span>
-                  <AlertTriangle className="w-4 h-4 text-amber-600" />
-                </div>
-                <div className="mt-3">
-                  <div className="text-2xl sm:text-3xl font-serif font-bold text-[#133826]">
-                    {formatINR(overview?.outstanding?.amount)}
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
+                    <span>Outstanding Receivables</span>
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
                   </div>
-                  <div className="mt-2 text-[11px] text-[#718074] space-y-0.5">
-                    <div className="flex justify-between">
-                      <span>Unsettled Bills Count:</span>
-                      <span className="font-semibold text-stone-700">{overview?.outstanding?.count || 0} bills</span>
+                  <div className="mt-3">
+                    <div className="text-2xl sm:text-3xl font-sans font-bold tabular-nums tracking-tight text-[#133826]">
+                      {formatINR(overview?.outstanding?.amount)}
                     </div>
-                    <div className="flex justify-between">
-                      <span>Status:</span>
-                      <span className="font-semibold text-amber-700">Awaiting Checkout</span>
+                    <div className="mt-2 text-[11px] text-[#718074] space-y-0.5 font-sans">
+                      <div className="flex justify-between">
+                        <span>Unsettled Bills Count:</span>
+                        <span className="font-semibold tabular-nums text-stone-700">{overview?.outstanding?.count || 0} bills</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Status:</span>
+                        <span className="font-semibold text-amber-700">Awaiting Checkout</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Card 7: Reservations & Sales Velocity */}
-              <div className="bg-white rounded-2xl p-5 border border-[#E2DACF] shadow-xs relative overflow-hidden sm:col-span-2">
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#5A6A5E]">
-                  <span>Reservations & Order Velocity</span>
-                  <CalendarDays className="w-4 h-4 text-[#2D6A4F]" />
-                </div>
-                <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div>
-                    <span className="text-[10px] text-[#718074] block">Total Bookings</span>
-                    <span className="text-xl font-serif font-bold text-[#133826]">
-                      {overview?.reservations?.total_count || 0}
-                    </span>
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden sm:col-span-2">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
+                    <span>Reservations & Order Velocity</span>
+                    <CalendarDays className="w-4 h-4 text-[#2D6A4F]" />
                   </div>
-                  <div>
-                    <span className="text-[10px] text-[#718074] block">Advance Collected</span>
-                    <span className="text-xl font-serif font-bold text-emerald-800">
-                      {formatINR(overview?.reservations?.advance_collected)}
-                    </span>
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-4 font-sans">
+                    <div>
+                      <span className="text-[10px] text-[#718074] block">Total Bookings</span>
+                      <span className="text-xl font-sans font-bold tabular-nums text-[#133826]">
+                        {overview?.reservations?.total_count || 0}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#718074] block">Advance Collected</span>
+                      <span className="text-xl font-sans font-bold tabular-nums text-emerald-800">
+                        {formatINR(overview?.reservations?.advance_collected)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#718074] block">Settled Bills</span>
+                      <span className="text-xl font-sans font-bold tabular-nums text-[#133826]">
+                        {overview?.revenue?.completed_bills_count || 0}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#718074] block">Avg Ticket (AOV)</span>
+                      <span className="text-xl font-sans font-bold tabular-nums text-[#133826]">
+                        {formatINR(overview?.revenue?.aov)}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-[#718074] block">Settled Bills</span>
-                    <span className="text-xl font-serif font-bold text-[#133826]">
-                      {overview?.revenue?.completed_bills_count || 0}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-[#718074] block">Avg Ticket (AOV)</span>
-                    <span className="text-xl font-serif font-bold text-[#133826]">
-                      {formatINR(overview?.revenue?.aov)}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* PAYMENT METHOD BREAKDOWN STRIP */}
-            <div className="bg-white rounded-2xl p-6 border border-[#E2DACF] shadow-xs">
+            <Card className="bg-white rounded-2xl p-6 border-[#E2DACF] shadow-xs">
               <h3 className="font-serif font-bold text-base text-[#133826] mb-4">
                 Collections Breakdown by Payment Method
               </h3>
@@ -1363,18 +1392,18 @@ export default function KunalManagerPortal() {
                   const count = overview?.collections?.counts_by_method?.[item.key] || 0;
                   return (
                     <div key={item.key} className={`p-4 rounded-xl border border-[#EAE3D9] ${item.color}`}>
-                      <span className="text-xs font-semibold text-[#5A6A5E] block">{item.label}</span>
-                      <span className="text-xl font-serif font-bold text-[#133826] block mt-1">
+                      <span className="text-xs font-sans font-semibold text-[#5A6A5E] block">{item.label}</span>
+                      <span className="text-xl font-sans font-bold tabular-nums text-[#133826] block mt-1">
                         {formatINR(amt)}
                       </span>
-                      <span className="text-[11px] text-[#718074] mt-1 block">
+                      <span className="text-[11px] font-sans text-[#718074] mt-1 block tabular-nums">
                         {count} completed transactions
                       </span>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </Card>
 
             {/* AUDIT & DISCLOSURE FOOTNOTE */}
             <div className="p-4 rounded-xl bg-[#EBF5EE] border border-[#B7E4C7] text-xs text-[#1B4332] flex items-start gap-3">
@@ -1395,144 +1424,162 @@ export default function KunalManagerPortal() {
         {activeTab === "analytics" && (
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* Daily Revenue Time-Series Trend */}
-            <div className="bg-white rounded-2xl p-6 border border-[#E2DACF] shadow-xs">
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-4 pb-2">
                 <div>
-                  <h3 className="font-serif font-bold text-lg text-[#133826]">
+                  <CardTitle className="font-serif font-bold text-lg text-[#133826]">
                     Revenue & Collections Daily Trend
-                  </h3>
-                  <p className="text-xs text-[#5A6A5E]">
+                  </CardTitle>
+                  <CardDescription className="text-xs text-[#5A6A5E] mt-1">
                     Daily progression of Total Dining Sales and Verified Collections in Asia/Kolkata
-                  </p>
+                  </CardDescription>
                 </div>
                 <div className="flex items-center gap-4 text-xs font-semibold">
                   <div className="flex items-center gap-1.5">
                     <span className="w-3 h-3 rounded bg-[#1B4332]" />
-                    <span>Dining Sales</span>
+                    <span className="text-[#133826]">Dining Sales</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-3 h-3 rounded bg-[#52B788]" />
-                    <span>Collections</span>
+                    <span className="text-[#133826]">Collections</span>
                   </div>
                 </div>
-              </div>
+              </CardHeader>
 
-              {/* Responsive SVG Chart */}
-              {analytics?.time_series && analytics.time_series.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="h-64 flex items-end gap-2 pt-8 pb-4 px-2 border-b border-[#EAE3D9] overflow-x-auto scrollbar-none">
-                    {(() => {
-                      const maxVal = Math.max(
-                        ...analytics.time_series.map((d) => Math.max(parseFloat(d.net_sales), parseFloat(d.collections))),
-                        1000
-                      );
-                      return analytics.time_series.map((point) => {
-                        const netH = (parseFloat(point.net_sales) / maxVal) * 100;
-                        const colH = (parseFloat(point.collections) / maxVal) * 100;
-                        return (
-                          <div
-                            key={point.date}
-                            className="flex-1 min-w-[36px] flex flex-col items-center gap-1.5 group relative"
-                          >
-                            <div className="absolute -top-12 bg-[#133826] text-white text-[10px] py-1 px-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none shadow-lg">
-                              <div>{point.formatted_date}</div>
-                              <div>Sales: {formatINR(point.net_sales)}</div>
-                              <div>Paid: {formatINR(point.collections)}</div>
-                            </div>
-
-                            <div className="w-full flex items-end justify-center gap-1 h-44">
-                              <div
-                                style={{ height: `${Math.max(netH, 2)}%` }}
-                                className="w-3.5 bg-[#1B4332] rounded-t-sm transition-all group-hover:bg-[#2D6A4F]"
-                              />
-                              <div
-                                style={{ height: `${Math.max(colH, 2)}%` }}
-                                className="w-3.5 bg-[#52B788] rounded-t-sm transition-all group-hover:bg-[#74C69D]"
-                              />
-                            </div>
-                            <span className="text-[10px] text-[#718074] font-medium truncate w-full text-center">
-                              {point.formatted_date}
-                            </span>
-                          </div>
+              <CardContent className="pt-2">
+                {/* Responsive SVG Chart */}
+                {analytics?.time_series && analytics.time_series.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="h-64 flex items-end gap-2 pt-8 pb-4 px-2 border-b border-[#EAE3D9] overflow-x-auto scrollbar-none">
+                      {(() => {
+                        const maxVal = Math.max(
+                          ...analytics.time_series.map((d) => Math.max(parseFloat(d.net_sales), parseFloat(d.collections))),
+                          1000
                         );
-                      });
-                    })()}
+                        return analytics.time_series.map((point) => {
+                          const netH = (parseFloat(point.net_sales) / maxVal) * 100;
+                          const colH = (parseFloat(point.collections) / maxVal) * 100;
+                          return (
+                            <div
+                              key={point.date}
+                              className="flex-1 min-w-[36px] flex flex-col items-center gap-1.5 group relative"
+                            >
+                              <div className="absolute -top-12 bg-[#133826] text-white text-[10px] py-1 px-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none shadow-lg">
+                                <div className="font-medium">{point.formatted_date}</div>
+                                <div>Sales: <span className="font-sans font-bold tabular-nums">{formatINR(point.net_sales)}</span></div>
+                                <div>Paid: <span className="font-sans font-bold tabular-nums">{formatINR(point.collections)}</span></div>
+                              </div>
+
+                              <div className="w-full flex items-end justify-center gap-1 h-44">
+                                <div
+                                  style={{ height: `${Math.max(netH, 2)}%` }}
+                                  className="w-3.5 bg-[#1B4332] rounded-t-sm transition-all group-hover:bg-[#2D6A4F]"
+                                />
+                                <div
+                                  style={{ height: `${Math.max(colH, 2)}%` }}
+                                  className="w-3.5 bg-[#52B788] rounded-t-sm transition-all group-hover:bg-[#74C69D]"
+                                />
+                              </div>
+                              <span className="text-[10px] text-[#718074] font-medium font-sans tabular-nums truncate w-full text-center">
+                                {point.formatted_date}
+                              </span>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="py-16 text-center text-sm text-[#718074]">
-                  No sales recorded for the selected period.
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="py-16 text-center text-sm text-[#718074]">
+                    No sales recorded for the selected period.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* 2-Column: Top Items & Payment Distribution */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Top Selling Menu Items */}
-              <div className="bg-white rounded-2xl p-6 border border-[#E2DACF] shadow-xs">
-                <h3 className="font-serif font-bold text-base text-[#133826] mb-1">
-                  Top-Selling Menu Items
-                </h3>
-                <p className="text-xs text-[#5A6A5E] mb-4">
-                  Ranked by actual completed order revenue
-                </p>
-
-                {analytics?.top_items && analytics.top_items.length > 0 ? (
-                  <div className="divide-y divide-[#EAE3D9]">
-                    {analytics.top_items.map((item, idx) => (
-                      <div key={item.name} className="py-3 flex items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="w-6 h-6 rounded-full bg-[#EBF5EE] text-[#2D6A4F] font-bold text-[11px] flex items-center justify-center shrink-0">
-                            {idx + 1}
-                          </span>
-                          <div className="truncate">
-                            <span className="font-bold text-[#133826] block truncate">{item.name}</span>
-                            <span className="text-[10px] text-[#718074]">{item.category} · {formatINR(item.price)}</span>
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs">
+                <CardHeader className="pb-3">
+                  <CardTitle className="font-serif font-bold text-base text-[#133826]">
+                    Top-Selling Menu Items
+                  </CardTitle>
+                  <CardDescription className="text-xs text-[#5A6A5E]">
+                    Ranked by actual completed order revenue
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  {analytics?.top_items && analytics.top_items.length > 0 ? (
+                    <div className="divide-y divide-[#EAE3D9]">
+                      {analytics.top_items.map((item, idx) => (
+                        <div key={item.name} className="py-3 flex items-center justify-between gap-3 text-xs">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="w-6 h-6 rounded-full bg-[#EBF5EE] text-[#2D6A4F] font-sans font-bold tabular-nums text-[11px] flex items-center justify-center shrink-0 border border-[#B7E4C7]">
+                              {idx + 1}
+                            </span>
+                            <div className="truncate">
+                              <span className="font-bold text-[#133826] block truncate">{item.name}</span>
+                              <span className="text-[10px] text-[#718074]">
+                                {item.category} · <span className="font-sans font-semibold tabular-nums">{formatINR(item.price)}</span>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="font-sans font-bold tabular-nums text-[#133826] block">
+                              {formatINR(item.revenue)}
+                            </span>
+                            <span className="text-[10px] text-[#718074]">
+                              <span className="font-sans font-semibold tabular-nums">{item.quantity}</span> orders
+                            </span>
                           </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <span className="font-bold text-[#133826] block">{formatINR(item.revenue)}</span>
-                          <span className="text-[10px] text-[#718074]">{item.quantity} orders</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-12 text-center text-xs text-[#718074]">
-                    No menu item orders in this period.
-                  </div>
-                )}
-              </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center text-xs text-[#718074]">
+                      No menu item orders in this period.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Expense Breakdown by Supplier */}
-              <div className="bg-white rounded-2xl p-6 border border-[#E2DACF] shadow-xs">
-                <h3 className="font-serif font-bold text-base text-[#133826] mb-1">
-                  Supplier Purchase Expenses
-                </h3>
-                <p className="text-xs text-[#5A6A5E] mb-4">
-                  Received purchase orders and supplier distributions
-                </p>
-
-                {analytics?.expense_suppliers && analytics.expense_suppliers.length > 0 ? (
-                  <div className="divide-y divide-[#EAE3D9]">
-                    {analytics.expense_suppliers.map((supp) => (
-                      <div key={supp.supplier_name} className="py-3 flex items-center justify-between text-xs">
-                        <div>
-                          <span className="font-bold text-[#133826] block">{supp.supplier_name}</span>
-                          <span className="text-[10px] text-[#718074]">{supp.po_count} invoices processed</span>
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs">
+                <CardHeader className="pb-3">
+                  <CardTitle className="font-serif font-bold text-base text-[#133826]">
+                    Supplier Purchase Expenses
+                  </CardTitle>
+                  <CardDescription className="text-xs text-[#5A6A5E]">
+                    Received purchase orders and supplier distributions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-2">
+                  {analytics?.expense_suppliers && analytics.expense_suppliers.length > 0 ? (
+                    <div className="divide-y divide-[#EAE3D9]">
+                      {analytics.expense_suppliers.map((supp) => (
+                        <div key={supp.supplier_name} className="py-3 flex items-center justify-between text-xs">
+                          <div>
+                            <span className="font-bold text-[#133826] block">{supp.supplier_name}</span>
+                            <span className="text-[10px] text-[#718074]">
+                              <span className="font-sans font-semibold tabular-nums">{supp.po_count}</span> invoices processed
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-sans font-bold tabular-nums text-[#133826] block">
+                              {formatINR(supp.total_cost)}
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className="font-bold text-[#133826] block">{formatINR(supp.total_cost)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-12 text-center text-xs text-[#718074]">
-                    No supplier invoices recorded for this period.
-                  </div>
-                )}
-              </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-12 text-center text-xs text-[#718074]">
+                      No supplier invoices recorded for this period.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}
@@ -1543,166 +1590,175 @@ export default function KunalManagerPortal() {
         {activeTab === "payments" && (
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* Filter & Search Bar */}
-            <div className="bg-white rounded-2xl p-4 border border-[#E2DACF] shadow-xs flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="w-4 h-4 absolute left-3 top-3 text-[#718074]" />
-                  <input
-                    type="text"
-                    value={paymentSearch}
-                    onChange={(e) => setPaymentSearch(e.target.value)}
-                    placeholder="Search by UTR, Bill ID, Reference..."
-                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs text-[#133826] placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
-                  />
+            <Card className="bg-white rounded-2xl p-4 border-[#E2DACF] shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+                  <div className="relative flex-1 min-w-[220px]">
+                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-[#718074] z-10" />
+                    <Input
+                      type="text"
+                      value={paymentSearch}
+                      onChange={(e) => setPaymentSearch(e.target.value)}
+                      placeholder="Search by UTR, Bill ID, Reference..."
+                      className="pl-9 bg-[#FAF8F5] border-[#D7CDBF] text-xs font-sans text-[#133826] placeholder:text-stone-400 h-9 rounded-xl focus-visible:ring-[#2D6A4F]"
+                    />
+                  </div>
+
+                  <select
+                    value={paymentMethodFilter}
+                    onChange={(e) => setPaymentMethodFilter(e.target.value)}
+                    className="h-9 px-3 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs font-semibold text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
+                  >
+                    <option value="">All Payment Methods</option>
+                    <option value="UPI">UPI</option>
+                    <option value="CASH">Cash</option>
+                    <option value="CARD">Card</option>
+                  </select>
                 </div>
 
-                <select
-                  value={paymentMethodFilter}
-                  onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                  className="px-3 py-2 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs font-semibold text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
-                >
-                  <option value="">All Payment Methods</option>
-                  <option value="UPI">UPI</option>
-                  <option value="CASH">Cash</option>
-                  <option value="CARD">Card</option>
-                </select>
+                <Badge variant="success" className="px-3.5 py-1.5 text-xs font-medium rounded-xl gap-2 bg-[#EBF5EE] text-[#2D6A4F] border-[#B7E4C7]">
+                  <span>Filtered Ledger Total:</span>
+                  <span className="font-sans font-bold tabular-nums text-[#133826]">{formatINR(paymentsFilterTotal)}</span>
+                  <span className="text-[10px] text-[#5A6A5E] font-sans tabular-nums">({paymentsTotalCount} txns)</span>
+                </Badge>
               </div>
-
-              <div className="flex items-center gap-3 text-xs bg-[#EBF5EE] px-4 py-2 rounded-xl border border-[#B7E4C7]">
-                <span className="text-[#2D6A4F]">Filtered Ledger Total:</span>
-                <span className="font-bold text-[#133826]">{formatINR(paymentsFilterTotal)}</span>
-                <span className="text-[10px] text-[#5A6A5E]">({paymentsTotalCount} transactions)</span>
-              </div>
-            </div>
+            </Card>
 
             {/* Payments Audit Table */}
-            <div className="bg-white rounded-2xl border border-[#E2DACF] shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#FAF8F5] border-b border-[#EAE3D9] text-[#5A6A5E] uppercase tracking-wider text-[10px] font-bold">
-                    <tr>
-                      <th className="py-3 px-4">Txn ID / Bill</th>
-                      <th className="py-3 px-4">Method</th>
-                      <th className="py-3 px-4">Amount</th>
-                      <th className="py-3 px-4">Reference / UTR</th>
-                      <th className="py-3 px-4">Audit Status</th>
-                      <th className="py-3 px-4">Timestamp (IST)</th>
-                      <th className="py-3 px-4 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#EAE3D9]">
-                    {payments.length > 0 ? (
-                      payments.map((p) => {
-                        const isVerified = p.is_verified_bank_credit || p.verification_status === "VERIFIED_CASH";
-                        return (
-                          <tr key={p.id} className="hover:bg-[#FAF8F5] transition-colors">
-                            <td className="py-3.5 px-4 font-mono font-medium">
-                              <span className="font-bold text-[#133826]">#{p.id}</span>
-                              <span className="text-[11px] text-[#718074] block">Bill #{p.bill_id}</span>
-                            </td>
-                            <td className="py-3.5 px-4 font-semibold text-[#133826]">
-                              {p.payment_method}
-                            </td>
-                            <td className="py-3.5 px-4 font-serif font-bold text-sm text-[#133826]">
-                              {formatINR(p.amount_paid)}
-                            </td>
-                            <td className="py-3.5 px-4 font-mono text-[11px] text-stone-600">
-                              {p.transaction_reference || "—"}
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <span
-                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                                  p.is_verified_bank_credit
-                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                                    : p.verification_status === "VERIFIED_CASH"
-                                    ? "bg-amber-100 text-amber-800 border border-amber-300"
-                                    : "bg-stone-100 text-stone-700 border border-stone-300"
-                                }`}
-                              >
-                                {isVerified ? (
-                                  <Check className="w-3 h-3 text-emerald-700" />
-                                ) : (
-                                  <AlertCircle className="w-3 h-3 text-amber-600" />
-                                )}
-                                {p.verification_status}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4 text-[11px] text-[#718074]">
-                              {p.created_at ? new Date(p.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "—"}
-                            </td>
-                            <td className="py-3.5 px-4 text-right">
-                              <button
-                                onClick={() => setSelectedPayment(p)}
-                                className="p-1.5 rounded-lg border border-[#D7CDBF] bg-white hover:bg-stone-50 text-[#133826] cursor-pointer"
-                                title="View Audit Details"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={7} className="py-12 text-center text-stone-500">
-                          No transactions found matching the selected filters.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+            <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs overflow-hidden">
+              <Table>
+                <TableHeader className="bg-[#FAF8F5] border-b border-[#EAE3D9]">
+                  <TableRow>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Txn ID / Bill</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Method</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Amount</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Reference / UTR</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Audit Status</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Timestamp (IST)</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px] text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-[#EAE3D9]">
+                  {payments.length > 0 ? (
+                    payments.map((p) => {
+                      const isVerified = p.is_verified_bank_credit || p.verification_status === "VERIFIED_CASH";
+                      return (
+                        <TableRow key={p.id} className="hover:bg-[#FAF8F5]/80 transition-colors">
+                          <TableCell className="py-3.5 px-4 font-sans font-medium">
+                            <span className="font-bold tabular-nums text-[#133826]">#{p.id}</span>
+                            <span className="text-[11px] text-[#718074] block font-sans tabular-nums">Bill #{p.bill_id}</span>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 font-semibold text-[#133826]">
+                            {p.payment_method}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 font-sans font-bold tabular-nums text-sm text-[#133826]">
+                            {formatINR(p.amount_paid)}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 font-mono tabular-nums text-[11px] text-stone-600">
+                            {p.transaction_reference || "—"}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4">
+                            <Badge
+                              variant={
+                                p.is_verified_bank_credit
+                                  ? "success"
+                                  : p.verification_status === "VERIFIED_CASH"
+                                  ? "warning"
+                                  : "secondary"
+                              }
+                              className="gap-1 font-bold tracking-wider"
+                            >
+                              {isVerified ? (
+                                <Check className="w-3 h-3 text-emerald-700" />
+                              ) : (
+                                <AlertCircle className="w-3 h-3 text-amber-600" />
+                              )}
+                              {p.verification_status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 text-[11px] font-sans tabular-nums text-[#718074]">
+                            {p.created_at ? new Date(p.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "—"}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedPayment(p)}
+                              className="h-7 w-7 p-0 rounded-lg border-[#D7CDBF] bg-white hover:bg-stone-50 text-[#133826]"
+                              title="View Audit Details"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-12 text-center text-stone-500">
+                        No transactions found matching the selected filters.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
 
               {/* Pagination */}
               {paymentsTotalPages > 1 && (
                 <div className="p-4 border-t border-[#EAE3D9] flex items-center justify-between text-xs">
-                  <span className="text-[#718074]">
+                  <span className="text-[#718074] font-sans tabular-nums">
                     Page {paymentsPage} of {paymentsTotalPages}
                   </span>
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       disabled={paymentsPage <= 1}
                       onClick={() => setPaymentsPage((p) => Math.max(1, p - 1))}
-                      className="px-3 py-1.5 rounded-lg border border-[#D7CDBF] bg-white disabled:opacity-40 cursor-pointer"
+                      className="border-[#D7CDBF] bg-white text-xs"
                     >
                       Previous
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       disabled={paymentsPage >= paymentsTotalPages}
                       onClick={() => setPaymentsPage((p) => Math.min(paymentsTotalPages, p + 1))}
-                      className="px-3 py-1.5 rounded-lg border border-[#D7CDBF] bg-white disabled:opacity-40 cursor-pointer"
+                      className="border-[#D7CDBF] bg-white text-xs"
                     >
                       Next
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
-            </div>
+            </Card>
 
             {/* Payment Audit Detail Modal */}
             {selectedPayment && (
               <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E2DACF] animate-in zoom-in-95 duration-200">
+                <Card className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border-[#E2DACF] animate-in zoom-in-95 duration-200">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-serif font-bold text-lg text-[#133826]">
+                    <CardTitle className="font-serif font-bold text-lg text-[#133826]">
                       Payment Audit Details
-                    </h3>
-                    <button
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setSelectedPayment(null)}
-                      className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 cursor-pointer"
+                      className="h-7 w-7 p-0 rounded-lg text-stone-400 hover:text-stone-700"
                     >
                       <X className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
 
                   <div className="space-y-3 text-xs">
                     <div className="flex justify-between py-1.5 border-b border-stone-100">
                       <span className="text-[#718074]">Transaction ID:</span>
-                      <span className="font-mono font-bold text-[#133826]">#{selectedPayment.id}</span>
+                      <span className="font-sans font-bold tabular-nums text-[#133826]">#{selectedPayment.id}</span>
                     </div>
                     <div className="flex justify-between py-1.5 border-b border-stone-100">
                       <span className="text-[#718074]">Bill Reference:</span>
-                      <span className="font-mono font-bold text-[#133826]">Bill #{selectedPayment.bill_id}</span>
+                      <span className="font-sans font-bold tabular-nums text-[#133826]">Bill #{selectedPayment.bill_id}</span>
                     </div>
                     <div className="flex justify-between py-1.5 border-b border-stone-100">
                       <span className="text-[#718074]">Payment Method:</span>
@@ -1710,13 +1766,13 @@ export default function KunalManagerPortal() {
                     </div>
                     <div className="flex justify-between py-1.5 border-b border-stone-100">
                       <span className="text-[#718074]">Amount Paid:</span>
-                      <span className="font-serif font-bold text-base text-[#133826]">
+                      <span className="font-sans font-bold tabular-nums text-base text-[#133826]">
                         {formatINR(selectedPayment.amount_paid)}
                       </span>
                     </div>
                     <div className="flex justify-between py-1.5 border-b border-stone-100">
                       <span className="text-[#718074]">Reference / UTR:</span>
-                      <span className="font-mono text-stone-700">{selectedPayment.transaction_reference || "None"}</span>
+                      <span className="font-mono tabular-nums text-stone-700">{selectedPayment.transaction_reference || "None"}</span>
                     </div>
                     <div className="flex justify-between py-1.5 border-b border-stone-100">
                       <span className="text-[#718074]">Verification Status:</span>
@@ -1730,19 +1786,19 @@ export default function KunalManagerPortal() {
                     )}
                     <div className="flex justify-between py-1.5">
                       <span className="text-[#718074]">Recorded Timestamp:</span>
-                      <span className="text-stone-700">
+                      <span className="text-stone-700 font-sans tabular-nums">
                         {selectedPayment.created_at ? new Date(selectedPayment.created_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) : "—"}
                       </span>
                     </div>
                   </div>
 
-                  <button
+                  <Button
                     onClick={() => setSelectedPayment(null)}
-                    className="w-full mt-6 py-2.5 bg-[#1B4332] text-white font-bold text-xs rounded-xl cursor-pointer"
+                    className="w-full mt-6 bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-bold text-xs rounded-xl"
                   >
                     Close Inspection
-                  </button>
-                </div>
+                  </Button>
+                </Card>
               </div>
             )}
           </div>
@@ -1753,22 +1809,24 @@ export default function KunalManagerPortal() {
         {/* ============================================================= */}
         {activeTab === "petty_cash" && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="bg-white rounded-2xl p-8 border border-[#E2DACF] shadow-xs max-w-3xl mx-auto">
+            <Card className="bg-white rounded-2xl p-8 border-[#E2DACF] shadow-xs max-w-3xl mx-auto">
               <div className="w-14 h-14 rounded-2xl bg-[#EBF5EE] text-[#2D6A4F] flex items-center justify-center mb-5">
                 <Wallet className="w-7 h-7" />
               </div>
-              <h3 className="font-serif font-bold text-2xl text-[#133826]">
+              <CardTitle className="font-serif font-bold text-2xl text-[#133826]">
                 Petty Cash Ledger Architecture
-              </h3>
-              <p className="text-sm text-[#5A6A5E] mt-2 leading-relaxed">
+              </CardTitle>
+              <CardDescription className="text-sm text-[#5A6A5E] mt-2 leading-relaxed">
                 As required by Section 7 of the project specification: We do not invent an artificial cash balance from unrelated payment records.
-              </p>
+              </CardDescription>
 
               <div className="mt-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 shrink-0 text-amber-600 mt-0.5" />
-                <div>
-                  <span className="font-bold block">Active Ledger Status: Not Configured in Database</span>
-                  <p className="mt-1 text-amber-800 leading-relaxed">
+                <div className="space-y-1">
+                  <Badge variant="warning" className="text-xs py-0.5 px-2 font-bold">
+                    Active Ledger Status: Not Configured in Database
+                  </Badge>
+                  <p className="text-amber-800 leading-relaxed text-[11px] pt-1">
                     The existing database schema does not currently include a dedicated petty cash transaction table. Per our development guardrails, schema migrations require explicit owner approval.
                   </p>
                 </div>
@@ -1794,7 +1852,7 @@ export default function KunalManagerPortal() {
                   Once authorized, this minimal ledger will enable physical drawer reconciliation, opening/closing counts, and daily petty expense logging without disrupting sales accounting.
                 </p>
               </div>
-            </div>
+            </Card>
           </div>
         )}
 
@@ -1804,159 +1862,160 @@ export default function KunalManagerPortal() {
         {activeTab === "reservations" && (
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* Filter and Search Bar */}
-            <div className="bg-white rounded-2xl p-4 border border-[#E2DACF] shadow-xs flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="w-4 h-4 absolute left-3 top-3 text-[#718074]" />
-                  <input
-                    type="text"
-                    value={resSearch}
-                    onChange={(e) => setResSearch(e.target.value)}
-                    placeholder="Search Booking ID (e.g. PRIN5743), Guest Name, Phone..."
-                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs text-[#133826] placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
-                  />
+            <Card className="bg-white rounded-2xl p-4 border-[#E2DACF] shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+                  <div className="relative flex-1 min-w-[220px]">
+                    <Search className="w-4 h-4 absolute left-3 top-2.5 text-[#718074] z-10" />
+                    <Input
+                      type="text"
+                      value={resSearch}
+                      onChange={(e) => setResSearch(e.target.value)}
+                      placeholder="Search Booking ID (e.g. PRIN5743), Guest Name, Phone..."
+                      className="pl-9 bg-[#FAF8F5] border-[#D7CDBF] text-xs font-sans text-[#133826] placeholder:text-stone-400 h-9 rounded-xl focus-visible:ring-[#2D6A4F]"
+                    />
+                  </div>
+
+                  <select
+                    value={resStatusFilter}
+                    onChange={(e) => setResStatusFilter(e.target.value)}
+                    className="h-9 px-3 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs font-semibold text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="CONFIRMED">Confirmed</option>
+                    <option value="ARRIVED">Arrived</option>
+                    <option value="SEATED">Seated</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                    <option value="NO_SHOW">No Show</option>
+                  </select>
                 </div>
 
-                <select
-                  value={resStatusFilter}
-                  onChange={(e) => setResStatusFilter(e.target.value)}
-                  className="px-3 py-2 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs font-semibold text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
-                >
-                  <option value="ALL">All Statuses</option>
-                  <option value="CONFIRMED">Confirmed</option>
-                  <option value="ARRIVED">Arrived</option>
-                  <option value="SEATED">Seated</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="CANCELLED">Cancelled</option>
-                  <option value="NO_SHOW">No Show</option>
-                </select>
+                <Badge variant="outline" className="font-sans tabular-nums text-xs px-3 py-1.5 border-[#D7CDBF] text-[#5A6A5E]">
+                  Showing {filteredReservations.length} reservations
+                </Badge>
               </div>
-
-              <div className="text-xs font-semibold text-[#5A6A5E]">
-                Showing {filteredReservations.length} reservations
-              </div>
-            </div>
+            </Card>
 
             {/* Reservations Cards / Table */}
-            <div className="bg-white rounded-2xl border border-[#E2DACF] shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#FAF8F5] border-b border-[#EAE3D9] text-[#5A6A5E] uppercase tracking-wider text-[10px] font-bold">
-                    <tr>
-                      <th className="py-3 px-4">Booking ID</th>
-                      <th className="py-3 px-4">Guest Details</th>
-                      <th className="py-3 px-4">Date & Slot</th>
-                      <th className="py-3 px-4">Party Size</th>
-                      <th className="py-3 px-4">Advance Deposit</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 text-right">Manager Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#EAE3D9]">
-                    {filteredReservations.length > 0 ? (
-                      filteredReservations.map((r) => {
-                        const bId = r.booking_id || formatBookingId(r.customer_name, r.customer_phone, r.id);
-                        const isPaid = (r.payment_status || "").toUpperCase() === "PAID";
-                        return (
-                          <tr key={r.id} className="hover:bg-[#FAF8F5] transition-colors">
-                            <td className="py-3.5 px-4 font-mono font-bold text-[#133826]">
-                              <span className="bg-[#EBF5EE] text-[#2D6A4F] px-2 py-0.5 rounded text-[11px] border border-[#B7E4C7]">
-                                {bId}
+            <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs overflow-hidden">
+              <Table>
+                <TableHeader className="bg-[#FAF8F5] border-b border-[#EAE3D9]">
+                  <TableRow>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Booking ID</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Guest Details</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Date & Slot</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Party Size</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Advance Deposit</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Status</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px] text-right">Manager Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-[#EAE3D9]">
+                  {filteredReservations.length > 0 ? (
+                    filteredReservations.map((r) => {
+                      const bId = r.booking_id || formatBookingId(r.customer_name, r.customer_phone, r.id);
+                      const isPaid = (r.payment_status || "").toUpperCase() === "PAID";
+                      return (
+                        <TableRow key={r.id} className="hover:bg-[#FAF8F5]/80 transition-colors">
+                          <TableCell className="py-3.5 px-4 font-mono font-bold text-[#133826]">
+                            <Badge variant="success" className="bg-[#EBF5EE] text-[#2D6A4F] border-[#B7E4C7] font-mono tabular-nums text-[11px] px-2 py-0.5">
+                              {bId}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4">
+                            <span className="font-bold text-[#133826] block">
+                              {r.customer_name || "Guest"}
+                            </span>
+                            <span className="text-[11px] font-sans tabular-nums text-[#718074]">{r.customer_phone || "—"}</span>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4">
+                            <span className="font-semibold font-sans tabular-nums text-[#133826] block">{r.reservation_date}</span>
+                            <span className="text-[11px] font-sans tabular-nums text-[#718074]">{r.time_slot}</span>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 font-semibold text-[#133826]">
+                            <span className="font-sans font-semibold tabular-nums">{r.guest_count}</span> guests
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-sans font-bold tabular-nums text-sm text-[#133826]">
+                                {formatINR(r.advance_amount)}
                               </span>
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <span className="font-bold text-[#133826] block">
-                                {r.customer_name || "Guest"}
-                              </span>
-                              <span className="text-[11px] text-[#718074]">{r.customer_phone || "—"}</span>
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <span className="font-semibold text-[#133826] block">{r.reservation_date}</span>
-                              <span className="text-[11px] text-[#718074]">{r.time_slot}</span>
-                            </td>
-                            <td className="py-3.5 px-4 font-semibold text-[#133826]">
-                              {r.guest_count} guests
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-serif font-bold text-sm text-[#133826]">
-                                  {formatINR(r.advance_amount)}
-                                </span>
-                                <span
-                                  className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase ${
-                                    isPaid
-                                      ? "bg-emerald-100 text-emerald-800"
-                                      : "bg-amber-100 text-amber-800"
-                                  }`}
-                                >
-                                  {r.payment_status}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <select
-                                value={(r.status || "CONFIRMED").toUpperCase()}
-                                onChange={(e) => handleReservationStatusUpdate(r.id, e.target.value)}
-                                className="px-2 py-1 rounded-lg border border-[#D7CDBF] bg-white text-[11px] font-bold text-[#133826] focus:outline-none"
+                              <Badge
+                                variant={isPaid ? "success" : "warning"}
+                                className="text-[9px] uppercase font-extrabold px-1.5 py-0.5"
                               >
-                                <option value="CONFIRMED">CONFIRMED</option>
-                                <option value="ARRIVED">ARRIVED</option>
-                                <option value="SEATED">SEATED</option>
-                                <option value="COMPLETED">COMPLETED</option>
-                                <option value="CANCELLED">CANCELLED</option>
-                                <option value="NO_SHOW">NO_SHOW</option>
-                              </select>
-                            </td>
-                            <td className="py-3.5 px-4 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {r.status === "CONFIRMED" && (
-                                  <button
-                                    onClick={() => handleReservationCheckin(r.id)}
-                                    className="px-2.5 py-1 bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-bold text-[11px] rounded-lg transition-colors cursor-pointer"
-                                  >
-                                    Check In
-                                  </button>
-                                )}
-                                {!isPaid && (
-                                  <button
-                                    onClick={() => openStaffVerifyModal(r)}
-                                    className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] rounded-lg transition-colors cursor-pointer"
-                                    title="Verify Deposit"
-                                  >
-                                    Verify Advance
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={7} className="py-12 text-center text-stone-500">
-                          No reservations found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                                {r.payment_status}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4">
+                            <select
+                              value={(r.status || "CONFIRMED").toUpperCase()}
+                              onChange={(e) => handleReservationStatusUpdate(r.id, e.target.value)}
+                              className="px-2 py-1 rounded-lg border border-[#D7CDBF] bg-white text-[11px] font-bold text-[#133826] focus:outline-none"
+                            >
+                              <option value="CONFIRMED">CONFIRMED</option>
+                              <option value="ARRIVED">ARRIVED</option>
+                              <option value="SEATED">SEATED</option>
+                              <option value="COMPLETED">COMPLETED</option>
+                              <option value="CANCELLED">CANCELLED</option>
+                              <option value="NO_SHOW">NO_SHOW</option>
+                            </select>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {r.status === "CONFIRMED" && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleReservationCheckin(r.id)}
+                                  className="h-7 px-2.5 bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-bold text-[11px] rounded-lg transition-colors cursor-pointer"
+                                >
+                                  Check In
+                                </Button>
+                              )}
+                              {!isPaid && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => openStaffVerifyModal(r)}
+                                  className="h-7 px-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] rounded-lg transition-colors cursor-pointer"
+                                  title="Verify Deposit"
+                                >
+                                  Verify Advance
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-12 text-center text-stone-500">
+                        No reservations found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
 
             {/* Advance Payment Verification Modal */}
             {verifyingRes && (
               <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-[#E2DACF] animate-in zoom-in-95 duration-200">
+                <Card className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border-[#E2DACF] animate-in zoom-in-95 duration-200">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-serif font-bold text-lg text-[#133826]">
+                    <CardTitle className="font-serif font-bold text-lg text-[#133826]">
                       Verify Advance Payment
-                    </h3>
-                    <button
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setVerifyingRes(null)}
-                      className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 cursor-pointer"
+                      className="h-7 w-7 p-0 rounded-lg text-stone-400 hover:text-stone-700"
                     >
                       <X className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
 
                   <form onSubmit={submitStaffVerifyPayment} className="space-y-4 text-xs">
@@ -1967,7 +2026,7 @@ export default function KunalManagerPortal() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#718074]">Advance Amount:</span>
-                        <span className="font-bold text-emerald-800">{formatINR(verifyingRes.advance_amount)}</span>
+                        <span className="font-sans font-bold tabular-nums text-emerald-800">{formatINR(verifyingRes.advance_amount)}</span>
                       </div>
                     </div>
 
@@ -1975,7 +2034,7 @@ export default function KunalManagerPortal() {
                       <label className="block font-semibold text-[#133826] mb-1">
                         Bank / UPI Reference (UTR)
                       </label>
-                      <input
+                      <Input
                         type="text"
                         required
                         minLength={4}
@@ -1983,7 +2042,7 @@ export default function KunalManagerPortal() {
                         value={enteredUtr}
                         onChange={(e) => setEnteredUtr(e.target.value)}
                         placeholder="e.g. 426819283741"
-                        className="w-full px-3 py-2 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs font-mono text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
+                        className="bg-[#FAF8F5] border-[#D7CDBF] font-mono tabular-nums text-xs text-[#133826] h-9 rounded-xl focus-visible:ring-[#2D6A4F]"
                       />
                       <span className="text-[10px] text-[#718074] mt-1 block">
                         Confirm UTR from bank SMS, Soundbox, or statement before verifying.
@@ -1991,23 +2050,24 @@ export default function KunalManagerPortal() {
                     </div>
 
                     <div className="flex items-center gap-2 pt-2">
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
                         onClick={() => setVerifyingRes(null)}
-                        className="flex-1 py-2.5 rounded-xl border border-[#D7CDBF] bg-white font-bold text-xs cursor-pointer"
+                        className="flex-1 border-[#D7CDBF] bg-white font-bold text-xs h-9 rounded-xl"
                       >
                         Cancel
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="submit"
                         disabled={isSubmittingVerify}
-                        className="flex-1 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-bold text-xs cursor-pointer shadow-xs disabled:opacity-50"
+                        className="flex-1 bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-bold text-xs h-9 rounded-xl shadow-xs disabled:opacity-50"
                       >
                         {isSubmittingVerify ? "Verifying..." : "Confirm & Settle"}
-                      </button>
+                      </Button>
                     </div>
                   </form>
-                </div>
+                </Card>
               </div>
             )}
           </div>
@@ -2019,181 +2079,189 @@ export default function KunalManagerPortal() {
         {activeTab === "menu" && (
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* Top Menu Controls */}
-            <div className="bg-white rounded-2xl p-4 border border-[#E2DACF] shadow-xs flex flex-wrap items-center justify-between gap-3">
-              {/* Category Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-1 min-w-[280px]">
-                <button
-                  onClick={() => setSelectedCategory("ALL")}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-colors cursor-pointer ${
-                    selectedCategory === "ALL"
-                      ? "bg-[#1B4332] text-white"
-                      : "bg-[#FAF8F5] text-[#5A6A5E] hover:bg-stone-100"
-                  }`}
-                >
-                  All Items ({menuItems.length})
-                </button>
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-colors cursor-pointer whitespace-nowrap ${
-                      selectedCategory === cat.id
-                        ? "bg-[#1B4332] text-white"
-                        : "bg-[#FAF8F5] text-[#5A6A5E] hover:bg-stone-100"
+            <Card className="bg-white rounded-2xl p-4 border-[#E2DACF] shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Category Pills */}
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none flex-1 min-w-[280px]">
+                  <Button
+                    variant={selectedCategory === "ALL" ? "default" : "secondary"}
+                    size="sm"
+                    onClick={() => setSelectedCategory("ALL")}
+                    className={`rounded-xl text-xs font-semibold h-8 transition-colors ${
+                      selectedCategory === "ALL"
+                        ? "bg-[#1B4332] text-white hover:bg-[#2D6A4F]"
+                        : "bg-[#FAF8F5] text-[#5A6A5E] hover:bg-stone-100 border-[#E2DACF]"
                     }`}
                   >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
+                    All Items (<span className="font-sans tabular-nums">{menuItems.length}</span>)
+                  </Button>
+                  {categories.map((cat) => (
+                    <Button
+                      key={cat.id}
+                      variant={selectedCategory === cat.id ? "default" : "secondary"}
+                      size="sm"
+                      onClick={() => setSelectedCategory(cat.id)}
+                      className={`rounded-xl text-xs font-semibold h-8 transition-colors whitespace-nowrap ${
+                        selectedCategory === cat.id
+                          ? "bg-[#1B4332] text-white hover:bg-[#2D6A4F]"
+                          : "bg-[#FAF8F5] text-[#5A6A5E] hover:bg-stone-100 border-[#E2DACF]"
+                      }`}
+                    >
+                      {cat.name}
+                    </Button>
+                  ))}
+                </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsNewCatModalOpen(true)}
-                  className="px-3 py-1.5 rounded-xl border border-[#D7CDBF] bg-white hover:bg-stone-50 text-xs font-bold text-[#133826] flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Category</span>
-                </button>
-                <button
-                  onClick={openAddModal}
-                  className="px-3.5 py-1.5 rounded-xl bg-[#1B4332] hover:bg-[#2D6A4F] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Menu Item</span>
-                </button>
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsNewCatModalOpen(true)}
+                    className="h-8 rounded-xl border-[#D7CDBF] bg-white hover:bg-stone-50 text-xs font-bold text-[#133826] flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Category</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={openAddModal}
+                    className="h-8 px-3.5 rounded-xl bg-[#1B4332] hover:bg-[#2D6A4F] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Menu Item</span>
+                  </Button>
+                </div>
               </div>
-            </div>
+            </Card>
 
             {/* Menu Items Table */}
-            <div className="bg-white rounded-2xl border border-[#E2DACF] shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#FAF8F5] border-b border-[#EAE3D9] text-[#5A6A5E] uppercase tracking-wider text-[10px] font-bold">
-                    <tr>
-                      <th className="py-3 px-4">Item Name</th>
-                      <th className="py-3 px-4">Category</th>
-                      <th className="py-3 px-4">Price (₹)</th>
-                      <th className="py-3 px-4">Tax (GST)</th>
-                      <th className="py-3 px-4">Availability</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#EAE3D9]">
-                    {filteredMenuItems.length > 0 ? (
-                      filteredMenuItems.map((item) => {
-                        const cat = categories.find((c) => c.id === item.category_id);
-                        return (
-                          <tr key={item.id} className="hover:bg-[#FAF8F5] transition-colors">
-                            <td className="py-3.5 px-4">
-                              <span className="font-bold text-[#133826] block">{item.name}</span>
-                              {item.description && (
-                                <span className="text-[11px] text-[#718074] line-clamp-1">
-                                  {item.description}
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-3.5 px-4 font-semibold text-[#5A6A5E]">
-                              {cat?.name || "General"}
-                            </td>
-                            <td className="py-3.5 px-4 font-serif font-bold text-sm text-[#133826]">
-                              {formatINR(item.price)}
-                            </td>
-                            <td className="py-3.5 px-4 font-mono text-[11px] text-stone-600">
-                              {item.tax_rate}%
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <button
-                                onClick={() => handleToggleMenuAvailability(item)}
-                                className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition-colors cursor-pointer ${
-                                  item.is_available
-                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                                    : "bg-red-100 text-red-800 border border-red-300"
-                                }`}
-                              >
-                                {item.is_available ? "In Stock" : "Sold Out"}
-                              </button>
-                            </td>
-                            <td className="py-3.5 px-4 text-right">
-                              <button
-                                onClick={() => openEditModal(item)}
-                                className="p-1.5 rounded-lg border border-[#D7CDBF] bg-white hover:bg-stone-50 text-[#133826] cursor-pointer"
-                                title="Edit Item"
-                              >
-                                <Edit2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={6} className="py-12 text-center text-stone-500">
-                          No menu items found.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs overflow-hidden">
+              <Table>
+                <TableHeader className="bg-[#FAF8F5] border-b border-[#EAE3D9]">
+                  <TableRow>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Item Name</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Category</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Price (₹)</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Tax (GST)</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px]">Availability</TableHead>
+                    <TableHead className="py-3 px-4 font-bold text-[#5A6A5E] text-[10px] text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-[#EAE3D9]">
+                  {filteredMenuItems.length > 0 ? (
+                    filteredMenuItems.map((item) => {
+                      const cat = categories.find((c) => c.id === item.category_id);
+                      return (
+                        <TableRow key={item.id} className="hover:bg-[#FAF8F5]/80 transition-colors">
+                          <TableCell className="py-3.5 px-4">
+                            <span className="font-bold text-[#133826] block">{item.name}</span>
+                            {item.description && (
+                              <span className="text-[11px] text-[#718074] line-clamp-1">
+                                {item.description}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 font-semibold text-[#5A6A5E]">
+                            {cat?.name || "General"}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 font-sans font-bold tabular-nums text-sm text-[#133826]">
+                            {formatINR(item.price)}
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 font-sans font-semibold tabular-nums text-[11px] text-stone-600">
+                            {item.tax_rate}%
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4">
+                            <Badge
+                              variant={item.is_available ? "success" : "destructive"}
+                              onClick={() => handleToggleMenuAvailability(item)}
+                              className="cursor-pointer tracking-wider text-[10px]"
+                            >
+                              {item.is_available ? "In Stock" : "Sold Out"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-3.5 px-4 text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEditModal(item)}
+                              className="h-7 w-7 p-0 rounded-lg border-[#D7CDBF] bg-white hover:bg-stone-50 text-[#133826]"
+                              title="Edit Item"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="py-12 text-center text-stone-500">
+                        No menu items found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
 
             {/* Menu Item Edit / Add Modal */}
             {(editingItem || isNewItemModalOpen) && (
               <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E2DACF] animate-in zoom-in-95 duration-200">
+                <Card className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border-[#E2DACF] animate-in zoom-in-95 duration-200">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-serif font-bold text-lg text-[#133826]">
+                    <CardTitle className="font-serif font-bold text-lg text-[#133826]">
                       {editingItem ? `Edit: ${editingItem.name}` : "Add New Menu Item"}
-                    </h3>
-                    <button
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => {
                         setEditingItem(null);
                         setIsNewItemModalOpen(false);
                       }}
-                      className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 cursor-pointer"
+                      className="h-7 w-7 p-0 rounded-lg text-stone-400 hover:text-stone-700"
                     >
                       <X className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
 
                   <form onSubmit={handleSaveMenuItem} className="space-y-4 text-xs">
                     <div>
                       <label className="block font-semibold text-[#133826] mb-1">Item Name</label>
-                      <input
+                      <Input
                         type="text"
                         required
                         value={formName}
                         onChange={(e) => setFormName(e.target.value)}
                         placeholder="e.g. Margherita Classico"
-                        className="w-full px-3 py-2 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
+                        className="bg-[#FAF8F5] border-[#D7CDBF] text-xs text-[#133826] h-9 rounded-xl focus-visible:ring-[#2D6A4F]"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block font-semibold text-[#133826] mb-1">Price (₹)</label>
-                        <input
+                        <Input
                           type="number"
                           step="0.01"
                           required
                           value={formPrice}
                           onChange={(e) => setFormPrice(e.target.value)}
                           placeholder="e.g. 450"
-                          className="w-full px-3 py-2 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
+                          className="bg-[#FAF8F5] border-[#D7CDBF] font-sans tabular-nums text-xs text-[#133826] h-9 rounded-xl focus-visible:ring-[#2D6A4F]"
                         />
                       </div>
                       <div>
                         <label className="block font-semibold text-[#133826] mb-1">GST Tax (%)</label>
-                        <input
+                        <Input
                           type="number"
                           step="0.01"
                           required
                           value={formTax}
                           onChange={(e) => setFormTax(e.target.value)}
                           placeholder="5.00"
-                          className="w-full px-3 py-2 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
+                          className="bg-[#FAF8F5] border-[#D7CDBF] font-sans tabular-nums text-xs text-[#133826] h-9 rounded-xl focus-visible:ring-[#2D6A4F]"
                         />
                       </div>
                     </div>
@@ -2203,7 +2271,7 @@ export default function KunalManagerPortal() {
                       <select
                         value={formCatId}
                         onChange={(e) => setFormCatId(parseInt(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
+                        className="w-full h-9 px-3 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
                       >
                         {categories.map((c) => (
                           <option key={c.id} value={c.id}>
@@ -2220,7 +2288,7 @@ export default function KunalManagerPortal() {
                         value={formDesc}
                         onChange={(e) => setFormDesc(e.target.value)}
                         placeholder="San Marzano tomato sauce, fresh buffalo mozzarella, basil..."
-                        className="w-full px-3 py-2 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
+                        className="w-full p-3 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
                       />
                     </div>
 
@@ -2230,82 +2298,86 @@ export default function KunalManagerPortal() {
                         id="formAvailable"
                         checked={formAvailable}
                         onChange={(e) => setFormAvailable(e.target.checked)}
-                        className="w-4 h-4 rounded text-[#2D6A4F]"
+                        className="w-4 h-4 rounded text-[#2D6A4F] accent-[#2D6A4F]"
                       />
-                      <label htmlFor="formAvailable" className="font-semibold text-[#133826]">
+                      <label htmlFor="formAvailable" className="font-semibold text-[#133826] cursor-pointer">
                         Item Available In Kitchen
                       </label>
                     </div>
 
                     <div className="flex items-center gap-2 pt-3">
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
                         onClick={() => {
                           setEditingItem(null);
                           setIsNewItemModalOpen(false);
                         }}
-                        className="flex-1 py-2.5 rounded-xl border border-[#D7CDBF] bg-white font-bold text-xs cursor-pointer"
+                        className="flex-1 border-[#D7CDBF] bg-white font-bold text-xs h-9 rounded-xl"
                       >
                         Cancel
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="submit"
-                        className="flex-1 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-bold text-xs cursor-pointer shadow-xs"
+                        className="flex-1 bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-bold text-xs h-9 rounded-xl shadow-xs"
                       >
                         Save Item
-                      </button>
+                      </Button>
                     </div>
                   </form>
-                </div>
+                </Card>
               </div>
             )}
 
             {/* New Category Modal */}
             {isNewCatModalOpen && (
               <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-[#E2DACF] animate-in zoom-in-95 duration-200">
+                <Card className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border-[#E2DACF] animate-in zoom-in-95 duration-200">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-serif font-bold text-lg text-[#133826]">
+                    <CardTitle className="font-serif font-bold text-lg text-[#133826]">
                       Create Category
-                    </h3>
-                    <button
+                    </CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setIsNewCatModalOpen(false)}
-                      className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 cursor-pointer"
+                      className="h-7 w-7 p-0 rounded-lg text-stone-400 hover:text-stone-700"
                     >
                       <X className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
 
                   <form onSubmit={handleCreateCategory} className="space-y-4 text-xs">
                     <div>
                       <label className="block font-semibold text-[#133826] mb-1">Category Name</label>
-                      <input
+                      <Input
                         type="text"
                         required
                         value={newCatName}
                         onChange={(e) => setNewCatName(e.target.value)}
                         placeholder="e.g. Artisanal Tisanes"
-                        className="w-full px-3 py-2 rounded-xl border border-[#D7CDBF] bg-[#FAF8F5] text-xs text-[#133826] focus:outline-none focus:ring-2 focus:ring-[#2D6A4F]"
+                        className="bg-[#FAF8F5] border-[#D7CDBF] text-xs text-[#133826] h-9 rounded-xl focus-visible:ring-[#2D6A4F]"
                       />
                     </div>
 
                     <div className="flex items-center gap-2 pt-2">
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
                         onClick={() => setIsNewCatModalOpen(false)}
-                        className="flex-1 py-2.5 rounded-xl border border-[#D7CDBF] bg-white font-bold text-xs cursor-pointer"
+                        className="flex-1 border-[#D7CDBF] bg-white font-bold text-xs h-9 rounded-xl"
                       >
                         Cancel
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="submit"
-                        className="flex-1 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-bold text-xs cursor-pointer shadow-xs"
+                        className="flex-1 bg-[#1B4332] hover:bg-[#2D6A4F] text-white font-bold text-xs h-9 rounded-xl shadow-xs"
                       >
                         Create
-                      </button>
+                      </Button>
                     </div>
                   </form>
-                </div>
+                </Card>
               </div>
             )}
           </div>
