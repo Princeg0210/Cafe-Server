@@ -72,3 +72,4 @@ function createStaffSession(prefix: string): StaffSession {
 
 export const adminSession = createStaffSession("admin");
 export const posSession = createStaffSession("pos");
+export const managerSession = createStaffSession("manager");
