@@ -62,9 +62,10 @@ class Settings(BaseSettings):
     WHATSAPP_CONFIRMATION_TEMPLATE: str = "booking_confirmation"
     WHATSAPP_CANCELLATION_TEMPLATE: str = "booking_cancellation"
 
-    # Supplier bill scanning (Sarvam Document AI Extract). Unset key = scanning disabled.
+    # Supplier bill scanning (Sarvam Document AI / OCR)
     SARVAM_API_KEY: Optional[str] = None
     SARVAM_BASE_URL: str = "https://api.sarvam.ai"
+    SARVAM_DOCUMENT_MODEL: str = "sarvam-vision-2.1"
 
     # Reservation Deposit & Hold Settings
     DEFAULT_DEPOSIT_PER_GUEST: str = "150.00"

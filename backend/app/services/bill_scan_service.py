@@ -157,9 +157,22 @@ def build_draft(result: dict, materials: List[Tuple[int, str, str]]) -> dict:
 
 
 async def extract_bill(content: bytes, filename: str, content_type: str) -> dict:
-    """Run a Sarvam Extract job on the bill and return its `result` object."""
+    """Run a Sarvam Document AI Extract job on the bill using Sarvam Vision OCR and return its `result` object."""
     if not is_configured():
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Bill scanning is not configured (SARVAM_API_KEY missing).")
+
+    # Normalize content_type if missing or generic
+    if not content_type or content_type == "application/octet-stream":
+        ext = filename.lower().split(".")[-1]
+        if ext in ("jpg", "jpeg"):
+            content_type = "image/jpeg"
+        elif ext == "png":
+            content_type = "image/png"
+        elif ext == "pdf":
+            content_type = "application/pdf"
+        elif ext == "webp":
+            content_type = "image/webp"
+
     headers = {"api-subscription-key": settings.SARVAM_API_KEY}
     base = settings.SARVAM_BASE_URL.rstrip("/")
     try:
@@ -171,25 +184,38 @@ async def extract_bill(content: bytes, filename: str, content_type: str) -> dict
                 data={"schema": json.dumps(EXTRACT_SCHEMA), "language": "en-IN", "output_format": "json"},
             )
             if created.status_code >= 400:
-                raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Bill reader rejected the file ({created.status_code}).")
-            job_id = created.json()["job_id"]
+                try:
+                    err_json = created.json()
+                    err_msg = err_json.get("detail") or err_json.get("message") or f"Bill reader rejected the file ({created.status_code})"
+                except Exception:
+                    err_msg = f"Bill reader rejected the file ({created.status_code})"
+                raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Sarvam AI: {err_msg}")
+
+            job_id = created.json().get("job_id")
+            if not job_id:
+                raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Bill reader did not return a valid job ID.")
 
             waited = 0
             job_status = None
             while waited < POLL_TIMEOUT_SECONDS:
-                job_status = (await client.get(f"{base}/doc-ai/v1/job/{job_id}/status", headers=headers)).json().get("status")
-                if job_status in TERMINAL_STATUSES:
-                    break
+                status_res = await client.get(f"{base}/doc-ai/v1/job/{job_id}/status", headers=headers)
+                if status_res.status_code == 200:
+                    job_status = status_res.json().get("status")
+                    if job_status in TERMINAL_STATUSES:
+                        break
                 await asyncio.sleep(POLL_INTERVAL_SECONDS)
                 waited += POLL_INTERVAL_SECONDS
+
             if job_status not in ("completed", "partially_completed"):
                 raise HTTPException(
                     status_code=status.HTTP_504_GATEWAY_TIMEOUT if job_status not in TERMINAL_STATUSES else status.HTTP_502_BAD_GATEWAY,
                     detail="Could not read the bill. Try a clearer photo." if job_status in TERMINAL_STATUSES else "Bill reading timed out. Please try again.",
                 )
+
             res = await client.get(f"{base}/doc-ai/v1/job/{job_id}/results", headers=headers)
             if res.status_code >= 400:
                 raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Could not fetch the bill reading result.")
-            return res.json().get("result") or {}
-    except httpx.HTTPError:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Could not reach the bill reader. Please try again.")
+            data = res.json()
+            return data.get("result") or data.get("data") or data or {}
+    except httpx.HTTPError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Could not reach Sarvam AI bill reader ({str(exc)}). Please try again.")
