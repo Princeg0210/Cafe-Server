@@ -532,15 +532,22 @@ class POSService:
                 rem_amount = Decimal("0.00")
                 net_due = gross_amt
 
-                if sess.bills:
-                    b = sess.bills[-1]
-                    dep_paid = b.reservation_deposit_paid or Decimal("0.00")
-                    res_credit = b.reservation_credit or Decimal("0.00")
-                    net_due = b.total_amount
-                    rem_action = b.remainder_action
-                    rem_amount = b.remainder_amount or Decimal("0.00")
-                elif sess.reservation and sess.reservation.payment_status == "PAID":
-                    dep_paid = Decimal(str(sess.reservation.advance_amount or "0.00"))
+                if bill_rec and not is_active:
+                    # Settled: show what was actually billed
+                    dep_paid = bill_rec.reservation_deposit_paid or Decimal("0.00")
+                    res_credit = bill_rec.reservation_credit or Decimal("0.00")
+                    net_due = bill_rec.total_amount
+                    rem_action = bill_rec.remainder_action
+                    rem_amount = bill_rec.remainder_amount or Decimal("0.00")
+                elif (bill_rec and (bill_rec.reservation_deposit_paid or 0) > 0) or (
+                    sess.reservation and sess.reservation.payment_status == "PAID"
+                ):
+                    # Open bill: recompute live, since a stored bill (e.g. created when a discount
+                    # was applied) goes stale when items change
+                    if bill_rec and (bill_rec.reservation_deposit_paid or 0) > 0:
+                        dep_paid = bill_rec.reservation_deposit_paid
+                    else:
+                        dep_paid = Decimal(str(sess.reservation.advance_amount or "0.00"))
                     res_credit = min(gross_amt, dep_paid)
                     net_due = max(Decimal("0.00"), gross_amt - res_credit)
                     if gross_amt < dep_paid:
