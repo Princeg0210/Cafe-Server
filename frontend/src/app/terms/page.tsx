@@ -55,8 +55,8 @@ export default function TermsConditionsPage() {
               To ensure fair access to seating and protect daily small-batch Neapolitan pizza dough production:
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-stone-600">
-              <li>A refundable reservation advance deposit of <strong>₹200 per guest</strong> is required to confirm online table bookings.</li>
-              <li><strong>100% Billing Credit:</strong> The entire deposit amount (e.g. ₹800 for 4 guests) is automatically credited in full against your final food and beverage dining tab upon seating.</li>
+              <li>A refundable reservation advance deposit of <strong>₹150 per guest</strong> is required to confirm online table bookings.</li>
+              <li><strong>100% Billing Credit:</strong> The entire deposit amount (e.g. ₹600 for 4 guests) is automatically credited in full against your final food and beverage dining tab upon seating.</li>
               <li>Temporary holds are maintained for 7 minutes to allow payment completion before the reserved slot is automatically released to other guests.</li>
             </ul>
           </section>

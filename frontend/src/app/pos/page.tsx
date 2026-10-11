@@ -491,6 +491,7 @@ export default function POSDashboard() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const hasWsEverConnectedRef = useRef<boolean>(false);
 
   const getApiBase = () => {
     return "";
@@ -948,9 +949,13 @@ export default function POSDashboard() {
 
         ws.onopen = () => {
           setIsConnected(true);
-          fetchData();
-          fetchReservations();
-          fetchPendingReviews();
+          if (hasWsEverConnectedRef.current) {
+            fetchData();
+            fetchReservations();
+            fetchPendingReviews();
+          } else {
+            hasWsEverConnectedRef.current = true;
+          }
         };
         ws.onclose = () => {
           setIsConnected(false);

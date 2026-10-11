@@ -1,8 +1,8 @@
 import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 from collections import defaultdict
-from sqlalchemy import select, func
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
@@ -429,42 +429,80 @@ class POSService:
 
         now_naive = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
         twenty_four_hours_ago = now_naive - datetime.timedelta(hours=24)
+        target_start = datetime.datetime.combine(target_date, datetime.time.min)
+        target_end = datetime.datetime.combine(target_date, datetime.time.max)
 
-        stmt = (
-            select(Table)
-            .options(
-                selectinload(Table.dining_sessions).selectinload(DiningSession.orders).selectinload(Order.items).selectinload(OrderItem.menu_item),
-                selectinload(Table.dining_sessions).selectinload(DiningSession.customer),
-                selectinload(Table.dining_sessions).selectinload(DiningSession.reservation),
-                selectinload(Table.dining_sessions).selectinload(DiningSession.bills),
+        # 1. Fetch tables
+        tbl_stmt = select(Table).order_by(Table.id.asc())
+        tbl_res = await db.execute(tbl_stmt)
+        tables = tbl_res.scalars().all()
+
+        # 2. Fetch only active or today/recent sessions in a single targeted query
+        session_stmt = (
+            select(DiningSession)
+            .where(
+                or_(
+                    DiningSession.status.in_(["OPENED", "ACTIVE", "CHECKOUT"]),
+                    DiningSession.opened_at >= twenty_four_hours_ago,
+                    DiningSession.closed_at >= twenty_four_hours_ago,
+                    DiningSession.opened_at.between(target_start, target_end),
+                    DiningSession.closed_at.between(target_start, target_end),
+                )
             )
-            .order_by(Table.id.asc())
+            .options(
+                selectinload(DiningSession.orders).selectinload(Order.items).selectinload(OrderItem.menu_item),
+                selectinload(DiningSession.customer),
+                selectinload(DiningSession.reservation),
+                selectinload(DiningSession.bills),
+            )
+            .order_by(DiningSession.opened_at.asc())
         )
-        res = await db.execute(stmt)
-        tables = res.scalars().all()
+        sess_res = await db.execute(session_stmt)
+        all_sessions = sess_res.scalars().all()
+
+        table_sessions_map: Dict[int, List[DiningSession]] = defaultdict(list)
+        for s in all_sessions:
+            if s.table_id:
+                # Filter strictly matching criteria
+                s_opened = s.opened_at.replace(tzinfo=None) if s.opened_at else None
+                s_closed = s.closed_at.replace(tzinfo=None) if s.closed_at else None
+                if s.status in ["OPENED", "ACTIVE", "CHECKOUT"]:
+                    table_sessions_map[s.table_id].append(s)
+                elif target_date == datetime.date.today():
+                    if (s_opened and s_opened >= twenty_four_hours_ago) or (s_closed and s_closed >= twenty_four_hours_ago):
+                        table_sessions_map[s.table_id].append(s)
+                    elif (s_opened and s_opened.date() == target_date) or (s_closed and s_closed.date() == target_date):
+                        table_sessions_map[s.table_id].append(s)
+                else:
+                    if (s_opened and s_opened.date() == target_date) or (s_closed and s_closed.date() == target_date):
+                        table_sessions_map[s.table_id].append(s)
+
+        # 3. Fetch active reservations for target_date in a single batch query (resolves N+1 query bottleneck)
+        res_stmt = select(Reservation).where(
+            Reservation.reservation_date == target_date,
+            Reservation.status.in_(["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"])
+        )
+        active_res_res = await db.execute(res_stmt)
+        active_reservations = active_res_res.scalars().all()
+
+        res_by_table_id: Dict[int, Reservation] = {}
+        res_by_floor_table: Dict[Tuple[int, str], Reservation] = {}
+        for r in active_reservations:
+            if r.table_id and r.table_id not in res_by_table_id:
+                res_by_table_id[r.table_id] = r
+            if r.floor_number is not None and r.table_name:
+                key = (r.floor_number, r.table_name)
+                if key not in res_by_floor_table:
+                    res_by_floor_table[key] = r
+
+        # 4. Fetch deposit remainder policy once (instead of per-session inside loops)
+        from app.services.settings_service import SettingsService
+        rem_policy = await SettingsService.get_deposit_remainder_policy(db)
 
         results: List[TableOverviewResponse] = []
 
         for tbl in tables:
-            relevant_sessions = []
-            for s in (tbl.dining_sessions or []):
-                # Always include active sessions
-                if s.status in ["OPENED", "ACTIVE", "CHECKOUT"]:
-                    relevant_sessions.append(s)
-                    continue
-
-                # For closed/settled sessions, include if within last 24h or matching target_date
-                s_opened = s.opened_at.replace(tzinfo=None) if s.opened_at else None
-                s_closed = s.closed_at.replace(tzinfo=None) if s.closed_at else None
-
-                if target_date == datetime.date.today():
-                    if (s_opened and s_opened >= twenty_four_hours_ago) or (s_closed and s_closed >= twenty_four_hours_ago):
-                        relevant_sessions.append(s)
-                    elif (s_opened and s_opened.date() == target_date) or (s_closed and s_closed.date() == target_date):
-                        relevant_sessions.append(s)
-                else:
-                    if (s_opened and s_opened.date() == target_date) or (s_closed and s_closed.date() == target_date):
-                        relevant_sessions.append(s)
+            relevant_sessions = table_sessions_map.get(tbl.id, [])
             # Sort chronologically (oldest session first so seq numbers are 1, 2, 3...)
             relevant_sessions.sort(key=lambda s: s.opened_at or datetime.datetime.min)
 
@@ -551,8 +589,7 @@ class POSService:
                     res_credit = min(gross_amt, dep_paid)
                     net_due = max(Decimal("0.00"), gross_amt - res_credit)
                     if gross_amt < dep_paid:
-                        from app.services.settings_service import SettingsService
-                        rem_action = await SettingsService.get_deposit_remainder_policy(db)
+                        rem_action = rem_policy
                         rem_amount = dep_paid - gross_amt
 
                 session_details.append(
@@ -585,17 +622,10 @@ class POSService:
                     )
                 )
 
-            # Check if table has an active reservation for target_date
-            res_stmt = select(Reservation).where(
-                (Reservation.table_id == tbl.id) | (
-                    (Reservation.table_name == f"Table {tbl.floor_table_num}") &
-                    (Reservation.floor_number == tbl.floor_number)
-                ),
-                Reservation.reservation_date == target_date,
-                Reservation.status.in_(["CONFIRMED", "ARRIVED", "SEATED", "HOLD", "PAYMENT_PENDING"])
+            # Check if table has an active reservation for target_date using fast lookup
+            active_res_record = res_by_table_id.get(tbl.id) or res_by_floor_table.get(
+                (tbl.floor_number, f"Table {tbl.floor_table_num}")
             )
-            active_res_res = await db.execute(res_stmt)
-            active_res_record = active_res_res.scalars().first()
 
             if active_count > 0:
                 table_status = "Occupied"

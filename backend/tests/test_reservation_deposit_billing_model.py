@@ -36,6 +36,7 @@ async def test_guest_count_deposit_formula_1_2_3_5(client: AsyncClient, db_sessi
     """
     branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
     db_session.add(branch)
+    await SettingsService.set_setting(db_session, "RESERVATION_DEPOSIT_PER_PERSON", "200.00")
     await db_session.commit()
 
     test_cases = [

@@ -84,7 +84,7 @@ async def test_seven_day_reservation_policy_and_id_consistency(client, db_sessio
     # Check Recent record
     item_recent = next((r for r in data if r["id"] == 901), None)
     assert item_recent is not None
-    assert item_recent["booking_id"] == "RES-0901"
+    assert item_recent["booking_id"] == "RECE3211"
     assert item_recent["customer"]["name"] == "Recent Guest"
     assert item_recent["customer"]["phone"] == "+919876543211"
     assert item_recent["time_slot"] == "07:00 PM"
@@ -95,7 +95,7 @@ async def test_seven_day_reservation_policy_and_id_consistency(client, db_sessio
     # Check Cutoff boundary record (should be full details)
     item_cutoff = next((r for r in data if r["id"] == 902), None)
     assert item_cutoff is not None
-    assert item_cutoff["booking_id"] == "RES-0902"
+    assert item_cutoff["booking_id"] == "CUTO3222"
     assert item_cutoff["customer"]["name"] == "Cutoff Boundary Guest"
     assert item_cutoff["customer"]["phone"] == "+919876543222"
     assert item_cutoff["time_slot"] == "08:15 PM"
@@ -104,7 +104,7 @@ async def test_seven_day_reservation_policy_and_id_consistency(client, db_sessio
     # Check Old record (> 7 days: must be sanitized to ONLY id, name, guest_count)
     item_old = next((r for r in data if r["id"] == 903), None)
     assert item_old is not None
-    assert item_old["booking_id"] == "RES-0903"
+    assert item_old["booking_id"] == "OLDH3233"
     assert item_old["customer"]["name"] == "Old Historical Guest"
     assert item_old["customer"]["phone"] == ""
     assert item_old["customer"]["email"] is None

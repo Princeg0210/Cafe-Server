@@ -69,7 +69,7 @@ export default function PrivacyPolicyPage() {
             <ul className="list-disc pl-5 space-y-1.5 text-stone-600">
               <li>To confirm, manage, and schedule your table reservations and pizza dough production allocation.</li>
               <li>To transmit Kitchen Order Tickets (KOT) directly to our wood-fired pizza kitchen thermal printer.</li>
-              <li>To accurately apply reservation advance deposits (₹200 per guest) as billing credits against your final dining bill.</li>
+              <li>To accurately apply reservation advance deposits (₹150 per guest) as billing credits against your final dining bill.</li>
               <li>To dispatch automated reservation reminders via SMS/WhatsApp/Email prior to your scheduled booking.</li>
             </ul>
           </section>

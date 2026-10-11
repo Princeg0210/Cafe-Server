@@ -39,7 +39,7 @@ const DINNER_TIME_SLOTS = [
   { time: "09:15 PM", label: "09:15 PM" },
 ];
 
-const DEPOSIT_PER_GUEST = 250;
+const DEPOSIT_PER_GUEST = 150;
 const OPEN_DAYS = new Set([0, 1, 4, 5, 6]); // Sunday, Monday, Thursday, Friday, Saturday
 
 function getNextOpenDate() {
@@ -570,7 +570,7 @@ export default function BookTablePage() {
                 </p>
                 <p>Choose an available date and dinner slot from the calendar.</p>
                 <p>Your request is confirmed automatically when a matching table is available. If the selected date, time, or table is unavailable, your payment is refunded.</p>
-                <p>The ₹250 per guest advance is fully adjustable against your food and beverage bill. If you cancel the booking, ₹56 will be retained as a cancellation charge and the remaining balance will be refunded.</p>
+                <p>The ₹150 per guest advance is fully adjustable against your food and beverage bill. If you cancel the booking, ₹56 will be retained as a cancellation charge and the remaining balance will be refunded.</p>
               </div>
 
               <button
@@ -818,7 +818,7 @@ export default function BookTablePage() {
                   <p className="text-sm leading-relaxed text-[#524942]">
                     Thursday to Monday · 75 minutes per reservation.
                     <br />
-                    ₹250 per guest is fully adjustable against the final food bill.
+                    ₹150 per guest is fully adjustable against the final food bill.
                   </p>
                 </div>
               </motion.div>
@@ -880,7 +880,7 @@ export default function BookTablePage() {
                       Number of Guest(s)
                     </h3>
                     <p className="text-xs text-stone-500 font-medium mt-0.5">
-                      INR 250 per guest
+                      INR 150 per guest
                     </p>
                   </div>
 
@@ -1255,7 +1255,7 @@ export default function BookTablePage() {
                       Cancellation & Refund Policy
                     </h4>
                     <p>
-                      <strong>1. Adjustable Deposit:</strong> The advance deposit of INR 250 per guest is 100% adjustable against your final food and beverage bill.
+                      <strong>1. Adjustable Deposit:</strong> The advance deposit of INR 150 per guest is 100% adjustable against your final food and beverage bill.
                     </p>
                     <p>
                       <strong>2. Non-Availability Refund:</strong> In the rare event that your table request cannot be accommodated within 48 hours, a 100% full refund is issued instantly.
@@ -1349,7 +1349,7 @@ export default function BookTablePage() {
                   </div>
                   <div className="flex justify-between items-center text-[11px] text-stone-500 pb-1 border-b border-stone-200">
                     <span>GUESTS</span>
-                    <span className="font-bold text-stone-800">{guests} Guests (₹250/person)</span>
+                    <span className="font-bold text-stone-800">{guests} Guests (₹150/person)</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-sans font-bold text-stone-700">PAYABLE AMOUNT</span>

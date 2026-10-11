@@ -38,7 +38,7 @@ class SettingsService:
         try:
             return Decimal(val)
         except Exception:
-            return Decimal("200.00")
+            return Decimal("150.00")
 
     @staticmethod
     async def get_deposit_remainder_policy(db: AsyncSession) -> str:

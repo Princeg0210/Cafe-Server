@@ -1121,7 +1121,7 @@ class ReservationService:
         """
         deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
         if deposit_per_guest <= 0:
-            deposit_per_guest = Decimal("250.00")
+            deposit_per_guest = Decimal("150.00")
 
         total_deposit = deposit_per_guest * Decimal(str(data.guest_count))
         amount_paise = int(total_deposit * 100)
@@ -1211,7 +1211,7 @@ class ReservationService:
 
         deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
         if deposit_per_guest <= 0:
-            deposit_per_guest = Decimal("250.00")
+            deposit_per_guest = Decimal("150.00")
         total_deposit = deposit_per_guest * Decimal(str(data.guest_count))
 
         reservation = Reservation(

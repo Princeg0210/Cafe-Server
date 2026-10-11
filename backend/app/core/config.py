@@ -67,7 +67,7 @@ class Settings(BaseSettings):
     SARVAM_BASE_URL: str = "https://api.sarvam.ai"
 
     # Reservation Deposit & Hold Settings
-    DEFAULT_DEPOSIT_PER_GUEST: str = "250.00"
+    DEFAULT_DEPOSIT_PER_GUEST: str = "150.00"
     RESERVATION_HOLD_MINUTES: int = 7
     DEFAULT_RESERVATION_PIZZA_DEMAND_PER_GUEST: str = "0.75"
 
