@@ -50,6 +50,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import QRCode from "qrcode";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Cell,
+} from "recharts";
 import { menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
@@ -315,6 +325,22 @@ export default function AdminPortal() {
   const [selectedScannedBill, setSelectedScannedBill] = useState<ScannedBillRecord | null>(null);
   const [ledgerSearch, setLedgerSearch] = useState("");
   const [isLedgerLoading, setIsLedgerLoading] = useState(false);
+
+  // Analytics Chart State (Shadcn / Recharts)
+  const [chartMetric, setChartMetric] = useState<"revenue" | "kots">("revenue");
+  const [isChartMounted, setIsChartMounted] = useState(false);
+  useEffect(() => {
+    setIsChartMounted(true);
+  }, []);
+
+  const chartStats = useMemo(() => {
+    if (!salesHistory.length) return { totalRev: 0, totalOrders: 0, avgDailyRev: 0, peakDay: null as SalesHistoryItem | null };
+    const totalRev = salesHistory.reduce((sum, item) => sum + (Number(item.revenue) || 0), 0);
+    const totalOrders = salesHistory.reduce((sum, item) => sum + (Number(item.kots) || 0), 0);
+    const avgDailyRev = Math.round(totalRev / salesHistory.length);
+    const peakDay = [...salesHistory].sort((a, b) => (Number(b.revenue) || 0) - (Number(a.revenue) || 0))[0] || null;
+    return { totalRev, totalOrders, avgDailyRev, peakDay };
+  }, [salesHistory]);
 
   // Show Toast
   const showToast = (msg: string) => {
@@ -2097,49 +2123,202 @@ export default function AdminPortal() {
 
             </>}
 
-            {/* 14-Day Sales Trend Bar Chart */}
-            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-6 shadow-sm space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* 14-Day Sales Trend Bar Chart (Shadcn UI & Recharts Pattern) */}
+            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-6 shadow-xs space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-sm font-serif font-bold uppercase tracking-wider text-[#241A14]">
-                    Daily Sales History (Last 14 Days)
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-serif font-bold uppercase tracking-wider text-[#241A14]">
+                      Daily Sales History (Last 14 Days)
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      Live Trend
+                    </span>
+                  </div>
                   <p className="text-xs text-[#7A6A5E] mt-0.5">
-                    Day-by-day revenue progression and customer ticket counts
+                    Day-by-day revenue progression and customer ticket counts. Hover on any bar for precise figures.
                   </p>
                 </div>
-                <button
-                  onClick={handleExportCSV}
-                  className="inline-flex items-center gap-1.5 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#B85B43] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Export CSV</span>
-                </button>
+
+                <div className="flex items-center gap-2">
+                  {/* Metric Switcher: Revenue vs Orders */}
+                  <div className="bg-[#F3EDE2] p-1 rounded-xl flex items-center border border-[#E6DCCF] text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setChartMetric("revenue")}
+                      className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                        chartMetric === "revenue"
+                          ? "bg-white text-[#B85B43] shadow-xs"
+                          : "text-[#665448] hover:text-[#241A14]"
+                      }`}
+                    >
+                      Revenue (₹)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartMetric("kots")}
+                      className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                        chartMetric === "kots"
+                          ? "bg-white text-[#B85B43] shadow-xs"
+                          : "text-[#665448] hover:text-[#241A14]"
+                      }`}
+                    >
+                      Orders (KOTs)
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleExportCSV}
+                    className="inline-flex items-center gap-1.5 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#B85B43] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export CSV</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Bar visualization */}
-              <div className="overflow-x-auto pb-2">
-                <div className="pt-6 pb-2 grid min-w-[560px] grid-cols-14 gap-2 items-end h-52 border-b border-[#E6DCCF]">
-                {salesHistory.map((item, idx) => {
-                  const heightPercent = Math.max((item.revenue / maxRevenue) * 100, 4);
-                  return (
-                    <div key={idx} className="flex flex-col items-center gap-1.5 h-full justify-end group relative">
-                      {/* Hover Tooltip */}
-                      <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-[#241A14] text-white text-[10px] px-2.5 py-1 rounded-md border border-[#B85B43] pointer-events-none whitespace-nowrap z-20 shadow-lg font-mono">
-                        ₹{item.revenue.toLocaleString("en-IN")} ({item.kots} orders)
-                      </div>
-
-                      <div
-                        style={{ height: `${heightPercent}%` }}
-                        className="w-full bg-gradient-to-t from-[#166534] via-[#22C55E] to-[#86EFAC] rounded-t-sm group-hover:brightness-110 transition-all"
-                      />
-                      <span className="text-[9px] font-mono text-[#8C7A6D] rotate-[-45deg] origin-top-left mt-2 font-medium">
-                        {item.date}
-                      </span>
-                    </div>
-                  );
-                })}
+              {/* Shadcn-Style Summary KPI Badges */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div className="bg-[#FAF7F0] p-3 rounded-xl border border-[#E6DCCF] flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6A5E] block">
+                      14-Day Cumulative
+                    </span>
+                    <span className="text-base font-extrabold text-[#241A14]">
+                      ₹{chartStats.totalRev.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-[#B85B43] bg-white px-2 py-1 rounded-lg border border-[#E6DCCF]">
+                    {chartStats.totalOrders} KOTs
+                  </span>
                 </div>
+
+                <div className="bg-[#FAF7F0] p-3 rounded-xl border border-[#E6DCCF] flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6A5E] block">
+                      Daily Average
+                    </span>
+                    <span className="text-base font-extrabold text-[#241A14]">
+                      ₹{chartStats.avgDailyRev.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-[#7A6A5E] font-medium">per day</span>
+                </div>
+
+                <div className="bg-[#FAF7F0] p-3 rounded-xl border border-[#E6DCCF] flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6A5E] block">
+                      Highest Single Day
+                    </span>
+                    <span className="text-base font-extrabold text-emerald-700">
+                      ₹{Number(chartStats.peakDay?.revenue || 0).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                    {chartStats.peakDay?.date || "—"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Interactive Recharts Graph */}
+              <div className="w-full h-64 sm:h-72 pt-2">
+                {isChartMounted && salesHistory.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={salesHistory}
+                      margin={{ top: 12, right: 12, left: -10, bottom: 4 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EBE2D4" />
+                      <XAxis
+                        dataKey="date"
+                        stroke="#8C7A6D"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={{ stroke: "#E6DCCF" }}
+                        dy={6}
+                      />
+                      <YAxis
+                        stroke="#8C7A6D"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(val) =>
+                          chartMetric === "revenue"
+                            ? val >= 1000
+                              ? `₹${(val / 1000).toFixed(0)}k`
+                              : `₹${val}`
+                            : `${val}`
+                        }
+                        dx={-4}
+                      />
+                      <RechartsTooltip
+                        cursor={{ fill: "#F5EFE6", opacity: 0.7 }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            const rev = Number(data.revenue || 0);
+                            const kots = Number(data.kots || 0);
+                            const avgTicket = kots > 0 ? Math.round(rev / kots) : 0;
+                            return (
+                              <div className="bg-[#241A14] text-white p-3.5 rounded-2xl border border-[#B85B43]/60 shadow-2xl space-y-2 min-w-[200px] backdrop-blur-md">
+                                <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+                                  <span className="text-xs font-mono font-bold text-[#FAF6EE]">{data.date}</span>
+                                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-[#B85B43]/30 text-[#F5B099] border border-[#B85B43]/40">
+                                    {kots} {kots === 1 ? "order" : "orders"}
+                                  </span>
+                                </div>
+                                <div className="space-y-0.5">
+                                  <div className="text-[10px] uppercase tracking-wider text-[#A8988B] font-semibold">
+                                    {chartMetric === "revenue" ? "Daily Revenue" : "Order Volume"}
+                                  </div>
+                                  <div className="text-2xl font-bold font-mono text-[#4ADE80]">
+                                    ₹{rev.toLocaleString("en-IN")}
+                                  </div>
+                                </div>
+                                <div className="pt-1.5 border-t border-white/10 flex items-center justify-between text-[11px] text-[#C4B5A5]">
+                                  <span>Avg Ticket:</span>
+                                  <span className="font-mono font-bold text-white">
+                                    {kots > 0 ? `₹${avgTicket.toLocaleString("en-IN")}` : "—"}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar
+                        dataKey={chartMetric === "revenue" ? "revenue" : "kots"}
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={36}
+                      >
+                        {salesHistory.map((entry, index) => {
+                          const isPeak = entry.date === chartStats.peakDay?.date && (chartStats.peakDay?.revenue ?? 0) > 0;
+                          return (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={
+                                isPeak
+                                  ? "#B85B43" // Terracotta highlight on peak day
+                                  : chartMetric === "revenue"
+                                  ? entry.revenue > 0
+                                    ? "#16A34A" // Vibrant emerald on active revenue days
+                                    : "#D4C7B8" // Subtle placeholder on zero days
+                                  : entry.kots > 0
+                                  ? "#2563EB"
+                                  : "#D4C7B8"
+                              }
+                            />
+                          );
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-xs text-[#8C7A6D] bg-[#FAF7F0] rounded-xl border border-dashed border-[#E6DCCF]">
+                    Loading sales trend analytics...
+                  </div>
+                )}
               </div>
             </div>
 
