@@ -319,9 +319,13 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
 
   const continueFromReservationPrompt = () => {
     const entered = reservationIdInput.trim();
-    if (reservationNotice && entered && Number(entered) !== reservationNotice.reservation_id) {
-      alert("That reservation ID does not match this table.");
-      return;
+    const numericPart = entered.replace(/\D/g, "");
+    if (reservationNotice && entered) {
+      const enteredNum = Number(numericPart || entered);
+      if (enteredNum !== reservationNotice.reservation_id) {
+        alert("That reservation ID does not match this table.");
+        return;
+      }
     }
     if (reservationNotice && !entered) {
       alert("Enter your reservation ID to continue.");
@@ -566,7 +570,14 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm rounded-2xl bg-[#FFF9EE] p-6 shadow-2xl">
                 <h2 className="font-serif text-2xl font-bold text-[#261C18]">Welcome to your table</h2>
                 <p className="mt-2 text-sm leading-relaxed text-[#5A4A3D]">Enter your reservation ID so we can connect your booking to this table.</p>
-                <input value={reservationIdInput} onChange={(event) => setReservationIdInput(event.target.value)} inputMode="numeric" placeholder="Reservation ID" className="mt-5 w-full rounded-xl border border-[#D7C4A3] bg-white px-3 py-3 text-sm outline-none focus:border-[#B85B43]" />
+                <input
+                  type="text"
+                  inputMode="text"
+                  value={reservationIdInput}
+                  onChange={(event) => setReservationIdInput(event.target.value)}
+                  placeholder="Reservation ID"
+                  className="mt-5 w-full rounded-xl border border-[#D7C4A3] bg-white px-3 py-3 text-sm outline-none focus:border-[#B85B43]"
+                />
                 <button type="button" onClick={continueFromReservationPrompt} className="mt-4 w-full rounded-xl bg-[#261C18] py-3 text-sm font-bold text-white">Continue to menu</button>
                 {!reservationNotice && <button type="button" onClick={() => setShowReservationIdPrompt(false)} className="mt-2 w-full py-2 text-xs font-semibold text-[#8C6C52]">Continue without a reservation</button>}
               </motion.div>
