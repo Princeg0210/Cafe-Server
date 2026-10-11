@@ -1,8 +1,9 @@
 import re
 from decimal import Decimal
 from typing import List
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, require_permission
 from app.models.inventory import InventoryItem, InventoryTransaction
@@ -177,3 +178,53 @@ async def confirm_supplier_bill(data: BillConfirmRequest, db: AsyncSession = Dep
         purchase_order_id=po.id, supplier_id=supplier.id, items_received=len(resolved),
         materials_created=created, total_cost=total_cost,
     )
+
+
+@router.get("/bills")
+async def list_scanned_supplier_bills(
+    limit: int = Query(100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+):
+    """List confirmed supplier purchase bills (scanned invoices) with their bill IDs and line items."""
+    stmt = (
+        select(PurchaseOrder)
+        .options(
+            selectinload(PurchaseOrder.supplier),
+            selectinload(PurchaseOrder.items).selectinload(PurchaseOrderItem.inventory_item),
+        )
+        .order_by(PurchaseOrder.created_at.desc())
+        .limit(limit)
+    )
+    res = await db.execute(stmt)
+    pos = res.scalars().all()
+    results = []
+    for po in pos:
+        items_list = []
+        for itm in (po.items or []):
+            item_name = itm.inventory_item.name if itm.inventory_item else "Raw Material"
+            unit = itm.inventory_item.unit_of_measure if itm.inventory_item else ""
+            qty = float(itm.quantity_ordered)
+            cost = float(itm.unit_cost)
+            items_list.append({
+                "id": itm.id,
+                "inventory_item_id": itm.inventory_item_id,
+                "name": item_name,
+                "unit": unit,
+                "quantity": qty,
+                "unit_cost": cost,
+                "subtotal": round(qty * cost, 2),
+            })
+        results.append({
+            "id": po.id,
+            "bill_id": po.invoice_number or f"PO-{po.id:04d}",
+            "bill_number": po.invoice_number or f"PO-{po.id:04d}",
+            "supplier_name": po.supplier.name if po.supplier else "Direct Supplier",
+            "supplier_id": po.supplier_id,
+            "bill_date": po.invoice_date.isoformat() if po.invoice_date else None,
+            "status": po.status,
+            "total_amount": float(po.total_cost),
+            "items_count": len(po.items or []),
+            "created_at": po.created_at.isoformat() if po.created_at else None,
+            "items": items_list,
+        })
+    return results

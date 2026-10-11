@@ -192,6 +192,47 @@ interface KOTRecord {
   created_at: string;
 }
 
+interface ScannedBillItem {
+  id: number;
+  inventory_item_id?: number;
+  name: string;
+  unit: string;
+  quantity: number;
+  unit_cost: number;
+  subtotal: number;
+}
+
+interface ScannedBillRecord {
+  id: number;
+  bill_id: string;
+  bill_number: string;
+  supplier_name: string;
+  supplier_id?: number;
+  bill_date?: string | null;
+  status: string;
+  total_amount: number;
+  items_count: number;
+  created_at?: string | null;
+  items: ScannedBillItem[];
+}
+
+interface CustomerBillRecord {
+  id: number;
+  bill_id: string;
+  dining_session_id?: number;
+  table_number: string;
+  customer_name?: string | null;
+  subtotal: number;
+  tax_amount: number;
+  discount_amount: number;
+  reservation_credit: number;
+  total_amount: number;
+  is_paid: boolean;
+  payment_method: string;
+  transaction_reference?: string | null;
+  created_at?: string | null;
+}
+
 export default function AdminPortal() {
   const [token, setToken] = useState<string | null>(null);
   const [usernameInput, setUsernameInput] = useState("admin");
@@ -266,6 +307,14 @@ export default function AdminPortal() {
 
   // Ledger / KOTs Data
   const [kots, setKots] = useState<KOTRecord[]>([]);
+
+  // Billing & Finance Ledger Data
+  const [scannedBills, setScannedBills] = useState<ScannedBillRecord[]>([]);
+  const [customerBills, setCustomerBills] = useState<CustomerBillRecord[]>([]);
+  const [ledgerSubTab, setLedgerSubTab] = useState<"inventory" | "sales">("inventory");
+  const [selectedScannedBill, setSelectedScannedBill] = useState<ScannedBillRecord | null>(null);
+  const [ledgerSearch, setLedgerSearch] = useState("");
+  const [isLedgerLoading, setIsLedgerLoading] = useState(false);
 
   // Show Toast
   const showToast = (msg: string) => {
@@ -399,6 +448,7 @@ export default function AdminPortal() {
       showToast(`Bill ${billScan.billNumber} added: ${data.items_received} items, ₹${Number(data.total_cost).toLocaleString("en-IN")}`);
       setBillScan(null);
       fetchRawItems();
+      fetchLedgerBills();
     } catch {
       setBillScan((p) => (p ? { ...p, stage: "review", error: "Network error while saving the bill." } : p));
     }
@@ -415,9 +465,34 @@ export default function AdminPortal() {
     }
   }, [token]);
 
+  const fetchLedgerBills = useCallback(async () => {
+    if (!token) return;
+    setIsLedgerLoading(true);
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const [invRes, custRes] = await Promise.allSettled([
+        adminFetch(`${getApiBase()}/api/v1/inventory/bills`, { headers }),
+        adminFetch(`${getApiBase()}/api/v1/bills`, { headers }),
+      ]);
+      if (invRes.status === "fulfilled" && invRes.value.ok) {
+        const invData = await invRes.value.json();
+        if (Array.isArray(invData)) setScannedBills(invData);
+      }
+      if (custRes.status === "fulfilled" && custRes.value.ok) {
+        const custData = await custRes.value.json();
+        if (Array.isArray(custData)) setCustomerBills(custData);
+      }
+    } catch (err) {
+      console.warn("Ledger bills fetch error:", err);
+    } finally {
+      setIsLedgerLoading(false);
+    }
+  }, [token]);
+
   useEffect(() => {
     if (activeTab === "inventory") fetchRawItems();
-  }, [activeTab, fetchRawItems]);
+    if (activeTab === "ledger") fetchLedgerBills();
+  }, [activeTab, fetchRawItems, fetchLedgerBills]);
 
   const handleStockUpdate = async () => {
     if (!stockUpdate || !token) return;
@@ -681,10 +756,17 @@ export default function AdminPortal() {
       }
     } catch (err) {
       console.warn("KOTs fetch error:", err);
+    }
+
+    // 6. Billing & Finance Ledger
+    try {
+      fetchLedgerBills();
+    } catch (err) {
+      console.warn("Ledger fetch error:", err);
     } finally {
       if (!silent) setIsLoading(false);
     }
-  }, [token, fetchMenuData]);
+  }, [token, fetchMenuData, fetchLedgerBills]);
 
   // Initial menu sync on mount
   useEffect(() => {
@@ -1311,24 +1393,72 @@ export default function AdminPortal() {
 
   // Export CSV
   const handleExportCSV = () => {
-    if (!kots.length) {
+    let headers: string[] = [];
+    let rows: (string | number)[][] = [];
+    let filename = `jaadoo_report_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    if (activeTab === "ledger") {
+      if (ledgerSubTab === "inventory") {
+        if (!scannedBills.length) {
+          alert("No scanned inventory bills to export.");
+          return;
+        }
+        filename = `jaadoo_inventory_purchase_bills_${new Date().toISOString().slice(0, 10)}.csv`;
+        headers = ["Bill ID / Invoice #", "Supplier", "Bill Date", "Items Count", "Total Amount (INR)", "Status", "Scanned At"];
+        rows = scannedBills.map((b) => [
+          `"${(b.bill_id || b.bill_number).replace(/"/g, '""')}"`,
+          `"${(b.supplier_name || "").replace(/"/g, '""')}"`,
+          b.bill_date || "-",
+          b.items_count || 0,
+          Number(b.total_amount || 0),
+          b.status || "RECEIVED",
+          b.created_at ? new Date(b.created_at).toLocaleString("en-IN") : "-",
+        ]);
+      } else {
+        if (!customerBills.length) {
+          alert("No customer dining bills to export.");
+          return;
+        }
+        filename = `jaadoo_customer_sales_bills_${new Date().toISOString().slice(0, 10)}.csv`;
+        headers = ["Bill ID", "Table", "Customer", "Subtotal (INR)", "Discount (INR)", "Tax GST (INR)", "Total Amount (INR)", "Payment Status", "Payment Method", "Date Time"];
+        rows = customerBills.map((c) => [
+          `"${c.bill_id.replace(/"/g, '""')}"`,
+          `"${c.table_number.replace(/"/g, '""')}"`,
+          `"${(c.customer_name || "Walk-in Guest").replace(/"/g, '""')}"`,
+          Number(c.subtotal || 0),
+          Number(c.discount_amount || 0),
+          Number(c.tax_amount || 0),
+          Number(c.total_amount || 0),
+          c.is_paid ? "PAID" : "UNPAID",
+          c.payment_method || "CASH",
+          c.created_at ? new Date(c.created_at).toLocaleString("en-IN") : "-",
+        ]);
+      }
+    } else if (salesHistory.length > 0) {
+      filename = `jaadoo_sales_history_${new Date().toISOString().slice(0, 10)}.csv`;
+      headers = ["Date", "Revenue (INR)", "Orders / KOTs"];
+      rows = salesHistory.map((s) => [s.date, Number(s.revenue || 0), s.kots]);
+    } else if (kots.length > 0) {
+      filename = `jaadoo_orders_report_${new Date().toISOString().slice(0, 10)}.csv`;
+      headers = ["KOT Number", "Table", "Status", "Items Count", "Total Amount (INR)", "Date Time"];
+      rows = kots.map((k) => [
+        k.kot_number,
+        k.table_number,
+        k.status,
+        k.items_count,
+        Number(k.total_amount || 0),
+        new Date(k.created_at).toLocaleString("en-IN"),
+      ]);
+    } else {
       alert("No records to export.");
       return;
     }
-    const headers = ["KOT Number", "Table", "Status", "Items Count", "Total Amount (INR)", "Date Time"];
-    const rows = kots.map((k) => [
-      k.kot_number,
-      k.table_number,
-      k.status,
-      k.items_count,
-      Number(k.total_amount || 0),
-      new Date(k.created_at).toLocaleString("en-IN"),
-    ]);
+
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `jaadoo_sales_report_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1646,7 +1776,7 @@ export default function AdminPortal() {
           { id: "inventory", label: "Inventory", icon: Package },
           { id: "reservations", label: "Reservations CRM", icon: Calendar },
           { id: "tables", label: "Tables & QR Generator", icon: QrCode },
-          { id: "ledger", label: "KOT & Billing Ledger", icon: FileText },
+          { id: "ledger", label: "Billing & Finance Ledger", icon: Receipt },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -3410,84 +3540,352 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* TAB 5: KOT & BILLING LEDGER */}
+        {/* TAB 5: BILLING & FINANCE LEDGER */}
         {activeTab === "ledger" && (
           <div className="space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-serif font-bold text-[#241A14]">Operational & Sales Ledger</h2>
+                <h2 className="text-lg font-serif font-bold text-[#241A14]">Billing & Finance Ledger</h2>
                 <p className="text-xs text-[#7A6A5E]">
-                  Full audit trail of all kitchen tickets, orders, and settlements
+                  Audit trail of verified scanned supplier inventory invoices and customer dining sales settlements
                 </p>
               </div>
 
-              <button
-                onClick={handleExportCSV}
-                className="inline-flex items-center gap-1.5 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#B85B43] px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                <Download className="w-4 h-4" />
-                <span>Export Ledger CSV</span>
-              </button>
-            </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => fetchLedgerBills()}
+                  disabled={isLedgerLoading}
+                  className="inline-flex items-center gap-1.5 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#665448] px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                  title="Refresh bills"
+                >
+                  <RotateCw className={`w-3.5 h-3.5 ${isLedgerLoading ? "animate-spin text-[#B85B43]" : ""}`} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </button>
 
-            {/* KOTs Table */}
-            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
-                    <tr>
-                      <th className="p-4">KOT Number</th>
-                      <th className="p-4">Table</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4">Print Status</th>
-                      <th className="p-4">Items</th>
-                      <th className="p-4">Total Amount</th>
-                      <th className="p-4">Timestamp</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#F0E8DC]">
-                    {kots.length > 0 ? (
-                      kots.map((k) => (
-                        <tr key={k.id} className="hover:bg-[#FAF7F0] transition-colors">
-                          <td className="p-4 font-bold font-mono text-[#241A14]">{k.kot_number}</td>
-                          <td className="p-4 font-bold text-[#B85B43]">
-                            {(() => {
-                              const kFl = getTableFloor(k.table_id || k.table_number);
-                              return `Table #${kFl.floor_table_num} (${kFl.short})`;
-                            })()}
-                          </td>
-                          <td className="p-4">
-                            <span
-                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                k.status === "COMPLETED"
-                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                                  : "bg-amber-100 text-amber-800 border border-amber-300"
-                              }`}
-                            >
-                              {k.status}
-                            </span>
-                          </td>
-                          <td className="p-4 text-[#665448] font-mono text-[11px]">{k.printed_status}</td>
-                          <td className="p-4 text-[#665448] font-semibold">{k.items_count} items</td>
-                          <td className="p-4 font-extrabold text-[#241A14]">
-                            ₹{Number(k.total_amount || 0).toLocaleString("en-IN")}
-                          </td>
-                          <td className="p-4 text-[#8C7A6D] font-mono text-[11px]">
-                            {new Date(k.created_at).toLocaleString("en-IN")}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={7} className="p-8 text-center text-[#8C7A6D]">
-                          No KOT tickets recorded yet.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                <button
+                  onClick={() => setActiveTab("inventory")}
+                  className="inline-flex items-center gap-1.5 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#B85B43] px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <ScanLine className="w-3.5 h-3.5" />
+                  <span>Scan Supplier Bill</span>
+                </button>
+
+                <button
+                  onClick={handleExportCSV}
+                  className="inline-flex items-center gap-1.5 bg-[#B85B43] hover:bg-[#9c4b36] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors shadow-sm cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Export CSV</span>
+                </button>
               </div>
             </div>
+
+            {/* KPI Metric Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#7A6A5E]">
+                    Scanned Inventory Purchases
+                  </span>
+                  <Package className="w-4 h-4 text-[#B85B43]" />
+                </div>
+                <div className="text-xl font-serif font-extrabold text-[#241A14]">
+                  ₹{scannedBills.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0).toLocaleString("en-IN")}
+                </div>
+                <p className="text-[11px] text-[#7A6A5E] mt-1">
+                  {scannedBills.length} confirmed supplier {scannedBills.length === 1 ? "bill" : "bills"}
+                </p>
+              </div>
+
+              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#7A6A5E]">
+                    Customer Dining Sales
+                  </span>
+                  <Receipt className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="text-xl font-serif font-extrabold text-[#241A14]">
+                  ₹{customerBills.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0).toLocaleString("en-IN")}
+                </div>
+                <p className="text-[11px] text-[#7A6A5E] mt-1">
+                  {customerBills.length} dining {customerBills.length === 1 ? "settlement" : "settlements"}
+                </p>
+              </div>
+
+              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#7A6A5E]">
+                    Operating Balance
+                  </span>
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                </div>
+                {(() => {
+                  const sales = customerBills.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0);
+                  const purchases = scannedBills.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0);
+                  const net = sales - purchases;
+                  return (
+                    <>
+                      <div className={`text-xl font-serif font-extrabold ${net >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                        {net >= 0 ? "+" : "-"}₹{Math.abs(net).toLocaleString("en-IN")}
+                      </div>
+                      <p className="text-[11px] text-[#7A6A5E] mt-1">
+                        Sales minus inventory raw materials cost
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Sub-tab Navigation and Search Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#FAF6EE] p-2.5 rounded-2xl border border-[#E6DCCF]">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setLedgerSubTab("inventory")}
+                  className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    ledgerSubTab === "inventory"
+                      ? "bg-[#B85B43] text-white shadow-xs"
+                      : "text-[#665448] hover:bg-[#F0E8DA]"
+                  }`}
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Supplier Purchase Bills</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                    ledgerSubTab === "inventory" ? "bg-white/20 text-white" : "bg-[#E6DCCF] text-[#4A392F]"
+                  }`}>
+                    {scannedBills.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setLedgerSubTab("sales")}
+                  className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    ledgerSubTab === "sales"
+                      ? "bg-[#B85B43] text-white shadow-xs"
+                      : "text-[#665448] hover:bg-[#F0E8DA]"
+                  }`}
+                >
+                  <Receipt className="w-3.5 h-3.5" />
+                  <span>Customer Sales Bills</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                    ledgerSubTab === "sales" ? "bg-white/20 text-white" : "bg-[#E6DCCF] text-[#4A392F]"
+                  }`}>
+                    {customerBills.length}
+                  </span>
+                </button>
+              </div>
+
+              <div className="relative flex-1 max-w-xs">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
+                <input
+                  type="text"
+                  placeholder={ledgerSubTab === "inventory" ? "Search Bill ID, Supplier..." : "Search Bill ID, Table..."}
+                  value={ledgerSearch}
+                  onChange={(e) => setLedgerSearch(e.target.value)}
+                  className="w-full bg-[#FFFDF9] border border-[#E2D6C5] focus:border-[#B85B43] rounded-xl pl-9 pr-3 py-1.5 text-xs text-[#241A14] outline-none"
+                />
+              </div>
+            </div>
+
+            {/* SUB-VIEW 1: SCANNED INVENTORY SUPPLIER BILLS */}
+            {ledgerSubTab === "inventory" && (
+              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
+                      <tr>
+                        <th className="p-4">Bill ID / Invoice #</th>
+                        <th className="p-4">Supplier</th>
+                        <th className="p-4">Bill Date</th>
+                        <th className="p-4">Items Received</th>
+                        <th className="p-4">Total Amount</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4">Scanned At</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F0E8DC]">
+                      {(() => {
+                        const filtered = scannedBills.filter((b) => {
+                          if (!ledgerSearch) return true;
+                          const q = ledgerSearch.toLowerCase();
+                          return (
+                            (b.bill_id && b.bill_id.toLowerCase().includes(q)) ||
+                            (b.bill_number && b.bill_number.toLowerCase().includes(q)) ||
+                            (b.supplier_name && b.supplier_name.toLowerCase().includes(q)) ||
+                            (b.bill_date && b.bill_date.includes(q))
+                          );
+                        });
+
+                        if (filtered.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={8} className="p-10 text-center">
+                                <div className="max-w-md mx-auto space-y-3">
+                                  <div className="w-12 h-12 rounded-2xl bg-[#F3EDE2] text-[#B85B43] flex items-center justify-center mx-auto">
+                                    <ScanLine className="w-6 h-6" />
+                                  </div>
+                                  <p className="font-bold text-[#241A14]">
+                                    {ledgerSearch ? "No matching supplier bills found" : "No scanned supplier bills recorded yet"}
+                                  </p>
+                                  <p className="text-xs text-[#7A6A5E]">
+                                    Upload supplier invoices in <span className="font-semibold text-[#241A14]">Inventory &gt; Scan Supplier Bill</span>. Sarvam AI extracts line items, quantities, and bill ID into stock.
+                                  </p>
+                                  <button
+                                    onClick={() => setActiveTab("inventory")}
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#B85B43] hover:bg-[#9c4b36] text-white rounded-xl text-xs font-bold transition-colors shadow-xs cursor-pointer"
+                                  >
+                                    <ScanLine className="w-3.5 h-3.5" />
+                                    <span>Go to Inventory &amp; Scan Bill</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filtered.map((b) => (
+                          <tr key={b.id} className="hover:bg-[#FAF7F0] transition-colors">
+                            <td className="p-4">
+                              <span className="font-mono font-bold bg-[#FAF6EE] text-[#B85B43] px-2.5 py-1 rounded-lg border border-[#E0D4C2]">
+                                {b.bill_id || b.bill_number}
+                              </span>
+                            </td>
+                            <td className="p-4 font-bold text-[#241A14]">
+                              {b.supplier_name}
+                            </td>
+                            <td className="p-4 text-[#665448]">
+                              {b.bill_date || "—"}
+                            </td>
+                            <td className="p-4">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedScannedBill(b)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#4A392F] font-semibold text-[11px] transition-colors cursor-pointer"
+                              >
+                                <span>{b.items_count} {b.items_count === 1 ? "item" : "items"}</span>
+                                <ChevronRight className="w-3 h-3 text-[#8C7A6D]" />
+                              </button>
+                            </td>
+                            <td className="p-4 font-extrabold text-[#241A14]">
+                              ₹{Number(b.total_amount || 0).toLocaleString("en-IN")}
+                            </td>
+                            <td className="p-4">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                {b.status || "RECEIVED"}
+                              </span>
+                            </td>
+                            <td className="p-4 text-[#8C7A6D] font-mono text-[11px]">
+                              {b.created_at ? new Date(b.created_at).toLocaleString("en-IN") : "—"}
+                            </td>
+                            <td className="p-4 text-right">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedScannedBill(b)}
+                                className="inline-flex items-center gap-1.5 text-[#B85B43] hover:text-[#8E4432] font-bold text-xs cursor-pointer hover:underline"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Inspect Bill</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* SUB-VIEW 2: CUSTOMER DINING SALES BILLS */}
+            {ledgerSubTab === "sales" && (
+              <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#F3EDE2] text-[#4A392F] uppercase tracking-wider font-bold border-b border-[#E6DCCF]">
+                      <tr>
+                        <th className="p-4">Bill ID</th>
+                        <th className="p-4">Table</th>
+                        <th className="p-4">Customer</th>
+                        <th className="p-4">Subtotal</th>
+                        <th className="p-4">Discount</th>
+                        <th className="p-4">GST (5%)</th>
+                        <th className="p-4">Total Amount</th>
+                        <th className="p-4">Payment</th>
+                        <th className="p-4">Date Time</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F0E8DC]">
+                      {(() => {
+                        const filtered = customerBills.filter((c) => {
+                          if (!ledgerSearch) return true;
+                          const q = ledgerSearch.toLowerCase();
+                          return (
+                            c.bill_id.toLowerCase().includes(q) ||
+                            c.table_number.toLowerCase().includes(q) ||
+                            (c.customer_name && c.customer_name.toLowerCase().includes(q))
+                          );
+                        });
+
+                        if (filtered.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={9} className="p-8 text-center text-[#8C7A6D]">
+                                {ledgerSearch ? "No matching dining bills found." : "No dining bills generated yet."}
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filtered.map((c) => (
+                          <tr key={c.id} className="hover:bg-[#FAF7F0] transition-colors">
+                            <td className="p-4">
+                              <span className="font-mono font-bold bg-[#FAF6EE] text-[#B85B43] px-2.5 py-1 rounded-lg border border-[#E0D4C2]">
+                                {c.bill_id}
+                              </span>
+                            </td>
+                            <td className="p-4 font-bold text-[#241A14]">
+                              {c.table_number}
+                            </td>
+                            <td className="p-4 text-[#665448]">
+                              {c.customer_name || "Walk-in Guest"}
+                            </td>
+                            <td className="p-4 text-[#665448]">
+                              ₹{Number(c.subtotal || 0).toLocaleString("en-IN")}
+                            </td>
+                            <td className="p-4 text-emerald-700 font-medium">
+                              {Number(c.discount_amount || 0) > 0 ? `-₹${Number(c.discount_amount).toLocaleString("en-IN")}` : "—"}
+                            </td>
+                            <td className="p-4 text-[#665448]">
+                              ₹{Number(c.tax_amount || 0).toLocaleString("en-IN")}
+                            </td>
+                            <td className="p-4 font-extrabold text-[#241A14]">
+                              ₹{Number(c.total_amount || 0).toLocaleString("en-IN")}
+                            </td>
+                            <td className="p-4">
+                              <span
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                  c.is_paid
+                                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                    : "bg-amber-100 text-amber-800 border border-amber-300"
+                                }`}
+                              >
+                                {c.is_paid ? "PAID" : "UNPAID"} • {c.payment_method || "CASH"}
+                              </span>
+                            </td>
+                            <td className="p-4 text-[#8C7A6D] font-mono text-[11px]">
+                              {c.created_at ? new Date(c.created_at).toLocaleString("en-IN") : "—"}
+                            </td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -4296,6 +4694,135 @@ export default function AdminPortal() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* MODAL: INSPECT SCANNED INVENTORY SUPPLIER BILL */}
+        {selectedScannedBill && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-2xl bg-[#FFFDF9] border border-[#E6DCCF] rounded-3xl p-6 shadow-2xl space-y-4 text-[#241A14] max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between border-b border-[#F0E8DC] pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#F3EDE2] text-[#B85B43] flex items-center justify-center">
+                    <Receipt className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-serif font-bold text-[#241A14]">
+                        Supplier Invoice Breakdown
+                      </h3>
+                      <span className="font-mono font-bold bg-[#FAF6EE] text-[#B85B43] px-2 py-0.5 rounded-lg border border-[#E0D4C2] text-xs">
+                        {selectedScannedBill.bill_id || selectedScannedBill.bill_number}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#7A6A5E]">
+                      {selectedScannedBill.supplier_name} {selectedScannedBill.bill_date ? `• Dated ${selectedScannedBill.bill_date}` : ""}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedScannedBill(null)}
+                  className="text-[#8C7A6D] hover:text-[#241A14] text-lg p-1 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Bill Details Banner */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-[#FAF6EE] p-3 rounded-2xl border border-[#E6DCCF] text-xs">
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-[#7A6A5E]">Supplier</div>
+                  <div className="font-bold text-[#241A14] truncate">{selectedScannedBill.supplier_name}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-[#7A6A5E]">Invoice Date</div>
+                  <div className="font-bold text-[#241A14]">{selectedScannedBill.bill_date || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-[#7A6A5E]">Status</div>
+                  <div className="font-bold text-emerald-700">{selectedScannedBill.status || "RECEIVED"}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-[#7A6A5E]">Total Invoice Cost</div>
+                  <div className="font-extrabold text-[#B85B43]">
+                    ₹{Number(selectedScannedBill.total_amount || 0).toLocaleString("en-IN")}
+                  </div>
+                </div>
+              </div>
+
+              {/* Itemized Lines */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#7A6A5E] mb-2">
+                  Line Items Added To Inventory ({selectedScannedBill.items?.length || 0})
+                </h4>
+                <div className="bg-[#FAF7F0] border border-[#E6DCCF] rounded-2xl overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#F0E8DC] text-[#4A392F] uppercase tracking-wider font-bold">
+                      <tr>
+                        <th className="p-3">#</th>
+                        <th className="p-3">Raw Material</th>
+                        <th className="p-3">Quantity</th>
+                        <th className="p-3">Unit Cost</th>
+                        <th className="p-3 text-right">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E6DCCF]">
+                      {(selectedScannedBill.items && selectedScannedBill.items.length > 0) ? (
+                        selectedScannedBill.items.map((it, idx) => (
+                          <tr key={it.id || idx}>
+                            <td className="p-3 text-[#8C7A6D]">{idx + 1}</td>
+                            <td className="p-3 font-bold text-[#241A14]">{it.name}</td>
+                            <td className="p-3 text-[#4A392F]">
+                              {it.quantity} {it.unit}
+                            </td>
+                            <td className="p-3 text-[#665448]">
+                              ₹{Number(it.unit_cost || 0).toFixed(2)} / {it.unit}
+                            </td>
+                            <td className="p-3 font-bold text-[#241A14] text-right">
+                              ₹{Number(it.subtotal || 0).toLocaleString("en-IN")}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="p-4 text-center text-[#8C7A6D]">
+                            No line items recorded for this invoice.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    {(selectedScannedBill.items && selectedScannedBill.items.length > 0) && (
+                      <tfoot className="bg-[#F0E8DC] font-bold text-[#241A14]">
+                        <tr>
+                          <td colSpan={4} className="p-3 text-right uppercase tracking-wider text-xs">
+                            Total Cost
+                          </td>
+                          <td className="p-3 text-right text-sm font-extrabold text-[#B85B43]">
+                            ₹{Number(selectedScannedBill.total_amount || 0).toLocaleString("en-IN")}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-[#E0D4C2] flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedScannedBill(null)}
+                  className="px-5 py-2.5 bg-[#261C18] hover:bg-[#B85B43] text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
