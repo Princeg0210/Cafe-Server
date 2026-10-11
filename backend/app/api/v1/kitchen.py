@@ -2,13 +2,17 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, require_permission
 from app.models.user import User
 from app.models.kitchen import KitchenOrder, PrintJob
 from app.schemas.kitchen import KitchenOrderResponse, KitchenStatusUpdate
 from app.services.kitchen_service import KitchenService
 
-router = APIRouter(prefix="/kitchen", tags=["Dual-Kitchen KDS"])
+router = APIRouter(
+    prefix="/kitchen",
+    tags=["Dual-Kitchen KDS"],
+    dependencies=[Depends(require_permission("pos:access"))],
+)
 
 
 @router.get("/orders", response_model=List[KitchenOrderResponse])

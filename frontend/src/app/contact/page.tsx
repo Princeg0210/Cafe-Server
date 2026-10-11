@@ -7,6 +7,9 @@ import Navbar from "@/components/Navbar";
 import CartDrawer, { CartItem } from "@/components/CartDrawer";
 import TanFooter from "@/components/TanFooter";
 
+// Same number shown on this page and across the site
+const CAFE_WHATSAPP_NUMBER = "919829012345";
+
 export default function ContactPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -26,10 +29,21 @@ export default function ContactPage() {
     setCartItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  // No email service yet: hand the message to WhatsApp so it actually reaches the cafe
+  const handleSendMessage = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const name = String(form.get("name") || "").trim();
+    const email = String(form.get("email") || "").trim();
+    const message = String(form.get("message") || "").trim();
+    if (!name || !message) return;
+    const text = `Hi Jaadoo, this is ${name}${email ? ` (${email})` : ""}.
+
+${message}`;
+    window.open(`https://wa.me/${CAFE_WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
     setIsSent(true);
-    setTimeout(() => setIsSent(false), 3000);
+    e.currentTarget.reset();
+    setTimeout(() => setIsSent(false), 4000);
   };
 
   return (
@@ -128,8 +142,8 @@ export default function ContactPage() {
             {isSent ? (
               <div className="h-64 flex flex-col items-center justify-center text-center space-y-3">
                 <CheckCircle2 className="w-14 h-14 text-[#1B3618] animate-bounce" />
-                <h3 className="font-serif font-bold text-2xl text-[#140E0A]">Message Sent!</h3>
-                <p className="text-xs text-[#261A12] font-sans">Grazie! Our team will contact you shortly.</p>
+                <h3 className="font-serif font-bold text-2xl text-[#140E0A]">Almost there!</h3>
+                <p className="text-xs text-[#261A12] font-sans">Your message is ready in WhatsApp. Tap send there and our team will reply shortly.</p>
               </div>
             ) : (
               <form onSubmit={handleSendMessage} className="space-y-4">
@@ -140,6 +154,7 @@ export default function ContactPage() {
                   <input
                     type="text"
                     required
+                    name="name"
                     placeholder="John Doe"
                     className="w-full text-sm p-3 rounded-xl border border-[#DDD3C4] focus:outline-hidden focus:border-[#9E3E26] bg-[#FAF7F2] font-sans text-[#140E0A]"
                   />
@@ -152,6 +167,7 @@ export default function ContactPage() {
                   <input
                     type="text"
                     required
+                    name="email"
                     placeholder="john@example.com"
                     className="w-full text-sm p-3 rounded-xl border border-[#DDD3C4] focus:outline-hidden focus:border-[#9E3E26] bg-[#FAF7F2] font-sans text-[#140E0A]"
                   />
@@ -164,6 +180,7 @@ export default function ContactPage() {
                   <textarea
                     rows={4}
                     required
+                    name="message"
                     placeholder="Inquire about group bookings, dietary requests, or private events..."
                     className="w-full text-sm p-3 rounded-xl border border-[#DDD3C4] focus:outline-hidden focus:border-[#9E3E26] bg-[#FAF7F2] font-sans text-[#140E0A]"
                   />

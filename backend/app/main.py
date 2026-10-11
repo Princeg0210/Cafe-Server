@@ -99,10 +99,12 @@ async def global_exception_handler(request: Request, exc: Exception):
     import traceback
     tb = traceback.format_exc()
     logger.error(f"Global unhandled exception: {tb}")
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": str(exc), "type": type(exc).__name__, "traceback": tb},
-    )
+    # Internals (messages, SQL, file paths) are only returned in local development; logs always have them
+    if settings.APP_ENV == "development":
+        content = {"detail": str(exc), "type": type(exc).__name__, "traceback": tb}
+    else:
+        content = {"detail": "Something went wrong on our side. Please try again."}
+    return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=content)
 
 
 # Health checks

@@ -43,6 +43,53 @@ ALLOWED_STATE_TRANSITIONS = {
 }
 
 
+RAZORPAY_API = "https://api.razorpay.com/v1"
+# Repo default placeholders: never valid for real payments
+_PLACEHOLDER_RAZORPAY_KEYS = {"rzp_test_JaadooCafe10", "jaadoo_secret_test_2026", ""}
+
+
+def validate_booking_request(reservation_date, time_slot: str, phone: str) -> None:
+    """Reject bookings no real guest could make: past dates, closed days, bad times, bad phones."""
+    if not settings.BOOKING_RULES_ENFORCED:
+        return
+    from app.utils.helpers import ist_now, parse_time_slot_to_datetime
+
+    now = ist_now()
+    if reservation_date < now.date():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_DATE: Bookings can't be made for a past date.")
+    closed = {int(d) for d in settings.RESERVATION_CLOSED_WEEKDAYS.split(",") if d.strip().isdigit()}
+    if reservation_date.weekday() in closed:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="CLOSED_DAY: The cafe is closed on this day.")
+
+    slot_dt = parse_time_slot_to_datetime(reservation_date, time_slot or "")
+    if not slot_dt:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_TIME: Choose a valid time slot.")
+    open_t = datetime.datetime.strptime(settings.RESERVATION_OPEN_TIME, "%H:%M").time()
+    last_t = datetime.datetime.strptime(settings.RESERVATION_LAST_SLOT_TIME, "%H:%M").time()
+    if not open_t <= slot_dt.time() <= last_t:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_TIME: That time is outside booking hours.")
+    if slot_dt <= now:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_TIME: That time slot has already passed.")
+
+    digits = "".join(ch for ch in (phone or "") if ch.isdigit())
+    if len(digits) == 12 and digits.startswith("91"):
+        digits = digits[2:]
+    elif len(digits) == 11 and digits.startswith("0"):
+        digits = digits[1:]
+    if len(digits) != 10 or digits[0] not in "6789":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_PHONE: Enter a valid 10-digit Indian mobile number.")
+
+
+def test_payments_allowed() -> bool:
+    return settings.APP_ENV == "development" or settings.ALLOW_TEST_PAYMENTS
+
+
+def razorpay_configured() -> bool:
+    return (settings.RAZORPAY_KEY_ID or "") not in _PLACEHOLDER_RAZORPAY_KEYS and (
+        settings.RAZORPAY_KEY_SECRET or ""
+    ) not in _PLACEHOLDER_RAZORPAY_KEYS
+
+
 class ReservationService:
     @staticmethod
     def get_seven_day_cutoff() -> datetime.date:
@@ -217,6 +264,7 @@ class ReservationService:
 
     @staticmethod
     async def create_reservation(db: AsyncSession, data: ReservationCreate) -> Reservation:
+        validate_booking_request(data.reservation_date, data.time_slot, data.customer_phone)
         # Check capacity
         has_capacity = await ReservationService.check_capacity(
             db, data.branch_id, data.reservation_date, data.time_slot, data.guest_count
@@ -434,8 +482,11 @@ class ReservationService:
             return await ReservationService.update_reservation_status(db, reservation_id, data.status)
 
         await db.commit()
-        await db.refresh(reservation)
-        return reservation
+        from sqlalchemy.orm import selectinload
+        res = await db.execute(
+            select(Reservation).options(selectinload(Reservation.customer)).where(Reservation.id == reservation_id)
+        )
+        return res.scalar_one()
 
     @staticmethod
     async def cancel_reservation(db: AsyncSession, reservation_id: int) -> Reservation:
@@ -687,6 +738,7 @@ class ReservationService:
         Backend strictly calculates ₹200/person deposit using Decimal.
         Customer-specified table is optional preference.
         """
+        validate_booking_request(data.reservation_date, data.time_slot, data.customer_phone)
         # 1. Clean up any expired holds first
         await ReservationService.cleanup_expired_holds(db)
 
@@ -1119,6 +1171,7 @@ class ReservationService:
         Creates a Razorpay order in test mode or live mode.
         Calculates the reservation deposit and generates Razorpay Order ID.
         """
+        validate_booking_request(data.reservation_date, data.time_slot, data.customer_phone)
         deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
         if deposit_per_guest <= 0:
             deposit_per_guest = Decimal("150.00")
@@ -1127,7 +1180,37 @@ class ReservationService:
         amount_paise = int(total_deposit * 100)
         timestamp_part = int(datetime.datetime.now().timestamp())
         unique_suffix = uuid.uuid4().hex[:6]
-        order_id = f"order_test_{timestamp_part}_{unique_suffix}"
+        is_test = test_payments_allowed()
+        if is_test:
+            order_id = f"order_test_{timestamp_part}_{unique_suffix}"
+        else:
+            if not razorpay_configured():
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="PAYMENTS_NOT_CONFIGURED: Online payment is unavailable right now. Please call the cafe to book.",
+                )
+            import httpx
+            try:
+                async with httpx.AsyncClient(timeout=20) as client:
+                    rz = await client.post(
+                        f"{RAZORPAY_API}/orders",
+                        auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET),
+                        json={
+                            "amount": amount_paise,
+                            "currency": "INR",
+                            "receipt": f"rsv_{timestamp_part}_{unique_suffix}",
+                            "notes": {
+                                "reservation_date": str(data.reservation_date),
+                                "time_slot": data.time_slot,
+                                "guest_count": str(data.guest_count),
+                            },
+                        },
+                    )
+            except httpx.HTTPError:
+                raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Could not reach the payment gateway. Please try again.")
+            if rz.status_code >= 400:
+                raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="The payment gateway rejected the order. Please try again.")
+            order_id = rz.json()["id"]
 
         return RazorpayCreateOrderResponse(
             order_id=order_id,
@@ -1140,8 +1223,35 @@ class ReservationService:
             customer_name=data.customer_name,
             customer_phone=data.customer_phone,
             customer_email=data.customer_email,
-            is_test_mode=settings.RAZORPAY_TEST_MODE,
+            is_test_mode=is_test,
         )
+
+    @staticmethod
+    async def _assert_razorpay_payment(db: AsyncSession, data: RazorpayVerifyPaymentRequest) -> None:
+        """Ask Razorpay whether this payment really succeeded, on this order, for the full deposit."""
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                rp = await client.get(
+                    f"{RAZORPAY_API}/payments/{data.razorpay_payment_id}",
+                    auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET),
+                )
+        except httpx.HTTPError:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Could not confirm the payment with the gateway. Please contact the cafe.")
+        if rp.status_code >= 400:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="PAYMENT_NOT_FOUND: The payment could not be confirmed.")
+        payment = rp.json()
+        if payment.get("order_id") != data.razorpay_order_id or payment.get("status") not in ("authorized", "captured"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="PAYMENT_NOT_COMPLETED: The payment did not complete.")
+        deposit_per_guest = await SettingsService.get_deposit_per_guest(db)
+        if deposit_per_guest <= 0:
+            deposit_per_guest = Decimal("150.00")
+        expected_paise = int(deposit_per_guest * Decimal(str(data.guest_count)) * 100)
+        if int(payment.get("amount") or 0) < expected_paise:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="PAYMENT_AMOUNT_MISMATCH: The amount paid does not cover the deposit for this booking.",
+            )
 
     @staticmethod
     async def verify_razorpay_payment(db: AsyncSession, data: RazorpayVerifyPaymentRequest) -> Reservation:
@@ -1149,24 +1259,31 @@ class ReservationService:
         Verifies Razorpay payment signature or test simulator credentials.
         Instantly confirms table reservation, allocates dough, and registers bank credit.
         """
+        validate_booking_request(data.reservation_date, data.time_slot, data.customer_phone)
         # Validate HMAC signature if non-simulated and live keys configured
         signature_verified = False  # only genuinely verified payments trigger WhatsApp messages
-        if not data.is_test_simulation and not data.razorpay_payment_id.startswith("pay_test_"):
+        test_payments_allowed = settings.APP_ENV == "development" or settings.ALLOW_TEST_PAYMENTS
+        is_simulated = data.is_test_simulation or data.razorpay_payment_id.startswith("pay_test_")
+        if is_simulated and not test_payments_allowed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="TEST_PAYMENT_REJECTED: Simulated payments are not accepted.",
+            )
+        if not is_simulated:
             message = f"{data.razorpay_order_id}|{data.razorpay_payment_id}"
             expected_sig = hmac.new(
                 settings.RAZORPAY_KEY_SECRET.encode("utf-8"),
                 message.encode("utf-8"),
                 hashlib.sha256,
             ).hexdigest()
-            if not hmac.compare_digest(data.razorpay_signature, expected_sig):
-                # If secret is development placeholder, allow test execution
-                if not settings.RAZORPAY_TEST_MODE:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="INVALID_RAZORPAY_SIGNATURE: Payment verification failed.",
-                    )
-            else:
-                signature_verified = True
+            if not hmac.compare_digest(data.razorpay_signature or "", expected_sig):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="INVALID_RAZORPAY_SIGNATURE: Payment verification failed.",
+                )
+            signature_verified = True
+            if razorpay_configured():
+                await ReservationService._assert_razorpay_payment(db, data)
 
         # Get or create customer
         clean_phone = "".join(filter(str.isdigit, data.customer_phone))

@@ -624,51 +624,20 @@ export default function AdminPortal() {
       if (itemRes.ok) {
         const dbItems = await itemRes.json();
         if (Array.isArray(dbItems) && dbItems.length > 0) {
-          // Merge db items with INITIAL_MENU_ITEMS so no item is ever lost
-          const dbMap = new Map<number, any>();
-          const dbMapByName = new Map<string, any>();
-          dbItems.forEach((it: any) => {
-            if (it.id) dbMap.set(Number(it.id), it);
-            if (it.name) dbMapByName.set(it.name.trim().toLowerCase(), it);
-          });
-
-          setMenuItems((prev) => {
-            const baseList = prev.length > 0 ? prev : INITIAL_MENU_ITEMS;
-            const updatedList = baseList.map((item) => {
-              const matched = dbMap.get(item.id) || dbMapByName.get(item.name.trim().toLowerCase());
-              if (matched) {
-                return {
-                  ...item,
-                  id: Number(matched.id) || item.id,
-                  category_id: Number(matched.category_id) || item.category_id,
-                  price: Number(matched.price),
-                  description: matched.description || item.description,
-                  is_available: Boolean(matched.is_available),
-                  is_active: matched.is_active !== undefined ? Boolean(matched.is_active) : true,
-                };
-              }
-              return item;
-            });
-
-            // Also append any new items from DB not present in initial list
-            const existingIds = new Set(updatedList.map((i) => i.id));
-            dbItems.forEach((it: any) => {
-              if (!existingIds.has(Number(it.id))) {
-                updatedList.push({
-                  id: Number(it.id),
-                  category_id: Number(it.category_id),
-                  name: it.name,
-                  description: it.description || "",
-                  price: Number(it.price),
-                  tax_rate: it.tax_rate || "5.00",
-                  is_available: Boolean(it.is_available),
-                  is_active: it.is_active !== undefined ? Boolean(it.is_active) : true,
-                });
-              }
-            });
-
-            return updatedList;
-          });
+          // The database is the source of truth; the built-in menu is only a fallback when the API is down.
+          // (Merging by id attached built-in names to the wrong database rows once ids drifted.)
+          setMenuItems(
+            dbItems.map((it: any) => ({
+              id: Number(it.id),
+              category_id: Number(it.category_id),
+              name: it.name,
+              description: it.description || "",
+              price: Number(it.price),
+              tax_rate: it.tax_rate || "5.00",
+              is_available: Boolean(it.is_available),
+              is_active: it.is_active !== undefined ? Boolean(it.is_active) : true,
+            }))
+          );
         }
       }
     } catch (err) {

@@ -1,11 +1,10 @@
 import asyncio
-import secrets
 from decimal import Decimal
 from sqlalchemy import select
 from app.core.database import Base, engine, AsyncSessionLocal
 from app.models.branch import Branch
 from app.models.kitchen import Kitchen, MenuItemKitchenMapping
-from app.models.table import Table, TableQR
+from app.models.table import Table, TableQR  # noqa: F401  (registers table models for create_all)
 from app.models.menu import MenuCategory, MenuItem
 from app.utils.create_pos_user import ensure_default_users
 
@@ -100,18 +99,10 @@ async def seed():
             db.add(k2)
             await db.flush()
 
-        # 3. Tables 1 through 12
-        for t_num in range(1, 13):
-            t_str = f"T-{str(t_num).zfill(2)}"
-            t_res = await db.execute(select(Table).where(Table.table_number == t_str))
-            tbl = t_res.scalar_one_or_none()
-            if not tbl:
-                tbl = Table(branch_id=branch.id, table_number=t_str, capacity=4, status="Available")
-                db.add(tbl)
-                await db.flush()
-                # Create active TableQR with secure opaque qr_token
-                qr = TableQR(table_id=tbl.id, qr_token=f"qr_sec_{secrets.token_urlsafe(32)}", is_active=True)
-                db.add(qr)
+        # 3. Tables: the same floor layout and QR tokens the app ensures on startup
+        # (the old T-01..T-12 inserts collided with those fixed table ids)
+        from app.utils.init_tables import ensure_default_tables
+        await ensure_default_tables(db)
 
         # Category name migrations map
         CAT_MIGRATION = {

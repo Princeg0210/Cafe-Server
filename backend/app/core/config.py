@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     RAZORPAY_KEY_SECRET: str = "jaadoo_secret_test_2026"
     RAZORPAY_WEBHOOK_SECRET: str = "jaadoo_webhook_secret_2026"
     RAZORPAY_TEST_MODE: bool = True
+    # Simulated/unsigned payments are accepted only in development or when explicitly enabled
+    ALLOW_TEST_PAYMENTS: bool = False
+    # Shared secret the bank/acquirer sends as X-Webhook-Secret. Required outside development.
+    BANK_WEBHOOK_SECRET: Optional[str] = None
 
     # WhatsApp booking notifications (Meta WhatsApp Cloud API). Unset token/phone ID = disabled.
     WHATSAPP_ACCESS_TOKEN: Optional[str] = None
@@ -67,6 +71,12 @@ class Settings(BaseSettings):
     SARVAM_API_KEY: Optional[str] = None
     SARVAM_BASE_URL: str = "https://api.sarvam.ai"
     SARVAM_DOCUMENT_MODEL: str = "sarvam-vision-2.1"
+
+    # Booking rules checked on every new booking (website, holds, staff-created)
+    BOOKING_RULES_ENFORCED: bool = True
+    RESERVATION_CLOSED_WEEKDAYS: str = "1,2"  # Python weekday numbers: Mon=0 ... Sun=6 (Tue, Wed closed)
+    RESERVATION_OPEN_TIME: str = "11:00"  # earliest bookable slot start (24h)
+    RESERVATION_LAST_SLOT_TIME: str = "22:30"  # latest bookable slot start (24h)
 
     # Reservation Deposit & Hold Settings
     DEFAULT_DEPOSIT_PER_GUEST: str = "150.00"

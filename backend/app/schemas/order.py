@@ -4,10 +4,14 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
+# Largest quantity of one dish on a single order line or bill edit (blocks prank/typo orders)
+MAX_ITEM_QUANTITY = 50
+
+
 class OrderItemCreate(BaseModel):
     menu_item_id: Optional[int] = Field(None, example=1)
     name: Optional[str] = Field(None, example="HIMALAYAN ROSEHIP & MINT TISANE")
-    quantity: int = Field(..., ge=1, example=2)
+    quantity: int = Field(..., ge=1, le=MAX_ITEM_QUANTITY, example=2)
     special_instructions: Optional[str] = Field(None, example="Extra crispy crust, no onions")
 
 

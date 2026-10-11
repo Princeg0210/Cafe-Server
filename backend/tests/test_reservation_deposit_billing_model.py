@@ -660,7 +660,7 @@ async def test_cancellation_and_no_show_policies(client: AsyncClient, db_session
     data = cancel_res.json()
     assert data["status"] == "CANCELLED"
     assert data["payment_status"] == "REFUNDED"
-    assert data["cancellation_refund_amount"] == 400.0
+    assert data["cancellation_refund_amount"] == 344.0  # ₹400 advance - ₹56 cancellation charge
 
     # 2. No Refund Policy
     await SettingsService.set_setting(db_session, "CANCELLATION_REFUND_POLICY", "NO_REFUND")

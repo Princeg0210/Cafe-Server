@@ -4,8 +4,13 @@ import pytest
 import pytest_asyncio
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.pool import NullPool
 from app.core.database import Base
 from app.main import app
+from app.core.config import settings
+
+# Legacy suite uses fixed calendar dates; booking-rule checks are covered in test_booking_rules.py
+settings.BOOKING_RULES_ENFORCED = False
 from app.api.deps import get_db
 from httpx import AsyncClient, ASGITransport
 
@@ -15,15 +20,10 @@ TEST_DATABASE_URL = os.getenv(
 )
 
 connect_args = {"check_same_thread": False} if "sqlite" in TEST_DATABASE_URL else {}
-engine = create_async_engine(TEST_DATABASE_URL, echo=False, connect_args=connect_args)
+# NullPool: pytest-asyncio gives every test its own event loop, and pooled connections
+# would otherwise be reused on a loop that has already closed ("Event loop is closed").
+engine = create_async_engine(TEST_DATABASE_URL, echo=False, connect_args=connect_args, poolclass=NullPool)
 TestingSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -63,3 +63,21 @@ from unittest.mock import patch
 def mock_celery_send_task():
     with patch("app.workers.celery_app.celery_app.send_task") as mock:
         yield mock
+
+
+class _AllowAllRateLimiter:
+    """Stand-in for the gateway's Redis counter: the real client is bound to the first test's
+    event loop (pytest-asyncio gives each test its own), and all tests would share one budget."""
+
+    async def incr(self, key):
+        return 1
+
+    async def expire(self, key, seconds):
+        return True
+
+
+@pytest.fixture(autouse=True)
+def isolated_rate_limiter(monkeypatch):
+    import app.main as main_module
+
+    monkeypatch.setattr(main_module, "_gateway_redis", _AllowAllRateLimiter())

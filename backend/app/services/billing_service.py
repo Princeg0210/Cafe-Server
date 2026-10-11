@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
@@ -26,12 +26,12 @@ def compute_discount_amount(subtotal: Decimal, discount_type: str | None, discou
     value = Decimal(str(discount_value or "0"))
     if discount_type not in ("PERCENT", "FLAT") or value <= 0 or subtotal <= 0:
         return Decimal("0.00")
-    cap = (subtotal * MAX_DISCOUNT_PERCENT / Decimal("100")).quantize(Decimal("0.01"))
+    cap = (subtotal * MAX_DISCOUNT_PERCENT / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     if discount_type == "PERCENT":
         amount = subtotal * min(value, MAX_DISCOUNT_PERCENT) / Decimal("100")
     else:
         amount = value
-    return min(amount.quantize(Decimal("0.01")), cap)
+    return min(amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP), cap)
 
 
 class BillingService:
@@ -78,7 +78,7 @@ class BillingService:
 
         # Calculate dynamic configurable tax
         tax_rate = Decimal(str(getattr(settings, "DEFAULT_TAX_RATE", "0.05")))
-        calc_tax = (taxable_value * tax_rate).quantize(Decimal("0.01"))
+        calc_tax = (taxable_value * tax_rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         gross_total = taxable_value + calc_tax
 
         # Resolve associated reservation for deposit credit
@@ -188,7 +188,7 @@ class BillingService:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Discount type must be PERCENT or FLAT.")
             if value <= 0:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Discount must be greater than zero.")
-            max_flat = (bill.subtotal * MAX_DISCOUNT_PERCENT / Decimal("100")).quantize(Decimal("0.01"))
+            max_flat = (bill.subtotal * MAX_DISCOUNT_PERCENT / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             if discount_type == "PERCENT" and value > MAX_DISCOUNT_PERCENT:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,

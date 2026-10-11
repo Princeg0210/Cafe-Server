@@ -415,7 +415,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const updateCart = (item: any, delta: number) => {
     setCart((prev) => {
       const current = prev[item.id]?.qty || 0;
-      const next = current + delta;
+      const next = Math.min(current + delta, 50); // matches the server cap per dish
       if (next <= 0) {
         const copy = { ...prev };
         delete copy[item.id];
@@ -525,7 +525,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         setShowCartDrawer(false);
       } else {
         const errData = await res.json().catch(() => ({}));
-        alert(`Order could not be placed: ${errData.detail || "Server error"}`);
+        alert(`Order could not be placed: ${typeof errData.detail === "string" ? errData.detail : "Please check the quantities and try again."}`);
       }
     } catch {
       alert("Network error. Please make sure the café server is reachable.");

@@ -3,7 +3,10 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.deps import get_db, verify_dining_session_access, verify_dining_session_close_access
+from app.api.deps import get_db, require_permission, verify_dining_session_access, verify_dining_session_close_access
+
+# Table list and QR tokens are staff-only: a QR token grants access to that table's session and bill
+STAFF_ONLY = [Depends(require_permission("pos:access"))]
 from app.models.table import Table, TableQR, DiningSession
 from app.schemas.table import (
     TableResponse,
@@ -21,7 +24,7 @@ router = APIRouter(prefix="/tables", tags=["Tables & QR Sessions"])
 sessions_router = APIRouter(prefix="/sessions", tags=["Dining Sessions"])
 
 
-@router.get("", response_model=List[TableResponse])
+@router.get("", response_model=List[TableResponse], dependencies=STAFF_ONLY)
 async def list_tables(db: AsyncSession = Depends(get_db)):
     from sqlalchemy.orm import selectinload
     query = select(Table).options(selectinload(Table.qr_code)).order_by(Table.id)
@@ -29,7 +32,7 @@ async def list_tables(db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@router.get("/{id}/qr", response_model=TableQRResponse)
+@router.get("/{id}/qr", response_model=TableQRResponse, dependencies=STAFF_ONLY)
 async def get_table_qr(id: int, db: AsyncSession = Depends(get_db)):
     query = select(TableQR).where(TableQR.table_id == id, TableQR.is_active == True)
     result = await db.execute(query)
@@ -39,7 +42,7 @@ async def get_table_qr(id: int, db: AsyncSession = Depends(get_db)):
     return qr
 
 
-@router.post("/{id}/qr/rotate", response_model=TableQRResponse)
+@router.post("/{id}/qr/rotate", response_model=TableQRResponse, dependencies=STAFF_ONLY)
 async def rotate_table_qr(id: int, db: AsyncSession = Depends(get_db)):
     return await TableService.rotate_qr_token(db, id)
 

@@ -33,6 +33,12 @@ from app.services.settings_service import SettingsService
 router = APIRouter(prefix="/reservations", tags=["Reservations Engine"])
 
 
+_REPO_DEFAULT_DEVICE_CREDENTIALS = {
+    "dev_token_jaadoo_android_phone_9460555743",
+    "cafe-jaadoo-android-listener-secret-2026",
+}
+
+
 def verify_device_auth(
     x_device_token: Optional[str] = Header(None, alias="X-Device-Token"),
     authorization: Optional[str] = Header(None, alias="Authorization"),
@@ -49,15 +55,20 @@ def verify_device_auth(
         else:
             token_candidate = authorization.strip()
 
+    # The repo ships placeholder credentials; they only count in local development
+    is_dev = settings.APP_ENV == "development"
+    device_token = settings.ANDROID_DEVICE_TOKEN if (is_dev or settings.ANDROID_DEVICE_TOKEN not in _REPO_DEFAULT_DEVICE_CREDENTIALS) else None
+    device_secret = settings.ANDROID_DEVICE_SECRET if (is_dev or settings.ANDROID_DEVICE_SECRET not in _REPO_DEFAULT_DEVICE_CREDENTIALS) else None
+
     valid_token = bool(
         token_candidate
-        and settings.ANDROID_DEVICE_TOKEN
-        and token_candidate == settings.ANDROID_DEVICE_TOKEN
+        and device_token
+        and hmac.compare_digest(token_candidate, device_token)
     )
     valid_signature = False
-    if x_signature and settings.ANDROID_DEVICE_SECRET:
+    if x_signature and device_secret:
         expected = hmac.new(
-            settings.ANDROID_DEVICE_SECRET.encode("utf-8"),
+            device_secret.encode("utf-8"),
             settings.MERCHANT_UPI_ID.encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()
@@ -118,7 +129,18 @@ async def receive_payment_event(
 
 
 
-@router.post("/bank-webhook")
+def verify_bank_webhook_secret(x_webhook_secret: Optional[str] = Header(None)) -> None:
+    """Bank settlement events confirm bookings, so the sender must prove it knows the shared secret."""
+    expected = settings.BANK_WEBHOOK_SECRET
+    if not expected:
+        if settings.APP_ENV == "development":
+            return
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Bank webhook is not configured.")
+    if not x_webhook_secret or not hmac.compare_digest(x_webhook_secret, expected):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid webhook secret.")
+
+
+@router.post("/bank-webhook", dependencies=[Depends(verify_bank_webhook_secret)])
 async def receive_bank_payment_webhook(
     payload: BankWebhookPayload,
     db: AsyncSession = Depends(get_db),
@@ -208,7 +230,7 @@ async def get_slot_availability(
     return await ReservationService.get_unavailable_tables(db, branch_id, reservation_date, time_slot)
 
 
-@router.post("", response_model=ReservationResponse, status_code=201)
+@router.post("", response_model=ReservationResponse, status_code=201, dependencies=[Depends(require_permission("pos:access"))])
 async def create_reservation(data: ReservationCreate, db: AsyncSession = Depends(get_db)):
     return await ReservationService.create_reservation(db, data)
 
@@ -264,7 +286,7 @@ async def update_policies_config(
     return await get_policies_config(db)
 
 
-@router.get("/{id}", response_model=ReservationResponse)
+@router.get("/{id}", response_model=ReservationResponse, dependencies=[Depends(require_permission("pos:access"))])
 async def get_reservation(id: int = Path(...), db: AsyncSession = Depends(get_db)):
     from sqlalchemy.orm import selectinload
     stmt = select(Reservation).options(selectinload(Reservation.customer)).where(Reservation.id == id)
@@ -275,12 +297,12 @@ async def get_reservation(id: int = Path(...), db: AsyncSession = Depends(get_db
     return ReservationService.sanitize_reservation_response(reservation)
 
 
-@router.patch("/{id}", response_model=ReservationResponse)
+@router.patch("/{id}", response_model=ReservationResponse, dependencies=[Depends(require_permission("pos:access"))])
 async def update_reservation(id: int, data: ReservationUpdate, db: AsyncSession = Depends(get_db)):
     return await ReservationService.update_reservation(db, id, data)
 
 
-@router.patch("/{id}/status", response_model=ReservationResponse)
+@router.patch("/{id}/status", response_model=ReservationResponse, dependencies=[Depends(require_permission("pos:access"))])
 async def update_reservation_status(id: int, data: ReservationStatusUpdate, db: AsyncSession = Depends(get_db)):
     return await ReservationService.update_reservation_status(db, id, data.status)
 
@@ -290,7 +312,7 @@ async def cancel_reservation(id: int, db: AsyncSession = Depends(get_db)):
     return await ReservationService.cancel_reservation(db, id)
 
 
-@router.get("", response_model=List[ReservationResponse])
+@router.get("", response_model=List[ReservationResponse], dependencies=[Depends(require_permission("pos:access"))])
 async def list_reservations(
     branch_id: Optional[int] = Query(None),
     reservation_date: Optional[date] = Query(None),
@@ -359,7 +381,7 @@ async def get_razorpay_config(db: AsyncSession = Depends(get_db)):
         deposit = 150.0
     return {
         "key_id": settings.RAZORPAY_KEY_ID,
-        "is_test_mode": settings.RAZORPAY_TEST_MODE,
+        "is_test_mode": settings.APP_ENV == "development" or settings.ALLOW_TEST_PAYMENTS,
         "currency": "INR",
         "deposit_per_guest": float(deposit),
         "merchant_name": "Jaadoo Pizza Project",
@@ -383,7 +405,7 @@ async def verify_razorpay_payment(data: RazorpayVerifyPaymentRequest, db: AsyncS
     return await ReservationService.verify_razorpay_payment(db, data)
 
 
-@router.get("/razorpay/transactions")
+@router.get("/razorpay/transactions", dependencies=[Depends(require_permission("pos:access"))])
 async def list_razorpay_transactions(db: AsyncSession = Depends(get_db)):
     """
     Returns recent Razorpay payments and simulations for the Admin Testing Portal.

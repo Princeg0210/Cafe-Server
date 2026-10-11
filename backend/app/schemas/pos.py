@@ -74,6 +74,10 @@ class SessionItemDetail(BaseModel):
     special_instructions: Optional[str] = None
 
 
+class SettleRequest(BaseModel):
+    payment_mode: Optional[Literal["CASH", "UPI", "CARD"]] = None
+
+
 class SessionDiscountRequest(BaseModel):
     # None clears the discount
     discount_type: Optional[Literal["PERCENT", "FLAT"]] = None

@@ -31,7 +31,7 @@ async def test_upi_hold_and_payment_flow(client: AsyncClient, db_session: AsyncS
     assert res.status_code == 201
     hold_data = res.json()
     assert hold_data["status"] == "HOLD"
-    assert hold_data["advance_amount"] == 400.0
+    assert hold_data["advance_amount"] == 300.0  # 2 guests x ₹150 deposit
     assert "upi://pay?" in hold_data["upi_uri"]
     assert hold_data["seconds_remaining"] == 420
     reservation_id = hold_data["reservation_id"]
@@ -72,7 +72,7 @@ async def test_upi_hold_and_payment_flow(client: AsyncClient, db_session: AsyncS
     assert confirmed_data["status"] == "CONFIRMED"
     assert confirmed_data["payment_status"] == "PAID"
     assert confirmed_data["payment_reference"] == "426819283741"
-    assert confirmed_data["advance_amount"] == 400.0
+    assert confirmed_data["advance_amount"] == 300.0  # 2 guests x ₹150 deposit
 
     # 5. Now that Table 1 is officially CONFIRMED, third customer gets 409 SLOT_BOOKED
     res_booked = await client.post("/api/v1/reservations/hold", json=conflicting_payload)

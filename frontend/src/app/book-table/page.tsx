@@ -77,6 +77,8 @@ declare global {
   }
 }
 
+const guestLabel = (n: number) => `${n} ${n === 1 ? "Guest" : "Guests"}`;
+
 export default function BookTablePage() {
   // Current active step: 1 = Date & Overview, 2 = Slot & Party Size, 3 = Guest Details & Policies
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -120,7 +122,8 @@ export default function BookTablePage() {
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
 
   // Razorpay Key Configuration
-  const [rzpKeyId, setRzpKeyId] = useState<string>("rzp_test_JaadooCafe10");
+  const [rzpKeyId, setRzpKeyId] = useState<string>("");
+  const [paymentsTestMode, setPaymentsTestMode] = useState(false);
 
   const getApiBase = () => {
     return "";
@@ -134,6 +137,7 @@ export default function BookTablePage() {
         if (res.ok) {
           const data = await res.json();
           if (data.key_id) setRzpKeyId(data.key_id);
+          setPaymentsTestMode(Boolean(data.is_test_mode));
         }
       } catch (e) {
         // Fallback default test key is already set
@@ -319,34 +323,21 @@ export default function BookTablePage() {
         body: JSON.stringify(orderPayload),
       });
 
-      let orderResponseData;
-      if (res.ok) {
-        orderResponseData = await res.json();
-      } else {
-        // Fallback local test order if server unreachable
-        const fakeOrder = `order_test_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        orderResponseData = {
-          order_id: fakeOrder,
-          amount: guests * DEPOSIT_PER_GUEST * 100,
-          currency: "INR",
-          key_id: rzpKeyId,
-          guest_count: guests,
-          deposit_per_guest: DEPOSIT_PER_GUEST,
-          total_amount: guests * DEPOSIT_PER_GUEST,
-          customer_name: name.trim(),
-          customer_phone: cleanPhone,
-          customer_email: email.trim(),
-          is_test_mode: true,
-        };
+      const orderResponseData = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPaymentError(
+          typeof orderResponseData.detail === "string"
+            ? orderResponseData.detail.replace(/^[A-Z_]+: /, "")
+            : "Could not start the payment. Please try again."
+        );
+        setIsPaymentProcessing(false);
+        return;
       }
 
       setRazorpayOrderData(orderResponseData);
 
-      // In test mode or with placeholder keys, open the Razorpay Testing Portal Simulator directly
-      // This prevents Razorpay's remote CDN from showing "Oops! Something went wrong: Invalid Key ID"
-      const isPlaceholderKey = !rzpKeyId || rzpKeyId.includes("JaadooCafe") || rzpKeyId.startsWith("rzp_test_Jaadoo");
-
-      if (isPlaceholderKey || orderResponseData.is_test_mode) {
+      // The backend decides: the testing simulator is only offered when it reports test mode
+      if (orderResponseData.is_test_mode) {
         setIsPaymentProcessing(false);
         setIsSimulatorOpen(true);
       } else {
@@ -358,7 +349,7 @@ export default function BookTablePage() {
             amount: orderResponseData.amount,
             currency: orderResponseData.currency || "INR",
             name: "Jaadoo Pizza Project",
-            description: `Table Reservation (${guests} Guests · ${selectedTime})`,
+            description: `Table Reservation (${guestLabel(guests)} · ${selectedTime})`,
             image: "/jaadoo-logo-circle.png",
             order_id: orderResponseData.order_id,
             prefill: {
@@ -371,9 +362,9 @@ export default function BookTablePage() {
             },
             handler: async function (response: any) {
               await finalizePaymentVerification({
-                razorpay_order_id: response.razorpay_order_id || orderResponseData.order_id,
-                razorpay_payment_id: response.razorpay_payment_id || `pay_${Date.now()}`,
-                razorpay_signature: response.razorpay_signature || "sig_verified_checkout",
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
                 is_test_simulation: false,
               });
             },
@@ -387,21 +378,19 @@ export default function BookTablePage() {
           const rzp = new window.Razorpay(options);
           rzp.on("payment.failed", function (resp: any) {
             setIsPaymentProcessing(false);
-            // Fallback to testing portal on failure
-            setIsSimulatorOpen(true);
+            setPaymentError(resp?.error?.description || "Payment failed. No booking was made. Please try again.");
           });
           rzp.open();
           setIsPaymentProcessing(false);
         } else {
           setIsPaymentProcessing(false);
-          setIsSimulatorOpen(true);
+          setPaymentError("Could not load the payment window. Check your connection and try again.");
         }
       }
     } catch (err: any) {
-      console.warn("Payment initialization fallback:", err);
+      console.warn("Payment initialization failed:", err);
       setIsPaymentProcessing(false);
-      // Open Testing Portal directly
-      setIsSimulatorOpen(true);
+      setPaymentError("Could not start the payment. Check your connection and try again.");
     }
   };
 
@@ -450,9 +439,13 @@ export default function BookTablePage() {
         body: JSON.stringify(payload),
       });
 
-      let resData;
-      if (res.ok) {
-        resData = await res.json();
+      const resData = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = typeof resData.detail === "string" ? resData.detail.replace(/^[A-Z_]+: /, "") : "Payment could not be verified.";
+        setPaymentError(`${detail} Your booking is not confirmed. If money was deducted, contact the cafe with payment ID ${verifyParams.razorpay_payment_id}.`);
+        setIsSimulatorOpen(false);
+        setIsPaymentProcessing(false);
+        return;
       }
 
       const confirmedId = resData?.booking_id || formatBookingId(name.trim(), cleanPhone, resData?.id);
@@ -477,23 +470,7 @@ export default function BookTablePage() {
       setIsSimulatorOpen(false);
       setIsPaymentProcessing(false);
     } catch (e) {
-      // In offline scenario, still confirm reservation for testing
-      setConfirmedBooking({
-        id: formatBookingId(name.trim(), cleanPhone),
-        name: name.trim(),
-        phone: cleanPhone,
-        email: email.trim(),
-        guests: guests,
-        date: getIsoDateString(selectedDate),
-        formattedDate: formatSelectedDateFull(selectedDate),
-        time: selectedTime,
-        floorNumber: currentFloor.id,
-        floorName: currentFloor.name,
-        tableName: chosenTable ? chosenTable.table_number : "Table 1",
-        paymentId: verifyParams.razorpay_payment_id,
-        amountPaid: guests * DEPOSIT_PER_GUEST,
-        status: "CONFIRMED",
-      });
+      setPaymentError(`Network error while confirming payment. Your booking is not confirmed yet. If money was deducted, contact the cafe with payment ID ${verifyParams.razorpay_payment_id}.`);
       setIsSimulatorOpen(false);
       setIsPaymentProcessing(false);
     }
@@ -501,7 +478,7 @@ export default function BookTablePage() {
 
   const handleShareSummary = () => {
     if (!confirmedBooking) return;
-    const text = `Jaadoo Café Reservation Confirmed!\nBooking Ref: ${confirmedBooking.id}\nGuest: ${confirmedBooking.name} (${confirmedBooking.guests} Guests)\nDate: ${confirmedBooking.formattedDate} at ${confirmedBooking.time}\nPayment Ref: ${confirmedBooking.paymentId}\nAdvance Paid: ₹${confirmedBooking.amountPaid}\nFloor: ${confirmedBooking.floorName} · Table: ${confirmedBooking.tableName}\nLocation: 32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur`;
+    const text = `Jaadoo Café Reservation Confirmed!\nBooking Ref: ${confirmedBooking.id}\nGuest: ${confirmedBooking.name} (${guestLabel(confirmedBooking.guests)})\nDate: ${confirmedBooking.formattedDate} at ${confirmedBooking.time}\nPayment Ref: ${confirmedBooking.paymentId}\nAdvance Paid: ₹${confirmedBooking.amountPaid}\nFloor: ${confirmedBooking.floorName} · Table: ${confirmedBooking.tableName}\nLocation: 32 Sitaphal ki gali, Ganesh Ghati, Old City, Udaipur`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
       setCopiedLink(true);
@@ -984,7 +961,7 @@ export default function BookTablePage() {
                     >
                       {RESTAURANT_FLOORS.map((f) => (
                         <option key={f.id} value={f.id} disabled={f.isComingSoon}>
-                          Floor {f.id} — {f.name} {f.isComingSoon ? "(Coming Soon)" : ""}
+                          Floor {f.id} — {f.name}
                         </option>
                       ))}
                     </select>
@@ -1037,7 +1014,7 @@ export default function BookTablePage() {
                 <div className="bg-[#65C5A8]/30 border border-[#65C5A8] rounded-xl p-3.5 flex items-center justify-between text-xs font-semibold text-[#140E0A]">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-[#140E0A]" />
-                    <span>{guests} Guests</span>
+                    <span>{guestLabel(guests)}</span>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -1206,7 +1183,8 @@ export default function BookTablePage() {
                     )}
                   </button>
 
-                  {/* Razorpay Testing Portal Button (Dedicated trigger requested by user) */}
+                  {/* Razorpay Testing Portal Button: only when the backend allows test payments */}
+                  {paymentsTestMode && (
                   <div className="text-center pt-1">
                     <button
                       type="button"
@@ -1217,6 +1195,7 @@ export default function BookTablePage() {
                       <span>Open Razorpay Testing Simulator</span>
                     </button>
                   </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -1396,7 +1375,7 @@ export default function BookTablePage() {
                   </div>
                   <div className="flex justify-between items-center text-[11px] text-stone-500 pb-1 border-b border-stone-200">
                     <span>GUESTS</span>
-                    <span className="font-bold text-stone-800">{guests} Guests (₹150/person)</span>
+                    <span className="font-bold text-stone-800">{guestLabel(guests)} (₹150/person)</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-sans font-bold text-stone-700">PAYABLE AMOUNT</span>
