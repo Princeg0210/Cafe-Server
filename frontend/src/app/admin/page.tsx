@@ -940,12 +940,12 @@ export default function AdminPortal() {
       setSelectedResDetails((prev) =>
         prev && prev.id === resId
           ? {
-              ...prev,
-              status: data.status,
-              payment_status: data.payment_status,
-              cancellation_refund_amount: data.cancellation_refund_amount,
-              cancellation_refund_status: data.cancellation_refund_status,
-            }
+            ...prev,
+            status: data.status,
+            payment_status: data.payment_status,
+            cancellation_refund_amount: data.cancellation_refund_amount,
+            cancellation_refund_status: data.cancellation_refund_status,
+          }
           : prev
       );
       setConfirmCancelRes(false);
@@ -996,13 +996,13 @@ export default function AdminPortal() {
       setSelectedResDetails((prev) =>
         prev && prev.id === r.id
           ? {
-              ...prev,
-              status: data.status || "SEATED",
-              table_id: tableId,
-              table_name: data.table_name || tbl?.table_number || prev.table_name,
-              floor_number: tbl?.floor || prev.floor_number,
-              floor_name: tbl ? getFloorName(tbl.floor) : prev.floor_name,
-            }
+            ...prev,
+            status: data.status || "SEATED",
+            table_id: tableId,
+            table_name: data.table_name || tbl?.table_number || prev.table_name,
+            floor_number: tbl?.floor || prev.floor_number,
+            floor_name: tbl ? getFloorName(tbl.floor) : prev.floor_name,
+          }
           : prev
       );
       setArrivalTableId("");
@@ -1111,9 +1111,9 @@ export default function AdminPortal() {
                 fetchOperationsData(opDate, true);
                 fetchData(true);
               }
-            } catch {}
+            } catch { }
           };
-        } catch {}
+        } catch { }
       });
     };
 
@@ -1124,7 +1124,7 @@ export default function AdminPortal() {
       const anyOpen = sockets.some((s) => s.readyState === WebSocket.OPEN);
       if (!anyOpen && !isCleanedUp) {
         sockets.forEach((s) => {
-          try { s.close(); } catch {}
+          try { s.close(); } catch { }
         });
         sockets.length = 0;
         reconnectTimeout = setTimeout(connectAll, 4000);
@@ -1146,7 +1146,7 @@ export default function AdminPortal() {
     return () => {
       isCleanedUp = true;
       sockets.forEach((s) => {
-        try { s.close(); } catch {}
+        try { s.close(); } catch { }
       });
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
       clearInterval(healthInterval);
@@ -2064,7 +2064,7 @@ export default function AdminPortal() {
               </Card>
             </div>
 
-            
+
 
             {/* 14-Day Sales Trend Bar Chart (Shadcn UI & Recharts Pattern) */}
             <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-6 shadow-xs space-y-5">
@@ -2074,9 +2074,7 @@ export default function AdminPortal() {
                     <h3 className="text-sm font-serif font-bold uppercase tracking-wider text-[#241A14]">
                       Daily Sales History (Last 14 Days)
                     </h3>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      Live Trend
-                    </span>
+
                   </div>
                   <p className="text-xs text-[#7A6A5E] mt-0.5">
                     Day-by-day revenue progression and customer ticket counts. Hover on any bar for precise figures.
@@ -2089,22 +2087,20 @@ export default function AdminPortal() {
                     <button
                       type="button"
                       onClick={() => setChartMetric("revenue")}
-                      className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                        chartMetric === "revenue"
+                      className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${chartMetric === "revenue"
                           ? "bg-white text-[#B85B43] shadow-xs"
                           : "text-[#665448] hover:text-[#241A14]"
-                      }`}
+                        }`}
                     >
                       Revenue (₹)
                     </button>
                     <button
                       type="button"
                       onClick={() => setChartMetric("kots")}
-                      className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                        chartMetric === "kots"
+                      className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${chartMetric === "kots"
                           ? "bg-white text-[#B85B43] shadow-xs"
                           : "text-[#665448] hover:text-[#241A14]"
-                      }`}
+                        }`}
                     >
                       Orders (KOTs)
                     </button>
@@ -2244,12 +2240,12 @@ export default function AdminPortal() {
                                 isPeak
                                   ? "#B85B43" // Terracotta highlight on peak day
                                   : chartMetric === "revenue"
-                                  ? entry.revenue > 0
-                                    ? "#16A34A" // Vibrant emerald on active revenue days
-                                    : "#D4C7B8" // Subtle placeholder on zero days
-                                  : entry.kots > 0
-                                  ? "#2563EB"
-                                  : "#D4C7B8"
+                                    ? entry.revenue > 0
+                                      ? "#16A34A" // Vibrant emerald on active revenue days
+                                      : "#D4C7B8" // Subtle placeholder on zero days
+                                    : entry.kots > 0
+                                      ? "#2563EB"
+                                      : "#D4C7B8"
                               }
                             />
                           );
@@ -2580,9 +2576,9 @@ export default function AdminPortal() {
                             <TableCell className="text-[#665448]">
                               {k.created_at
                                 ? new Date(k.created_at).toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
                                 : "—"}
                             </TableCell>
                             <TableCell>
@@ -2610,8 +2606,8 @@ export default function AdminPortal() {
                                   k.status === "SERVED"
                                     ? "success"
                                     : k.status === "READY"
-                                    ? "secondary"
-                                    : "warning"
+                                      ? "secondary"
+                                      : "warning"
                                 }
                               >
                                 {k.status}
@@ -2709,11 +2705,10 @@ export default function AdminPortal() {
                   return (
                     <Card
                       key={c.id}
-                      className={`p-4 flex flex-col justify-between transition-all ${
-                        isSelected
+                      className={`p-4 flex flex-col justify-between transition-all ${isSelected
                           ? "bg-[#FAF5ED] border-[#B85B43] shadow-sm ring-1 ring-[#B85B43]"
                           : "hover:border-[#CDBFA8]"
-                      }`}
+                        }`}
                     >
                       <div className="space-y-2">
                         <div className="flex items-start justify-between gap-1">
@@ -2810,9 +2805,8 @@ export default function AdminPortal() {
                       className="text-xs h-8 flex items-center gap-1.5"
                     >
                       <span>{c.name}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                        isSelected ? "bg-white/20 text-white" : "bg-[#EAE0D2] text-[#665448]"
-                      }`}>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? "bg-white/20 text-white" : "bg-[#EAE0D2] text-[#665448]"
+                        }`}>
                         {count}
                       </span>
                     </Button>
@@ -2890,9 +2884,8 @@ export default function AdminPortal() {
                               className="text-[10px] h-7 px-2.5 rounded-full"
                             >
                               <span
-                                className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                                  item.is_available ? "bg-emerald-600" : "bg-rose-600"
-                                }`}
+                                className={`w-1.5 h-1.5 rounded-full mr-1.5 ${item.is_available ? "bg-emerald-600" : "bg-rose-600"
+                                  }`}
                               />
                               <span>{item.is_available ? "In Stock (Available)" : "86'd (Sold Out)"}</span>
                             </Button>
@@ -2939,131 +2932,131 @@ export default function AdminPortal() {
             (r) => (!rawLowOnly || isLow(r)) && (!q || r.name.toLowerCase().includes(q) || r.sku.toLowerCase().includes(q))
           );
           return (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-sans font-bold text-[#241A14]">Raw Material Inventory</h2>
-                  <Badge variant="default" className="text-[10px]">
-                    {rawItems.length} Materials • {lowCount} Low Stock
-                  </Badge>
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-sans font-bold text-[#241A14]">Raw Material Inventory</h2>
+                    <Badge variant="default" className="text-[10px]">
+                      {rawItems.length} Materials • {lowCount} Low Stock
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-[#7A6A5E] mt-1">
+                    Track kitchen and bar raw materials. Record purchases, wastage and stock counts to keep levels accurate.
+                  </p>
                 </div>
-                <p className="text-xs text-[#7A6A5E] mt-1">
-                  Track kitchen and bar raw materials. Record purchases, wastage and stock counts to keep levels accurate.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setBillScan({ stage: "pick", supplier: "", billNumber: "", billDate: "", grandTotal: null, lines: [] })}
-                >
-                  <ScanLine className="w-4 h-4 text-[#B85B43]" />
-                  <span>Scan Bill</span>
-                </Button>
-                <Button
-                  variant="default"
-                  onClick={() => setNewRaw({ name: "", sku: "", unit: "kg", stock: "", reorder: "" })}
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Raw Material</span>
-                </Button>
-              </div>
-            </div>
-
-            <Card className="p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
-              <div className="relative min-w-[240px] flex-1">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
-                <Input
-                  type="text"
-                  value={rawSearch}
-                  onChange={(e) => setRawSearch(e.target.value)}
-                  placeholder="Search material name or SKU..."
-                  aria-label="Search raw materials"
-                  className="pl-10"
-                />
-              </div>
-              <div className="flex items-center gap-1.5">
-                {([false, true] as const).map((low) => (
+                <div className="flex items-center gap-2">
                   <Button
-                    key={String(low)}
-                    variant={rawLowOnly === low ? "default" : "secondary"}
-                    size="sm"
-                    onClick={() => setRawLowOnly(low)}
-                    className="text-xs h-8"
+                    variant="secondary"
+                    onClick={() => setBillScan({ stage: "pick", supplier: "", billNumber: "", billDate: "", grandTotal: null, lines: [] })}
                   >
-                    {low ? `Low Stock (${lowCount})` : `All (${rawItems.length})`}
+                    <ScanLine className="w-4 h-4 text-[#B85B43]" />
+                    <span>Scan Bill</span>
                   </Button>
-                ))}
+                  <Button
+                    variant="default"
+                    onClick={() => setNewRaw({ name: "", sku: "", unit: "kg", stock: "", reorder: "" })}
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Raw Material</span>
+                  </Button>
+                </div>
               </div>
-            </Card>
 
-            <Card className="overflow-hidden shadow-xs">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Material</TableHead>
-                    <TableHead>In Stock</TableHead>
-                    <TableHead>Reorder At</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shown.length === 0 ? (
+              <Card className="p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+                <div className="relative min-w-[240px] flex-1">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C7A6D]" />
+                  <Input
+                    type="text"
+                    value={rawSearch}
+                    onChange={(e) => setRawSearch(e.target.value)}
+                    placeholder="Search material name or SKU..."
+                    aria-label="Search raw materials"
+                    className="pl-10"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {([false, true] as const).map((low) => (
+                    <Button
+                      key={String(low)}
+                      variant={rawLowOnly === low ? "default" : "secondary"}
+                      size="sm"
+                      onClick={() => setRawLowOnly(low)}
+                      className="text-xs h-8"
+                    >
+                      {low ? `Low Stock (${lowCount})` : `All (${rawItems.length})`}
+                    </Button>
+                  ))}
+                </div>
+              </Card>
+
+              <Card className="overflow-hidden shadow-xs">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-12 text-[#8C7A6D]">
-                        <Package className="w-8 h-8 mx-auto mb-2 opacity-40 text-[#B85B43]" />
-                        <p className="font-semibold text-sm text-[#4A392F]">No raw materials found</p>
-                      </TableCell>
+                      <TableHead>Material</TableHead>
+                      <TableHead>In Stock</TableHead>
+                      <TableHead>Reorder At</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ) : (
-                    shown.map((r) => {
-                      const stock = Number(r.current_stock);
-                      const status = stock <= 0 ? "Out of Stock" : isLow(r) ? "Low Stock" : "In Stock";
-                      return (
-                        <TableRow key={r.id}>
-                          <TableCell>
-                            <div className="font-bold text-[#241A14]">{r.name}</div>
-                            <div className="text-[10px] font-mono text-[#8C7A6D]">{r.sku}</div>
-                          </TableCell>
-                          <TableCell className="font-extrabold text-[#241A14] text-sm">
-                            {qtyFmt(r.current_stock)} <span className="text-[11px] font-semibold text-[#7A6A5E]">{r.unit_of_measure}</span>
-                          </TableCell>
-                          <TableCell className="text-[#665448]">
-                            {qtyFmt(r.reorder_threshold)} {r.unit_of_measure}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                status === "In Stock"
-                                  ? "success"
-                                  : status === "Low Stock"
-                                  ? "warning"
-                                  : "destructive"
-                              }
-                            >
-                              {status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => setStockUpdate({ item: r, mode: "PURCHASE", qty: "", ref: "" })}
-                              className="text-xs h-7 px-2.5"
-                            >
-                              <Edit3 className="w-3.5 h-3.5 text-[#B85B43] mr-1" />
-                              <span>Update Stock</span>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </Card>
-          </div>
+                  </TableHeader>
+                  <TableBody>
+                    {shown.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-12 text-[#8C7A6D]">
+                          <Package className="w-8 h-8 mx-auto mb-2 opacity-40 text-[#B85B43]" />
+                          <p className="font-semibold text-sm text-[#4A392F]">No raw materials found</p>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      shown.map((r) => {
+                        const stock = Number(r.current_stock);
+                        const status = stock <= 0 ? "Out of Stock" : isLow(r) ? "Low Stock" : "In Stock";
+                        return (
+                          <TableRow key={r.id}>
+                            <TableCell>
+                              <div className="font-bold text-[#241A14]">{r.name}</div>
+                              <div className="text-[10px] font-mono text-[#8C7A6D]">{r.sku}</div>
+                            </TableCell>
+                            <TableCell className="font-extrabold text-[#241A14] text-sm">
+                              {qtyFmt(r.current_stock)} <span className="text-[11px] font-semibold text-[#7A6A5E]">{r.unit_of_measure}</span>
+                            </TableCell>
+                            <TableCell className="text-[#665448]">
+                              {qtyFmt(r.reorder_threshold)} {r.unit_of_measure}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  status === "In Stock"
+                                    ? "success"
+                                    : status === "Low Stock"
+                                      ? "warning"
+                                      : "destructive"
+                                }
+                              >
+                                {status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => setStockUpdate({ item: r, mode: "PURCHASE", qty: "", ref: "" })}
+                                className="text-xs h-7 px-2.5"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 text-[#B85B43] mr-1" />
+                                <span>Update Stock</span>
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </Card>
+            </div>
           );
         })()}
 
@@ -3093,9 +3086,8 @@ export default function AdminPortal() {
                     key={mode}
                     type="button"
                     onClick={() => setStockUpdate({ ...stockUpdate, mode })}
-                    className={`py-2 rounded-xl font-bold cursor-pointer border ${
-                      stockUpdate.mode === mode ? "bg-[#261C18] text-white border-[#261C18]" : "bg-[#FAF7F0] text-[#665448] border-[#E0D4C2]"
-                    }`}
+                    className={`py-2 rounded-xl font-bold cursor-pointer border ${stockUpdate.mode === mode ? "bg-[#261C18] text-white border-[#261C18]" : "bg-[#FAF7F0] text-[#665448] border-[#E0D4C2]"
+                      }`}
                   >
                     {label}
                   </button>
@@ -3457,10 +3449,10 @@ export default function AdminPortal() {
                                 r.status === "CONFIRMED"
                                   ? "success"
                                   : r.status === "ARRIVED"
-                                  ? "warning"
-                                  : r.status === "SEATED"
-                                  ? "secondary"
-                                  : "default"
+                                    ? "warning"
+                                    : r.status === "SEATED"
+                                      ? "secondary"
+                                      : "default"
                               }
                             >
                               {r.status}
@@ -4029,11 +4021,10 @@ export default function AdminPortal() {
                     <button
                       type="button"
                       onClick={() => setEditingItem({ ...editingItem, is_available: true })}
-                      className={`flex-1 py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                        editingItem.is_available
+                      className={`flex-1 py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${editingItem.is_available
                           ? "bg-emerald-100 text-emerald-800 border-emerald-400 shadow-2xs"
                           : "bg-[#FAF7F0] text-[#7A6A5E] border-[#E2D6C5]"
-                      }`}
+                        }`}
                     >
                       <span className="w-2 h-2 rounded-full bg-emerald-600" />
                       <span>In Stock</span>
@@ -4041,11 +4032,10 @@ export default function AdminPortal() {
                     <button
                       type="button"
                       onClick={() => setEditingItem({ ...editingItem, is_available: false })}
-                      className={`flex-1 py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                        !editingItem.is_available
+                      className={`flex-1 py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${!editingItem.is_available
                           ? "bg-rose-100 text-rose-800 border-rose-400 shadow-2xs"
                           : "bg-[#FAF7F0] text-[#7A6A5E] border-[#E2D6C5]"
-                      }`}
+                        }`}
                     >
                       <span className="w-2 h-2 rounded-full bg-rose-600" />
                       <span>86'd (Sold Out)</span>
@@ -4457,9 +4447,8 @@ export default function AdminPortal() {
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-[#241A14]">Bill #{s.session_seq}</span>
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                                s.is_active ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
-                              }`}
+                              className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${s.is_active ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                                }`}
                             >
                               {s.is_active ? "Open" : s.is_settled ? "Settled" : "Closed"}
                             </span>
@@ -4602,15 +4591,14 @@ export default function AdminPortal() {
                     </span>
                   </div>
                   <span
-                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                      selectedResDetails.status === "CONFIRMED"
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${selectedResDetails.status === "CONFIRMED"
                         ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                         : selectedResDetails.status === "ARRIVED"
-                        ? "bg-amber-100 text-amber-800 border border-amber-300"
-                        : selectedResDetails.status === "SEATED"
-                        ? "bg-indigo-100 text-indigo-800 border border-indigo-300"
-                        : "bg-stone-100 text-stone-700 border border-stone-300"
-                    }`}
+                          ? "bg-amber-100 text-amber-800 border border-amber-300"
+                          : selectedResDetails.status === "SEATED"
+                            ? "bg-indigo-100 text-indigo-800 border border-indigo-300"
+                            : "bg-stone-100 text-stone-700 border border-stone-300"
+                      }`}
                   >
                     {selectedResDetails.status}
                   </span>
@@ -4664,54 +4652,54 @@ export default function AdminPortal() {
 
               {/* Quick Status Actions */}
               {["CONFIRMED", "ARRIVED", "SEATED"].includes(selectedResDetails.status) && (
-              <div className="space-y-1.5 pt-1">
-                <span className="text-xs font-bold text-[#4A392F] uppercase tracking-wider block">
-                  Update Reservation Status:
-                </span>
-                <div className="space-y-2">
-                  {["CONFIRMED", "ARRIVED"].includes(selectedResDetails.status) && (
-                    <>
-                      {!selectedResDetails.table_id && (
-                        <label className="block text-xs space-y-1">
-                          <span className="font-bold text-[#4A392F]">No table assigned — seat guest at:</span>
-                          <select
-                            value={arrivalTableId}
-                            onChange={(e) => setArrivalTableId(e.target.value ? Number(e.target.value) : "")}
-                            className="w-full bg-[#FAF6EE] border border-[#E0D4C2] rounded-xl px-3 py-2 outline-none"
-                          >
-                            <option value="">Choose a table…</option>
-                            {RESTAURANT_TABLES.map((t) => (
-                              <option key={t.id} value={t.id}>
-                                {t.table_number} · {getFloorName(t.floor)} ({t.capacity} seats)
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      )}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-xs font-bold text-[#4A392F] uppercase tracking-wider block">
+                    Update Reservation Status:
+                  </span>
+                  <div className="space-y-2">
+                    {["CONFIRMED", "ARRIVED"].includes(selectedResDetails.status) && (
+                      <>
+                        {!selectedResDetails.table_id && (
+                          <label className="block text-xs space-y-1">
+                            <span className="font-bold text-[#4A392F]">No table assigned — seat guest at:</span>
+                            <select
+                              value={arrivalTableId}
+                              onChange={(e) => setArrivalTableId(e.target.value ? Number(e.target.value) : "")}
+                              className="w-full bg-[#FAF6EE] border border-[#E0D4C2] rounded-xl px-3 py-2 outline-none"
+                            >
+                              <option value="">Choose a table…</option>
+                              {RESTAURANT_TABLES.map((t) => (
+                                <option key={t.id} value={t.id}>
+                                  {t.table_number} · {getFloorName(t.floor)} ({t.capacity} seats)
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleGuestArrived(selectedResDetails)}
+                          disabled={isCheckingIn || (!selectedResDetails.table_id && arrivalTableId === "")}
+                          className="w-full py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isCheckingIn ? "Checking in…" : "Guest Arrived · Check In & Seat"}
+                        </button>
+                      </>
+                    )}
+
+                    {selectedResDetails.status === "SEATED" && (
                       <button
                         type="button"
-                        onClick={() => handleGuestArrived(selectedResDetails)}
-                        disabled={isCheckingIn || (!selectedResDetails.table_id && arrivalTableId === "")}
-                        className="w-full py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={async () => {
+                          if (await handleUpdateOpReservationStatus(selectedResDetails.id, "COMPLETED")) setSelectedResDetails({ ...selectedResDetails, status: "COMPLETED" });
+                        }}
+                        className="w-full py-2 rounded-xl bg-[#261C18] hover:bg-[#B85B43] text-white font-bold text-xs transition-colors cursor-pointer"
                       >
-                        {isCheckingIn ? "Checking in…" : "Guest Arrived · Check In & Seat"}
+                        Complete
                       </button>
-                    </>
-                  )}
-
-                  {selectedResDetails.status === "SEATED" && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (await handleUpdateOpReservationStatus(selectedResDetails.id, "COMPLETED")) setSelectedResDetails({ ...selectedResDetails, status: "COMPLETED" });
-                      }}
-                      className="w-full py-2 rounded-xl bg-[#261C18] hover:bg-[#B85B43] text-white font-bold text-xs transition-colors cursor-pointer"
-                    >
-                      Complete
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
               )}
 
               {/* Cancel Reservation (only for statuses the backend allows to cancel) */}

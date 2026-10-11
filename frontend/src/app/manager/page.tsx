@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   TrendingUp,
   Receipt,
@@ -32,6 +33,8 @@ import {
   ArrowDownRight,
   Sparkles,
   HelpCircle,
+  Store,
+  ExternalLink,
 } from "lucide-react";
 import { managerSession } from "@/lib/authFetch";
 import { formatBookingId } from "@/lib/bookingId";
@@ -42,6 +45,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import {
   ResponsiveContainer,
   BarChart,
@@ -995,123 +999,135 @@ export default function KunalManagerPortal() {
       )}
 
       {/* TOP HEADER: Brand Logo + Identity + Navigation Controls */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#E2DACF] shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <header className="sticky top-0 z-40 bg-[#FFFDF9] border-b border-[#E6DCce] shadow-xs px-4 sm:px-6 py-3.5">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
           {/* Left Brand Identity */}
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl overflow-hidden border border-[#E2DACF] shadow-xs shrink-0">
-              <Image
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="w-20 h-12 sm:w-24 sm:h-14 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md bg-white shrink-0">
+              <img
                 src="/jaadoo_logo.jpg"
                 alt="Jaadoo Logo"
-                width={44}
-                height={44}
                 className="w-full h-full object-cover"
-                priority
               />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-serif font-bold text-lg sm:text-xl text-[#133826] leading-none">
-                  Jaadoo Pizza Project
+              <h1 className="text-base font-serif font-extrabold tracking-wide text-[#241A14]">
+                JAADOO PIZZA PROJECT
+              </h1>
+              <div className="mt-0.5">
+                <span className="text-[10px] uppercase font-extrabold tracking-[0.22em] text-[#B85B43]">
+                  Kunal Portal
                 </span>
-                <Badge variant="success" className="hidden sm:inline-flex bg-[#EBF5EE] text-[#2D6A4F] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border-[#B7E4C7]">
-                  Manager
-                </Badge>
               </div>
-              <p className="text-[11px] font-serif italic text-[#5A6A5E] mt-0.5">
-                Wood-fired · Udaipur · Est. 2024
-              </p>
             </div>
           </div>
 
           {/* Right Identity Title & Actions */}
-          <div className="flex items-center gap-2.5 sm:gap-4 ml-auto">
-            <div className="text-right hidden md:block">
-              <h2 className="font-serif font-bold text-base text-[#1B4332] leading-tight">
-                Kunal Manager Portal
-              </h2>
-              <div className="flex items-center justify-end gap-1.5 text-[11px] text-[#5A6A5E] font-sans">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    syncStatus === "connected"
-                      ? "bg-emerald-500 animate-pulse"
-                      : syncStatus === "connecting"
-                      ? "bg-amber-400 animate-ping"
-                      : "bg-amber-500"
-                  }`}
-                />
-                <span className="tabular-nums">
-                  {syncStatus === "connected"
-                    ? "Live Connected"
-                    : syncStatus === "connecting"
-                    ? "Connecting..."
-                    : "Periodic Polling"} · Synced{" "}
-                  {lastSynced.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
+          <div className="flex items-center gap-2.5 sm:gap-3 ml-auto">
+            {/* Manager Profile Chip */}
+            <div className="flex items-center gap-2.5 bg-[#FAF8F5] py-1 px-3 rounded-2xl border border-[#E2DACF] shadow-2xs">
+              <div className="w-8 h-8 rounded-full bg-[#1B4332] text-white flex items-center justify-center font-bold text-xs ring-2 ring-[#52B788]/20 shrink-0">
+                K
+              </div>
+              <div className="text-left hidden sm:block">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-sans font-bold text-xs text-[#133826] leading-tight">
+                    Kunal
+                  </span>
+                  <span className="text-[10px] text-[#718074] font-medium">(Store Manager)</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-[#5A6A5E] font-sans mt-0.5">
+                  <span className="relative flex h-2 w-2">
+                    {syncStatus === "connected" && (
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    )}
+                    <span
+                      className={`relative inline-flex rounded-full h-2 w-2 ${
+                        syncStatus === "connected"
+                          ? "bg-emerald-500"
+                          : syncStatus === "connecting"
+                          ? "bg-amber-400"
+                          : "bg-amber-500"
+                      }`}
+                    />
+                  </span>
+                  <span className="tabular-nums">
+                    {syncStatus === "connected" ? "Live Connected" : syncStatus === "connecting" ? "Syncing..." : "Periodic Polling"} · {lastSynced.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
               </div>
             </div>
 
             {/* Refresh Button */}
             <Button
-              variant="outline"
-              size="icon"
+              variant="secondary"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              title="Refresh Authoritative Data"
-              className="h-9 w-9 rounded-xl border-[#D7CDBF] bg-[#FAF8F5] hover:bg-[#F3EFEA] text-[#133826] transition-colors cursor-pointer"
+              className="flex items-center gap-1.5"
             >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin text-[#2D6A4F]" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#B85B43]" : ""}`} />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
+
+            {/* Open POS Link */}
+            <Link href="/pos" target="_blank" className="inline-flex">
+              <Button variant="secondary" className="text-[#B85B43] border-[#B85B43]/30">
+                <Store className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Open POS</span>
+                <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
+              </Button>
+            </Link>
 
             {/* Logout Button */}
             <Button
-              variant="destructive"
-              size="sm"
+              variant="ghost"
               onClick={handleLogout}
-              className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-red-200 bg-red-50/70 hover:bg-red-100/80 text-red-700 text-xs font-semibold transition-colors cursor-pointer"
+              className="text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200"
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline font-sans">Logout</span>
+              <span className="hidden sm:inline">Logout</span>
             </Button>
           </div>
         </div>
 
         {/* NAVIGATION BAR & DATE FILTER STRIP */}
-        <div className="bg-[#FAF8F5] border-t border-[#EAE3D9] px-4 sm:px-6 lg:px-8 py-2">
+        <div className="bg-[#FAF8F5] border-t border-[#EAE3D9] px-4 sm:px-6 lg:px-8 py-2.5">
           <div className="max-w-7xl mx-auto flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
-            {/* 6 Core Tabs */}
-            <TabsList className="bg-transparent border-none p-0 flex items-center gap-1 sm:gap-1.5 overflow-x-auto pb-1 xl:pb-0 scrollbar-none h-auto shrink-0">
-              {[
-                { id: "overview", label: "Overview", fullLabel: "Overview", icon: Layers },
-                { id: "analytics", label: "Analytics", fullLabel: "Financial Analytics", icon: TrendingUp },
-                { id: "payments", label: "Payments", fullLabel: "Payments & Collections", icon: CreditCard },
-                { id: "petty_cash", label: "Petty Cash", fullLabel: "Petty Cash", icon: Wallet },
-                { id: "reservations", label: "Reservations", fullLabel: "Reservations CRM", icon: CalendarDays },
-                { id: "menu", label: "Menu", fullLabel: "Menu Management", icon: UtensilsCrossed },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <TabsTrigger
-                    key={tab.id}
-                    active={isActive}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-sans font-semibold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-                      isActive
-                        ? "bg-[#1B4332] text-white shadow-xs"
-                        : "text-[#4A5568] hover:text-[#133826] hover:bg-[#F0EBE1]"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span className="hidden 2xl:inline">{tab.fullLabel}</span>
-                    <span className="inline 2xl:hidden">{tab.label}</span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
+            {/* 6 Core Tabs in Segmented Capsule Container */}
+            <div className="bg-[#F0EBE1]/90 p-1 rounded-2xl border border-[#DFD5C6] shadow-2xs overflow-x-auto scrollbar-none shrink-0">
+              <TabsList className="bg-transparent border-none p-0 flex items-center gap-1 h-auto">
+                {[
+                  { id: "overview", label: "Overview", fullLabel: "Overview", icon: Layers },
+                  { id: "analytics", label: "Analytics", fullLabel: "Financial Analytics", icon: TrendingUp },
+                  { id: "payments", label: "Payments", fullLabel: "Payments & Collections", icon: CreditCard },
+                  { id: "petty_cash", label: "Petty Cash", fullLabel: "Petty Cash", icon: Wallet },
+                  { id: "reservations", label: "Reservations", fullLabel: "Reservations CRM", icon: CalendarDays },
+                  { id: "menu", label: "Menu", fullLabel: "Menu Management", icon: UtensilsCrossed },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <TabsTrigger
+                      key={tab.id}
+                      active={isActive}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs sm:text-sm font-sans font-semibold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                        isActive
+                          ? "bg-[#1B4332] text-white shadow-xs"
+                          : "text-[#526357] hover:text-[#133826] hover:bg-white/60"
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="hidden 2xl:inline">{tab.fullLabel}</span>
+                      <span className="inline 2xl:hidden">{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
 
-            {/* Date Range Selector Strip (Asia/Kolkata Calendar Dates) */}
-            <div className="flex items-center gap-1.5 self-end xl:self-auto bg-white p-1 rounded-xl border border-[#E2DACF] shadow-2xs shrink-0">
+            {/* Date Range Selector Strip */}
+            <div className="flex items-center gap-1.5 self-end xl:self-auto bg-white p-1 rounded-2xl border border-[#DFD5C6] shadow-2xs shrink-0">
               <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-[#718074] px-2 hidden sm:inline">
                 Period:
               </span>
@@ -1121,9 +1137,9 @@ export default function KunalManagerPortal() {
                   size="sm"
                   variant={datePreset === preset ? "default" : "ghost"}
                   onClick={() => setDatePreset(preset)}
-                  className={`h-7 px-2.5 text-xs font-sans font-semibold rounded-lg capitalize transition-colors cursor-pointer ${
+                  className={`h-7 px-2.5 text-xs font-sans font-semibold rounded-xl capitalize transition-colors cursor-pointer ${
                     datePreset === preset
-                      ? "bg-[#2D6A4F] text-white hover:bg-[#2D6A4F]"
+                      ? "bg-[#2D6A4F] text-white hover:bg-[#2D6A4F] shadow-xs"
                       : "text-[#5A6A5E] hover:text-[#133826] hover:bg-stone-100"
                   }`}
                 >
@@ -1193,35 +1209,37 @@ export default function KunalManagerPortal() {
 
             {/* 7 TOP-LEVEL METRIC CARDS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Card 1: Total Dining Sales (Clarified Consumption vs POS Due) */}
-              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#2D6A4F] transition-all">
+              {/* Card 1: Total Dining Sales */}
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#1B4332]/40 hover:shadow-md transition-all duration-200">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
                     <span>Total Dining Sales</span>
-                    <Receipt className="w-4 h-4 text-[#2D6A4F]" />
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-800">
+                      <Receipt className="w-4 h-4" />
+                    </div>
                   </div>
                   <div className="mt-3">
                     <div className="text-2xl sm:text-3xl font-sans font-bold tabular-nums tracking-tight text-[#133826]">
                       {formatINR(overview?.revenue?.total_dining_consumption || overview?.revenue?.net_sales)}
                     </div>
-                    <div className="mt-2 text-[11px] text-[#718074] space-y-0.5 font-sans">
-                      <div className="flex justify-between">
+                    <div className="mt-2 text-[11px] text-[#718074] space-y-1 font-sans">
+                      <div className="flex justify-between py-0.5 border-b border-stone-100">
                         <span>Gross Food & Beverage:</span>
                         <span className="font-semibold tabular-nums text-stone-700">{formatINR(overview?.revenue?.gross_subtotal)}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between py-0.5 border-b border-stone-100">
                         <span>Discounts Applied:</span>
                         <span className="font-semibold tabular-nums text-amber-700">-{formatINR(overview?.revenue?.discounts)}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between py-0.5 border-b border-stone-100">
                         <span>GST Tax (5%):</span>
                         <span className="font-semibold tabular-nums text-stone-700">+{formatINR(overview?.revenue?.taxes)}</span>
                       </div>
-                      <div className="flex justify-between text-emerald-800 font-semibold border-t border-dashed border-stone-200 pt-1 mt-1">
-                        <span>Advance Deposits Credited:</span>
+                      <div className="flex justify-between text-emerald-800 font-semibold pt-0.5">
+                        <span>Advance Credits Applied:</span>
                         <span className="tabular-nums">-{formatINR(overview?.revenue?.reservation_credits_applied)}</span>
                       </div>
-                      <div className="flex justify-between text-[#133826] font-bold">
+                      <div className="flex justify-between text-[#133826] font-bold pt-1 border-t border-stone-200">
                         <span>Net POS Checkout Due:</span>
                         <span className="tabular-nums">{formatINR(overview?.revenue?.net_pos_checkout_due)}</span>
                       </div>
@@ -1231,31 +1249,33 @@ export default function KunalManagerPortal() {
               </Card>
 
               {/* Card 2: UPI Collections */}
-              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#2D6A4F] transition-all">
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#1B4332]/40 hover:shadow-md transition-all duration-200">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
-                    <span>Verified UPI Collections</span>
-                    <CreditCard className="w-4 h-4 text-emerald-700" />
+                    <span>Verified UPI</span>
+                    <div className="w-8 h-8 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-800">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
                   </div>
                   <div className="mt-3">
                     <div className="text-2xl sm:text-3xl font-sans font-bold tabular-nums tracking-tight text-[#133826]">
                       {formatINR(overview?.upi_reconciliation?.verified_settled_amount)}
                     </div>
-                    <div className="mt-2 text-[11px] text-[#718074] space-y-0.5 font-sans">
-                      <div className="flex justify-between">
+                    <div className="mt-2 text-[11px] text-[#718074] space-y-1 font-sans">
+                      <div className="flex justify-between py-0.5 border-b border-stone-100">
                         <span>Bank Settled Credits:</span>
                         <span className="font-semibold tabular-nums text-emerald-700">
                           {overview?.upi_reconciliation?.verified_settled_count || 0} txn
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Requires Staff Review:</span>
+                      <div className="flex justify-between py-0.5 border-b border-stone-100">
+                        <span>Requires Review:</span>
                         <span className="font-semibold tabular-nums text-amber-700">
                           {formatINR(overview?.upi_reconciliation?.review_required_amount)} ({overview?.upi_reconciliation?.review_required_count || 0})
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>POS Ledger UPI Total:</span>
+                      <div className="flex justify-between pt-0.5">
+                        <span>POS Ledger UPI:</span>
                         <span className="font-semibold tabular-nums text-stone-700">{formatINR(overview?.collections?.by_method?.UPI)}</span>
                       </div>
                     </div>
@@ -1264,29 +1284,31 @@ export default function KunalManagerPortal() {
               </Card>
 
               {/* Card 3: Total Recorded Purchases / Expenses */}
-              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#2D6A4F] transition-all">
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#1B4332]/40 hover:shadow-md transition-all duration-200">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
                     <span>Recorded Purchases</span>
-                    <DollarSign className="w-4 h-4 text-stone-600" />
+                    <div className="w-8 h-8 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-700">
+                      <DollarSign className="w-4 h-4" />
+                    </div>
                   </div>
                   <div className="mt-3">
                     <div className="text-2xl sm:text-3xl font-sans font-bold tabular-nums tracking-tight text-[#133826]">
                       {formatINR(overview?.expenses?.received_expenses)}
                     </div>
-                    <div className="mt-2 text-[11px] text-[#718074] space-y-0.5 font-sans">
-                      <div className="flex justify-between">
+                    <div className="mt-2 text-[11px] text-[#718074] space-y-1 font-sans">
+                      <div className="flex justify-between py-0.5 border-b border-stone-100">
                         <span>Received Invoices:</span>
                         <span className="font-semibold tabular-nums text-stone-700">{overview?.expenses?.received_count || 0} orders</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Ordered / Committed:</span>
+                      <div className="flex justify-between py-0.5 border-b border-stone-100">
+                        <span>Committed / POs:</span>
                         <span className="font-semibold tabular-nums text-stone-600">
                           {formatINR(overview?.expenses?.ordered_commitments)} ({overview?.expenses?.ordered_count || 0})
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Category Source:</span>
+                      <div className="flex justify-between pt-0.5">
+                        <span>Source:</span>
                         <span className="font-semibold text-stone-700">Inventory POs</span>
                       </div>
                     </div>
@@ -1295,28 +1317,33 @@ export default function KunalManagerPortal() {
               </Card>
 
               {/* Card 4: Profit & Loss (Provisional) */}
-              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#2D6A4F] transition-all">
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#1B4332]/40 hover:shadow-md transition-all duration-200">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
-                    <span>Operating Surplus</span>
-                    <Badge variant="warning" className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 font-sans">
-                      Provisional
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      <span>Surplus</span>
+                      <Badge variant="warning" className="text-[9px] font-extrabold uppercase px-1 py-0 font-sans">
+                        Provisional
+                      </Badge>
+                    </div>
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-800">
+                      <TrendingUp className="w-4 h-4" />
+                    </div>
                   </div>
                   <div className="mt-3">
                     <div className="text-2xl sm:text-3xl font-sans font-bold tabular-nums tracking-tight text-[#133826]">
                       {formatINR(overview?.profit_and_loss?.provisional_surplus)}
                     </div>
-                    <div className="mt-2 text-[11px] text-[#718074] space-y-0.5 font-sans">
-                      <div className="flex justify-between">
-                        <span>Total Dining Sales:</span>
+                    <div className="mt-2 text-[11px] text-[#718074] space-y-1 font-sans">
+                      <div className="flex justify-between py-0.5 border-b border-stone-100">
+                        <span>Dining Sales:</span>
                         <span className="font-semibold tabular-nums text-stone-700">{formatINR(overview?.profit_and_loss?.net_sales)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Less Received Purchases:</span>
+                      <div className="flex justify-between py-0.5 border-b border-stone-100">
+                        <span>Less Purchases:</span>
                         <span className="font-semibold tabular-nums text-stone-700">-{formatINR(overview?.expenses?.received_expenses)}</span>
                       </div>
-                      <div className="flex justify-between text-[10px] text-amber-700 font-medium italic">
+                      <div className="flex justify-between text-[10px] text-amber-700 font-medium italic pt-0.5">
                         <span>Recipe COGS:</span>
                         <span>Linkage pending</span>
                       </div>
@@ -1326,40 +1353,46 @@ export default function KunalManagerPortal() {
               </Card>
 
               {/* Card 5: Petty Cash Status */}
-              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden">
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#1B4332]/40 hover:shadow-md transition-all duration-200">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
-                    <span>Petty Cash Balance</span>
-                    <Wallet className="w-4 h-4 text-amber-600" />
+                    <span>Petty Cash</span>
+                    <div className="w-8 h-8 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-800">
+                      <Wallet className="w-4 h-4" />
+                    </div>
                   </div>
                   <div className="mt-3">
-                    <div className="text-lg font-sans font-semibold text-stone-500 italic">
-                      Not Configured
+                    <div className="inline-block">
+                      <Badge variant="warning" className="text-xs font-bold py-1 px-2.5">
+                        Not Configured
+                      </Badge>
                     </div>
                     <p className="mt-2 text-[11px] text-[#718074] leading-snug font-sans">
-                      A dedicated petty cash ledger does not currently exist in the database. Balance is reported honestly without fabricating numbers.
+                      A dedicated petty cash ledger does not currently exist in the database. Reported honestly without fabricated numbers.
                     </p>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Card 6: Outstanding Amounts */}
-              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden">
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden group hover:border-[#1B4332]/40 hover:shadow-md transition-all duration-200">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
-                    <span>Outstanding Receivables</span>
-                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    <span>Outstanding</span>
+                    <div className="w-8 h-8 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-800">
+                      <AlertTriangle className="w-4 h-4" />
+                    </div>
                   </div>
                   <div className="mt-3">
                     <div className="text-2xl sm:text-3xl font-sans font-bold tabular-nums tracking-tight text-[#133826]">
                       {formatINR(overview?.outstanding?.amount)}
                     </div>
-                    <div className="mt-2 text-[11px] text-[#718074] space-y-0.5 font-sans">
-                      <div className="flex justify-between">
-                        <span>Unsettled Bills Count:</span>
+                    <div className="mt-2 text-[11px] text-[#718074] space-y-1 font-sans">
+                      <div className="flex justify-between py-0.5 border-b border-stone-100">
+                        <span>Unsettled Bills:</span>
                         <span className="font-semibold tabular-nums text-stone-700">{overview?.outstanding?.count || 0} bills</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between pt-0.5">
                         <span>Status:</span>
                         <span className="font-semibold text-amber-700">Awaiting Checkout</span>
                       </div>
@@ -1369,33 +1402,35 @@ export default function KunalManagerPortal() {
               </Card>
 
               {/* Card 7: Reservations & Sales Velocity */}
-              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden sm:col-span-2">
+              <Card className="bg-white rounded-2xl border-[#E2DACF] shadow-xs relative overflow-hidden sm:col-span-2 group hover:border-[#1B4332]/40 hover:shadow-md transition-all duration-200">
                 <CardContent className="p-5">
                   <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-wider text-[#5A6A5E]">
                     <span>Reservations & Order Velocity</span>
-                    <CalendarDays className="w-4 h-4 text-[#2D6A4F]" />
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-800">
+                      <CalendarDays className="w-4 h-4" />
+                    </div>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-4 font-sans">
-                    <div>
-                      <span className="text-[10px] text-[#718074] block">Total Bookings</span>
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 font-sans">
+                    <div className="p-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D9]">
+                      <span className="text-[10px] text-[#718074] block">Bookings</span>
                       <span className="text-xl font-sans font-bold tabular-nums text-[#133826]">
                         {overview?.reservations?.total_count || 0}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-[10px] text-[#718074] block">Advance Collected</span>
+                    <div className="p-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D9]">
+                      <span className="text-[10px] text-[#718074] block">Advance Deposit</span>
                       <span className="text-xl font-sans font-bold tabular-nums text-emerald-800">
                         {formatINR(overview?.reservations?.advance_collected)}
                       </span>
                     </div>
-                    <div>
+                    <div className="p-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D9]">
                       <span className="text-[10px] text-[#718074] block">Settled Bills</span>
                       <span className="text-xl font-sans font-bold tabular-nums text-[#133826]">
                         {overview?.revenue?.completed_bills_count || 0}
                       </span>
                     </div>
-                    <div>
-                      <span className="text-[10px] text-[#718074] block">Avg Ticket (AOV)</span>
+                    <div className="p-2.5 rounded-xl bg-[#FAF8F5] border border-[#EAE3D9]">
+                      <span className="text-[10px] text-[#718074] block">Avg Ticket</span>
                       <span className="text-xl font-sans font-bold tabular-nums text-[#133826]">
                         {formatINR(overview?.revenue?.aov)}
                       </span>
@@ -1405,32 +1440,75 @@ export default function KunalManagerPortal() {
               </Card>
             </div>
 
-            {/* PAYMENT METHOD BREAKDOWN STRIP */}
+            {/* PAYMENT METHOD BREAKDOWN STRIP WITH PROGRESS BARS */}
             <Card className="bg-white rounded-2xl p-6 border-[#E2DACF] shadow-xs">
-              <h3 className="font-serif font-bold text-base text-[#133826] mb-4">
-                Collections Breakdown by Payment Method
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-serif font-bold text-base text-[#133826]">
+                    Collections Breakdown by Payment Method
+                  </h3>
+                  <p className="text-xs text-[#5A6A5E] mt-0.5">
+                    Proportion of realized collections deposited through each payment channel
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-[#718074] block">Total Collections</span>
+                  <span className="text-base font-sans font-bold tabular-nums text-[#133826]">
+                    {formatINR(overview?.collections?.total_funds_collected)}
+                  </span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                {[
-                  { key: "UPI", label: "UPI Collections", color: "border-l-4 border-l-emerald-600 bg-emerald-50/30" },
-                  { key: "CASH", label: "Cash Register", color: "border-l-4 border-l-amber-600 bg-amber-50/30" },
-                  { key: "CARD", label: "Card Swipe / POS", color: "border-l-4 border-l-blue-600 bg-blue-50/30" },
-                  { key: "OTHER", label: "Other Methods", color: "border-l-4 border-l-stone-500 bg-stone-50/30" },
-                ].map((item) => {
-                  const amt = overview?.collections?.by_method?.[item.key] || "0.00";
-                  const count = overview?.collections?.counts_by_method?.[item.key] || 0;
-                  return (
-                    <div key={item.key} className={`p-4 rounded-xl border border-[#EAE3D9] ${item.color}`}>
-                      <span className="text-xs font-sans font-semibold text-[#5A6A5E] block">{item.label}</span>
-                      <span className="text-xl font-sans font-bold tabular-nums text-[#133826] block mt-1">
-                        {formatINR(amt)}
-                      </span>
-                      <span className="text-[11px] font-sans text-[#718074] mt-1 block tabular-nums">
-                        {count} completed transactions
-                      </span>
-                    </div>
-                  );
-                })}
+                {(() => {
+                  const totalCollectedNum = parseFloat(overview?.collections?.total_funds_collected || "0");
+                  return [
+                    {
+                      key: "UPI",
+                      label: "UPI Collections",
+                      colorBorder: "border-l-4 border-l-emerald-600 bg-emerald-50/20",
+                      progressColor: "bg-emerald-600",
+                    },
+                    {
+                      key: "CASH",
+                      label: "Cash Register",
+                      colorBorder: "border-l-4 border-l-amber-600 bg-amber-50/20",
+                      progressColor: "bg-amber-600",
+                    },
+                    {
+                      key: "CARD",
+                      label: "Card POS Swipe",
+                      colorBorder: "border-l-4 border-l-blue-600 bg-blue-50/20",
+                      progressColor: "bg-blue-600",
+                    },
+                    {
+                      key: "OTHER",
+                      label: "Other Channels",
+                      colorBorder: "border-l-4 border-l-stone-500 bg-stone-50/20",
+                      progressColor: "bg-stone-500",
+                    },
+                  ].map((item) => {
+                    const amt = overview?.collections?.by_method?.[item.key] || "0.00";
+                    const count = overview?.collections?.counts_by_method?.[item.key] || 0;
+                    const amtNum = parseFloat(amt);
+                    const sharePct = totalCollectedNum > 0 ? Math.round((amtNum / totalCollectedNum) * 100) : 0;
+                    return (
+                      <div key={item.key} className={`p-4 rounded-xl border border-[#EAE3D9] ${item.colorBorder}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-sans font-semibold text-[#5A6A5E]">{item.label}</span>
+                          <span className="text-[11px] font-sans font-bold tabular-nums text-stone-600">{sharePct}%</span>
+                        </div>
+                        <span className="text-xl font-sans font-bold tabular-nums text-[#133826] block mt-1">
+                          {formatINR(amt)}
+                        </span>
+                        <Progress value={sharePct} className="h-1.5 mt-2 bg-stone-200/60" indicatorClassName={item.progressColor} />
+                        <span className="text-[11px] font-sans text-[#718074] mt-2 block tabular-nums">
+                          {count} completed transactions
+                        </span>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </Card>
 
