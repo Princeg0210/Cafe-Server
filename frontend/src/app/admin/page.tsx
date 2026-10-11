@@ -1833,300 +1833,238 @@ export default function AdminPortal() {
         {/* TAB 1: EXECUTIVE ANALYTICS */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
-            {/* Primary KPI Metric Cards (Shadcn Card UI) */}
+            {/* Primary KPI Metric Cards (Symmetrical, Precision-Engineered Shadcn UI) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-              {/* Card 1: Daily revenue */}
-              <Card className="p-5 relative overflow-hidden">
+              {/* Card 1: Today's / Daily Revenue */}
+              <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
-                  <span>{revDay === todayIso ? "Today's Revenue" : "Daily Revenue"}</span>
-                  <IndianRupee className="w-4 h-4 text-[#B85B43]" />
-                </div>
-                <input
-                  type="date"
-                  value={revDay}
-                  min={shiftDays(todayIso, -6)}
-                  max={todayIso}
-                  onChange={(e) => e.target.value && setRevDay(e.target.value)}
-                  aria-label="Revenue date"
-                  className="mt-2 bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1 text-[11px] font-semibold text-[#4A392F] outline-none focus:border-[#B85B43] cursor-pointer"
-                />
-                <div className="text-3xl font-extrabold font-sans text-[#241A14] mt-2">
-                  ₹{Number(revFigures.day?.revenue || 0).toLocaleString("en-IN")}
-                </div>
-                <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
-                  <span>{shortDate(shiftDays(revDay, -1))}: ₹{Number(revFigures.prevDay?.revenue || 0).toLocaleString("en-IN")}</span>
-                  <Badge variant="default">{revFigures.day?.kots || 0} {revFigures.day?.kots === 1 ? "KOT" : "KOTs"}</Badge>
-                </div>
-              </Card>
-
-              {/* Card 2: Weekly revenue */}
-              <Card className="p-5 relative overflow-hidden">
-                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
-                  <span>Weekly Revenue</span>
-                  <TrendingUp className="w-4 h-4 text-emerald-600" />
-                </div>
-                <select value={revWeekEnd} onChange={(e) => setRevWeekEnd(e.target.value)} aria-label="Revenue week" className="mt-2 bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1 text-[11px] font-semibold text-[#4A392F] outline-none focus:border-[#B85B43] cursor-pointer">
-                  {Array.from({ length: 12 }, (_, i) => shiftDays(todayIso, -7 * i)).map((weekEnd, i) => (
-                    <option key={weekEnd} value={weekEnd}>
-                      {i === 0 ? "Last 7 days" : `${shortDate(shiftDays(weekEnd, -6))} – ${shortDate(weekEnd)}`}
-                    </option>
-                  ))}
-                </select>
-                <div className="text-3xl font-extrabold font-sans text-[#241A14] mt-2">
-                  ₹{Number(revFigures.week?.revenue || 0).toLocaleString("en-IN")}
-                </div>
-                <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
-                  <span>{shortDate(shiftDays(revWeekEnd, -6))} – {shortDate(revWeekEnd)}</span>
-                  <Badge variant="default">{revFigures.week?.kots || 0} {revFigures.week?.kots === 1 ? "KOT" : "KOTs"}</Badge>
-                </div>
-              </Card>
-
-              {/* Card 3: Monthly revenue */}
-              <Card className="p-5 relative overflow-hidden">
-                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
-                  <span>Monthly Revenue</span>
-                  <Calendar className="w-4 h-4 text-[#B85B43]" />
-                </div>
-                <select value={revMonth} onChange={(e) => setRevMonth(e.target.value)} aria-label="Revenue month" className="mt-2 bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1 text-[11px] font-semibold text-[#4A392F] outline-none focus:border-[#B85B43] cursor-pointer">
-                  {Array.from({ length: 24 }, (_, i) => {
-                    const [y, m] = todayIso.split("-").map(Number);
-                    const d = new Date(y, m - 1 - i, 1);
-                    return { value: isoDate(d).slice(0, 7), label: d.toLocaleDateString("en-IN", { month: "long", year: "numeric" }) };
-                  }).map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-                <div className="text-3xl font-extrabold font-sans text-[#241A14] mt-2">
-                  ₹{Number(revFigures.month?.revenue || 0).toLocaleString("en-IN")}
-                </div>
-                <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
-                  <span>Avg Ticket: ₹{Math.round(revFigures.month?.kots ? revFigures.month.revenue / revFigures.month.kots : 0).toLocaleString("en-IN")}</span>
-                  <Badge variant="default">{revFigures.month?.kots || 0} {revFigures.month?.kots === 1 ? "KOT" : "KOTs"}</Badge>
-                </div>
-              </Card>
-
-              {/* Card 4: Yearly revenue */}
-              <Card className="p-5 relative overflow-hidden">
-                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
-                  <span>Yearly Revenue</span>
-                  <TrendingUp className="w-4 h-4 text-[#B85B43]" />
-                </div>
-                <select value={revYear} onChange={(e) => setRevYear(e.target.value)} aria-label="Revenue year" className="mt-2 bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2 py-1 text-[11px] font-semibold text-[#4A392F] outline-none focus:border-[#B85B43] cursor-pointer">
-                  {Array.from({ length: 5 }, (_, i) => String(Number(todayIso.slice(0, 4)) - i)).map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-                <div className="text-3xl font-extrabold font-sans text-[#241A14] mt-2">
-                  ₹{Number(revFigures.year?.revenue || 0).toLocaleString("en-IN")}
-                </div>
-                <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
-                  <span>Jan – Dec {revYear}</span>
-                  <Badge variant="default">{revFigures.year?.kots || 0} {revFigures.year?.kots === 1 ? "KOT" : "KOTs"}</Badge>
-                </div>
-              </Card>
-
-              {/* Card 5: Total Lifetime Revenue */}
-              <Card className="p-5 relative overflow-hidden">
-                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
-                  <span>All-Time Sales</span>
-                  <Sparkles className="w-4 h-4 text-amber-600" />
-                </div>
-                <div className="text-3xl font-extrabold font-sans text-[#241A14] mt-2">
-                  ₹{Number(metrics?.total_revenue || 0).toLocaleString("en-IN")}
-                </div>
-                <div className="text-[11px] text-[#7A6A5E] mt-2 flex items-center justify-between">
-                  <Badge variant="secondary">{metrics?.total_kots || 0} Total Orders</Badge>
-                  <span className="text-[#665448]">{metrics?.total_tables || 13} Tables</span>
-                </div>
-              </Card>
-            </div>
-
-            {false && <>
-            {/* Floor Tables & Billing (moved from Operations) */}
-            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-6 shadow-sm space-y-4">
-              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-serif font-bold uppercase tracking-wider text-[#241A14]">
-                    Floor Tables & Billing
-                  </h3>
-                  <span className="text-xs text-[#7A6A5E]">
-                    ({filteredOpTables.length} tables shown)
+                  <span className="truncate">{revDay === todayIso ? "Today's Revenue" : "Daily Revenue"}</span>
+                  <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-[#B85B43] shrink-0">
+                    <IndianRupee className="w-3.5 h-3.5" />
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Floor Filter Tabs matching POS */}
-                  <div className="flex flex-wrap items-center bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setOpFloorFilter("all")}
-                      className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer ${
-                        opFloorFilter === "all"
-                          ? "bg-[#261C18] text-white shadow-xs"
-                          : "text-[#665448] hover:text-[#241A14]"
-                      }`}
+                {/* Symmetrical Control Slot (Fixed h-8) */}
+                <div className="my-2.5">
+                  <div className="relative h-8 w-full bg-[#FAF6EE] hover:bg-[#F3EDE2] border border-[#E0D4C2] hover:border-[#B85B43] rounded-lg px-2.5 flex items-center justify-between text-[11px] font-semibold text-[#4A392F] transition-colors cursor-pointer group-focus-within:border-[#B85B43]">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Calendar className="w-3.5 h-3.5 text-[#B85B43] shrink-0" />
+                      <span>{revDay === todayIso ? `Today (${shortDate(revDay)})` : shortDate(revDay)}</span>
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-[#8C7A6D] shrink-0" />
+                    <input
+                      type="date"
+                      value={revDay}
+                      min={shiftDays(todayIso, -6)}
+                      max={todayIso}
+                      onChange={(e) => e.target.value && setRevDay(e.target.value)}
+                      aria-label="Revenue date"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Key Metric Value - Locked to Identical Baseline */}
+                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight mb-3">
+                  ₹{Number(revFigures.day?.revenue || 0).toLocaleString("en-IN")}
+                </div>
+
+                {/* Symmetrical Footer Slot */}
+                <div className="mt-auto pt-3 border-t border-[#F0E8DC] flex items-center justify-between text-[11px]">
+                  <span className="text-[#7A6A5E] truncate">
+                    Prev: ₹{Number(revFigures.prevDay?.revenue || 0).toLocaleString("en-IN")}
+                  </span>
+                  <Badge variant="default" className="shrink-0 text-[10px]">
+                    {revFigures.day?.kots || 0} {revFigures.day?.kots === 1 ? "KOT" : "KOTs"}
+                  </Badge>
+                </div>
+              </Card>
+
+              {/* Card 2: Weekly Revenue */}
+              <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
+                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
+                  <span className="truncate">Weekly Revenue</span>
+                  <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-emerald-700 shrink-0">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+
+                {/* Symmetrical Control Slot (Fixed h-8) */}
+                <div className="my-2.5">
+                  <div className="relative h-8 w-full bg-[#FAF6EE] hover:bg-[#F3EDE2] border border-[#E0D4C2] hover:border-[#B85B43] rounded-lg px-2.5 flex items-center justify-between text-[11px] font-semibold text-[#4A392F] transition-colors cursor-pointer group-focus-within:border-[#B85B43]">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Clock className="w-3.5 h-3.5 text-[#B85B43] shrink-0" />
+                      <span>{revWeekEnd === todayIso ? "Last 7 Days" : `${shortDate(shiftDays(revWeekEnd, -6))} – ${shortDate(revWeekEnd)}`}</span>
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-[#8C7A6D] shrink-0" />
+                    <select
+                      value={revWeekEnd}
+                      onChange={(e) => setRevWeekEnd(e.target.value)}
+                      aria-label="Revenue week"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     >
-                      All Floors
-                    </button>
-                    {RESTAURANT_FLOORS.map((fl) => (
-                      <button
-                        key={fl.id}
-                        type="button"
-                        onClick={() => setOpFloorFilter(fl.id)}
-                        className={`px-3 py-1 rounded-md font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
-                          opFloorFilter === fl.id
-                            ? "bg-[#261C18] text-white shadow-xs"
-                            : "text-[#665448] hover:text-[#241A14]"
-                        }`}
-                      >
-                        <span>{fl.name}</span>
-                        {fl.isComingSoon && (
-                          <span className="text-[9px] bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.2 rounded font-normal">
-                            Soon
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Occupancy Filter */}
-                  <div className="flex items-center bg-[#FAF7F0] p-1 rounded-lg border border-[#E4DCD0] text-xs">
-                    {(["all", "active", "available"] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => setOpTableFilter(mode)}
-                        className={`px-3 py-1 rounded-md capitalize font-bold transition-colors cursor-pointer ${
-                          opTableFilter === mode
-                            ? "bg-[#261C18] text-white shadow-xs"
-                            : "text-[#665448] hover:text-[#241A14]"
-                        }`}
-                      >
-                        {mode === "all"
-                          ? `All (${displayTableOverviews.length})`
-                          : mode === "active"
-                          ? `Occupied (${opActiveTablesCount})`
-                          : `Ready (${displayTableOverviews.length - opActiveTablesCount})`}
-                      </button>
-                    ))}
+                      {Array.from({ length: 12 }, (_, i) => shiftDays(todayIso, -7 * i)).map((weekEnd, i) => (
+                        <option key={weekEnd} value={weekEnd}>
+                          {i === 0 ? "Last 7 days" : `${shortDate(shiftDays(weekEnd, -6))} – ${shortDate(weekEnd)}`}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              </div>
 
-              {filteredOpTables.length === 0 ? (
-                <div className="text-center py-12 px-4 bg-[#FFFDF9] rounded-2xl border border-[#E4DCD0] space-y-2">
-                  {opFloorFilter === 6 ? (
-                    <>
-                      <div className="inline-block p-3 bg-amber-50 rounded-full border border-amber-200 mb-1">
-                        <Sparkles className="w-6 h-6 text-amber-700 mx-auto" />
-                      </div>
-                      <h4 className="text-sm font-bold text-[#241A14]">Floor 6: Everest Sky Deck</h4>
-                      <p className="text-xs text-[#7A6A5E] max-w-sm mx-auto">
-                        Exclusive rooftop sky deck with 360° views of Old City Udaipur & Lake Pichola is opening soon!
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <UtensilsCrossed className="w-8 h-8 text-[#A8988B] mx-auto" />
-                      <h4 className="text-sm font-bold text-[#241A14]">No Tables Found</h4>
-                      <p className="text-xs text-[#7A6A5E]">No tables match the selected filter on this date.</p>
-                    </>
-                  )}
+                {/* Key Metric Value - Locked to Identical Baseline */}
+                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight mb-3">
+                  ₹{Number(revFigures.week?.revenue || 0).toLocaleString("en-IN")}
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  {(opFloorFilter === "all"
-                    ? RESTAURANT_FLOORS.filter((f) => !f.isComingSoon)
-                    : RESTAURANT_FLOORS.filter((f) => f.id === opFloorFilter)
-                  ).map((floor) => {
-                    const floorTables = filteredOpTables.filter(
-                      (tbl) => (tbl.floor_number || getTableFloor(tbl.table_id).floor) === floor.id
-                    );
-                    if (floorTables.length === 0) return null;
 
-                    return (
-                      <div key={floor.id} className="space-y-3">
-                        <div className="flex items-center justify-between bg-[#F8F5F0] px-4 py-2.5 rounded-xl border border-[#E4DCD0] shadow-2xs">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#B85B43]" />
-                            <h3 className="font-serif font-bold text-sm text-[#241A14]">
-                              Floor {floor.id}: {floor.name}
-                            </h3>
-                            <span className="text-xs text-[#7A6A5E] font-sans">
-                              ({floorTables.length} {floorTables.length === 1 ? "Table" : "Tables"})
-                            </span>
-                          </div>
-                        </div>
+                {/* Symmetrical Footer Slot */}
+                <div className="mt-auto pt-3 border-t border-[#F0E8DC] flex items-center justify-between text-[11px]">
+                  <span className="text-[#7A6A5E] truncate">
+                    {shortDate(shiftDays(revWeekEnd, -6))} – {shortDate(revWeekEnd)}
+                  </span>
+                  <Badge variant="default" className="shrink-0 text-[10px]">
+                    {revFigures.week?.kots || 0} {revFigures.week?.kots === 1 ? "KOT" : "KOTs"}
+                  </Badge>
+                </div>
+              </Card>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {floorTables.map((tbl) => {
-                            const floorInfo = tbl.floor_number ? RESTAURANT_FLOORS.find((f) => f.id === tbl.floor_number) : getTableFloor(tbl.table_id);
-                            const floorDetail = getTableFloor(tbl.table_id, tbl.floor_number);
-                            const floorTableNum = tbl.floor_table_num || floorDetail.floor_table_num;
-                            const displayTableName = `TABLE ${String(floorTableNum).padStart(2, "0")}`;
-                            const floorDisplayName = tbl.floor_name || floorInfo?.name || floorDetail.name;
-                            const isOccupied = (tbl.active_session_count || 0) > 0;
+              {/* Card 3: Monthly Revenue */}
+              <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
+                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
+                  <span className="truncate">Monthly Revenue</span>
+                  <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-[#B85B43] shrink-0">
+                    <Calendar className="w-3.5 h-3.5" />
+                  </span>
+                </div>
 
-                            return (
-                              <div
-                                key={tbl.table_id}
-                                className={`rounded-2xl border p-4.5 space-y-3.5 transition-all shadow-sm ${
-                                  isOccupied
-                                    ? "bg-[#FFFDF9] border-amber-300 ring-1 ring-amber-200"
-                                    : "bg-[#FFFDF9] border-[#E6DCCF]"
-                                }`}
-                              >
-                                <div className="flex items-start justify-between border-b border-[#F0E8DC] pb-2.5">
-                                  <div>
-                                    <div className="flex items-baseline gap-2">
-                                      <h4 className="font-sans font-extrabold text-base text-[#241A14]">
-                                        {displayTableName}
-                                      </h4>
-                                      <span className="text-xs font-semibold text-[#B85B43]">
-                                        • {floorDisplayName}
-                                      </span>
-                                    </div>
-                                    <span className="text-[11px] text-[#7A6A5E]">
-                                      {tbl.capacity || floorDetail.capacity} Seats Physical Capacity
-                                    </span>
-                                  </div>
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                              isOccupied
-                                ? "bg-amber-100 text-amber-900 border-amber-300"
-                                : "bg-emerald-100 text-emerald-900 border-emerald-300"
-                            }`}
-                          >
-                            {isOccupied ? "Occupied" : "Ready"}
-                          </span>
-                        </div>
+                {/* Symmetrical Control Slot (Fixed h-8) */}
+                <div className="my-2.5">
+                  <div className="relative h-8 w-full bg-[#FAF6EE] hover:bg-[#F3EDE2] border border-[#E0D4C2] hover:border-[#B85B43] rounded-lg px-2.5 flex items-center justify-between text-[11px] font-semibold text-[#4A392F] transition-colors cursor-pointer group-focus-within:border-[#B85B43]">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Calendar className="w-3.5 h-3.5 text-[#B85B43] shrink-0" />
+                      <span>{(() => {
+                        const [y, m] = revMonth.split("-").map(Number);
+                        return new Date(y, m - 1).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+                      })()}</span>
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-[#8C7A6D] shrink-0" />
+                    <select
+                      value={revMonth}
+                      onChange={(e) => setRevMonth(e.target.value)}
+                      aria-label="Revenue month"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    >
+                      {Array.from({ length: 24 }, (_, i) => {
+                        const [y, m] = todayIso.split("-").map(Number);
+                        const d = new Date(y, m - 1 - i, 1);
+                        return { value: isoDate(d).slice(0, 7), label: d.toLocaleDateString("en-IN", { month: "long", year: "numeric" }) };
+                      }).map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-[#241A14]">Total Bill:</span>
-                          <span className="font-mono font-extrabold text-sm text-[#B85B43]">
-                            ₹{(tbl.sessions || []).reduce((sum: number, s: any) => sum + Number(s.gross_amount || s.total_amount || 0), 0).toLocaleString("en-IN")}
-                          </span>
-                        </div>
+                {/* Key Metric Value - Locked to Identical Baseline */}
+                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight mb-3">
+                  ₹{Number(revFigures.month?.revenue || 0).toLocaleString("en-IN")}
+                </div>
 
-                        <button
-                          type="button"
-                          onClick={() => setSelectedOpTable(tbl)}
-                          className="w-full py-1.5 px-3 rounded-xl bg-[#FAF7F0] hover:bg-[#F3EDE2] text-[#241A14] border border-[#E0D4C2] font-bold text-xs transition-colors cursor-pointer"
-                        >
-                          Bill Summary
-                        </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                {/* Symmetrical Footer Slot */}
+                <div className="mt-auto pt-3 border-t border-[#F0E8DC] flex items-center justify-between text-[11px]">
+                  <span className="text-[#7A6A5E] truncate">
+                    Avg Ticket: ₹{Math.round(revFigures.month?.kots ? revFigures.month.revenue / revFigures.month.kots : 0).toLocaleString("en-IN")}
+                  </span>
+                  <Badge variant="default" className="shrink-0 text-[10px]">
+                    {revFigures.month?.kots || 0} {revFigures.month?.kots === 1 ? "KOT" : "KOTs"}
+                  </Badge>
+                </div>
+              </Card>
+
+              {/* Card 4: Yearly Revenue */}
+              <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
+                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
+                  <span className="truncate">Yearly Revenue</span>
+                  <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-[#B85B43] shrink-0">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+
+                {/* Symmetrical Control Slot (Fixed h-8) */}
+                <div className="my-2.5">
+                  <div className="relative h-8 w-full bg-[#FAF6EE] hover:bg-[#F3EDE2] border border-[#E0D4C2] hover:border-[#B85B43] rounded-lg px-2.5 flex items-center justify-between text-[11px] font-semibold text-[#4A392F] transition-colors cursor-pointer group-focus-within:border-[#B85B43]">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Calendar className="w-3.5 h-3.5 text-[#B85B43] shrink-0" />
+                      <span>Calendar Year {revYear}</span>
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-[#8C7A6D] shrink-0" />
+                    <select
+                      value={revYear}
+                      onChange={(e) => setRevYear(e.target.value)}
+                      aria-label="Revenue year"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    >
+                      {Array.from({ length: 5 }, (_, i) => String(Number(todayIso.slice(0, 4)) - i)).map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Key Metric Value - Locked to Identical Baseline */}
+                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight mb-3">
+                  ₹{Number(revFigures.year?.revenue || 0).toLocaleString("en-IN")}
+                </div>
+
+                {/* Symmetrical Footer Slot */}
+                <div className="mt-auto pt-3 border-t border-[#F0E8DC] flex items-center justify-between text-[11px]">
+                  <span className="text-[#7A6A5E] truncate">
+                    Jan – Dec {revYear}
+                  </span>
+                  <Badge variant="default" className="shrink-0 text-[10px]">
+                    {revFigures.year?.kots || 0} {revFigures.year?.kots === 1 ? "KOT" : "KOTs"}
+                  </Badge>
+                </div>
+              </Card>
+
+              {/* Card 5: All-Time Sales (Symmetrically Balanced) */}
+              <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
+                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
+                  <span className="truncate">All-Time Sales</span>
+                  <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-amber-600 shrink-0">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+
+                {/* Symmetrical Control Slot (Fixed h-8 matching cards 1-4) */}
+                <div className="my-2.5">
+                  <div className="h-8 w-full bg-[#FAF6EE] border border-[#E0D4C2] rounded-lg px-2.5 flex items-center justify-between text-[11px] font-semibold text-[#7A6A5E]">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>Full Restaurant Record</span>
+                    </span>
+                    <span className="text-[10px] text-[#A8988B] font-mono uppercase">Lifetime</span>
+                  </div>
+                </div>
+
+                {/* Key Metric Value - Locked to Identical Baseline */}
+                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight mb-3">
+                  ₹{Number(metrics?.total_revenue || 0).toLocaleString("en-IN")}
+                </div>
+
+                {/* Symmetrical Footer Slot */}
+                <div className="mt-auto pt-3 border-t border-[#F0E8DC] flex items-center justify-between text-[11px]">
+                  <span className="text-[#7A6A5E] truncate">
+                    Fleet: {metrics?.total_tables || 13} Tables
+                  </span>
+                  <Badge variant="default" className="shrink-0 text-[10px]">
+                    {metrics?.total_kots || 0} Orders
+                  </Badge>
+                </div>
+              </Card>
             </div>
 
-            </>}
+            
 
             {/* 14-Day Sales Trend Bar Chart (Shadcn UI & Recharts Pattern) */}
             <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-6 shadow-xs space-y-5">
