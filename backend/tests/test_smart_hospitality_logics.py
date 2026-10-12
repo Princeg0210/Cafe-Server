@@ -12,7 +12,7 @@ from app.utils.helpers import IST
 
 @pytest.fixture
 async def setup_cafe_environment(db_session):
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
 
     table1 = Table(id=1, branch_id=1, table_number="Table 1", capacity=4, status="Available")

@@ -35,7 +35,7 @@ def verify_request(payment_id="pay_ABC123", order_id="order_XYZ", signature=None
         signature = hmac.new(SECRET.encode(), f"{order_id}|{payment_id}".encode(), hashlib.sha256).hexdigest()
     return RazorpayVerifyPaymentRequest(
         razorpay_order_id=order_id, razorpay_payment_id=payment_id, razorpay_signature=signature,
-        customer_name="Asha", customer_phone="9876543210", guest_count=guests,
+        customer_name="Asha", customer_phone="9351322209", guest_count=guests,
         reservation_date=next_open_day(), time_slot="07:00 PM",
         is_test_simulation=simulated,
     )
@@ -113,7 +113,7 @@ async def test_create_order_refused_without_real_keys(monkeypatch):
 
     monkeypatch.setattr(rs.SettingsService, "get_deposit_per_guest", deposit)
     req = RazorpayCreateOrderRequest(
-        customer_name="Asha", customer_phone="9876543210", guest_count=2,
+        customer_name="Asha", customer_phone="9351322209", guest_count=2,
         reservation_date=next_open_day(), time_slot="07:00 PM",
     )
     await expect_error(ReservationService.create_razorpay_order(None, req), "PAYMENTS_NOT_CONFIGURED")

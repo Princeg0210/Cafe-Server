@@ -1,5 +1,11 @@
 import pytest
-from datetime import date
+from datetime import date, timedelta
+
+
+def day(n: int) -> date:
+    """A future date n days from today (fixed dates expire once they are in the past)."""
+    return date.today() + timedelta(days=n)
+
 from sqlalchemy import select
 from app.models.reservation import Reservation, ReservationCapacityRule
 from app.models.branch import Branch
@@ -9,7 +15,7 @@ from unittest.mock import patch
 
 @pytest.mark.asyncio
 async def test_create_reservation_success(client, db_session):
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
     rule = ReservationCapacityRule(
         branch_id=1,
@@ -24,9 +30,9 @@ async def test_create_reservation_success(client, db_session):
         "branch_id": 1,
         "customer_name": "Marco Rossi",
         "customer_email": "marco@example.com",
-        "customer_phone": "+919876543210",
+        "customer_phone": "+919351322209",
         "guest_count": 4,
-        "reservation_date": "2026-10-01",
+        "reservation_date": day(1).isoformat(),
         "time_slot": "19:00-20:00",
     }
 
@@ -60,7 +66,7 @@ async def test_create_reservation_capacity_exceeded(client, db_session):
         branch_id=2,
         customer_id=cust.id,
         guest_count=4,
-        reservation_date=date(2026, 10, 2),
+        reservation_date=day(2),
         time_slot="20:00-21:00",
         status="CONFIRMED",
     )
@@ -72,7 +78,7 @@ async def test_create_reservation_capacity_exceeded(client, db_session):
         "customer_name": "Giuseppe",
         "customer_phone": "+919876543211",
         "guest_count": 3,
-        "reservation_date": "2026-10-02",
+        "reservation_date": day(2).isoformat(),
         "time_slot": "20:00-21:00",
     }
 
@@ -93,7 +99,7 @@ async def test_invalid_status_transition(client, db_session):
         branch_id=3,
         customer_id=cust.id,
         guest_count=2,
-        reservation_date=date(2026, 10, 3),
+        reservation_date=day(3),
         time_slot="18:00-19:00",
         status="CONFIRMED",
     )
@@ -124,7 +130,7 @@ async def test_celery_task_revocation_on_cancel(client, db_session):
         branch_id=4,
         customer_id=cust.id,
         guest_count=2,
-        reservation_date=date(2026, 10, 4),
+        reservation_date=day(4),
         time_slot="19:00-20:00",
         status="CONFIRMED",
         celery_task_id="celery-task-999",

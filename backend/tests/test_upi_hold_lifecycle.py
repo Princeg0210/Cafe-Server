@@ -1,4 +1,6 @@
 import pytest
+from datetime import date, timedelta
+
 import asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,10 +8,15 @@ from app.models.branch import Branch
 from app.models.table import Table
 
 
+def day(n: int) -> date:
+    """A future date n days from today (fixed dates expire once they are in the past)."""
+    return date.today() + timedelta(days=n)
+
+
 @pytest.mark.asyncio
 async def test_upi_hold_and_payment_flow(client: AsyncClient, db_session: AsyncSession):
     # Setup branch and tables
-    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919351322209")
     db_session.add(branch)
     table = Table(id=1, branch_id=1, table_number="Table 1", capacity=4, status="Available")
     db_session.add(table)
@@ -19,9 +26,9 @@ async def test_upi_hold_and_payment_flow(client: AsyncClient, db_session: AsyncS
     hold_payload = {
         "branch_id": 1,
         "customer_name": "Test Customer",
-        "customer_phone": "+919111222333",
+        "customer_phone": "+919351322209",
         "guest_count": 2,
-        "reservation_date": "2026-10-01",
+        "reservation_date": day(1).isoformat(),
         "time_slot": "19:30",
         "floor_number": 1,
         "table_name": "Table 1",
@@ -42,7 +49,7 @@ async def test_upi_hold_and_payment_flow(client: AsyncClient, db_session: AsyncS
         "customer_name": "Second Customer",
         "customer_phone": "+919444555666",
         "guest_count": 2,
-        "reservation_date": "2026-10-01",
+        "reservation_date": day(1).isoformat(),
         "time_slot": "19:30",
         "floor_number": 1,
         "table_name": "Table 1",
@@ -82,7 +89,7 @@ async def test_upi_hold_and_payment_flow(client: AsyncClient, db_session: AsyncS
 
 @pytest.mark.asyncio
 async def test_upi_hold_cancellation_releases_table(client: AsyncClient, db_session: AsyncSession):
-    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919351322209")
     db_session.add(branch)
     table = Table(id=2, branch_id=1, table_number="Table 2", capacity=4, status="Available")
     db_session.add(table)
@@ -94,7 +101,7 @@ async def test_upi_hold_cancellation_releases_table(client: AsyncClient, db_sess
         "customer_name": "Cancelling User",
         "customer_phone": "+919777888999",
         "guest_count": 2,
-        "reservation_date": "2026-10-02",
+        "reservation_date": day(2).isoformat(),
         "time_slot": "20:00",
         "floor_number": 1,
         "table_name": "Table 2",
@@ -120,7 +127,7 @@ async def test_random_utr_rejected_without_payment(client: AsyncClient, db_sessi
     """
     Test 1: Random UTR + no payment -> REJECTED (HTTP 402 PAYMENT_NOT_VERIFIED)
     """
-    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919351322209")
     db_session.add(branch)
     table = Table(id=10, branch_id=1, table_number="Table 10", capacity=2, status="Available")
     db_session.add(table)
@@ -131,7 +138,7 @@ async def test_random_utr_rejected_without_payment(client: AsyncClient, db_sessi
         "customer_name": "Random User",
         "customer_phone": "+919888777666",
         "guest_count": 2,
-        "reservation_date": "2026-10-10",
+        "reservation_date": day(10).isoformat(),
         "time_slot": "19:00",
         "floor_number": 1,
         "table_name": "Table 10",
@@ -157,7 +164,7 @@ async def test_fake_transaction_id_rejected(client: AsyncClient, db_session: Asy
     """
     Test 2: Fake transaction ID -> REJECTED (HTTP 402 PAYMENT_NOT_VERIFIED)
     """
-    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919351322209")
     db_session.add(branch)
     table = Table(id=11, branch_id=1, table_number="Table 11", capacity=2, status="Available")
     db_session.add(table)
@@ -168,7 +175,7 @@ async def test_fake_transaction_id_rejected(client: AsyncClient, db_session: Asy
         "customer_name": "Fake Txn User",
         "customer_phone": "+919555666777",
         "guest_count": 2,
-        "reservation_date": "2026-10-10",
+        "reservation_date": day(10).isoformat(),
         "time_slot": "20:00",
         "floor_number": 1,
         "table_name": "Table 11",
@@ -188,7 +195,7 @@ async def test_valid_format_nonexistent_utr_rejected(client: AsyncClient, db_ses
     """
     Test 3: Valid-format 12-digit but nonexistent UTR -> REJECTED (HTTP 402 PAYMENT_NOT_VERIFIED)
     """
-    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919351322209")
     db_session.add(branch)
     table = Table(id=12, branch_id=1, table_number="Table 12", capacity=2, status="Available")
     db_session.add(table)
@@ -199,7 +206,7 @@ async def test_valid_format_nonexistent_utr_rejected(client: AsyncClient, db_ses
         "customer_name": "Valid Format User",
         "customer_phone": "+919444333222",
         "guest_count": 2,
-        "reservation_date": "2026-10-10",
+        "reservation_date": day(10).isoformat(),
         "time_slot": "21:00",
         "floor_number": 1,
         "table_name": "Table 12",
@@ -220,7 +227,7 @@ async def test_same_verified_utr_cannot_be_reused(client: AsyncClient, db_sessio
     """
     Test 4: Same verified UTR cannot be reused across reservations (HTTP 409 UTR_ALREADY_USED)
     """
-    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919351322209")
     db_session.add(branch)
     t1 = Table(id=13, branch_id=1, table_number="Table 13", capacity=2, status="Available")
     t2 = Table(id=14, branch_id=1, table_number="Table 14", capacity=2, status="Available")
@@ -239,9 +246,9 @@ async def test_same_verified_utr_cannot_be_reused(client: AsyncClient, db_sessio
     hold1 = await client.post("/api/v1/reservations/hold", json={
         "branch_id": 1,
         "customer_name": "Legit User",
-        "customer_phone": "+919111222333",
+        "customer_phone": "+919351322209",
         "guest_count": 2,
-        "reservation_date": "2026-10-12",
+        "reservation_date": day(12).isoformat(),
         "time_slot": "18:00",
         "floor_number": 1,
         "table_name": "Table 13",
@@ -260,7 +267,7 @@ async def test_same_verified_utr_cannot_be_reused(client: AsyncClient, db_sessio
         "customer_name": "Replay User",
         "customer_phone": "+919444555666",
         "guest_count": 2,
-        "reservation_date": "2026-10-12",
+        "reservation_date": day(12).isoformat(),
         "time_slot": "18:00",
         "floor_number": 1,
         "table_name": "Table 14",
@@ -279,7 +286,7 @@ async def test_only_genuinely_verified_payment_confirms(client: AsyncClient, db_
     """
     Test 5: Only genuinely verified payment -> CONFIRMED + PAID
     """
-    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919351322209")
     db_session.add(branch)
     table = Table(id=15, branch_id=1, table_number="Table 15", capacity=2, status="Available")
     db_session.add(table)
@@ -291,7 +298,7 @@ async def test_only_genuinely_verified_payment_confirms(client: AsyncClient, db_
         "customer_name": "Genuine Payer",
         "customer_phone": "+919876500000",
         "guest_count": 2,
-        "reservation_date": "2026-10-15",
+        "reservation_date": day(15).isoformat(),
         "time_slot": "19:00",
         "floor_number": 1,
         "table_name": "Table 15",
@@ -339,7 +346,7 @@ async def test_concurrent_verification_cannot_double_confirm(client: AsyncClient
     app.dependency_overrides[get_db] = separate_get_db
 
     try:
-        branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919876543210")
+        branch = Branch(id=1, name="Old City", address="Lake Pichola, Udaipur", phone="+919351322209")
         db_session.add(branch)
         t1 = Table(id=16, branch_id=1, table_number="Table 16", capacity=2, status="Available")
         t2 = Table(id=17, branch_id=1, table_number="Table 17", capacity=2, status="Available")
@@ -360,7 +367,7 @@ async def test_concurrent_verification_cannot_double_confirm(client: AsyncClient
             "customer_name": "Concurrent 1",
             "customer_phone": "+919111111111",
             "guest_count": 2,
-            "reservation_date": "2026-10-18",
+            "reservation_date": day(18).isoformat(),
             "time_slot": "19:00",
             "floor_number": 1,
             "table_name": "Table 16",
@@ -371,7 +378,7 @@ async def test_concurrent_verification_cannot_double_confirm(client: AsyncClient
             "customer_name": "Concurrent 2",
             "customer_phone": "+919222222222",
             "guest_count": 2,
-            "reservation_date": "2026-10-18",
+            "reservation_date": day(18).isoformat(),
             "time_slot": "19:00",
             "floor_number": 1,
             "table_name": "Table 17",

@@ -34,7 +34,7 @@ async def test_guest_count_deposit_formula_1_2_3_5(client: AsyncClient, db_sessi
     5 guests = ₹1,000
     Backend must calculate this automatically. Frontend cannot manipulate.
     """
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
     await SettingsService.set_setting(db_session, "RESERVATION_DEPOSIT_PER_PERSON", "200.00")
     await db_session.commit()
@@ -73,7 +73,7 @@ async def test_fake_or_random_utr_rejected(client: AsyncClient, db_session: Asyn
     Must be strictly REJECTED with 402 PAYMENT_NOT_VERIFIED.
     Reservation must NEVER confirm from customer-entered UTR alone.
     """
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
     await db_session.commit()
 
@@ -112,7 +112,7 @@ async def test_wrong_amount_rejected(client: AsyncClient, db_session: AsyncSessi
     If genuine bank credit arrives for ₹400 but reservation requires ₹600:
     Must be REJECTED with 400 Bad Request (PAYMENT_UNDERPAID).
     """
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
     await db_session.commit()
 
@@ -152,7 +152,7 @@ async def test_already_used_utr_rejected(client: AsyncClient, db_session: AsyncS
     """
     Prevent UTR reuse across bookings (replay attack prevention).
     """
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
     await db_session.commit()
 
@@ -209,7 +209,7 @@ async def test_android_payment_event_confirmation_and_idempotency(client: AsyncC
     - Reservation confirmed & paid
     - Duplicate event received is handled idempotently without error
     """
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
     await db_session.commit()
 
@@ -273,7 +273,7 @@ async def test_expired_hold_cannot_confirm_normally_and_late_payment_flagged_for
     1. If hold expired -> reservation transitions to EXPIRED, availability released.
     2. If money arrives AFTER hold expired -> PAYMENT_REVIEW_REQUIRED (shown in POS, not auto-confirmed).
     """
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
     await db_session.commit()
 
@@ -327,7 +327,7 @@ async def test_table_assignment_and_checkin(client: AsyncClient, db_session: Asy
     """
     Test table assignment by café staff and check-in session creation.
     """
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
     table = Table(id=5, branch_id=1, table_number="Table 5", capacity=4, status="Available")
     db_session.add(table)
@@ -380,7 +380,7 @@ async def test_deposit_credited_to_final_bill_greater_than_deposit(client: Async
     Customer pays ₹1,500 at checkout.
     Deposit cannot be credited twice.
     """
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
     table = Table(id=2, branch_id=1, table_number="Table 2", capacity=4, status="Occupied")
     db_session.add(table)
@@ -477,7 +477,7 @@ async def test_final_bill_equal_to_deposit(client: AsyncClient, db_session: Asyn
     Amount Due = ₹0
     Checkout requires ₹0 payment.
     """
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
     table = Table(id=3, branch_id=1, table_number="Table 3", capacity=4, status="Occupied")
     db_session.add(table)
@@ -558,7 +558,7 @@ async def test_final_bill_less_than_deposit_policies(client: AsyncClient, db_ses
     2. CUSTOMER_CREDIT (Store excess ₹150 as customer credit)
     3. FORFEIT_REMAINDER (Café retains remainder)
     """
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
     table = Table(id=4, branch_id=1, table_number="Table 4", capacity=4, status="Occupied")
     db_session.add(table)
@@ -634,7 +634,7 @@ async def test_cancellation_and_no_show_policies(client: AsyncClient, db_session
     """
     Requirement 10: Cancellation & No-Show configurable policies.
     """
-    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
     customer = Customer(id=1, name="Policy Cust", phone="+919999999999")
     db_session.add_all([branch, customer])
     await db_session.commit()
@@ -660,7 +660,7 @@ async def test_cancellation_and_no_show_policies(client: AsyncClient, db_session
     data = cancel_res.json()
     assert data["status"] == "CANCELLED"
     assert data["payment_status"] == "REFUNDED"
-    assert data["cancellation_refund_amount"] == 344.0  # ₹400 advance - ₹56 cancellation charge
+    assert data["cancellation_refund_amount"] == 346.0  # ₹400 advance - ₹54 cancellation charge
 
     # 2. No Refund Policy
     await SettingsService.set_setting(db_session, "CANCELLATION_REFUND_POLICY", "NO_REFUND")

@@ -254,7 +254,7 @@ async def test_clarified_sales_deposit_and_checkout_balance(db_session: AsyncSes
 
     customer = Customer(
         name="Rahul Verma",
-        phone="+919876543210",
+        phone="+919351322209",
         email="rahul@example.com",
     )
     db_session.add(customer)

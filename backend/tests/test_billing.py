@@ -404,7 +404,7 @@ async def test_advance_deposit_credit_with_gst_and_discount(db_session: AsyncSes
     db_session.add(branch)
     await db_session.flush()
 
-    cust = Customer(name="Aman Sharma", phone="+919876543210")
+    cust = Customer(name="Aman Sharma", phone="+919351322209")
     db_session.add(cust)
     await db_session.flush()
 

@@ -26,7 +26,7 @@ async def security_setup(db_session):
     res = await db_session.execute(b_query)
     branch = res.scalar_one_or_none()
     if not branch:
-        branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919876543210")
+        branch = Branch(id=1, name="Jaadoo Main", address="Old City Udaipur", phone="+919351322209")
         db_session.add(branch)
         await db_session.flush()
 

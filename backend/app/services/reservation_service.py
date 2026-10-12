@@ -513,7 +513,7 @@ class ReservationService:
         refund_pct = cancellation_policy["refund_percentage"]
 
         advance = Decimal(str(reservation.advance_amount or "0.00"))
-        cancellation_charge = Decimal("56.00")
+        cancellation_charge = Decimal("54.00")
         refund_amount = Decimal("0.00")
 
         if reservation.payment_status == "PAID" and advance > Decimal("0.00"):

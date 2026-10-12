@@ -11,7 +11,7 @@ from unittest.mock import patch
 @pytest.mark.asyncio
 async def test_seven_day_reservation_policy_and_id_consistency(client, db_session):
     # Setup branch
-    branch = Branch(id=99, name="Jaadoo Main 99", address="Old City Udaipur", phone="+919876543210")
+    branch = Branch(id=99, name="Jaadoo Main 99", address="Old City Udaipur", phone="+919351322209")
     db_session.add(branch)
 
     # Setup customers
