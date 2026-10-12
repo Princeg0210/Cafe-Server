@@ -61,6 +61,7 @@ import {
   Cell,
 } from "recharts";
 import { menuData, MENU_ITEM_ID_MAP, ITEM_MEDIA_MAP } from "@/data/menu";
+import BrandTitle from "@/components/BrandTitle";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
 import { adminSession } from "@/lib/authFetch";
@@ -1708,11 +1709,11 @@ export default function AdminPortal() {
               />
             </div>
             <div>
-              <h1 className="text-2xl font-serif font-extrabold text-[#2A1E17] tracking-tight">
-                JAADOO OWNER PORTAL
+              <h1 className="pt-3">
+                <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-2xl" />
               </h1>
               <p className="text-[11px] uppercase tracking-[0.25em] text-[#B85B43] font-bold mt-0.5">
-                Executive Management & Live Control
+                Owner Portal · Executive Management & Live Control
               </p>
             </div>
           </div>
@@ -1820,10 +1821,8 @@ export default function AdminPortal() {
             />
           </div>
           <div>
-            <h1 className="font-serif font-extrabold text-xl sm:text-2xl leading-tight tracking-wide text-[#5F3F6D]">
-              JAADOO{" "}
-              <span className="text-[#F5C518] [-webkit-text-stroke:0.6px_#000] [paint-order:stroke_fill]">Pizza</span>{" "}
-              <span className="text-[#9B7AAE]">Project</span>
+            <h1>
+              <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-xl sm:text-2xl leading-tight" />
             </h1>
             <div className="mt-0.5">
               <span className="text-[10px] uppercase font-extrabold tracking-[0.22em] text-[#B85B43]">
@@ -4456,8 +4455,8 @@ export default function AdminPortal() {
               className="w-full max-w-sm bg-[#FFFDF9] text-[#241A14] rounded-3xl p-6 shadow-2xl text-center space-y-4 border border-[#E6DCCF]"
             >
               <div className="border-b border-[#F0E8DC] pb-3 flex flex-col items-center">
-                <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#B85B43] mb-2">
-                  JAADOO PIZZA PROJECT
+                <p className="pt-3 mb-2">
+                  <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-lg" />
                 </p>
                 <div className="w-28 h-16 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md mb-2.5 bg-white">
                   <img
@@ -4505,7 +4504,7 @@ export default function AdminPortal() {
                           <body onload="window.print()">
                             <div class="card">
                               <img class="logo" src="${window.location.origin}/jaadoo_logo.jpg" alt="Jaadoo Pizza Project logo" />
-                              <p>JAADOO PIZZA PROJECT</p>
+                              <p>Jaadoo Pizza Project</p>
                               <h1>Ground floor</h1>
                               <img class="qr" src="${qrModalTable.qrDataUrl}" alt="Table QR code" />
                               <div class="instruction">

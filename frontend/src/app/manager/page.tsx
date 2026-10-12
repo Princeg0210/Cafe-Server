@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import BrandTitle from "@/components/BrandTitle";
 import {
   TrendingUp,
   Receipt,
@@ -1011,8 +1012,8 @@ export default function KunalManagerPortal() {
               />
             </div>
             <div>
-              <h1 className="text-base font-serif font-extrabold tracking-wide text-[#241A14]">
-                JAADOO PIZZA PROJECT
+              <h1>
+                <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-xl sm:text-2xl leading-tight" />
               </h1>
               <div className="mt-0.5">
                 <span className="text-[10px] uppercase font-extrabold tracking-[0.22em] text-[#B85B43]">

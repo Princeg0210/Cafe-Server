@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import BrandTitle from "@/components/BrandTitle";
 import { motion } from "framer-motion";
 import {
   Clock,
@@ -1880,9 +1881,10 @@ export default function POSDashboard() {
               />
             </div>
             <div>
-              <h1 className="text-2xl font-serif font-extrabold text-[#2A1E17] tracking-tight">
-                JAADOO POS TERMINAL
+              <h1 className="pt-3">
+                <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-2xl" />
               </h1>
+              <p className="text-[11px] uppercase tracking-[0.25em] text-[#B85B43] font-bold mt-0.5">POS Terminal</p>
             </div>
           </div>
 
@@ -2001,8 +2003,9 @@ export default function POSDashboard() {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
               </div>
-              <span className="font-serif font-bold text-lg text-[#261C18] tracking-tight">
-                JAADOO <span className="font-serif italic font-normal text-[#B85B43]">POS</span>
+              <span className="flex items-baseline gap-1.5">
+                <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-lg leading-tight" />
+                <span className="font-serif italic font-normal text-sm text-[#B85B43]">POS</span>
               </span>
             </Link>
 

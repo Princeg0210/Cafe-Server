@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, use } from "react";
+import BrandTitle from "@/components/BrandTitle";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   UtensilsCrossed,
@@ -616,9 +617,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
               />
             </div>
             <div>
-              <span className="font-serif font-extrabold text-base leading-none text-[#261C18] block">
-                JAADOO <span className="font-serif italic font-normal text-sm text-[#B85B43]">Pizza Project</span>
-              </span>
+              <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-base leading-none mt-2" />
               <span className="text-[10px] font-mono font-bold text-[#4A5842] flex items-center gap-1.5 mt-0.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 {tableNumber}

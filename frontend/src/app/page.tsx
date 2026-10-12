@@ -62,9 +62,11 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
-            className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold text-white tracking-tight uppercase leading-[1.06] drop-shadow-2xl whitespace-nowrap"
+            className="text-4xl sm:text-6xl md:text-7xl font-serif font-bold text-white tracking-tight leading-[1.06] drop-shadow-2xl whitespace-nowrap"
           >
-            JAADOO PIZZA PROJECT
+            Jaadoo Pizza
+            <br />
+            Project
           </motion.h1>
 
           {/* Refined High-Contrast Subtitle (Clean & Highly Legible) */}
