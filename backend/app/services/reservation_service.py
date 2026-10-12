@@ -1,4 +1,5 @@
 import datetime
+from app.utils.helpers import utc_now
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from sqlalchemy import select, func, or_
@@ -658,6 +659,7 @@ class ReservationService:
             dining_session.customer_id = reservation.customer_id
             if dining_session.status == "OPENED":
                 dining_session.status = "ACTIVE"
+                dining_session.opened_at = utc_now()  # clock starts when the party is seated
 
         await db.commit()
 

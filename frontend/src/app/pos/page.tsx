@@ -1684,7 +1684,7 @@ export default function POSDashboard() {
               <td><strong>Table #${relativeNum} (${fl.name})</strong></td>
               <td><span style="color: #2e7d32; font-weight: bold;">ACTIVE</span></td>
               <td>#${s.session_seq}</td>
-              <td>${new Date(s.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+              <td>${parseServerTime(s.opened_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
               <td>${s.items_count} items</td>
               <td><strong>₹${Number(s.total_amount || 0).toLocaleString("en-IN")}</strong></td>
             </tr>
@@ -1723,7 +1723,7 @@ export default function POSDashboard() {
           <td><strong>${kot.kot_number}</strong></td>
           <td>Table #${kotFl.floor_table_num} (${kotFl.name})</td>
           <td>${kot.status}</td>
-          <td>${new Date(kot.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+          <td>${parseServerTime(kot.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
           <td>${kot.items_count}</td>
           <td><strong>₹${Number(kot.total_amount || 0).toLocaleString("en-IN")}</strong></td>
         </tr>
@@ -1831,7 +1831,7 @@ export default function POSDashboard() {
   tableOverviews.forEach((tbl) => {
     (tbl.sessions || []).forEach((sess) => {
       if (sess.is_active && !sess.is_settled && sess.opened_at) {
-        const openTime = new Date(sess.opened_at).getTime();
+        const openTime = parseServerTime(sess.opened_at).getTime();
         const mins = Math.floor((Date.now() - openTime) / (1000 * 60));
         if (mins >= 21) {
           unsettledLongSessions.push({
@@ -2964,7 +2964,7 @@ export default function POSDashboard() {
                                     <div className="space-y-2.5">
                                       <div className="flex items-center justify-between text-xs font-sans">
                                         <span className="text-stone-500">
-                                          Opened: <strong>{new Date(activeSession.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong>
+                                          Opened: <strong>{parseServerTime(activeSession.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</strong>
                                         </span>
                                         <span className="font-semibold text-stone-700">
                                           {activeSession.items_count} {activeSession.items_count === 1 ? "item" : "items"} ordered
@@ -3061,8 +3061,8 @@ export default function POSDashboard() {
 
                                               <div className="text-[11px] text-stone-500 flex items-center justify-between">
                                                 <span>
-                                                  {new Date(pastSess.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                                  {pastSess.closed_at ? ` → ${new Date(pastSess.closed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
+                                                  {parseServerTime(pastSess.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                                  {pastSess.closed_at ? ` → ${parseServerTime(pastSess.closed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""}
                                                 </span>
                                                 <span className="px-1.5 py-0.2 rounded-xs bg-stone-100 text-stone-600 text-[10px] font-medium">
                                                   Settled
@@ -3264,7 +3264,7 @@ export default function POSDashboard() {
                               </span>
                             </div>
                             <div className="text-[11px] text-stone-500 font-sans mt-0.5">
-                              {new Date(kot.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              {parseServerTime(kot.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </div>
                           </div>
 
@@ -3820,7 +3820,7 @@ export default function POSDashboard() {
               <div className="space-y-3 font-sans text-xs">
                 <div className="flex justify-between text-stone-500 border-b border-stone-100 pb-2">
                   <span>Session: #{billPreviewSession.session_seq}</span>
-                  <span>{new Date(billPreviewSession.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span>{parseServerTime(billPreviewSession.opened_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
 
                 {billPreviewSession.allergy_info && (

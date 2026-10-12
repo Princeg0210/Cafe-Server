@@ -1,5 +1,6 @@
 import secrets
 import datetime
+from app.utils.helpers import utc_now
 from typing import Optional, List
 from sqlalchemy import select, or_, and_
 from sqlalchemy.orm import selectinload
@@ -397,6 +398,8 @@ class TableService:
         # 5. Attach reservation to session and mark table occupied
         session.reservation_id = walk_in_res.id
         session.customer_id = customer.id
+        if session.status == "OPENED":
+            session.opened_at = utc_now()  # clock starts when the party is seated, not at an earlier scan
         session.status = "ACTIVE"
         table.status = "Occupied"
 

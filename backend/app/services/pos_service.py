@@ -849,6 +849,11 @@ class POSService:
                     status_code=status.HTTP_409_CONFLICT,
                     detail=f"{table.table_number or 'This table'} is occupied. Settle it first or choose another table.",
                 )
+            # Seat the party on the scanned-but-unused session: start its clock now
+            active_sess.status = "ACTIVE"
+            active_sess.opened_at = utc_now()
+            table.status = "Occupied"
+            await db.commit()
             return {
                 "message": f"Table #{table.table_number or table_id} already has an active session.",
                 "session_id": active_sess.id,

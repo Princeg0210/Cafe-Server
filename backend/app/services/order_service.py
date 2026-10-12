@@ -1,4 +1,5 @@
 import datetime
+from app.utils.helpers import utc_now
 import asyncio
 import secrets
 from decimal import Decimal
@@ -50,7 +51,9 @@ class OrderService:
                     )
 
             if dining_session.status == "OPENED":
+                # Guests start now; the session may have been opened by an earlier QR scan
                 dining_session.status = "ACTIVE"
+                dining_session.opened_at = utc_now()
             
             table = await db.get(Table, dining_session.table_id)
             if table and table.status == "Available":
