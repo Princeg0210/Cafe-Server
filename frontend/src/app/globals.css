@@ -57,3 +57,19 @@ h1, h2, h3 {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Burning matchstick under the header logo */
+@keyframes match-flicker {
+  0%, 100% { transform: scale(1, 1) rotate(0deg); opacity: 1; }
+  25% { transform: scale(0.94, 1.08) rotate(-3deg); opacity: 0.92; }
+  50% { transform: scale(1.04, 0.95) rotate(2deg); opacity: 1; }
+  75% { transform: scale(0.97, 1.05) rotate(-1deg); opacity: 0.95; }
+}
+.match-flame {
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  animation: match-flicker 0.9s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .match-flame { animation: none; }
+}

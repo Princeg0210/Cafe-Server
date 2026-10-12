@@ -29,22 +29,42 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber, showNavigat
         {/* Left Side: Brand Logo + Typographic Navigation */}
         <div className="flex items-center gap-6 lg:gap-10 min-w-0">
           {/* Editorial Brand Logo */}
-          <Link href="/" className="flex items-center gap-3.5 group shrink-0 min-w-0">
-            <div className="relative w-20 h-12 sm:w-24 sm:h-14 rounded-xl overflow-hidden bg-white border-2 border-[#9E3E26]/40 group-hover:border-[#9E3E26] transition-all shrink-0 shadow-md">
-              <img
-                src="/jaadoo_logo.jpg"
-                alt="Jaadoo Pizza Project"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
+          <Link href="/" className="flex flex-col gap-1 group shrink-0 min-w-0">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="relative w-20 h-12 sm:w-24 sm:h-14 rounded-xl overflow-hidden bg-white border-2 border-[#9E3E26]/40 group-hover:border-[#9E3E26] transition-all shrink-0 shadow-md">
+                <img
+                  src="/jaadoo_logo.jpg"
+                  alt="Jaadoo Pizza Project"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div className="flex flex-col justify-center min-w-0">
+                <span className="font-serif font-extrabold text-xl sm:text-2xl leading-tight tracking-wide text-[#5F3F6D] truncate">
+                  JAADOO{" "}
+                  <span className="text-[#F5C518] [-webkit-text-stroke:0.6px_#000] [paint-order:stroke_fill]">Pizza</span>{" "}
+                  <span className="text-[#9B7AAE]">Project</span>
+                </span>
+                <span className="text-[10px] font-sans tracking-[0.22em] text-[#B6623B] uppercase font-bold leading-none mt-0.5 self-center text-center">
+                  Con o senza avanti!
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col justify-center min-w-0">
-              <span className="font-serif font-extrabold text-xl sm:text-2xl leading-tight tracking-wide text-[#140E0A] truncate">
-                JAADOO <span className="font-serif italic font-normal text-base sm:text-lg text-[#9E3E26] ml-0.5">Pizza Project</span>
-              </span>
-              <span className="text-[10px] font-sans tracking-[0.22em] text-[#3B2C23] uppercase font-bold leading-none mt-0.5">
-                ARTISANAL PIZZERIA · UDAIPUR
-              </span>
-            </div>
+            {/* Burning matchstick under the whole logo + title */}
+            <svg viewBox="0 0 360 20" className="w-full h-auto" aria-hidden="true">
+              <defs>
+                <linearGradient id="match-flame-grad" x1="0" x2="1" y1="0" y2="0">
+                  <stop offset="0%" stopColor="#E8471C" />
+                  <stop offset="55%" stopColor="#F98B1D" />
+                  <stop offset="100%" stopColor="#FFC93C" stopOpacity="0.85" />
+                </linearGradient>
+              </defs>
+              <rect x="2" y="6.5" width="326" height="7" rx="3.5" fill="#E2B87A" stroke="#A9783F" strokeWidth="0.8" />
+              <ellipse cx="331" cy="10" rx="7" ry="5.6" fill="#2A1A14" />
+              <g className="match-flame">
+                <path d="M333 10 C337 2.5, 347 1.5, 359 10 C347 18.5, 337 17.5, 333 10 Z" fill="url(#match-flame-grad)" />
+                <path d="M335 10 C338 6, 344 5.8, 351 10 C344 14.2, 338 14, 335 10 Z" fill="#FFE68A" />
+              </g>
+            </svg>
           </Link>
 
           {/* Desktop Typographic Navigation (Left-Aligned next to Logo) */}

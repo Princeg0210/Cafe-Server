@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Navigation, Car, Clock, Phone, ExternalLink, Compass } from "lucide-react";
+import { MapPin, Navigation, Car, Clock, Phone, ExternalLink } from "lucide-react";
 
 export default function LocationBrewStation() {
   return (
@@ -50,11 +50,7 @@ export default function LocationBrewStation() {
             <h4 className="font-serif font-bold text-lg text-[#140E0A]">Parking and Access</h4>
           </div>
           <p className="text-sm text-[#1A120B] leading-relaxed font-sans font-medium">
-            Park at <strong className="text-[#140E0A] font-bold">Chandpole Gate Parking</strong> or <strong className="text-[#140E0A] font-bold">Jagdish Temple Square</strong>.
-          </p>
-          <p className="text-xs font-sans font-semibold text-[#1F2E1A] bg-[#E3EBDD] p-3 rounded-lg border border-[#A5BC99] mt-2.5 leading-relaxed flex items-center gap-2">
-            <Compass className="w-4 h-4 text-[#1F2E1A] shrink-0" />
-            <span>Old City lanes are pedestrian-friendly. Enjoy a scenic 3-minute walk to our cafe.</span>
+            Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to Jaadoo (one minute or two on, it’s safe and pretty). Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
           </p>
         </div>
 

@@ -535,7 +535,7 @@ export default function BookTablePage() {
                 <div>
                   <p className="text-sm font-serif italic text-[#B85B43]">Before you book</p>
                   <h1 id="booking-instructions-title" className="mt-1 font-serif text-2xl font-bold text-[#140E0A]">
-                    Table reservation details
+                    Reservation details
                   </h1>
                 </div>
                 <button
@@ -550,11 +550,11 @@ export default function BookTablePage() {
 
               <div className="mt-5 space-y-3 text-sm leading-relaxed text-[#4A423D]">
                 <p className="rounded-xl border border-[#E8D2B5] bg-[#FFF6EA] px-4 py-3 font-semibold text-[#6D3B1D]">
-                  Jaadoo is open Thursday through Monday.
+                  Jaadoo is open from 7:00 PM to 10:30 PM, Thursday through Monday.
                 </p>
-                <p>Choose an available date and dinner slot from the calendar.</p>
-                <p>Your request is confirmed automatically when a matching table is available. If the selected date, time, or table is unavailable, your payment is refunded.</p>
-                <p>The ₹150 per guest advance is fully adjustable against your food and beverage bill. If you cancel the booking, ₹56 will be retained as a cancellation charge and the remaining balance will be refunded.</p>
+                <p>If space is available you will receive confirmation immediately.</p>
+                <p>₹150/- advance per guest is deducted from final food bill.</p>
+                <p>If you cancel your booking, ₹54 will be deducted and rest of the amount will be refunded.</p>
               </div>
 
               <button
@@ -654,7 +654,7 @@ export default function BookTablePage() {
                     <span>Parking Instructions</span>
                   </div>
                   <p className="pl-5 leading-relaxed">
-                    Designated two-wheeler parking is available in the vicinity. For four-wheelers, municipal parking is located near the heritage entry gate (approx. 2–3 mins walk). Please reach out to café staff for on-arrival assistance.
+                    Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to Jaadoo (one minute or two on, it’s safe and pretty). Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
                   </p>
                 </div>
 
@@ -781,29 +781,13 @@ export default function BookTablePage() {
                   </div>
                 </div>
 
-                {/* Dinner Service Card */}
-                <div className="space-y-3 rounded-2xl border border-[#DDD3C4] bg-[#FAF7F2] p-5 shadow-md sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#9E3E26]">Dinner service</span>
-                      <h4 className="font-serif text-xl font-bold text-[#140E0A]">
-                        Dinner
-                      </h4>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setStep(2)}
-                      className="rounded-lg bg-[#140E0A] px-5 py-3 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#9E3E26]"
-                    >
-                      BOOK
-                    </button>
-                  </div>
-                  <p className="text-sm leading-relaxed text-[#524942]">
-                    Thursday to Monday · 75 minutes per reservation.
-                    <br />
-                    ₹150 per guest is fully adjustable against the final food bill.
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="w-full rounded-lg bg-[#140E0A] px-5 py-3.5 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#9E3E26]"
+                >
+                  Continue Booking
+                </button>
               </motion.div>
             )}
 
@@ -1300,13 +1284,10 @@ export default function BookTablePage() {
                       <strong>1. Adjustable Deposit:</strong> The advance deposit of INR 150 per guest is 100% adjustable against your final food and beverage bill.
                     </p>
                     <p>
-                      <strong>2. Non-Availability Refund:</strong> In the rare event that your table request cannot be accommodated within 48 hours, a 100% full refund is issued instantly.
+                      <strong>2. Advance Cancellation:</strong> If you cancel or the booking cannot be fulfilled, ₹54 is retained as the cancellation charge and the balance is refunded.
                     </p>
                     <p>
-                      <strong>3. Advance Cancellation:</strong> If you cancel or the booking cannot be fulfilled, ₹56 is retained as the cancellation charge and the balance is refunded.
-                    </p>
-                    <p>
-                      <strong>4. Same-Day Cancellation & No-Shows:</strong> Due to artisanal fresh sourdough dough fermentation schedules, cancellations made within 24 hours or no-shows are non-refundable.
+                      <strong>3. Same-Day Cancellation & No-Shows:</strong> Due to artisanal fresh sourdough dough fermentation schedules, cancellations made within 24 hours or no-shows are non-refundable.
                     </p>
                   </div>
                 )}

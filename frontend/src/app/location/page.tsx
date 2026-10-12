@@ -57,7 +57,7 @@ export default function LocationPage() {
                   <span>By Auto / Cab</span>
                 </div>
                 <p className="text-xs text-[#3B2C23] leading-relaxed">
-                  Ask the driver to drop you at <strong className="font-semibold text-[#140E0A]">Chandpole Parking</strong> or <strong className="font-semibold text-[#140E0A]">Jagdish Chowk</strong>. Four-wheelers cannot enter narrow heritage lanes.
+                  Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
                 </p>
               </div>
 

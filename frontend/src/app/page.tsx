@@ -62,10 +62,9 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
-            className="text-4xl sm:text-6xl md:text-7xl font-serif font-bold text-white tracking-tight uppercase leading-[1.06] drop-shadow-2xl"
+            className="text-2xl sm:text-4xl md:text-5xl font-serif font-bold text-white tracking-tight uppercase leading-[1.06] drop-shadow-2xl whitespace-nowrap"
           >
-            <span className="text-white block font-bold drop-shadow-2xl">JAADOO</span>
-            <span className="font-extrabold text-[#FBF9F5] drop-shadow-lg">PIZZA PROJECT</span>
+            JAADOO PIZZA PROJECT
           </motion.h1>
 
           {/* Refined High-Contrast Subtitle (Clean & Highly Legible) */}
@@ -75,7 +74,7 @@ export default function Home() {
             transition={{ delay: 0.28, duration: 0.5, ease: "easeOut" }}
             className="mt-5 text-base sm:text-lg md:text-xl font-sans font-normal text-stone-100 max-w-2xl leading-relaxed drop-shadow-md"
           >
-            Jaadoo Pizza Project is an artisanal pizza destination nestled in the historic lanes of Old City, Udaipur. Known for handcrafted pizzas, thoughtfully curated ingredients, and a warm, intimate dining experience, Jaadoo offers a relaxed yet refined setting for pizza and Udaipur lovers.
+            An artisanal pizza and Italian kitchen hidden deep in the historic lanes of Udaipur Old City, known for handcrafted pizza, passionately curated ingredients, and a warm intimate dining experience, Jaadoo offers a relaxed yet refined setting for pizza and Udaipur lovers.
           </motion.p>
 
           {/* Anti-AI Editorial Feature Band */}
