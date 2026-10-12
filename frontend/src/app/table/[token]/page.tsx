@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { ITEM_MEDIA_MAP, menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
 import { getFloorName } from "@/data/floors";
+import { ALL_COUNTRY_CODES } from "@/lib/countryCodes";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   starters: <Utensils className="w-4 h-4 text-[#9E3E26]" />,
@@ -88,6 +89,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   const [guestMode, setGuestMode] = useState<"reservation" | "walkin">("reservation");
   const [walkInName, setWalkInName] = useState("");
   const [walkInPhone, setWalkInPhone] = useState("");
+  const [walkInCountryCode, setWalkInCountryCode] = useState<string>("+91");
   const [isSubmittingWalkIn, setIsSubmittingWalkIn] = useState(false);
   const [promptError, setPromptError] = useState<string | null>(null);
   const [hasTableAccess, setHasTableAccess] = useState(false);
@@ -355,20 +357,30 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     setShowReservationIdPrompt(false);
   };
 
-  // ponytail: simple walk-in registration auto-creates reservation on backend
+  // ponytail: simple walk-in registration auto-creates reservation on backend with domestic & intl country codes
   const handleWalkInSubmit = async () => {
     const trimmedName = walkInName.trim();
     if (!trimmedName || trimmedName.length < 2) {
       setPromptError("Please enter your name (at least 2 letters).");
       return;
     }
-    let cleanPhone = walkInPhone.replace(/\D/g, "");
-    if (cleanPhone.length > 10 && cleanPhone.startsWith("91")) cleanPhone = cleanPhone.slice(2);
-    else if (cleanPhone.length > 10 && cleanPhone.startsWith("0")) cleanPhone = cleanPhone.slice(1);
-    if (cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
-      setPromptError("Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.");
-      return;
+    const cleanDigits = walkInPhone.replace(/\D/g, "");
+    let cleanPhone = cleanDigits;
+    if (walkInCountryCode === "+91") {
+      if (cleanPhone.length > 10 && cleanPhone.startsWith("91")) cleanPhone = cleanPhone.slice(2);
+      else if (cleanPhone.length > 10 && cleanPhone.startsWith("0")) cleanPhone = cleanPhone.slice(1);
+      if (cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
+        setPromptError("Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.");
+        return;
+      }
+    } else {
+      if (cleanDigits.length < 7 || cleanDigits.length > 15 || /^(\d)\1+$/.test(cleanDigits)) {
+        setPromptError("Please enter a valid phone number (7 to 15 digits).");
+        return;
+      }
+      cleanPhone = `${walkInCountryCode}${cleanDigits}`;
     }
+
 
     setIsSubmittingWalkIn(true);
     setPromptError(null);
@@ -732,30 +744,60 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                         <label className="block text-[11px] font-bold uppercase tracking-wider text-[#705844]">
                           Phone Number
                         </label>
-                        {walkInPhone.length === 10 && /^[6-9]\d{9}$/.test(walkInPhone) ? (
-                          <span className="text-[10px] text-emerald-700 font-bold">✓ 10 digits</span>
+                        {walkInCountryCode === "+91" ? (
+                          walkInPhone.length === 10 && /^[6-9]\d{9}$/.test(walkInPhone) ? (
+                            <span className="text-[10px] text-emerald-700 font-bold">✓ 10 digits</span>
+                          ) : (
+                            <span className="text-[10px] text-stone-500 font-medium">{walkInPhone.length}/10</span>
+                          )
                         ) : (
-                          <span className="text-[10px] text-stone-500 font-medium">{walkInPhone.length}/10</span>
+                          walkInPhone.length >= 7 && walkInPhone.length <= 15 ? (
+                            <span className="text-[10px] text-emerald-700 font-bold">✓ Valid</span>
+                          ) : (
+                            <span className="text-[10px] text-stone-500 font-medium">{walkInPhone.length}/7–15</span>
+                          )
                         )}
                       </div>
-                      <input
-                        type="tel"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={10}
-                        autoComplete="tel-national"
-                        value={walkInPhone}
-                        onChange={(e) => {
-                          let digits = e.target.value.replace(/\D/g, "");
-                          if (digits.length > 10 && digits.startsWith("91")) digits = digits.slice(2);
-                          else if (digits.length > 10 && digits.startsWith("0")) digits = digits.slice(1);
-                          if (digits.length > 10) digits = digits.slice(0, 10);
-                          setWalkInPhone(digits);
-                          setPromptError(null);
-                        }}
-                        placeholder="e.g. 9876543210"
-                        className="w-full rounded-xl border border-[#D7C4A3] bg-white px-3 py-2.5 text-sm font-mono tracking-wider font-semibold outline-none focus:border-[#B85B43]"
-                      />
+                      <div className="flex gap-2">
+                        <select
+                          value={walkInCountryCode}
+                          onChange={(e) => {
+                            setWalkInCountryCode(e.target.value);
+                            setWalkInPhone("");
+                            setPromptError(null);
+                          }}
+                          aria-label="Country Code"
+                          className="px-2.5 py-2.5 rounded-xl border border-[#D7C4A3] bg-[#FAF7F2] text-xs font-bold text-[#140E0A] focus:outline-hidden focus:border-[#B85B43] transition-all cursor-pointer max-w-[120px] sm:max-w-[140px]"
+                        >
+                          {ALL_COUNTRY_CODES.map((c) => (
+                            <option key={`${c.iso}-${c.code}`} value={c.code}>
+                              {c.flag} {c.code} ({c.name})
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="tel"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={walkInCountryCode === "+91" ? 10 : 15}
+                          autoComplete="tel-national"
+                          value={walkInPhone}
+                          onChange={(e) => {
+                            let digits = e.target.value.replace(/\D/g, "");
+                            if (walkInCountryCode === "+91") {
+                              if (digits.length > 10 && digits.startsWith("91")) digits = digits.slice(2);
+                              else if (digits.length > 10 && digits.startsWith("0")) digits = digits.slice(1);
+                              if (digits.length > 10) digits = digits.slice(0, 10);
+                            } else {
+                              if (digits.length > 15) digits = digits.slice(0, 15);
+                            }
+                            setWalkInPhone(digits);
+                            setPromptError(null);
+                          }}
+                          placeholder={walkInCountryCode === "+91" ? "e.g. 9876543210" : "Phone number"}
+                          className="flex-1 rounded-xl border border-[#D7C4A3] bg-white px-3 py-2.5 text-sm font-mono tracking-wider font-semibold outline-hidden focus:border-[#B85B43]"
+                        />
+                      </div>
                     </div>
                     {promptError && <p className="text-xs text-rose-600 font-medium">{promptError}</p>}
                     <button

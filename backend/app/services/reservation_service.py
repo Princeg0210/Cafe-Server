@@ -72,13 +72,21 @@ def validate_booking_request(reservation_date, time_slot: str, phone: str) -> No
     if slot_dt <= now:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_TIME: That time slot has already passed.")
 
-    digits = "".join(ch for ch in (phone or "") if ch.isdigit())
-    if len(digits) == 12 and digits.startswith("91"):
-        digits = digits[2:]
-    elif len(digits) == 11 and digits.startswith("0"):
-        digits = digits[1:]
-    if len(digits) != 10 or digits[0] not in "6789":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_PHONE: Enter a valid 10-digit Indian mobile number.")
+    raw = (phone or "").strip()
+    digits = "".join(ch for ch in raw if ch.isdigit())
+    # ponytail: handle international numbers with country code prefix while maintaining Indian mobile rules
+    is_explicit_intl = raw.startswith("+") and not raw.startswith("+91")
+    if not is_explicit_intl:
+        if len(digits) == 12 and digits.startswith("91"):
+            digits = digits[2:]
+        elif len(digits) == 11 and digits.startswith("0"):
+            digits = digits[1:]
+        if len(digits) != 10 or digits[0] not in "6789":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_PHONE: Enter a valid 10-digit Indian mobile number.")
+    else:
+        if not (7 <= len(digits) <= 15) or len(set(digits)) == 1:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_PHONE: Enter a valid international phone number.")
+
 
 
 def test_payments_allowed() -> bool:

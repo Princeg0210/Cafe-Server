@@ -25,21 +25,26 @@ def sanitize_customer_name(v: str) -> str:
 def sanitize_customer_phone(v: str) -> str:
     if not v or not isinstance(v, str):
         raise ValueError("Customer phone number is required.")
-    digits = re.sub(r"\D", "", str(v))
-    if len(digits) == 12 and digits.startswith("91"):
-        digits = digits[2:]
-    elif len(digits) == 11 and digits.startswith("0"):
-        digits = digits[1:]
+    raw = str(v).strip()
+    digits = re.sub(r"\D", "", raw)
+    # ponytail: handle international numbers with country code prefix while maintaining Indian mobile rules
+    is_explicit_intl = raw.startswith("+") and not raw.startswith("+91")
+    if not is_explicit_intl:
+        if len(digits) == 12 and digits.startswith("91"):
+            digits = digits[2:]
+        elif len(digits) == 11 and digits.startswith("0"):
+            digits = digits[1:]
 
-    if len(digits) != 10:
+        if len(digits) == 10 and digits[0] in "6789":
+            if len(set(digits)) == 1 or digits in ("1234567890", "9876543210", "0123456789"):
+                raise ValueError("Please provide a valid personal mobile number.")
+            return digits
         raise ValueError("Phone number must be a valid 10-digit mobile number.")
-    if digits[0] not in "6789":
-        raise ValueError("Indian mobile numbers must start with 6, 7, 8, or 9.")
-    if len(set(digits)) == 1:
-        raise ValueError("Please provide a valid personal mobile number.")
-    if digits in ("1234567890", "9876543210", "0123456789"):
-        raise ValueError("Please provide a valid personal mobile number.")
-    return digits
+
+    if not (7 <= len(digits) <= 15) or len(set(digits)) == 1:
+        raise ValueError("Please provide a valid international phone number.")
+    return f"+{digits}"
+
 
 
 def sanitize_customer_email(v: Optional[str]) -> Optional[str]:

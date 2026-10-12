@@ -30,6 +30,7 @@ import Navbar from "@/components/Navbar";
 import TanFooter from "@/components/TanFooter";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
+import { ALL_COUNTRY_CODES } from "@/lib/countryCodes";
 
 
 const DINNER_TIME_SLOTS = [
@@ -98,6 +99,7 @@ export default function BookTablePage() {
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
+  const [countryCode, setCountryCode] = useState<string>("+91");
   const [specialRequests, setSpecialRequests] = useState<string>("");
 
   // MANDATORY POLICY CHECKBOX
@@ -282,15 +284,24 @@ export default function BookTablePage() {
       setPaymentError("Please provide your full guest name (at least 2 letters).");
       return;
     }
-    const cleanPhone = phone.replace(/\D/g, "");
-    if (cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
-      setPaymentError("Please provide a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.");
-      return;
+    const cleanDigits = phone.replace(/\D/g, "");
+    if (countryCode === "+91") {
+      if (cleanDigits.length !== 10 || !/^[6-9]\d{9}$/.test(cleanDigits)) {
+        setPaymentError("Please provide a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.");
+        return;
+      }
+      if (/^(\d)\1{9}$/.test(cleanDigits) || ["1234567890", "9876543210", "0123456789"].includes(cleanDigits)) {
+        setPaymentError("Please enter a valid personal mobile number.");
+        return;
+      }
+    } else {
+      if (cleanDigits.length < 7 || cleanDigits.length > 15 || /^(\d)\1+$/.test(cleanDigits)) {
+        setPaymentError("Please enter a valid phone number (7 to 15 digits).");
+        return;
+      }
     }
-    if (/^(\d)\1{9}$/.test(cleanPhone) || ["1234567890", "9876543210", "0123456789"].includes(cleanPhone)) {
-      setPaymentError("Please enter a valid personal mobile number.");
-      return;
-    }
+    const cleanPhone = countryCode === "+91" ? cleanDigits : `${countryCode}${cleanDigits}`;
+
 
     // 2. STRICT ENFORCEMENT: Policies must be ticked!
     if (!policyAccepted) {
@@ -410,7 +421,8 @@ export default function BookTablePage() {
     setIsPaymentProcessing(true);
     setPaymentError(null);
 
-    const cleanPhone = phone.replace(/\D/g, "");
+    const cleanDigits = phone.replace(/\D/g, "");
+    const cleanPhone = countryCode === "+91" ? cleanDigits : `${countryCode}${cleanDigits}`;
     const currentFloor = RESTAURANT_FLOORS.find((f) => f.id === selectedFloor) || RESTAURANT_FLOORS[0];
     const floorTables = RESTAURANT_TABLES.filter((t) => t.floor === currentFloor.id);
     let chosenTable = floorTables[0];
@@ -459,7 +471,8 @@ export default function BookTablePage() {
       setConfirmedBooking({
         id: confirmedId,
         name: name.trim(),
-        phone: cleanPhone,
+        phone: countryCode === "+91" ? cleanDigits : `${countryCode} ${cleanDigits}`,
+
         email: email.trim(),
         guests: guests,
         date: getIsoDateString(selectedDate),
@@ -1011,43 +1024,70 @@ export default function BookTablePage() {
                     />
                   </div>
 
-                  {/* Mobile Number with +91 */}
+                  {/* Mobile Number with Country Code */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-[#140E0A]">
                         Mobile Number for Reservation Notification <span className="text-red-500">*</span>
                       </label>
-                      {phone.length === 10 && /^[6-9]\d{9}$/.test(phone) ? (
-                        <span className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
-                          <Check className="w-3.5 h-3.5" /> Valid
-                        </span>
-                      ) : phone.length > 0 && phone[0] && !["6", "7", "8", "9"].includes(phone[0]) ? (
-                        <span className="text-[10px] text-amber-700 font-medium">Must start with 6-9</span>
+                      {countryCode === "+91" ? (
+                        phone.length === 10 && /^[6-9]\d{9}$/.test(phone) ? (
+                          <span className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" /> Valid
+                          </span>
+                        ) : phone.length > 0 && phone[0] && !["6", "7", "8", "9"].includes(phone[0]) ? (
+                          <span className="text-[10px] text-amber-700 font-medium">Must start with 6-9</span>
+                        ) : (
+                          <span className="text-[10px] text-stone-500 font-medium">{phone.length}/10 digits</span>
+                        )
                       ) : (
-                        <span className="text-[10px] text-stone-500 font-medium">{phone.length}/10 digits</span>
+                        phone.length >= 7 && phone.length <= 15 ? (
+                          <span className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" /> Valid
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-stone-500 font-medium">{phone.length}/7–15 digits</span>
+                        )
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <div className="w-16 px-3 py-3 rounded-xl border border-[#D5CCC0] bg-[#F7F5F0] text-xs font-bold text-[#140E0A] flex items-center justify-center select-none">
-                        +91
-                      </div>
+                      <select
+                        value={countryCode}
+                        onChange={(e) => {
+                          setCountryCode(e.target.value);
+                          setPhone("");
+                          if (paymentError) setPaymentError(null);
+                        }}
+                        aria-label="Country Code"
+                        className="px-2.5 py-3 rounded-xl border border-[#D5CCC0] bg-[#F7F5F0] text-xs font-bold text-[#140E0A] focus:outline-hidden focus:border-[#65C5A8] transition-all cursor-pointer max-w-[125px] sm:max-w-[145px]"
+                      >
+                        {ALL_COUNTRY_CODES.map((c) => (
+                          <option key={`${c.iso}-${c.code}`} value={c.code}>
+                            {c.flag} {c.code} ({c.name})
+                          </option>
+                        ))}
+                      </select>
                       <input
                         type="tel"
                         inputMode="numeric"
                         pattern="[0-9]*"
-                        maxLength={10}
+                        maxLength={countryCode === "+91" ? 10 : 15}
                         autoComplete="tel-national"
                         required
-                        placeholder="9829012345"
+                        placeholder={countryCode === "+91" ? "9829012345" : "Phone number"}
                         value={phone}
                         onChange={(e) => {
                           let digits = e.target.value.replace(/\D/g, "");
-                          if (digits.length > 10 && digits.startsWith("91")) {
-                            digits = digits.slice(2);
-                          } else if (digits.length > 10 && digits.startsWith("0")) {
-                            digits = digits.slice(1);
+                          if (countryCode === "+91") {
+                            if (digits.length > 10 && digits.startsWith("91")) {
+                              digits = digits.slice(2);
+                            } else if (digits.length > 10 && digits.startsWith("0")) {
+                              digits = digits.slice(1);
+                            }
+                            if (digits.length > 10) digits = digits.slice(0, 10);
+                          } else {
+                            if (digits.length > 15) digits = digits.slice(0, 15);
                           }
-                          if (digits.length > 10) digits = digits.slice(0, 10);
                           setPhone(digits);
                           if (paymentError) setPaymentError(null);
                         }}
@@ -1173,7 +1213,8 @@ export default function BookTablePage() {
                       type="button"
                       onClick={() => {
                         if (!razorpayOrderData) {
-                          const cleanPhone = phone.replace(/\D/g, "") || "9829012345";
+                          const cleanDigits = phone.replace(/\D/g, "") || "9829012345";
+                          const cleanPhone = countryCode === "+91" ? cleanDigits : `${countryCode}${cleanDigits}`;
                           setRazorpayOrderData({
                             order_id: `order_test_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
                             amount: guests * DEPOSIT_PER_GUEST * 100,
@@ -1188,6 +1229,7 @@ export default function BookTablePage() {
                             is_test_mode: true,
                           });
                         }
+
                         setIsSimulatorOpen(true);
                       }}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#65C5A8] hover:text-[#42957b] transition-colors uppercase tracking-wider cursor-pointer"
@@ -1387,7 +1429,7 @@ export default function BookTablePage() {
                   <div>
                     <span className="text-stone-500">Customer:</span>{" "}
                     <strong>{name || "Walk-in Guest"}</strong> (
-                    {phone ? `+91 ${phone}` : "9829012345"})
+                    {phone ? `${countryCode} ${phone}` : "+91 9829012345"})
                   </div>
                   <div>
                     <span className="text-stone-500">Slot:</span>{" "}
