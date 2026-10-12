@@ -181,17 +181,12 @@ export default function BookTablePage() {
       dayNumber: number;
       isCurrentMonth: boolean;
       isPast: boolean;
-      isTooFar: boolean;
       isSelected: boolean;
       isOpenDay: boolean;
     }> = [];
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    // Bookings open 7 days prior to date
-    const maxBookingDate = new Date(today);
-    maxBookingDate.setDate(today.getDate() + 7);
 
     // Previous month padding
     const prevMonthLastDay = new Date(viewYear, viewMonth, 0).getDate();
@@ -203,7 +198,6 @@ export default function BookTablePage() {
         dayNumber: prevMonthLastDay - i,
         isCurrentMonth: false,
         isPast: d < today,
-        isTooFar: d > maxBookingDate,
         isSelected: selectedDate.getTime() === d.getTime(),
         isOpenDay: OPEN_DAYS.has(d.getDay()),
       });
@@ -218,7 +212,6 @@ export default function BookTablePage() {
         dayNumber: i,
         isCurrentMonth: true,
         isPast: d < today,
-        isTooFar: d > maxBookingDate,
         isSelected: selectedDate.getTime() === d.getTime(),
         isOpenDay: OPEN_DAYS.has(d.getDay()),
       });
@@ -234,7 +227,6 @@ export default function BookTablePage() {
         dayNumber: i,
         isCurrentMonth: false,
         isPast: d < today,
-        isTooFar: d > maxBookingDate,
         isSelected: selectedDate.getTime() === d.getTime(),
         isOpenDay: OPEN_DAYS.has(d.getDay()),
       });
@@ -262,11 +254,7 @@ export default function BookTablePage() {
   };
 
   const handleSelectCalendarDate = (dateObj: Date, isPast: boolean) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const maxBookingDate = new Date(today);
-    maxBookingDate.setDate(today.getDate() + 7);
-    if (isPast || dateObj > maxBookingDate || !OPEN_DAYS.has(dateObj.getDay())) return;
+    if (isPast || !OPEN_DAYS.has(dateObj.getDay())) return;
     setSelectedDate(dateObj);
   };
 
@@ -560,35 +548,13 @@ export default function BookTablePage() {
                 </button>
               </div>
 
-              <div className="mt-5 space-y-3.5 text-sm leading-relaxed text-[#4A423D]">
-                <p className="font-serif italic text-sm text-[#8C3A24] bg-[#FFF8F0] p-3.5 rounded-xl border border-[#F0E2D2]">
-                  An artisanal pizza and Italian kitchen hidden deep in the historic lanes of Udaipur old city.
+              <div className="mt-5 space-y-3 text-sm leading-relaxed text-[#4A423D]">
+                <p className="rounded-xl border border-[#E8D2B5] bg-[#FFF6EA] px-4 py-3 font-semibold text-[#6D3B1D]">
+                  Jaadoo is open from 7:00 PM to 10:30 PM, Thursday through Monday.
                 </p>
-
-                <div className="space-y-2.5 text-xs sm:text-sm pt-1">
-                  <p className="flex items-start gap-2.5 text-[#2A231E]">
-                    <span className="text-[#65C5A8] font-bold text-base leading-none">✓</span>
-                    <span>If space is available you will receive confirmation immediately</span>
-                  </p>
-                  <p className="flex items-start gap-2.5 text-[#2A231E]">
-                    <span className="text-[#65C5A8] font-bold text-base leading-none">✓</span>
-                    <span>150/- advance per guest is deducted from final food bill</span>
-                  </p>
-                  <p className="flex items-start gap-2.5 text-[#2A231E]">
-                    <span className="text-[#65C5A8] font-bold text-base leading-none">✓</span>
-                    <span>If you cancel your booking, ₹54 will be deducted and rest of the amount will be refunded</span>
-                  </p>
-                </div>
-
-                <div className="mt-4 p-3.5 bg-[#FAF7F2] border border-[#E6DDD0] rounded-xl text-xs text-[#3E352F] space-y-1.5">
-                  <p className="font-bold text-[#140E0A] flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-[#B85B43] shrink-0" />
-                    <span>Parking instructions</span>
-                  </p>
-                  <p className="leading-relaxed pl-5 text-stone-600">
-                    Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to jaadoo ( one minute or two on, it’s safe and pretty). Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
-                  </p>
-                </div>
+                <p>If space is available you will receive confirmation immediately.</p>
+                <p>₹150/- advance per guest is deducted from final food bill.</p>
+                <p>If you cancel your booking, ₹54 will be deducted and rest of the amount will be refunded.</p>
               </div>
 
               <button
@@ -681,14 +647,14 @@ export default function BookTablePage() {
                   </p>
                 </div>
 
-                {/* Parking instructions */}
+                {/* Parking Instructions */}
                 <div className="p-3.5 bg-[#F6F8FA] border border-[#E2E8F0] rounded-2xl text-xs text-[#334155] space-y-1 shadow-2xs">
                   <div className="flex items-center gap-1.5 font-bold text-[#0F172A]">
                     <Info className="w-3.5 h-3.5 text-[#3B82F6] shrink-0" />
-                    <span>Parking instructions</span>
+                    <span>Parking Instructions</span>
                   </div>
                   <p className="pl-5 leading-relaxed">
-                    Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to jaadoo ( one minute or two on, it’s safe and pretty). Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
+                    Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to Jaadoo (one minute or two on, it’s safe and pretty). Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
                   </p>
                 </div>
 
@@ -697,16 +663,16 @@ export default function BookTablePage() {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => window.print()}
-                      className="w-full py-3 bg-white border border-[#DDD3C4] rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-stone-50 transition-colors cursor-pointer"
+                      className="w-full py-3 bg-white border border-[#DDD3C4] rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-stone-50 transition-colors cursor-pointer"
                     >
                       <Printer className="w-4 h-4" />
-                      <span>Print pass</span>
+                      <span>Print Pass</span>
                     </button>
                     <a
                       href={createGoogleCalendarUrl()}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full py-3 bg-white border border-[#DDD3C4] rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-stone-50 transition-colors cursor-pointer"
+                      className="w-full py-3 bg-white border border-[#DDD3C4] rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-stone-50 transition-colors cursor-pointer"
                     >
                       <CalendarPlus className="w-4 h-4 text-[#65C5A8]" />
                       <span>Calendar</span>
@@ -715,10 +681,10 @@ export default function BookTablePage() {
 
                   <button
                     onClick={handleShareSummary}
-                    className="w-full py-3.5 bg-[#140E0A] text-white rounded-xl text-xs font-bold hover:bg-black transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-3.5 bg-[#140E0A] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-black transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Share2 className="w-4 h-4" />
-                    <span>{copiedLink ? "Copied to clipboard" : "Share booking details"}</span>
+                    <span>{copiedLink ? "Copied to Clipboard!" : "Share Booking Details"}</span>
                   </button>
                 </div>
               </div>
@@ -727,7 +693,7 @@ export default function BookTablePage() {
         ) : (
           <div>
             {/* ==================================================================== */}
-            {/* SCREEN 1: RESERVE A TABLE                                            */}
+            {/* SCREEN 1: RESERVE A TABLE (EXACT AIRMENUS SCREENSHOT 1)               */}
             {/* ==================================================================== */}
             {step === 1 && (
               <motion.div
@@ -736,29 +702,21 @@ export default function BookTablePage() {
                 exit={{ opacity: 0 }}
                 className="space-y-8"
               >
-                {/* Header: Reserve your table */}
+                {/* Header: Reserve Your Table */}
                 <div className="pt-2 pb-1 text-center sm:text-left">
                   <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#140E0A]">
-                    Reserve your table
+                    Reserve Your Table
                   </h1>
-                  <p className="mt-2 font-serif text-xl sm:text-2xl italic text-[#B85B43]">
-                    Italian kitchen magic.
-                  </p>
                 </div>
 
                 {/* Calendar Section */}
                 <div className="space-y-5 rounded-2xl border border-[#DDD3C4] bg-[#FAF7F2] p-5 shadow-md sm:p-8">
                   {/* Calendar Navigation Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-[#DDD3C4] pb-3 gap-2">
-                    <div>
-                      <span className="font-serif text-lg font-bold text-[#140E0A] block">
-                        Choose your date and time slot from the calendar
-                      </span>
-                      <p className="text-xs text-[#8A7E72] mt-0.5">
-                        Bookings open 7 days prior to date
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 self-end sm:self-auto">
+                  <div className="flex items-center justify-between border-b border-[#DDD3C4] pb-3">
+                    <span className="font-serif text-lg font-bold text-[#140E0A]">
+                      Choose a date
+                    </span>
+                    <div className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={handlePrevMonth}
@@ -782,25 +740,24 @@ export default function BookTablePage() {
                   </div>
 
                   {/* Day of Week Labels */}
-                  <div className="grid grid-cols-7 text-center text-xs font-bold text-[#9E3E26]">
-                    <div>Mon</div>
-                    <div>Tue</div>
-                    <div>Wed</div>
-                    <div>Thu</div>
-                    <div>Fri</div>
-                    <div>Sat</div>
-                    <div>Sun</div>
+                  <div className="grid grid-cols-7 text-center text-xs font-bold tracking-wider text-[#9E3E26]">
+                    <div>MON</div>
+                    <div>TUE</div>
+                    <div>WED</div>
+                    <div>THU</div>
+                    <div>FRI</div>
+                    <div>SAT</div>
+                    <div>SUN</div>
                   </div>
 
                   {/* Date Grid */}
                   <div className="grid grid-cols-7 gap-x-1 gap-y-2 text-center text-sm">
                     {calendarDays.map((item, index) => {
                       const isPast = item.isPast;
-                      const isTooFar = item.isTooFar;
                       const isSelected = item.isSelected;
                       const isOtherMonth = !item.isCurrentMonth;
                       const isClosed = !item.isOpenDay;
-                      const isDisabled = isPast || isTooFar || isOtherMonth || isClosed;
+                      const isDisabled = isPast || isOtherMonth || isClosed;
 
                       return (
                         <div key={index} className="flex items-center justify-center">
@@ -808,13 +765,7 @@ export default function BookTablePage() {
                             type="button"
                             disabled={isDisabled}
                             onClick={() => handleSelectCalendarDate(item.date, isPast)}
-                            title={
-                              isClosed
-                                ? "Closed on Tuesday and Wednesday"
-                                : isTooFar
-                                ? "Bookings open 7 days prior to date"
-                                : undefined
-                            }
+                            title={isClosed ? "Closed on Tuesday and Wednesday" : undefined}
                             className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center font-medium transition-all ${isSelected
                               ? "bg-[#9E3E26] text-white font-bold shadow-xs scale-105"
                               : isDisabled
@@ -833,9 +784,9 @@ export default function BookTablePage() {
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="w-full rounded-lg bg-[#140E0A] px-5 py-3.5 text-sm font-bold text-white transition-colors hover:bg-[#9E3E26]"
+                  className="w-full rounded-lg bg-[#140E0A] px-5 py-3.5 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#9E3E26]"
                 >
-                  Continue booking
+                  Continue Booking
                 </button>
               </motion.div>
             )}
@@ -889,14 +840,14 @@ export default function BookTablePage() {
                   </div>
                 </div>
 
-                {/* Card 2: Number of guests */}
+                {/* Card 2: Number of Guest(s) */}
                 <div className="order-4 border border-[#E4DDD3] rounded-2xl p-5 bg-white shadow-2xs space-y-3">
                   <div>
                     <h3 className="font-bold text-sm text-[#140E0A]">
-                      Number of guests
+                      Number of Guest(s)
                     </h3>
                     <p className="text-xs text-stone-500 font-medium mt-0.5">
-                      150/- advance per guest is deducted from final food bill
+                      INR 150 per guest
                     </p>
                   </div>
 
@@ -929,16 +880,16 @@ export default function BookTablePage() {
                     Note
                   </h3>
                   <p className="text-xs text-[#524942] leading-relaxed">
-                    Slot duration: 75 minutes per reservation.
+                    Slot Duration: 75 minutes per reservation.
                     <br />
-                    150/- advance per guest is deducted from final food bill.
+                    The booking amount is fully adjustable against the final food bill.
                   </p>
                 </div>
 
                 {/* Heritage Floor Preference (Optional quick selector) */}
                 <div className="order-2 border border-[#E4DDD3] rounded-2xl p-5 bg-white shadow-2xs space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-xs text-stone-600">
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-stone-600">
                       Choose your floor level
                     </h3>
                   </div>
@@ -966,9 +917,9 @@ export default function BookTablePage() {
                   <button
                     type="button"
                     onClick={() => setStep(3)}
-                    className="w-full py-4 rounded-xl bg-[#140E0A] hover:bg-black text-white font-bold text-sm shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-4 rounded-xl bg-[#140E0A] hover:bg-black text-white font-bold text-sm uppercase tracking-wider shadow-md transition-all active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>Proceed to guest details</span>
+                    <span>Proceed to Guest Details</span>
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -995,7 +946,7 @@ export default function BookTablePage() {
                     <ChevronLeft className="w-5 h-5 text-[#140E0A]" />
                   </button>
                   <h2 className="font-bold text-xl text-[#140E0A]">
-                    Your reservation request
+                    Your Reservation Request
                   </h2>
                   <p className="text-xs text-stone-600 font-medium">
                     for Jaadoo Pizza Project
@@ -1064,7 +1015,7 @@ export default function BookTablePage() {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-bold text-[#140E0A]">
-                        Mobile number for reservation notification <span className="text-red-500">*</span>
+                        Mobile Number for Reservation Notification <span className="text-red-500">*</span>
                       </label>
                       {phone.length === 10 && /^[6-9]\d{9}$/.test(phone) ? (
                         <span className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
@@ -1108,7 +1059,7 @@ export default function BookTablePage() {
                   {/* Allergen Information & Special Requests */}
                   <div>
                     <label className="block text-xs font-bold text-[#140E0A] mb-1.5">
-                      Allergen information and special requests
+                      Allergen Information & Special Requests
                     </label>
                     <textarea
                       rows={3}
@@ -1198,7 +1149,7 @@ export default function BookTablePage() {
                     type="button"
                     disabled={isPaymentProcessing}
                     onClick={handleInitiatePayment}
-                    className={`w-full py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md ${!policyAccepted
+                    className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${!policyAccepted
                       ? "bg-stone-300 text-stone-500 cursor-not-allowed"
                       : "bg-[#140E0A] hover:bg-black text-white cursor-pointer active:scale-[0.99]"
                       }`}
@@ -1211,7 +1162,7 @@ export default function BookTablePage() {
                     ) : (
                       <>
                         <ShieldCheck className="w-4 h-4 text-[#65C5A8]" />
-                        <span>Proceed to pay (Razorpay)</span>
+                        <span>Proceed to Pay (Razorpay)</span>
                       </>
                     )}
                   </button>
@@ -1239,10 +1190,10 @@ export default function BookTablePage() {
                         }
                         setIsSimulatorOpen(true);
                       }}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#65C5A8] hover:text-[#42957b] transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#65C5A8] hover:text-[#42957b] transition-colors uppercase tracking-wider cursor-pointer"
                     >
                       <Zap className="w-3.5 h-3.5" />
-                      <span>Open Razorpay testing simulator</span>
+                      <span>Open Razorpay Testing Simulator</span>
                     </button>
                   </div>
                 </div>

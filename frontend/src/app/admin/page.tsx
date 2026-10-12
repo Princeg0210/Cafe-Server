@@ -1709,10 +1709,10 @@ export default function AdminPortal() {
             </div>
             <div>
               <h1 className="text-2xl font-serif font-extrabold text-[#2A1E17] tracking-tight">
-                Jaadoo owner portal
+                JAADOO OWNER PORTAL
               </h1>
-              <p className="text-xs text-[#B85B43] font-medium mt-0.5">
-                Executive management and live control
+              <p className="text-[11px] uppercase tracking-[0.25em] text-[#B85B43] font-bold mt-0.5">
+                Executive Management & Live Control
               </p>
             </div>
           </div>
@@ -1720,8 +1720,8 @@ export default function AdminPortal() {
           {/* Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="text-xs font-semibold text-[#6B5A4E] block mb-1.5">
-                Owner username
+              <label className="text-xs font-bold uppercase tracking-wider text-[#6B5A4E] block mb-1.5">
+                Owner Username
               </label>
               <input
                 type="text"
@@ -1734,7 +1734,7 @@ export default function AdminPortal() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-[#6B5A4E] block mb-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-[#6B5A4E] block mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -1768,9 +1768,9 @@ export default function AdminPortal() {
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full bg-[#B85B43] hover:bg-[#A34B34] text-white font-bold py-3.5 px-4 rounded-xl text-xs transition-all shadow-md active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+              className="w-full bg-[#B85B43] hover:bg-[#A34B34] text-white font-bold py-3.5 px-4 rounded-xl text-xs uppercase tracking-[0.2em] transition-all shadow-md active:scale-[0.98] disabled:opacity-50 cursor-pointer"
             >
-              {isLoggingIn ? "Authenticating..." : "Enter owner dashboard"}
+              {isLoggingIn ? "AUTHENTICATING..." : "ENTER OWNER DASHBOARD"}
             </button>
           </form>
 
@@ -1826,8 +1826,8 @@ export default function AdminPortal() {
               <span className="text-[#9B7AAE]">Project</span>
             </h1>
             <div className="mt-0.5">
-              <span className="text-xs font-semibold text-[#B85B43]">
-                Owner executive portal
+              <span className="text-[10px] uppercase font-extrabold tracking-[0.22em] text-[#B85B43]">
+                Owner Executive Portal
               </span>
             </div>
           </div>
@@ -1867,13 +1867,13 @@ export default function AdminPortal() {
       <div className="bg-[#F3EDE2] border-b border-[#E4DCD0] px-4 sm:px-6 py-2 overflow-x-auto">
         <TabsList className="bg-transparent border-0 p-0 gap-1.5 flex">
           {[
-            { id: "analytics", label: "Executive analytics", icon: TrendingUp },
+            { id: "analytics", label: "Executive Analytics", icon: TrendingUp },
             { id: "operations", label: "Operations", icon: SlidersHorizontal },
             { id: "menu", label: "Menu", icon: Utensils },
             { id: "inventory", label: "Inventory", icon: Package },
-            { id: "reservations", label: "Reservations", icon: Calendar },
-            { id: "tables", label: "Tables and QR", icon: QrCode },
-            { id: "ledger", label: "Billing and ledger", icon: Receipt },
+            { id: "reservations", label: "Reservations CRM", icon: Calendar },
+            { id: "tables", label: "Tables & QR Generator", icon: QrCode },
+            { id: "ledger", label: "Billing & Finance Ledger", icon: Receipt },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1882,7 +1882,7 @@ export default function AdminPortal() {
                 key={tab.id}
                 active={isActive}
                 onClick={() => setActiveTab(tab.id as any)}
-                className="px-3.5 py-1.5 text-xs font-semibold"
+                className="px-3.5 py-1.5 uppercase tracking-wider text-[11px]"
               >
                 <Icon className="w-3.5 h-3.5" />
                 <span>{tab.label}</span>
@@ -1901,8 +1901,8 @@ export default function AdminPortal() {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
               {/* Card 1: Today's / Daily Revenue */}
               <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
-                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold">
-                  <span className="truncate">{revDay === todayIso ? "Today's revenue" : "Daily revenue"}</span>
+                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
+                  <span className="truncate">{revDay === todayIso ? "Today's Revenue" : "Daily Revenue"}</span>
                   <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-[#B85B43] shrink-0">
                     <IndianRupee className="w-3.5 h-3.5" />
                   </span>
@@ -1946,8 +1946,8 @@ export default function AdminPortal() {
 
               {/* Card 2: Weekly Revenue */}
               <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
-                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold">
-                  <span className="truncate">Weekly revenue</span>
+                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
+                  <span className="truncate">Weekly Revenue</span>
                   <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-emerald-700 shrink-0">
                     <TrendingUp className="w-3.5 h-3.5" />
                   </span>
@@ -1994,8 +1994,8 @@ export default function AdminPortal() {
 
               {/* Card 3: Monthly Revenue */}
               <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
-                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold">
-                  <span className="truncate">Monthly revenue</span>
+                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
+                  <span className="truncate">Monthly Revenue</span>
                   <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-[#B85B43] shrink-0">
                     <Calendar className="w-3.5 h-3.5" />
                   </span>
@@ -2047,8 +2047,8 @@ export default function AdminPortal() {
 
               {/* Card 4: Yearly Revenue */}
               <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
-                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold">
-                  <span className="truncate">Yearly revenue</span>
+                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
+                  <span className="truncate">Yearly Revenue</span>
                   <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-[#B85B43] shrink-0">
                     <TrendingUp className="w-3.5 h-3.5" />
                   </span>
@@ -2093,8 +2093,8 @@ export default function AdminPortal() {
 
               {/* Card 5: All-Time Sales (Symmetrically Balanced) */}
               <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
-                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold">
-                  <span className="truncate">All-time sales</span>
+                <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
+                  <span className="truncate">All-Time Sales</span>
                   <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-amber-600 shrink-0">
                     <Sparkles className="w-3.5 h-3.5" />
                   </span>
@@ -2107,7 +2107,7 @@ export default function AdminPortal() {
                       <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                       <span>Full Restaurant Record</span>
                     </span>
-                    <span className="text-[10px] text-[#A8988B] font-mono">Lifetime</span>
+                    <span className="text-[10px] text-[#A8988B] font-mono uppercase">Lifetime</span>
                   </div>
                 </div>
 
@@ -2135,8 +2135,8 @@ export default function AdminPortal() {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-serif font-bold text-[#241A14]">
-                      Daily sales history (last 14 days)
+                    <h3 className="text-sm font-serif font-bold uppercase tracking-wider text-[#241A14]">
+                      Daily Sales History (Last 14 Days)
                     </h3>
 
                   </div>
@@ -2184,8 +2184,8 @@ export default function AdminPortal() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 <div className="bg-[#FAF7F0] p-3 rounded-xl border border-[#E6DCCF] flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-[#7A6A5E] block">
-                      14-day cumulative
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6A5E] block">
+                      14-Day Cumulative
                     </span>
                     <span className="text-base font-extrabold text-[#241A14]">
                       ₹{chartStats.totalRev.toLocaleString("en-IN")}
@@ -2198,8 +2198,8 @@ export default function AdminPortal() {
 
                 <div className="bg-[#FAF7F0] p-3 rounded-xl border border-[#E6DCCF] flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-[#7A6A5E] block">
-                      Daily average
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6A5E] block">
+                      Daily Average
                     </span>
                     <span className="text-base font-extrabold text-[#241A14]">
                       ₹{chartStats.avgDailyRev.toLocaleString("en-IN")}
@@ -2210,8 +2210,8 @@ export default function AdminPortal() {
 
                 <div className="bg-[#FAF7F0] p-3 rounded-xl border border-[#E6DCCF] flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-bold text-[#7A6A5E] block">
-                      Highest single day
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#7A6A5E] block">
+                      Highest Single Day
                     </span>
                     <span className="text-base font-extrabold text-emerald-700">
                       ₹{Number(chartStats.peakDay?.revenue || 0).toLocaleString("en-IN")}

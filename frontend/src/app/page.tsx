@@ -74,7 +74,7 @@ export default function Home() {
             transition={{ delay: 0.28, duration: 0.5, ease: "easeOut" }}
             className="mt-5 text-base sm:text-lg md:text-xl font-sans font-normal text-stone-100 max-w-2xl leading-relaxed drop-shadow-md"
           >
-            An artisanal pizza and Italian kitchen hidden deep in the historic lanes of Udaipur old city.
+            An artisanal pizza and Italian kitchen hidden deep in the historic lanes of Udaipur Old City, known for handcrafted pizza, passionately curated ingredients, and a warm intimate dining experience, Jaadoo offers a relaxed yet refined setting for pizza and Udaipur lovers.
           </motion.p>
 
           {/* Anti-AI Editorial Feature Band */}
@@ -121,10 +121,10 @@ export default function Home() {
           >
             <Link
               href="/book-table"
-              className="inline-flex items-center gap-2.5 bg-[#C88A48] hover:bg-[#DE9B52] text-[#120D0A] px-8 py-3.5 rounded-xl font-sans text-xs sm:text-sm font-extrabold shadow-2xl active:scale-95 transition-all duration-300"
+              className="inline-flex items-center gap-2.5 bg-[#C88A48] hover:bg-[#DE9B52] text-[#120D0A] px-8 py-3.5 rounded-xl font-sans text-xs sm:text-sm font-extrabold tracking-[0.2em] uppercase transition-all duration-300 shadow-2xl active:scale-95"
             >
               <Calendar className="w-4 h-4" />
-              <span>Book a table</span>
+              <span>BOOK A TABLE</span>
             </Link>
 
             <button
