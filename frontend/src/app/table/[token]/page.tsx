@@ -142,6 +142,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         price: string | number;
         is_available: boolean;
         is_sold_out?: boolean;
+        image_url?: string | null;
       }> = await res.json();
 
       const dbMapById = new Map(dbItems.map((item) => [item.id, item]));
@@ -157,6 +158,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                   ...item,
                   price: Number(matched.price),
                   is_available: matched.is_available && !matched.is_sold_out,
+                  image_url: matched.image_url || item.image_url,
                 };
               }
               return item;
@@ -1033,7 +1035,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                   const isAvailable = (item as any).is_available !== false;
                   const qtyInCart = cart[item.id]?.qty || 0;
                   const itemMedia = ITEM_MEDIA_MAP[item.id];
-                  const imgUrl = itemMedia?.image_url || "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80";
+                  const imgUrl = item.image_url || itemMedia?.image_url || "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=80";
 
                   const isPizza = item.id.startsWith("pz") || category.id === "pizza";
 

@@ -32,6 +32,7 @@ function FoodRow({ item }: { item: MenuItem & { is_available?: boolean } }) {
             src={item.image_url}
             alt={item.name}
             fill
+            unoptimized={item.image_url.startsWith("/api/")} // uploaded photos are already resized
             sizes="(max-width: 640px) 76px, 96px"
             className={`object-cover transition-transform duration-300 ${isPizza ? "scale-140 hover:scale-155" : "hover:scale-110"}`}
           />
@@ -72,13 +73,15 @@ export default function MenuPage() {
       const apiBase = "";
       const response = await fetch(`${apiBase}/api/v1/menu/items`);
       if (!response.ok) return;
-      const liveItems: Array<{ id: number; price: string | number; is_available: boolean; is_sold_out?: boolean }> = await response.json();
+      const liveItems: Array<{ id: number; price: string | number; is_available: boolean; is_sold_out?: boolean; image_url?: string | null }> = await response.json();
       const liveById = new Map(liveItems.map((item) => [item.id, item]));
       setMenuData(initialMenuData.map((category) => ({
         ...category,
         items: category.items.map((item) => {
           const live = liveById.get(MENU_ITEM_ID_MAP[item.id]);
-          return live ? { ...item, price: Number(live.price), is_available: live.is_available && !live.is_sold_out } : item;
+          return live
+            ? { ...item, price: Number(live.price), is_available: live.is_available && !live.is_sold_out, image_url: live.image_url || item.image_url }
+            : item;
         }),
       })));
     } catch {

@@ -60,7 +60,7 @@ import {
   Tooltip as RechartsTooltip,
   Cell,
 } from "recharts";
-import { menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
+import { menuData, MENU_ITEM_ID_MAP, ITEM_MEDIA_MAP } from "@/data/menu";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
 import { adminSession } from "@/lib/authFetch";
@@ -116,6 +116,7 @@ interface MenuItem {
   tax_rate: number | string;
   is_available: boolean;
   is_active: boolean;
+  image_url?: string | null;
 }
 
 interface RawMaterial {
@@ -250,6 +251,32 @@ interface CustomerBillRecord {
   created_at?: string | null;
 }
 
+// The website's built-in picture for a dish (shown when no photo has been uploaded)
+function defaultDishImage(dbId: number): string | null {
+  const key = Object.keys(MENU_ITEM_ID_MAP).find((k) => MENU_ITEM_ID_MAP[k] === dbId);
+  return (key && ITEM_MEDIA_MAP[key]?.image_url) || null;
+}
+
+const MAX_DISH_PHOTO_BYTES = 5 * 1024 * 1024;
+
+// Shrink a phone photo (often 4-8 MB) to a ~1200px JPEG before upload so menus stay fast
+async function shrinkDishPhoto(file: File): Promise<Blob> {
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, 1200 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    if (blob) return blob;
+  } catch {
+    // Browser can't read this format (e.g. HEIC on some devices); try the original file
+  }
+  return file;
+}
+
 export default function AdminPortal() {
   const [token, setToken] = useState<string | null>(null);
   const [usernameInput, setUsernameInput] = useState("admin");
@@ -300,6 +327,8 @@ export default function AdminPortal() {
   const [categories, setCategories] = useState<MenuCategory[]>(INITIAL_CATEGORIES);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isSavingItem, setIsSavingItem] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState<"" | "uploading" | "removing">("");
+  const [photoError, setPhotoError] = useState("");
   const [isCreatingItem, setIsCreatingItem] = useState(false);
   const [newItemData, setNewItemData] = useState({ name: "", category_id: 1, description: "", price: 350 });
   const [menuSearch, setMenuSearch] = useState("");
@@ -636,6 +665,7 @@ export default function AdminPortal() {
               tax_rate: it.tax_rate || "5.00",
               is_available: Boolean(it.is_available),
               is_active: it.is_active !== undefined ? Boolean(it.is_active) : true,
+              image_url: it.image_url || null,
             }))
           );
         }
@@ -1183,6 +1213,69 @@ export default function AdminPortal() {
   }, []);
 
   // Update menu item (Price, name, description, availability)
+  // Dish photo: saved immediately (separately from the name/price form)
+  const applyDishPhoto = (itemId: number, imageUrl: string | null) => {
+    setMenuItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, image_url: imageUrl } : i)));
+    setEditingItem((prev) => (prev && prev.id === itemId ? { ...prev, image_url: imageUrl } : prev));
+  };
+
+  const handleDishPhotoSelected = async (item: MenuItem, file: File | undefined) => {
+    if (!file) return;
+    setPhotoError("");
+    if (!file.type.startsWith("image/")) {
+      setPhotoError("Please choose a photo (JPG, PNG or WebP).");
+      return;
+    }
+    setPhotoBusy("uploading");
+    try {
+      const photo = await shrinkDishPhoto(file);
+      if (photo.size > MAX_DISH_PHOTO_BYTES) {
+        setPhotoError("This photo is too large. Please choose one under 5 MB.");
+        return;
+      }
+      const form = new FormData();
+      form.append("file", photo, "dish.jpg");
+      const res = await adminFetch(`${getApiBase()}/api/v1/menu/items/${item.id}/image`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPhotoError(typeof data.detail === "string" ? data.detail : "Could not upload the photo. Please try again.");
+        return;
+      }
+      applyDishPhoto(item.id, data.image_url);
+      showToast(`Photo updated for ${item.name}`);
+    } catch {
+      setPhotoError("Network error while uploading. Please check your connection and try again.");
+    } finally {
+      setPhotoBusy("");
+    }
+  };
+
+  const handleRemoveDishPhoto = async (item: MenuItem) => {
+    if (!confirm(`Remove the uploaded photo for ${item.name}? The website will show its default picture again.`)) return;
+    setPhotoError("");
+    setPhotoBusy("removing");
+    try {
+      const res = await adminFetch(`${getApiBase()}/api/v1/menu/items/${item.id}/image`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        setPhotoError("Could not remove the photo. Please try again.");
+        return;
+      }
+      applyDishPhoto(item.id, null);
+      showToast(`Photo removed for ${item.name}`);
+    } catch {
+      setPhotoError("Network error while removing the photo. Please try again.");
+    } finally {
+      setPhotoBusy("");
+    }
+  };
+
   const handleSaveMenuItem = async (item: MenuItem) => {
     if (!item) return;
     const apiBase = getApiBase();
@@ -1727,8 +1820,10 @@ export default function AdminPortal() {
             />
           </div>
           <div>
-            <h1 className="text-base font-serif font-extrabold tracking-wide text-[#241A14]">
-              JAADOO PIZZA PROJECT
+            <h1 className="font-serif font-extrabold text-xl sm:text-2xl leading-tight tracking-wide text-[#5F3F6D]">
+              JAADOO{" "}
+              <span className="text-[#F5C518] [-webkit-text-stroke:0.6px_#000] [paint-order:stroke_fill]">Pizza</span>{" "}
+              <span className="text-[#9B7AAE]">Project</span>
             </h1>
             <div className="mt-0.5">
               <span className="text-[10px] uppercase font-extrabold tracking-[0.22em] text-[#B85B43]">
@@ -2864,7 +2959,10 @@ export default function AdminPortal() {
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                onClick={() => setEditingItem(item)}
+                                onClick={() => {
+                                  setPhotoError("");
+                                  setEditingItem(item);
+                                }}
                                 className="text-xs h-7 px-2.5"
                               >
                                 <Edit3 className="w-3.5 h-3.5 text-[#B85B43] mr-1" />
@@ -3955,6 +4053,61 @@ export default function AdminPortal() {
               </div>
 
               <div className="space-y-3.5 text-xs">
+                {/* Dish photo */}
+                <div>
+                  <span className="font-bold text-[#665448] block mb-1">Dish Photo</span>
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-24 h-24 shrink-0 rounded-xl overflow-hidden border border-[#E2D6C5] bg-[#FAF7F0] flex items-center justify-center">
+                      {editingItem.image_url || defaultDishImage(editingItem.id) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={(editingItem.image_url || defaultDishImage(editingItem.id)) as string}
+                          alt={`Photo of ${editingItem.name}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-[10px] text-[#8C7A6D] text-center px-1">No photo</span>
+                      )}
+                      {photoBusy && (
+                        <div className="absolute inset-0 bg-white/70 flex items-center justify-center text-[10px] font-bold text-[#665448]">
+                          {photoBusy === "uploading" ? "Uploading…" : "Removing…"}
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-2 min-w-0">
+                      <p className="text-[11px] text-[#8C7A6D] leading-snug">
+                        {editingItem.image_url ? "Uploaded photo, shown on the website and QR menu." : "Website's default picture. Upload a photo to replace it."}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <label className={`px-3 py-1.5 rounded-lg bg-[#241A14] hover:bg-[#B85B43] text-white font-bold transition-colors ${photoBusy ? "opacity-50 pointer-events-none" : "cursor-pointer"}`}>
+                          {editingItem.image_url ? "Change Photo" : "Upload Photo"}
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/*"
+                            className="sr-only"
+                            disabled={!!photoBusy}
+                            onChange={(e) => {
+                              handleDishPhotoSelected(editingItem, e.target.files?.[0]);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                        {editingItem.image_url && (
+                          <button
+                            type="button"
+                            disabled={!!photoBusy}
+                            onClick={() => handleRemoveDishPhoto(editingItem)}
+                            className="px-3 py-1.5 rounded-lg border border-[#E2D6C5] text-[#9E3E26] font-bold hover:bg-[#FBEDE8] disabled:opacity-50 cursor-pointer"
+                          >
+                            Remove Photo
+                          </button>
+                        )}
+                      </div>
+                      {photoError && <p role="alert" className="text-[11px] font-semibold text-rose-700">{photoError}</p>}
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="font-bold text-[#665448] block mb-1">Item Name</label>
                   <input

@@ -50,4 +50,5 @@ class MenuItemResponse(MenuItemCreate):
     is_sold_out: bool = False
     allocated_count: Optional[int] = None
     max_production_limit: Optional[int] = None
+    image_url: Optional[str] = None
 
