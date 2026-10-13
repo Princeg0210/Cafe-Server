@@ -4,8 +4,10 @@ import { useId } from "react";
 // Pass font size, weight and colour through className; the sparkles scale with the text.
 export default function BrandTitle({ className = "" }: { className?: string }) {
   const gradientId = useId();
+  // Strip out font-serif/font-sans overrides to guarantee unified Poppins Bold branding across all portals
+  const cleanedClass = className.replace(/font-serif/g, "").replace(/font-sans/g, "");
   return (
-    <span className={`relative inline-block whitespace-nowrap ${className}`}>
+    <span className={`relative inline-block whitespace-nowrap font-poppins font-bold ${cleanedClass}`}>
       <svg
         viewBox="0 0 204 174"
         className="pointer-events-none absolute bottom-full left-[1em] -mb-[0.4em] w-[1.2em] h-auto"

@@ -1880,7 +1880,7 @@ export default function POSDashboard() {
             </div>
             <div>
               <h1 className="pt-3">
-                <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-2xl" />
+                <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-2xl" />
               </h1>
               <p className="text-[11px] uppercase tracking-[0.25em] text-[#B85B43] font-bold mt-0.5">POS Terminal</p>
             </div>
@@ -2002,7 +2002,7 @@ export default function POSDashboard() {
                 />
               </div>
               <span className="flex items-baseline gap-1.5">
-                <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-lg leading-tight" />
+                <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-lg leading-tight" />
                 <span className="font-serif italic font-normal text-sm text-[#B85B43]">POS</span>
               </span>
             </Link>

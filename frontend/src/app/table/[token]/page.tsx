@@ -617,7 +617,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
               />
             </div>
             <div>
-              <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-base leading-none mt-2" />
+              <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-base leading-none mt-2" />
               <span className="text-[10px] font-mono font-bold text-[#4A5842] flex items-center gap-1.5 mt-0.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 {tableNumber}

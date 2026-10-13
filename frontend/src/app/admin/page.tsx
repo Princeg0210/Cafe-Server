@@ -1709,7 +1709,7 @@ export default function AdminPortal() {
             </div>
             <div>
               <h1 className="pt-3">
-                <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-2xl" />
+                <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-2xl" />
               </h1>
               <p className="text-[11px] uppercase tracking-[0.25em] text-[#B85B43] font-bold mt-0.5">
                 Owner Portal · Executive Management & Live Control
@@ -1821,7 +1821,7 @@ export default function AdminPortal() {
           </div>
           <div>
             <h1>
-              <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-xl sm:text-2xl leading-tight" />
+              <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-xl sm:text-2xl leading-tight" />
             </h1>
             <div className="mt-0.5">
               <span className="text-[10px] uppercase font-extrabold tracking-[0.22em] text-[#B85B43]">
@@ -1898,7 +1898,7 @@ export default function AdminPortal() {
             {/* Primary KPI Metric Cards (Symmetrical, Precision-Engineered Shadcn UI) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
               {/* Card 1: Today's / Daily Revenue */}
-              <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
+              <Card className="p-5 flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
                   <span className="truncate">{revDay === todayIso ? "Today's Revenue" : "Daily Revenue"}</span>
                   <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-[#B85B43] shrink-0">
@@ -1926,24 +1926,14 @@ export default function AdminPortal() {
                   </div>
                 </div>
 
-                {/* Key Metric Value - Locked to Identical Baseline */}
-                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight mb-3">
+                {/* Key Metric Value */}
+                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight">
                   ₹{Number(revFigures.day?.revenue || 0).toLocaleString("en-IN")}
-                </div>
-
-                {/* Symmetrical Footer Slot */}
-                <div className="mt-auto pt-3 border-t border-[#F0E8DC] flex items-center justify-between text-[11px]">
-                  <span className="text-[#7A6A5E] truncate">
-                    Prev: ₹{Number(revFigures.prevDay?.revenue || 0).toLocaleString("en-IN")}
-                  </span>
-                  <Badge variant="default" className="shrink-0 text-[10px]">
-                    {revFigures.day?.kots || 0} {revFigures.day?.kots === 1 ? "KOT" : "KOTs"}
-                  </Badge>
                 </div>
               </Card>
 
               {/* Card 2: Weekly Revenue */}
-              <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
+              <Card className="p-5 flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
                   <span className="truncate">Weekly Revenue</span>
                   <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-emerald-700 shrink-0">
@@ -1974,24 +1964,14 @@ export default function AdminPortal() {
                   </div>
                 </div>
 
-                {/* Key Metric Value - Locked to Identical Baseline */}
-                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight mb-3">
+                {/* Key Metric Value */}
+                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight">
                   ₹{Number(revFigures.week?.revenue || 0).toLocaleString("en-IN")}
-                </div>
-
-                {/* Symmetrical Footer Slot */}
-                <div className="mt-auto pt-3 border-t border-[#F0E8DC] flex items-center justify-between text-[11px]">
-                  <span className="text-[#7A6A5E] truncate">
-                    {shortDate(shiftDays(revWeekEnd, -6))} – {shortDate(revWeekEnd)}
-                  </span>
-                  <Badge variant="default" className="shrink-0 text-[10px]">
-                    {revFigures.week?.kots || 0} {revFigures.week?.kots === 1 ? "KOT" : "KOTs"}
-                  </Badge>
                 </div>
               </Card>
 
               {/* Card 3: Monthly Revenue */}
-              <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
+              <Card className="p-5 flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
                   <span className="truncate">Monthly Revenue</span>
                   <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-[#B85B43] shrink-0">
@@ -2027,24 +2007,14 @@ export default function AdminPortal() {
                   </div>
                 </div>
 
-                {/* Key Metric Value - Locked to Identical Baseline */}
-                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight mb-3">
+                {/* Key Metric Value */}
+                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight">
                   ₹{Number(revFigures.month?.revenue || 0).toLocaleString("en-IN")}
-                </div>
-
-                {/* Symmetrical Footer Slot */}
-                <div className="mt-auto pt-3 border-t border-[#F0E8DC] flex items-center justify-between text-[11px]">
-                  <span className="text-[#7A6A5E] truncate">
-                    Avg Ticket: ₹{Math.round(revFigures.month?.kots ? revFigures.month.revenue / revFigures.month.kots : 0).toLocaleString("en-IN")}
-                  </span>
-                  <Badge variant="default" className="shrink-0 text-[10px]">
-                    {revFigures.month?.kots || 0} {revFigures.month?.kots === 1 ? "KOT" : "KOTs"}
-                  </Badge>
                 </div>
               </Card>
 
               {/* Card 4: Yearly Revenue */}
-              <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
+              <Card className="p-5 flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
                   <span className="truncate">Yearly Revenue</span>
                   <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-[#B85B43] shrink-0">
@@ -2073,24 +2043,14 @@ export default function AdminPortal() {
                   </div>
                 </div>
 
-                {/* Key Metric Value - Locked to Identical Baseline */}
-                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight mb-3">
+                {/* Key Metric Value */}
+                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight">
                   ₹{Number(revFigures.year?.revenue || 0).toLocaleString("en-IN")}
-                </div>
-
-                {/* Symmetrical Footer Slot */}
-                <div className="mt-auto pt-3 border-t border-[#F0E8DC] flex items-center justify-between text-[11px]">
-                  <span className="text-[#7A6A5E] truncate">
-                    Jan – Dec {revYear}
-                  </span>
-                  <Badge variant="default" className="shrink-0 text-[10px]">
-                    {revFigures.year?.kots || 0} {revFigures.year?.kots === 1 ? "KOT" : "KOTs"}
-                  </Badge>
                 </div>
               </Card>
 
               {/* Card 5: All-Time Sales (Symmetrically Balanced) */}
-              <Card className="p-5 flex flex-col justify-between h-full min-h-[195px] relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
+              <Card className="p-5 flex flex-col justify-between h-full relative overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#D9CCBA] group">
                 <div className="flex items-center justify-between text-xs text-[#7A6A5E] font-bold uppercase tracking-wider">
                   <span className="truncate">All-Time Sales</span>
                   <span className="w-6 h-6 rounded-md bg-[#FAF5ED] border border-[#E8DFC9] flex items-center justify-center text-amber-600 shrink-0">
@@ -2109,19 +2069,9 @@ export default function AdminPortal() {
                   </div>
                 </div>
 
-                {/* Key Metric Value - Locked to Identical Baseline */}
-                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight mb-3">
+                {/* Key Metric Value */}
+                <div className="text-2xl sm:text-3xl font-extrabold font-sans text-[#241A14] tracking-tight">
                   ₹{Number(metrics?.total_revenue || 0).toLocaleString("en-IN")}
-                </div>
-
-                {/* Symmetrical Footer Slot */}
-                <div className="mt-auto pt-3 border-t border-[#F0E8DC] flex items-center justify-between text-[11px]">
-                  <span className="text-[#7A6A5E] truncate">
-                    Fleet: {metrics?.total_tables || 13} Tables
-                  </span>
-                  <Badge variant="default" className="shrink-0 text-[10px]">
-                    {metrics?.total_kots || 0} Orders
-                  </Badge>
                 </div>
               </Card>
             </div>
@@ -2144,37 +2094,9 @@ export default function AdminPortal() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Metric Switcher: Revenue vs Orders */}
-                  <div className="bg-[#F3EDE2] p-1 rounded-xl flex items-center border border-[#E6DCCF] text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setChartMetric("revenue")}
-                      className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${chartMetric === "revenue"
-                          ? "bg-white text-[#B85B43] shadow-xs"
-                          : "text-[#665448] hover:text-[#241A14]"
-                        }`}
-                    >
-                      Revenue (₹)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setChartMetric("kots")}
-                      className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${chartMetric === "kots"
-                          ? "bg-white text-[#B85B43] shadow-xs"
-                          : "text-[#665448] hover:text-[#241A14]"
-                        }`}
-                    >
-                      Orders (KOTs)
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={handleExportCSV}
-                    className="inline-flex items-center gap-1.5 bg-[#FAF6EE] hover:bg-[#F0E8DA] border border-[#E0D4C2] text-[#B85B43] px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Export CSV</span>
-                  </button>
+                  <span className="bg-[#F3EDE2] text-[#B85B43] px-3 py-1 rounded-lg text-xs font-bold border border-[#E6DCCF]">
+                    Revenue (₹)
+                  </span>
                 </div>
               </div>
 
@@ -2487,14 +2409,6 @@ export default function AdminPortal() {
                       className="text-[11px] h-7 px-2.5"
                     >
                       2 Days Ago
-                    </Button>
-                    <Button
-                      variant={opDate === getLocalDateString(1) ? "default" : "secondary"}
-                      size="sm"
-                      onClick={() => setOpDate(getLocalDateString(1))}
-                      className="text-[11px] h-7 px-2.5"
-                    >
-                      Tomorrow
                     </Button>
                   </div>
                 </div>
@@ -3744,7 +3658,7 @@ export default function AdminPortal() {
                   </span>
                   <Package className="w-4 h-4 text-[#B85B43]" />
                 </div>
-                <div className="text-xl font-serif font-extrabold text-[#241A14]">
+                <div className="text-2xl font-extrabold font-sans text-[#241A14] tracking-tight">
                   ₹{scannedBills.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0).toLocaleString("en-IN")}
                 </div>
                 <p className="text-[11px] text-[#7A6A5E] mt-1">
@@ -3759,7 +3673,7 @@ export default function AdminPortal() {
                   </span>
                   <Receipt className="w-4 h-4 text-emerald-600" />
                 </div>
-                <div className="text-xl font-serif font-extrabold text-[#241A14]">
+                <div className="text-2xl font-extrabold font-sans text-[#241A14] tracking-tight">
                   ₹{customerBills.reduce((acc, b) => acc + (Number(b.total_amount) || 0), 0).toLocaleString("en-IN")}
                 </div>
                 <p className="text-[11px] text-[#7A6A5E] mt-1">
@@ -3780,7 +3694,7 @@ export default function AdminPortal() {
                   const net = sales - purchases;
                   return (
                     <>
-                      <div className={`text-xl font-serif font-extrabold ${net >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                      <div className={`text-2xl font-extrabold font-sans tracking-tight ${net >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
                         {net >= 0 ? "+" : "-"}₹{Math.abs(net).toLocaleString("en-IN")}
                       </div>
                       <p className="text-[11px] text-[#7A6A5E] mt-1">
@@ -4455,7 +4369,7 @@ export default function AdminPortal() {
             >
               <div className="border-b border-[#F0E8DC] pb-3 flex flex-col items-center">
                 <p className="pt-3 mb-2">
-                  <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-lg" />
+                  <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-lg" />
                 </p>
                 <div className="w-28 h-16 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md mb-2.5 bg-white">
                   <img

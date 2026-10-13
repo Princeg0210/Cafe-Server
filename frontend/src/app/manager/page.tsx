@@ -1012,7 +1012,7 @@ export default function KunalManagerPortal() {
             </div>
             <div>
               <h1>
-                <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-xl sm:text-2xl leading-tight" />
+                <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-xl sm:text-2xl leading-tight" />
               </h1>
               <div className="mt-0.5">
                 <span className="text-[10px] uppercase font-extrabold tracking-[0.22em] text-[#B85B43]">

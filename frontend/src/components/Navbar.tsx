@@ -39,7 +39,7 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber, showNavigat
               />
             </div>
             <div className="flex flex-col justify-center min-w-0">
-              <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-xl sm:text-2xl leading-tight" />
+              <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-xl sm:text-2xl leading-tight" />
               <span className="text-[11px] font-sans tracking-wide text-[#B6623B] font-bold leading-none mt-0.5 self-center text-center">
                 Con o senza avanti!
               </span>

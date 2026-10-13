@@ -20,7 +20,7 @@ export default function TanFooter() {
             </div>
             <div>
               <div className="mt-3">
-                <BrandTitle className="font-serif font-bold text-2xl tracking-wide leading-none text-[#D9C6E6]" />
+                <BrandTitle className="font-poppins font-bold text-2xl tracking-wide leading-none text-[#D9C6E6]" />
               </div>
               <span className="text-[10px] font-sans tracking-[0.25em] text-[#D8C7B5] uppercase font-medium">
                 ARTISANAL PIZZERIA · UDAIPUR · EST. 2024
