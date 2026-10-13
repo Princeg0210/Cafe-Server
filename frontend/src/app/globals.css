@@ -57,3 +57,20 @@ h1, h2, h3 {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Print styles */
+@media print {
+  @page {
+    size: portrait;
+    margin: 10mm;
+  }
+  body {
+    background: white !important;
+    color: #140E0A !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+

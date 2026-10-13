@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import TanFooter from "@/components/TanFooter";
+import BrandTitle from "@/components/BrandTitle";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
 import { ALL_COUNTRY_CODES } from "@/lib/countryCodes";
@@ -578,13 +579,13 @@ export default function BookTablePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F5F0] text-[#140E0A] font-sans antialiased flex flex-col justify-between selection:bg-[#65C5A8]/30">
+    <div className="min-h-screen bg-[#F8F5F0] text-[#140E0A] font-sans antialiased flex flex-col justify-between selection:bg-[#65C5A8]/30 print:min-h-0 print:bg-white print:block">
       <Navbar showNavigation={false} />
 
       <AnimatePresence>
         {showBookingInstructions && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-[#140E0A]/60 px-4 py-6 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#140E0A]/60 px-4 py-6 backdrop-blur-sm print:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -641,7 +642,7 @@ export default function BookTablePage() {
         )}
       </AnimatePresence>
 
-      <main className="w-full max-w-3xl mx-auto px-4 sm:px-6 pt-10 pb-24 flex-1">
+      <main className="w-full max-w-3xl mx-auto px-4 sm:px-6 pt-10 pb-24 flex-1 print:p-0 print:m-0 print:max-w-2xl print:mx-auto">
         {/* ==================================================================== */}
         {/* SCREEN 0: CONFIRMED BOOKING PASS VOUCHER                            */}
         {/* ==================================================================== */}
@@ -649,17 +650,34 @@ export default function BookTablePage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="space-y-6 pt-2"
+            className="space-y-6 pt-2 print:pt-0 print:space-y-0"
           >
-            <div className="relative bg-[#FAF8F5] rounded-3xl border border-[#E8E2D8] overflow-hidden shadow-xl">
+            <div className="relative bg-[#FAF8F5] rounded-3xl border border-[#E8E2D8] overflow-hidden shadow-xl print:shadow-none print:border print:border-[#E8E2D8] print:rounded-2xl print:bg-white [break-inside:avoid] [page-break-inside:avoid]">
               {/* Optional Subtle Watermark behind the card */}
               <div
-                className="absolute inset-0 pointer-events-none opacity-[0.035] bg-center bg-no-repeat bg-contain z-0"
+                className="absolute inset-0 pointer-events-none opacity-[0.035] bg-center bg-no-repeat bg-contain z-0 print:hidden"
                 style={{ backgroundImage: "url('/jaadoo_logo.jpg')" }}
               />
 
+              {/* ponytail: in pass print, include Jaadoo logo & brand title same as nav */}
+              <div className="hidden print:flex items-center justify-center gap-3.5 p-5 bg-white border-b border-[#E8E2D8]">
+                <div className="relative w-20 h-12 rounded-xl overflow-hidden bg-white border-2 border-[#9E3E26]/40 shrink-0">
+                  <img
+                    src="/jaadoo_logo.jpg"
+                    alt="Jaadoo Pizza Project"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex flex-col justify-center">
+                  <BrandTitle className="font-serif font-extrabold tracking-wide text-[#5F3F6D] text-xl leading-tight" />
+                  <span className="text-[11px] font-sans tracking-wide text-[#B6623B] font-bold leading-none mt-0.5 self-center text-center">
+                    Con o senza avanti!
+                  </span>
+                </div>
+              </div>
+
               {/* Green Header */}
-              <div className="relative z-10 bg-[#65C5A8] text-[#140E0A] p-6 text-center">
+              <div className="relative z-10 bg-[#65C5A8] text-[#140E0A] p-6 print:py-5 text-center">
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white shadow-md mb-3 text-[#140E0A]">
                   <CheckCircle2 className="w-8 h-8 text-[#140E0A]" />
                 </div>
@@ -676,7 +694,7 @@ export default function BookTablePage() {
               </div>
 
               {/* Pass Content */}
-              <div className="relative z-10 p-6 space-y-4 text-sm">
+              <div className="relative z-10 p-6 print:p-5 space-y-4 text-sm">
                 <div className="bg-white p-4 rounded-2xl border border-[#EFE9DF] space-y-3 shadow-2xs">
                   <div className="flex items-center justify-between pb-2 border-b border-stone-100">
                     <span className="text-xs text-stone-500 font-medium">Guest name</span>
@@ -731,7 +749,7 @@ export default function BookTablePage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="space-y-2 pt-2">
+                <div className="space-y-2 pt-2 print:hidden">
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => window.print()}
@@ -1432,7 +1450,7 @@ export default function BookTablePage() {
       {/* ==================================================================== */}
       <AnimatePresence>
         {isSimulatorOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:hidden">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

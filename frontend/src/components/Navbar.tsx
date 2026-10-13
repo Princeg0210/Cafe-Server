@@ -24,7 +24,7 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber, showNavigat
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0]/80">
+    <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0]/80 print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 sm:h-22 relative flex items-center justify-center">
         
         {/* Left Side: Brand Logo + Typographic Navigation */}

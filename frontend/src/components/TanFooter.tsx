@@ -5,7 +5,7 @@ import BrandTitle from "@/components/BrandTitle";
 
 export default function TanFooter() {
   return (
-    <footer className="mt-20 bg-[#261C18] text-[#FBF9F5] pt-16 pb-8 px-6 md:px-12 border-t border-[#E4DCD0]/20">
+    <footer className="mt-20 bg-[#261C18] text-[#FBF9F5] pt-16 pb-8 px-6 md:px-12 border-t border-[#E4DCD0]/20 print:hidden">
       <div className="max-w-6xl mx-auto grid grid-cols-1 gap-10 pb-12">
         
         {/* Column 1: Brand & Identity */}
