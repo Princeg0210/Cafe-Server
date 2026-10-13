@@ -616,40 +616,15 @@ export default function BookTablePage() {
                 </button>
               </div>
 
-              <div className="mt-5 space-y-3.5 text-sm leading-relaxed text-[#4A423D]">
-                <p className="font-serif italic text-sm text-[#8C3A24] bg-[#FFF8F0] p-3.5 rounded-xl border border-[#F0E2D2]">
-                  An artisanal pizza and Italian kitchen hidden deep in the historic lanes of Udaipur old city
+              <div className="mt-5 space-y-3 text-sm leading-relaxed text-[#4A423D]">
+                <p className="rounded-xl border border-[#E8D2B5] bg-[#FFF6EA] px-4 py-3 font-semibold text-[#6D3B1D]">
+                  Jaadoo is open from 7:00 PM to 10:30 PM, Thursday through Monday.
                 </p>
-
-                <div className="space-y-2.5 text-xs sm:text-sm pt-1">
-                  <p className="flex items-start gap-2.5 text-[#2A231E]">
-                    <span className="text-[#65C5A8] font-bold text-base leading-none">✓</span>
-                    <span>Jaadoo is open from 7:00 PM to 10:30 PM, Thursday through Monday</span>
-                  </p>
-                  <p className="flex items-start gap-2.5 text-[#2A231E]">
-                    <span className="text-[#65C5A8] font-bold text-base leading-none">✓</span>
-                    <span>If space is available you will receive confirmation immediately</span>
-                  </p>
-                  <p className="flex items-start gap-2.5 text-[#2A231E]">
-                    <span className="text-[#65C5A8] font-bold text-base leading-none">✓</span>
-                    <span>150/- advance per guest is deducted from final food bill</span>
-                  </p>
-                  <p className="flex items-start gap-2.5 text-[#2A231E]">
-                    <span className="text-[#65C5A8] font-bold text-base leading-none">✓</span>
-                    <span>If you cancel your booking, ₹54 will be deducted and rest of the amount will be refunded</span>
-                  </p>
-                </div>
-
-                <div className="mt-4 p-3.5 bg-[#FAF7F2] border border-[#E6DDD0] rounded-xl text-xs text-[#3E352F] space-y-1.5">
-                  <p className="font-bold text-[#140E0A] flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-[#B85B43] shrink-0" />
-                    <span>Parking instructions</span>
-                  </p>
-                  <p className="leading-relaxed pl-5 text-stone-600">
-                    Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to Jaadoo, one minute or two on, it’s safe and pretty. Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
-                  </p>
-                </div>
+                <p>If space is available you will receive confirmation immediately.</p>
+                <p>₹150/- advance per guest is deducted from final food bill.</p>
+                <p>If you cancel your booking, ₹54 will be deducted and rest of the amount will be refunded.</p>
               </div>
+
 
               <button
                 type="button"
