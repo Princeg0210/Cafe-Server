@@ -82,6 +82,16 @@ class TableQR(Base):
     table = relationship("Table", back_populates="qr_code")
 
 
+class GeneralizedQR(Base):
+    __tablename__ = "generalized_qrs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    qr_token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+
 class DiningSession(Base):
     __tablename__ = "dining_sessions"
 

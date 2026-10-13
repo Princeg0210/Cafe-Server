@@ -28,8 +28,9 @@ class OrderService:
             if data.session_token:
                 sess_query = select(DiningSession).where(
                     DiningSession.session_token == data.session_token,
-                    DiningSession.table_id == val.table_id,
                 )
+                if not getattr(val, "is_generalized", False):
+                    sess_query = sess_query.where(DiningSession.table_id == val.table_id)
                 sess_res = await db.execute(sess_query)
                 dining_session = sess_res.scalar_one_or_none()
                 if not dining_session:

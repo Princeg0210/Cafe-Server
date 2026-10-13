@@ -3,7 +3,7 @@ from app.models.user import User, Role, Permission, RolePermission
 from app.models.customer import Customer
 from app.models.branch import Branch
 from app.models.settings import SystemSettings
-from app.models.table import Table, TableQR, DiningSession
+from app.models.table import Table, TableQR, GeneralizedQR, DiningSession
 from app.models.reservation import Reservation, ReservationCapacityRule
 from app.models.menu import MenuCategory, MenuItem
 from app.models.capacity import ItemCapacityRule, DailyProductionRule, ReservationDoughAllocation
@@ -30,6 +30,7 @@ __all__ = [
     "SystemSettings",
     "Table",
     "TableQR",
+    "GeneralizedQR",
     "DiningSession",
     "Reservation",
     "ReservationCapacityRule",

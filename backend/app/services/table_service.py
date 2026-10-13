@@ -2,13 +2,13 @@ import secrets
 import datetime
 from app.utils.helpers import utc_now
 from typing import Optional, List
-from sqlalchemy import select, or_, and_
+from sqlalchemy import select, or_, and_, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.core.config import settings
-from app.models.table import Table, TableQR, DiningSession
+from app.models.table import Table, TableQR, GeneralizedQR, DiningSession
 from app.models.customer import Customer
 from app.models.order import Order, OrderItem
 from app.models.reservation import Reservation
@@ -19,6 +19,9 @@ from app.schemas.table import (
     DiningSessionResponse,
     SessionBillResponse,
     SessionBillItemResponse,
+    GeneralizedQRResponse,
+    GeneralizedQRListResponse,
+    ClaimReservationResponse,
 )
 
 
@@ -109,12 +112,57 @@ class TableService:
 
     @staticmethod
     async def validate_qr_token(db: AsyncSession, qr_token: str) -> QRValidateResponse:
-        qr_stmt = (
-            select(TableQR)
-            .where(TableQR.qr_token == qr_token, TableQR.is_active == True)
-        )
+        # 1. Check GeneralizedQR first
+        gen_stmt = select(GeneralizedQR).where(GeneralizedQR.qr_token == qr_token)
+        gen_res = await db.execute(gen_stmt)
+        gen_qr = gen_res.scalar_one_or_none()
+
+        if gen_qr:
+            if not gen_qr.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="INACTIVE_QR_CODE: This QR code has been deactivated. Please ask staff for an active QR code.",
+                )
+
+            table = await db.get(Table, 1)
+            if not table:
+                from app.utils.init_tables import ensure_default_tables
+                await ensure_default_tables(db)
+                table = await db.get(Table, 1)
+
+            new_session_token = f"sess_tok_{secrets.token_urlsafe(32)}"
+            session = DiningSession(
+                table_id=table.id if table else 1,
+                session_token=new_session_token,
+                status="OPENED",
+            )
+            db.add(session)
+            await db.commit()
+            await db.refresh(session)
+
+            return QRValidateResponse(
+                is_valid=True,
+                table_id=table.id if table else 1,
+                table_number="Table allotted by server",
+                branch_id=table.branch_id if table else 1,
+                session_id=session.id,
+                session_token=session.session_token,
+                session_status=session.status,
+                is_reserved=False,
+                reservation=None,
+                is_generalized=True,
+            )
+
+        # 2. Check TableQR (specific physical table token)
+        qr_stmt = select(TableQR).where(TableQR.qr_token == qr_token)
         qr_res = await db.execute(qr_stmt)
         qr = qr_res.scalar_one_or_none()
+
+        if qr and not qr.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="INACTIVE_QR_CODE: This QR code has been deactivated. Please ask staff for an active QR code.",
+            )
 
         if not qr:
             from app.utils.init_tables import DEFAULT_TABLES, ensure_default_tables
@@ -126,10 +174,14 @@ class TableService:
                 await ensure_default_tables(db)
                 qr_stmt2 = select(TableQR).where(
                     TableQR.qr_token == matched_dt["qr_token"],
-                    TableQR.is_active == True,
                 )
                 qr2_res = await db.execute(qr_stmt2)
                 qr = qr2_res.scalars().first()
+                if qr and not qr.is_active:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="INACTIVE_QR_CODE: This QR code has been deactivated. Please ask staff for an active QR code.",
+                    )
 
         if not qr:
             raise HTTPException(
@@ -341,15 +393,39 @@ class TableService:
         guest_count: int = 2,
     ) -> QRWalkInResponse:
         # 1. Resolve table from qr_token
-        qr_stmt = select(TableQR).where(TableQR.qr_token == qr_token, TableQR.is_active == True)
-        qr_res = await db.execute(qr_stmt)
-        qr = qr_res.scalar_one_or_none()
-        if not qr:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired QR token.")
+        is_generalized = False
+        table = None
 
-        table = await db.get(Table, qr.table_id)
-        if not table:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Table not found.")
+        gen_stmt = select(GeneralizedQR).where(GeneralizedQR.qr_token == qr_token)
+        gen_res = await db.execute(gen_stmt)
+        gen_qr = gen_res.scalar_one_or_none()
+
+        if gen_qr:
+            if not gen_qr.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="INACTIVE_QR_CODE: This QR code has been deactivated. Please ask staff for an active QR code.",
+                )
+            is_generalized = True
+            table = await db.get(Table, 1)
+            if not table:
+                from app.utils.init_tables import ensure_default_tables
+                await ensure_default_tables(db)
+                table = await db.get(Table, 1)
+        else:
+            qr_stmt = select(TableQR).where(TableQR.qr_token == qr_token)
+            qr_res = await db.execute(qr_stmt)
+            qr = qr_res.scalar_one_or_none()
+            if qr and not qr.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="INACTIVE_QR_CODE: This QR code has been deactivated. Please ask staff for an active QR code.",
+                )
+            if not qr:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired QR token.")
+            table = await db.get(Table, qr.table_id)
+            if not table:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Table not found.")
 
         # 2. Get or create Customer
         clean_name = customer_name.strip()
@@ -373,20 +449,31 @@ class TableService:
                 await db.flush()
 
         # 3. Get or create dining session
-        session = await TableService.get_or_create_dining_session(db, table.id)
+        if is_generalized:
+            new_session_token = f"sess_tok_{secrets.token_urlsafe(32)}"
+            session = DiningSession(
+                table_id=table.id if table else 1,
+                session_token=new_session_token,
+                status="OPENED",
+            )
+            db.add(session)
+            await db.flush()
+        else:
+            session = await TableService.get_or_create_dining_session(db, table.id)
 
         # 4. Create Reservation for the walk-in
         from decimal import Decimal
         now = datetime.datetime.now()
+        display_tbl_name = "Table allotted by server" if is_generalized else table.table_number
         walk_in_res = Reservation(
-            branch_id=table.branch_id,
+            branch_id=table.branch_id if table else 1,
             customer_id=customer.id,
             guest_count=guest_count or 2,
             reservation_date=now.date(),
             time_slot=now.strftime("%I:%M %p"),
-            table_id=table.id,
-            floor_number=table.floor_number or 1,
-            table_name=table.table_number,
+            table_id=table.id if not is_generalized else None,
+            floor_number=table.floor_number if not is_generalized else 1,
+            table_name=display_tbl_name,
             status="SEATED",
             payment_status="PAID",
             advance_amount=Decimal("0.00"),
@@ -395,13 +482,14 @@ class TableService:
         db.add(walk_in_res)
         await db.flush()
 
-        # 5. Attach reservation to session and mark table occupied
+        # 5. Attach reservation to session and mark table occupied if fixed table
         session.reservation_id = walk_in_res.id
         session.customer_id = customer.id
         if session.status == "OPENED":
             session.opened_at = utc_now()  # clock starts when the party is seated, not at an earlier scan
         session.status = "ACTIVE"
-        table.status = "Occupied"
+        if not is_generalized and table:
+            table.status = "Occupied"
 
         await db.commit()
         await db.refresh(walk_in_res)
@@ -412,7 +500,7 @@ class TableService:
             from app.api.websocket import ws_manager
             event = {
                 "event": "TABLE_OCCUPIED",
-                "table_id": table.id,
+                "table_id": table.id if not is_generalized else None,
                 "session_id": session.id,
                 "customer_name": customer.name,
                 "reservation_id": walk_in_res.id,
@@ -428,8 +516,175 @@ class TableService:
             reservation_id=walk_in_res.id,
             booking_id=walk_in_res.booking_id,
             customer_name=customer.name,
-            table_number=table.table_number,
+            table_number=display_tbl_name,
             session_id=session.id,
             session_token=session.session_token,
             status="SEATED",
+        )
+
+    @staticmethod
+    async def get_generalized_qrs(db: AsyncSession) -> GeneralizedQRListResponse:
+        stmt = select(GeneralizedQR).order_by(GeneralizedQR.id.desc())
+        res = await db.execute(stmt)
+        all_qrs = list(res.scalars().all())
+
+        if not all_qrs:
+            first_qr = await TableService.generate_fresh_generalized_qr(db)
+            all_qrs = [first_qr]
+
+        active_qr = next((q for q in all_qrs if q.is_active), all_qrs[0] if all_qrs else None)
+
+        return GeneralizedQRListResponse(
+            active_qr=active_qr,
+            all_qrs=all_qrs,
+        )
+
+    @staticmethod
+    async def generate_fresh_generalized_qr(db: AsyncSession) -> GeneralizedQR:
+        new_token = f"qr_gen_{secrets.token_urlsafe(24)}"
+
+        # Deactivate previous active generalized QRs
+        prev_stmt = select(GeneralizedQR).where(GeneralizedQR.is_active == True)
+        prev_res = await db.execute(prev_stmt)
+        for prev in prev_res.scalars().all():
+            prev.is_active = False
+
+        new_qr = GeneralizedQR(
+            qr_token=new_token,
+            is_active=True,
+            created_at=utc_now(),
+            notes="Active Generalized Dining QR",
+        )
+        db.add(new_qr)
+        await db.commit()
+        await db.refresh(new_qr)
+        return new_qr
+
+    @staticmethod
+    async def toggle_qr_status(
+        db: AsyncSession,
+        qr_token: Optional[str] = None,
+        qr_id: Optional[int] = None,
+        is_active: bool = True,
+    ) -> GeneralizedQRResponse:
+        stmt = select(GeneralizedQR)
+        if qr_id is not None:
+            stmt = stmt.where(GeneralizedQR.id == qr_id)
+        elif qr_token:
+            stmt = stmt.where(GeneralizedQR.qr_token == qr_token)
+        else:
+            raise HTTPException(status_code=400, detail="Must provide qr_token or id")
+
+        res = await db.execute(stmt)
+        gen_qr = res.scalar_one_or_none()
+
+        if gen_qr:
+            gen_qr.is_active = is_active
+            await db.commit()
+            await db.refresh(gen_qr)
+            return gen_qr
+
+        # Fallback check TableQR
+        tqr_stmt = select(TableQR)
+        if qr_id is not None:
+            tqr_stmt = tqr_stmt.where(TableQR.id == qr_id)
+        elif qr_token:
+            tqr_stmt = tqr_stmt.where(TableQR.qr_token == qr_token)
+        tqr_res = await db.execute(tqr_stmt)
+        tqr = tqr_res.scalar_one_or_none()
+        if tqr:
+            tqr.is_active = is_active
+            await db.commit()
+            await db.refresh(tqr)
+            return GeneralizedQRResponse(
+                id=tqr.id,
+                qr_token=tqr.qr_token,
+                is_active=tqr.is_active,
+                created_at=utc_now(),
+                notes=f"Table {tqr.table_id} QR",
+            )
+
+        raise HTTPException(status_code=404, detail="QR code not found")
+
+    @staticmethod
+    async def claim_reservation(
+        db: AsyncSession,
+        qr_token: str,
+        session_token: str,
+        reservation_code: str,
+    ) -> ClaimReservationResponse:
+        sess_stmt = select(DiningSession).where(DiningSession.session_token == session_token)
+        sess_res = await db.execute(sess_stmt)
+        session = sess_res.scalar_one_or_none()
+        if not session:
+            raise HTTPException(status_code=400, detail="Invalid session token.")
+
+        code = reservation_code.strip()
+        if not code:
+            raise HTTPException(status_code=400, detail="Please enter a reservation code.")
+
+        res_stmt = (
+            select(Reservation)
+            .options(selectinload(Reservation.customer))
+            .where(
+                or_(
+                    Reservation.id == (int(code) if code.isdigit() else -1),
+                    func.upper(Reservation.booking_id) == code.upper(),
+                ),
+                Reservation.status.in_(["CONFIRMED", "ARRIVED", "SEATED"]),
+            )
+        )
+        res_res = await db.execute(res_stmt)
+        reservation = res_res.scalars().first()
+
+        if not reservation and len(code) >= 4:
+            all_active = await db.execute(
+                select(Reservation)
+                .options(selectinload(Reservation.customer))
+                .where(Reservation.status.in_(["CONFIRMED", "ARRIVED", "SEATED"]))
+                .order_by(Reservation.created_at.desc())
+            )
+            clean_code = code.replace(" ", "").upper()
+            for cand in all_active.scalars().all():
+                c_name = (cand.customer.name if cand.customer else "").replace(" ", "").upper()[:4]
+                c_phone = (cand.customer.phone if cand.customer else "")[-4:]
+                composite = f"{c_name}{c_phone}"
+                if clean_code == composite or clean_code.startswith(c_name):
+                    reservation = cand
+                    break
+
+        if not reservation:
+            raise HTTPException(
+                status_code=400,
+                detail="Reservation not found or status not eligible for seating.",
+            )
+
+        session.reservation_id = reservation.id
+        if reservation.customer_id:
+            session.customer_id = reservation.customer_id
+        if reservation.table_id:
+            session.table_id = reservation.table_id
+
+        if reservation.status in ["CONFIRMED", "ARRIVED"]:
+            reservation.status = "SEATED"
+
+        await db.commit()
+        await db.refresh(session)
+        await db.refresh(reservation)
+
+        table = await db.get(Table, session.table_id) if session.table_id else None
+        table_number = (
+            f"Table {table.floor_table_num} ({table.floor_name})"
+            if table
+            else (reservation.table_name or "Table allotted by server")
+        )
+
+        return ClaimReservationResponse(
+            success=True,
+            reservation_id=reservation.id,
+            customer_name=reservation.customer.name if reservation.customer else "Guest",
+            table_id=session.table_id,
+            table_number=table_number,
+            status=reservation.status,
+            guest_count=reservation.guest_count,
         )

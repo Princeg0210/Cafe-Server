@@ -322,6 +322,11 @@ async def on_startup():
         logger.info("Default tables and QR tokens ensured.")
 
         async with AsyncSessionLocal() as db:
+            from app.services.table_service import TableService
+            await TableService.get_generalized_qrs(db)
+        logger.info("Generalized QR code ensured.")
+
+        async with AsyncSessionLocal() as db:
             from app.utils.init_inventory import ensure_raw_materials
             await ensure_raw_materials(db)
         logger.info("Raw material inventory ensured.")

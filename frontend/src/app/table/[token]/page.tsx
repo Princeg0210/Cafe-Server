@@ -226,8 +226,12 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         });
         if (res.ok) {
           const data = await res.json();
-          const cleanNum = data.table_number.replace(/[^0-9]/g, "").padStart(2, "0") || data.table_number;
-          setTableNumber(`TABLE ${cleanNum}`);
+          if (data.is_generalized) {
+            setTableNumber("Table allotted by server");
+          } else {
+            const cleanNum = data.table_number.replace(/[^0-9]/g, "").padStart(2, "0") || data.table_number;
+            setTableNumber(`TABLE ${cleanNum}`);
+          }
           setSessionId(data.session_id);
           setSessionToken(data.session_token);
           setValidatedQrToken(rawToken);
@@ -243,7 +247,13 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
           }
         } else {
           setIsValidQr(false);
-          setQrErrorMessage("This table QR code is invalid, expired, or has rotated. Direct URL manipulation is prohibited for dining privacy.");
+          const errData = await res.json().catch(() => null);
+          const detail = typeof errData?.detail === "string" ? errData.detail : "";
+          if (detail.toLowerCase().includes("deactivated") || detail.toLowerCase().includes("inactive")) {
+            setQrErrorMessage("This QR code is currently inactive or deactivated. Please ask our staff for an active QR code.");
+          } else {
+            setQrErrorMessage(detail || "This table QR code is invalid, expired, or has rotated. Direct URL manipulation is prohibited for dining privacy.");
+          }
           setSessionId(null);
           setSessionToken(null);
         }
@@ -331,31 +341,74 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   };
 
   // ponytail: seamless match by numeric ID or 4-letter + 4-phone booking code
-  const continueFromReservationPrompt = () => {
+  const continueFromReservationPrompt = async () => {
     const entered = reservationIdInput.trim();
     if (!entered) {
       setPromptError("Please enter your reservation ID to continue.");
       return;
     }
 
-    if (reservationNotice) {
-      const numericPart = entered.replace(/\D/g, "");
-      const enteredNum = numericPart ? Number(numericPart) : NaN;
-      const cleanEntered = entered.toUpperCase().replace(/\s+/g, "");
-      const expectedLetters = (reservationNotice.customer_name || "").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 4);
+    try {
+      const apiBase = getApiBase();
+      const res = await fetch(`${apiBase}/api/v1/tables/qr/claim-reservation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          qr_token: validatedQrToken || rawToken,
+          session_token: sessionToken || "",
+          reservation_code: entered,
+        }),
+      });
 
-      const isIdMatch = !isNaN(enteredNum) && enteredNum === reservationNotice.reservation_id;
-      const isCodeMatch = cleanEntered.startsWith(expectedLetters) && cleanEntered.length >= 4;
-
-      if (!isIdMatch && !isCodeMatch) {
-        setPromptError("That reservation ID does not match this table.");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.table_number) {
+          setTableNumber(data.table_number);
+        }
+        setPromptError(null);
+        setHasTableAccess(true);
+        setShowReservationIdPrompt(false);
         return;
       }
-    }
 
-    setPromptError(null);
-    setHasTableAccess(true);
-    setShowReservationIdPrompt(false);
+      // If backend claim returned an error, verify against local notice as fallback
+      if (reservationNotice) {
+        const numericPart = entered.replace(/\D/g, "");
+        const enteredNum = numericPart ? Number(numericPart) : NaN;
+        const cleanEntered = entered.toUpperCase().replace(/\s+/g, "");
+        const expectedLetters = (reservationNotice.customer_name || "").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 4);
+
+        const isIdMatch = !isNaN(enteredNum) && enteredNum === reservationNotice.reservation_id;
+        const isCodeMatch = cleanEntered.startsWith(expectedLetters) && cleanEntered.length >= 4;
+
+        if (isIdMatch || isCodeMatch) {
+          setPromptError(null);
+          setHasTableAccess(true);
+          setShowReservationIdPrompt(false);
+          return;
+        }
+      }
+
+      const errData = await res.json().catch(() => null);
+      setPromptError(errData?.detail || "That reservation ID was not found or is already seated.");
+    } catch {
+      // Offline / fallback verification
+      if (reservationNotice) {
+        const numericPart = entered.replace(/\D/g, "");
+        const enteredNum = numericPart ? Number(numericPart) : NaN;
+        const cleanEntered = entered.toUpperCase().replace(/\s+/g, "");
+        const expectedLetters = (reservationNotice.customer_name || "").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 4);
+        const isIdMatch = !isNaN(enteredNum) && enteredNum === reservationNotice.reservation_id;
+        const isCodeMatch = cleanEntered.startsWith(expectedLetters) && cleanEntered.length >= 4;
+        if (isIdMatch || isCodeMatch) {
+          setPromptError(null);
+          setHasTableAccess(true);
+          setShowReservationIdPrompt(false);
+          return;
+        }
+      }
+      setPromptError("Network error. Please try again.");
+    }
   };
 
   // ponytail: simple walk-in registration auto-creates reservation on backend with domestic & intl country codes
@@ -575,7 +628,9 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
             <UtensilsCrossed className="w-8 h-8" />
           </div>
           <h2 className="font-condensed text-3xl font-extrabold uppercase tracking-wide text-[#261C18]">
-            Invalid Table QR
+            {qrErrorMessage?.toLowerCase().includes("deactivated") || qrErrorMessage?.toLowerCase().includes("inactive")
+              ? "QR Code Deactivated"
+              : "Invalid Table QR"}
           </h2>
           <p className="text-sm text-gray-600 font-sans leading-relaxed">
             {qrErrorMessage || "This QR code is invalid, expired, or has rotated. Please scan the official QR code placed on your dining table."}

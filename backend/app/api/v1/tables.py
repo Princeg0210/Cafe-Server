@@ -17,11 +17,41 @@ from app.schemas.table import (
     QRWalkInResponse,
     DiningSessionResponse,
     SessionBillResponse,
+    GeneralizedQRResponse,
+    GeneralizedQRListResponse,
+    ToggleQRStatusRequest,
+    ClaimReservationRequest,
+    ClaimReservationResponse,
 )
 from app.services.table_service import TableService
 
 router = APIRouter(prefix="/tables", tags=["Tables & QR Sessions"])
 sessions_router = APIRouter(prefix="/sessions", tags=["Dining Sessions"])
+
+
+@router.get("/qr/generalized", response_model=GeneralizedQRListResponse, dependencies=STAFF_ONLY)
+async def get_generalized_qrs(db: AsyncSession = Depends(get_db)):
+    return await TableService.get_generalized_qrs(db)
+
+
+@router.post("/qr/generalized/generate", response_model=GeneralizedQRResponse, dependencies=STAFF_ONLY)
+async def generate_fresh_generalized_qr(db: AsyncSession = Depends(get_db)):
+    return await TableService.generate_fresh_generalized_qr(db)
+
+
+@router.post("/qr/generalized/toggle-status", response_model=GeneralizedQRResponse, dependencies=STAFF_ONLY)
+async def toggle_qr_status(body: ToggleQRStatusRequest, db: AsyncSession = Depends(get_db)):
+    return await TableService.toggle_qr_status(db, qr_token=body.qr_token, qr_id=body.id, is_active=body.is_active)
+
+
+@router.post("/qr/claim-reservation", response_model=ClaimReservationResponse)
+async def claim_reservation(body: ClaimReservationRequest, db: AsyncSession = Depends(get_db)):
+    return await TableService.claim_reservation(
+        db=db,
+        qr_token=body.qr_token,
+        session_token=body.session_token,
+        reservation_code=body.reservation_code,
+    )
 
 
 @router.get("", response_model=List[TableResponse], dependencies=STAFF_ONLY)

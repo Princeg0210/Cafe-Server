@@ -591,6 +591,21 @@ class ReservationService:
         reservation.table_id = table.id
         reservation.table_name = table_name or table.table_number
         reservation.floor_number = floor_number or getattr(table, "floor_number", 1)
+        table.status = "Occupied"
+
+        # Sync active dining session if one exists for this reservation
+        from app.models.table import DiningSession
+        sess_stmt = (
+            select(DiningSession)
+            .where(
+                DiningSession.reservation_id == reservation.id,
+                DiningSession.status.in_(["OPENED", "ACTIVE", "CHECKOUT"]),
+            )
+        )
+        sess_res = await db.execute(sess_stmt)
+        active_sess = sess_res.scalar_one_or_none()
+        if active_sess:
+            active_sess.table_id = table.id
 
         await db.commit()
 

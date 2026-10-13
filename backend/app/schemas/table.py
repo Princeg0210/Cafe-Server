@@ -86,6 +86,44 @@ class QRValidateResponse(BaseModel):
     session_status: str
     is_reserved: bool = False
     reservation: Optional[ReservationNotice] = None
+    is_generalized: bool = False
+
+
+class GeneralizedQRResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    qr_token: str
+    is_active: bool
+    created_at: datetime
+    notes: Optional[str] = None
+
+
+class GeneralizedQRListResponse(BaseModel):
+    active_qr: Optional[GeneralizedQRResponse] = None
+    all_qrs: List[GeneralizedQRResponse] = []
+
+
+class ToggleQRStatusRequest(BaseModel):
+    qr_token: Optional[str] = None
+    id: Optional[int] = None
+    is_active: bool
+
+
+class ClaimReservationRequest(BaseModel):
+    qr_token: str
+    session_token: str
+    reservation_code: str
+
+
+class ClaimReservationResponse(BaseModel):
+    success: bool
+    reservation_id: int
+    customer_name: str
+    table_id: Optional[int] = None
+    table_number: str
+    status: str
+    guest_count: int
 
 
 class DiningSessionResponse(BaseModel):
