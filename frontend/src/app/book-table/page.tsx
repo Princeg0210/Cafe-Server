@@ -618,7 +618,7 @@ export default function BookTablePage() {
 
               <div className="mt-5 space-y-3 text-sm leading-relaxed text-[#4A423D]">
                 <p className="rounded-xl border border-[#E8D2B5] bg-[#FFF6EA] px-4 py-3 font-semibold text-[#6D3B1D]">
-                  Jaadoo is open from 7:00 PM to 10:30 PM, Thursday through Monday.
+                  Jaadoo is open from 7:00 - 10:30 PM, Thursday through Monday.
                 </p>
                 <p>If space is available you will receive confirmation immediately.</p>
                 <p>₹150/- advance per guest is deducted from final food bill.</p>
