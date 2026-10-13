@@ -356,6 +356,7 @@ export default function AdminPortal() {
   const [activeGenQrDataUrl, setActiveGenQrDataUrl] = useState<string>("");
   const [isQrLoading, setIsQrLoading] = useState(false);
   const [qrActionLoading, setQrActionLoading] = useState<string | null>(null);
+  const [qrToDelete, setQrToDelete] = useState<{ qr_token: string; id?: number; name?: string } | null>(null);
 
   // Ledger / KOTs Data
   const [kots, setKots] = useState<KOTRecord[]>([]);
@@ -1046,11 +1047,9 @@ export default function AdminPortal() {
     }
   };
 
-  const handleDeleteQr = async (qrToken: string, id?: number) => {
-    if (!token) return;
-    if (typeof window !== "undefined" && !window.confirm("Are you sure you want to delete this QR code?")) {
-      return;
-    }
+  const confirmDeleteQr = async () => {
+    if (!token || !qrToDelete) return;
+    const { qr_token: qrToken, id } = qrToDelete;
     setQrActionLoading(`del_${qrToken}`);
     try {
       const apiBase = getApiBase();
@@ -1087,6 +1086,7 @@ export default function AdminPortal() {
 
       setToastMessage("QR code deleted successfully!");
       setTimeout(() => setToastMessage(null), 3000);
+      setQrToDelete(null);
     } catch {
       alert("Failed to delete QR code.");
     } finally {
@@ -4033,7 +4033,13 @@ export default function AdminPortal() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleDeleteQr(item.qr_token, item.id)}
+                                  onClick={() =>
+                                    setQrToDelete({
+                                      qr_token: item.qr_token,
+                                      id: item.id,
+                                      name: item.notes || `Generalized Dining QR #${generalizedQrs.length - idx}`,
+                                    })
+                                  }
                                   disabled={qrActionLoading === `del_${item.qr_token}`}
                                   className="p-1.5 h-7 w-7 rounded-md text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                                   title="Delete QR Code"
@@ -4892,6 +4898,68 @@ export default function AdminPortal() {
                 >
                   Close
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* SHADCN-STYLE DELETE CONFIRMATION MODAL */}
+        {qrToDelete && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-md bg-[#FFFDF9] border border-[#E6DCCF] rounded-2xl p-6 shadow-2xl space-y-4 text-[#241A14]"
+            >
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-full bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-rose-600" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-[#241A14]">
+                    Delete QR Stand Code?
+                  </h3>
+                  <p className="text-xs text-[#665448] leading-relaxed">
+                    Are you sure you want to delete <span className="font-bold text-[#241A14]">"{qrToDelete.name}"</span>? Any printed stand with this QR code will no longer accept guest orders.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-[11px] text-amber-900 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+                <span>This action cannot be undone. Guests scanning this stand will be notified it is deactivated.</span>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQrToDelete(null)}
+                  disabled={qrActionLoading?.startsWith("del_")}
+                  className="text-xs h-9 px-4 font-semibold border-[#D8CABE] text-[#4A392F] hover:bg-[#F5EFE6]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={confirmDeleteQr}
+                  disabled={qrActionLoading?.startsWith("del_")}
+                  className="text-xs h-9 px-4 font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-xs"
+                >
+                  {qrActionLoading?.startsWith("del_") ? (
+                    <>
+                      <RotateCw className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                      <span>Delete QR Code</span>
+                    </>
+                  )}
+                </Button>
               </div>
             </motion.div>
           </div>
