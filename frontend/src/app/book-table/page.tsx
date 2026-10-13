@@ -744,7 +744,7 @@ export default function BookTablePage() {
                     <span>Parking instructions</span>
                   </div>
                   <p className="pl-5 leading-relaxed">
-                    Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to Jaadoo, one minute or two on, it’s safe and pretty. Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
+                    Sitafal ki gali is a narrow residential lane reserved strictly for local residents. Two-wheelers must be parked outside our gali and walk to Jaadoo, one minute or two on, it’s safe and pretty. Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
                   </p>
                 </div>
 
