@@ -34,6 +34,8 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Smartphone,
+  Banknote,
   Eye,
   EyeOff,
   Layers,
@@ -545,6 +547,11 @@ export default function POSDashboard() {
   const [billSettleSession, setBillSettleSession] = useState<TableSession | null>(null);
   const [billSettleTableInfo, setBillSettleTableInfo] = useState<{ tableNumber: string; floorName: string; tableId: number } | null>(null);
   const [settlePaymentMode, setSettlePaymentMode] = useState<"CASH" | "UPI" | "CARD">("CASH");
+  const [printBillPaymentModal, setPrintBillPaymentModal] = useState<{
+    session: TableSession;
+    tableNumber: string;
+    floorName: string;
+  } | null>(null);
 
   // Reservations State
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -1211,7 +1218,12 @@ export default function POSDashboard() {
     }
   };
 
-  const handlePrintThermalBill = (session: TableSession, tableNumber: string, floorName: string) => {
+  const handlePrintThermalBill = (
+    session: TableSession,
+    tableNumber: string,
+    floorName: string,
+    paymentMode: string = "UPI"
+  ) => {
     const printWindow = window.open("", "_blank", "width=380,height=600");
     if (!printWindow) {
       alert("Please allow popups in your browser to print thermal customer bills.");
@@ -1254,7 +1266,7 @@ export default function POSDashboard() {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Bill Receipt - Session #${session.session_seq}</title>
+        <title>Bill Receipt - ${tableNumber} (${paymentMode})</title>
         <style>
           @page { size: 80mm auto; margin: 0; }
           body {
@@ -1295,7 +1307,7 @@ export default function POSDashboard() {
           <span>Floor: ${floorName}</span>
         </div>
         <div class="row">
-          <span>Session: #${session.session_seq}</span>
+          <span>Payment Mode: <strong>${paymentMode}</strong></span>
           <span>Date: ${receiptDate}</span>
         </div>
         <div class="row">
@@ -3094,9 +3106,15 @@ export default function POSDashboard() {
                                       <div className="grid grid-cols-2 gap-1.5">
                                         <button
                                           type="button"
-                                          onClick={() => handlePrintThermalBill(activeSession, `Table ${floorTableNum}`, floorInfo.name)}
+                                          onClick={() =>
+                                            setPrintBillPaymentModal({
+                                              session: activeSession,
+                                              tableNumber: `Table ${floorTableNum}`,
+                                              floorName: floorInfo.name,
+                                            })
+                                          }
                                           className="bg-[#B85B43] hover:bg-[#9E3E26] text-white py-2 px-2 rounded-md font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 shadow-2xs cursor-pointer"
-                                          title="Direct print formatted 80mm customer thermal invoice"
+                                          title="Print formatted 80mm customer thermal invoice"
                                         >
                                           <Printer className="w-3.5 h-3.5" />
                                           <span>★ Print Bill</span>
@@ -3888,7 +3906,11 @@ export default function POSDashboard() {
                 <button
                   type="button"
                   onClick={() => {
-                    handlePrintThermalBill(billPreviewSession, billPreviewTableInfo.tableNumber, billPreviewTableInfo.floorName);
+                    setPrintBillPaymentModal({
+                      session: billPreviewSession,
+                      tableNumber: billPreviewTableInfo.tableNumber,
+                      floorName: billPreviewTableInfo.floorName,
+                    });
                   }}
                   className="flex-1 bg-[#B85B43] hover:bg-[#9E3E26] text-white py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                 >
@@ -4143,6 +4165,74 @@ export default function POSDashboard() {
                   type="button"
                   onClick={() => setBillSettleSession(null)}
                   className="px-3.5 py-2.5 border border-stone-200 hover:bg-stone-100 text-stone-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: SELECT PAYMENT MODE FOR BILL PRINT */}
+        {printBillPaymentModal && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-[#FFFDF9] border border-[#E6DCCF] rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 font-sans text-stone-900 animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-[#F0E8DC] pb-3">
+                <div>
+                  <h3 className="text-base font-bold text-[#241A14]">Select Payment Mode</h3>
+                  <p className="text-xs text-[#665448] mt-0.5 font-medium">
+                    {printBillPaymentModal.tableNumber} ({printBillPaymentModal.floorName})
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPrintBillPaymentModal(null)}
+                  className="text-[#8C7A6D] hover:text-[#241A14] p-1 rounded-lg text-lg cursor-pointer"
+                  title="Cancel"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <p className="text-xs text-[#7A6A5E] font-medium">
+                Choose payment mode to print on the customer invoice:
+              </p>
+
+              <div className="grid grid-cols-1 gap-2.5 pt-1">
+                {/* ponytail: DRY mapped payment mode selector with single-click thermal print */}
+                {(
+                  [
+                    { mode: "UPI" as const, desc: "Google Pay / PhonePe / Paytm / QR", icon: Smartphone, bg: "bg-purple-100 text-purple-700 group-hover:bg-purple-200" },
+                    { mode: "Cash" as const, desc: "Counter Cash Payment", icon: Banknote, bg: "bg-emerald-100 text-emerald-700 group-hover:bg-emerald-200" },
+                    { mode: "Card" as const, desc: "Debit / Credit Card POS Swipe", icon: CreditCard, bg: "bg-blue-100 text-blue-700 group-hover:bg-blue-200" },
+                  ] as const
+                ).map(({ mode, desc, icon: Icon, bg }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      const target = printBillPaymentModal;
+                      setPrintBillPaymentModal(null);
+                      handlePrintThermalBill(target.session, target.tableNumber, target.floorName, mode);
+                    }}
+                    className="flex items-center gap-3.5 p-3.5 rounded-2xl border-2 border-[#E2D5C3] hover:border-[#9E3E26] bg-white hover:bg-[#FAF4EC] transition-all cursor-pointer shadow-2xs group text-left"
+                  >
+                    <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-sm text-[#241A14] group-hover:text-[#9E3E26]">{mode}</div>
+                      <div className="text-[11px] text-[#7A6A5E]">{desc}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPrintBillPaymentModal(null)}
+                  className="w-full py-2.5 rounded-xl border border-[#D8CABE] text-[#665448] font-bold text-xs hover:bg-[#F0E8DC] transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
