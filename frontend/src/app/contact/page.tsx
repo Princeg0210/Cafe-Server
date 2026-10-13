@@ -127,7 +127,7 @@ ${message}`;
 
             <div className="bg-[#E2EDDE] p-4 rounded-2xl border border-[#B5CEAE] text-xs font-sans text-[#1B3618] font-medium flex items-center gap-2">
               <Car className="w-4 h-4 text-[#1B3618] shrink-0" />
-              <span>Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to Jaadoo (one minute or two on, it’s safe and pretty). Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.</span>
+              <span>Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to Jaadoo, one minute or two on, it’s safe and pretty. Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.</span>
             </div>
           </motion.div>
 

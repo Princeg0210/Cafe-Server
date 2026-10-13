@@ -646,7 +646,7 @@ export default function BookTablePage() {
                     <span>Parking instructions</span>
                   </p>
                   <p className="leading-relaxed pl-5 text-stone-600">
-                    Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to jaadoo (one minute or two on, it’s safe and pretty). Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
+                    Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to Jaadoo, one minute or two on, it’s safe and pretty. Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
                   </p>
                 </div>
               </div>
@@ -748,7 +748,7 @@ export default function BookTablePage() {
                     <span>Parking instructions</span>
                   </div>
                   <p className="pl-5 leading-relaxed">
-                    Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to jaadoo (one minute or two on, it’s safe and pretty). Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
+                    Sitafal ki gali is tiny and twisty and strictly residential parking only. Two-wheelers must be parked outside our gali and walk to Jaadoo, one minute or two on, it’s safe and pretty. Four-wheelers can not reach anywhere near us during service. You will either need to walk 10 mins into old city or take an auto.
                   </p>
                 </div>
 
@@ -1398,19 +1398,19 @@ export default function BookTablePage() {
                       Jaadoo Pizza Project — house rules
                     </h4>
                     <p>
-                      <strong>1. Seating allocation:</strong> Seating is assigned by the floor manager across our 6 heritage levels (Ground Floor, School Room, Balcony, Lower Top, Top Top, and Everest). Preferences are accommodated where available.
+                      <strong>1. Seating allocation:</strong> Seating is assigned by the floor manager across our 6 heritage levels (Ground Floor, School Room, Balcony, Lower Top, Top Top, and Everest). Preferences are accommodated where available
                     </p>
                     <p>
-                      <strong>2. Grace period:</strong> Reserved tables are held for a maximum of 15 minutes past your reserved time. Late arrivals may be subject to table reallocation.
+                      <strong>2. Grace period:</strong> Reserved tables are held for a maximum of 15 minutes past your reserved time. Late arrivals may be subject to table reallocation
                     </p>
                     <p>
-                      <strong>3. Outside F&B:</strong> Outside food, beverages, and commercial birthday cakes are strictly prohibited inside the cafe.
+                      <strong>3. Outside F&B:</strong> Outside food, beverages, and commercial birthday cakes are strictly prohibited inside the cafe
                     </p>
                     <p>
-                      <strong>4. Duration:</strong> Table slot duration is 75 minutes per reservation to allow all guests an intimate dining experience.
+                      <strong>4. Duration:</strong> Table slot duration is 75 minutes per reservation to allow all guests an intimate dining experience
                     </p>
                     <p>
-                      <strong>5. Heritage respect:</strong> Our restaurant is set in historic Old City Udaipur. Please respect other guests and our residential neighbors.
+                      <strong>5. Heritage respect:</strong> Our restaurant is set in historic Old City Udaipur. Please respect other guests and our residential neighbors
                     </p>
                   </div>
                 ) : (
@@ -1419,13 +1419,13 @@ export default function BookTablePage() {
                       Cancellation & refund policy
                     </h4>
                     <p>
-                      <strong>1. Adjustable deposit:</strong> The advance deposit of INR 150 per guest is 100% adjustable against your final food and beverage bill.
+                      <strong>1. Adjustable deposit:</strong> The advance deposit of INR 150 per guest is 100% adjustable against your final food and beverage bill
                     </p>
                     <p>
-                      <strong>2. Advance cancellation:</strong> If you cancel or the booking cannot be fulfilled, ₹54 is retained as the cancellation charge and the balance is refunded.
+                      <strong>2. Advance cancellation:</strong> If you cancel or the booking cannot be fulfilled, ₹54 is retained as the cancellation charge and the balance is refunded
                     </p>
                     <p>
-                      <strong>3. Same-day cancellation & no-shows:</strong> Due to artisanal fresh sourdough dough fermentation schedules, cancellations made within 24 hours or no-shows are non-refundable.
+                      <strong>3. Same-day cancellation & no-shows:</strong> Due to artisanal fresh sourdough dough fermentation schedules, cancellations made within 24 hours or no-shows are non-refundable
                     </p>
                   </div>
                 )}
@@ -1569,7 +1569,7 @@ export default function BookTablePage() {
                 </div>
 
                 <div className="text-[10px] text-stone-400 text-center leading-relaxed">
-                  Razorpay sandboxed test environment · No real money will be deducted. All test credits reflect in POS and kitchen allocation.
+                  Razorpay sandboxed test environment · No real money will be deducted · All test credits reflect in POS and kitchen allocation
                 </div>
               </div>
             </motion.div>
