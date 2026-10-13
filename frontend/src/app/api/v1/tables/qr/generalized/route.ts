@@ -56,3 +56,46 @@ export async function GET(req: NextRequest) {
     all_qrs: list,
   });
 }
+
+export async function DELETE(req: NextRequest) {
+  const upstream = (process.env.API_UPSTREAM_URL || "https://cafe-piza-api.onrender.com").replace(/\/$/, "");
+  const authHeader = req.headers.get("authorization");
+
+  try {
+    let qrToken = req.nextUrl.searchParams.get("qr_token");
+    let id = req.nextUrl.searchParams.get("id");
+
+    if (!qrToken && !id) {
+      try {
+        const body = await req.json();
+        qrToken = body.qr_token;
+        id = body.id;
+      } catch {}
+    }
+
+    // 1. Try upstream backend
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (authHeader) headers["Authorization"] = authHeader;
+
+      const upRes = await fetch(`${upstream}/api/v1/tables/qr/generalized?qr_token=${qrToken || ""}&id=${id || ""}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (upRes.ok) {
+        return NextResponse.json(await upRes.json());
+      }
+    } catch {
+      // Fall through
+    }
+
+    // 2. Delete from local store
+    const { deleteStoredQr } = await import("@/lib/generalizedQrStore");
+    deleteStoredQr(id ? Number(id) : qrToken || "");
+
+    return NextResponse.json({ success: true, message: "QR code deleted successfully" });
+  } catch (err: any) {
+    return NextResponse.json({ detail: err?.message || "Failed to delete QR" }, { status: 500 });
+  }
+}
+

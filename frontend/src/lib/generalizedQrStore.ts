@@ -34,12 +34,8 @@ export function getStoredQrs(): GeneralizedQRRecord[] {
 
 export function addStoredQr(token: string, notes = "Generalized Dining"): GeneralizedQRRecord {
   const list = getStoredQrs();
-  // Deactivate existing active ones so newly generated is active
-  list.forEach((item) => {
-    item.is_active = false;
-  });
-
-  const nextId = list.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+  // Multiple QR codes can remain active simultaneously
+  const nextId = Date.now() + Math.floor(Math.random() * 1000);
   const newRecord: GeneralizedQRRecord = {
     id: nextId,
     qr_token: token,
@@ -63,4 +59,17 @@ export function toggleStoredQrStatus(identifier: string | number, isActive: bool
     return found;
   }
   return null;
+}
+
+export function deleteStoredQr(identifier: string | number): boolean {
+  const list = getStoredQrs();
+  const index = list.findIndex((item) =>
+    typeof identifier === "number" ? item.id === identifier : item.qr_token === identifier
+  );
+  if (index !== -1) {
+    list.splice(index, 1);
+    global.__generalized_qrs = list;
+    return true;
+  }
+  return false;
 }

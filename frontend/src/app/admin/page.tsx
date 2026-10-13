@@ -1014,9 +1014,8 @@ export default function AdminPortal() {
         };
       }
 
-      // Update state and persistence
-      const currentList = [...generalizedQrs].map((item) => ({ ...item, is_active: false }));
-      const updatedList = [freshQr, ...currentList];
+      // Multiple QRs can remain active simultaneously
+      const updatedList = [freshQr, ...generalizedQrs];
       setGeneralizedQrs(updatedList);
       setActiveGenQr(freshQr);
 
@@ -1042,6 +1041,54 @@ export default function AdminPortal() {
       }
     } catch {
       alert("Network error while generating QR code.");
+    } finally {
+      setQrActionLoading(null);
+    }
+  };
+
+  const handleDeleteQr = async (qrToken: string, id?: number) => {
+    if (!token) return;
+    if (typeof window !== "undefined" && !window.confirm("Are you sure you want to delete this QR code?")) {
+      return;
+    }
+    setQrActionLoading(`del_${qrToken}`);
+    try {
+      const apiBase = getApiBase();
+      try {
+        await adminFetch(`${apiBase}/api/v1/tables/qr/generalized?qr_token=${encodeURIComponent(qrToken)}&id=${id || ""}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch {}
+
+      const updatedList = generalizedQrs.filter((item) => (id ? item.id !== id : item.qr_token !== qrToken));
+      setGeneralizedQrs(updatedList);
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("jaadoo_generalized_qrs", JSON.stringify(updatedList));
+      }
+
+      if (activeGenQr && ((id && activeGenQr.id === id) || activeGenQr.qr_token === qrToken)) {
+        const nextActive = updatedList.find((item) => item.is_active) || updatedList[0] || null;
+        setActiveGenQr(nextActive);
+        if (nextActive?.qr_token) {
+          const origin = typeof window !== "undefined" ? window.location.origin : "https://cafe-piza.vercel.app";
+          const orderUrl = `${origin}/table/${nextActive.qr_token}`;
+          const qrDataUrl = await QRCode.toDataURL(orderUrl, {
+            width: 380,
+            margin: 2,
+            color: { dark: "#2C1E16", light: "#FFFFFF" },
+          });
+          setActiveGenQrDataUrl(qrDataUrl);
+        } else {
+          setActiveGenQrDataUrl("");
+        }
+      }
+
+      setToastMessage("QR code deleted successfully!");
+      setTimeout(() => setToastMessage(null), 3000);
+    } catch {
+      alert("Failed to delete QR code.");
     } finally {
       setQrActionLoading(null);
     }
@@ -3916,13 +3963,13 @@ export default function AdminPortal() {
                         </tr>
                       ) : (
                         generalizedQrs.map((item, idx) => (
-                          <tr key={item.id || item.qr_token} className="hover:bg-[#FCFAF6] transition-colors">
+                          <tr key={item.qr_token ? `qr-${item.qr_token}-${idx}` : `qr-${item.id || idx}-${idx}`} className="hover:bg-[#FCFAF6] transition-colors">
                             <td className="py-3.5 px-4 font-semibold text-[#241A14]">
                               <span className="flex items-center gap-2">
                                 <span>{item.notes || `Generalized Dining QR #${generalizedQrs.length - idx}`}</span>
                                 {item.is_active && (
                                   <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                                    Primary
+                                    Active
                                   </span>
                                 )}
                               </span>
@@ -3982,6 +4029,17 @@ export default function AdminPortal() {
                                 >
                                   <ExternalLink className="w-3.5 h-3.5" />
                                 </Link>
+
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteQr(item.qr_token, item.id)}
+                                  disabled={qrActionLoading === `del_${item.qr_token}`}
+                                  className="p-1.5 h-7 w-7 rounded-md text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                  title="Delete QR Code"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
                               </div>
                             </td>
                           </tr>

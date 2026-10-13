@@ -543,12 +543,7 @@ class TableService:
     async def generate_fresh_generalized_qr(db: AsyncSession) -> GeneralizedQR:
         new_token = f"qr_gen_{secrets.token_urlsafe(24)}"
 
-        # Deactivate previous active generalized QRs
-        prev_stmt = select(GeneralizedQR).where(GeneralizedQR.is_active == True)
-        prev_res = await db.execute(prev_stmt)
-        for prev in prev_res.scalars().all():
-            prev.is_active = False
-
+        # Multiple QR codes can remain active simultaneously
         new_qr = GeneralizedQR(
             qr_token=new_token,
             is_active=True,
@@ -559,6 +554,26 @@ class TableService:
         await db.commit()
         await db.refresh(new_qr)
         return new_qr
+
+    @staticmethod
+    async def delete_generalized_qr(
+        db: AsyncSession,
+        qr_token: Optional[str] = None,
+        qr_id: Optional[int] = None,
+    ) -> dict:
+        stmt = select(GeneralizedQR)
+        if qr_id is not None:
+            stmt = stmt.where(GeneralizedQR.id == qr_id)
+        elif qr_token:
+            stmt = stmt.where(GeneralizedQR.qr_token == qr_token)
+        else:
+            raise HTTPException(status_code=400, detail="Must provide qr_token or id")
+        res = await db.execute(stmt)
+        record = res.scalar_one_or_none()
+        if record:
+            await db.delete(record)
+            await db.commit()
+        return {"success": True, "message": "QR code deleted successfully"}
 
     @staticmethod
     async def toggle_qr_status(

@@ -44,6 +44,15 @@ async def toggle_qr_status(body: ToggleQRStatusRequest, db: AsyncSession = Depen
     return await TableService.toggle_qr_status(db, qr_token=body.qr_token, qr_id=body.id, is_active=body.is_active)
 
 
+@router.delete("/qr/generalized", dependencies=STAFF_ONLY)
+async def delete_generalized_qr(
+    qr_token: str = None,
+    id: int = None,
+    db: AsyncSession = Depends(get_db)
+):
+    return await TableService.delete_generalized_qr(db, qr_token=qr_token, qr_id=id)
+
+
 @router.post("/qr/claim-reservation", response_model=ClaimReservationResponse)
 async def claim_reservation(body: ClaimReservationRequest, db: AsyncSession = Depends(get_db)):
     return await TableService.claim_reservation(
