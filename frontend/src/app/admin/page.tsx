@@ -3799,147 +3799,73 @@ export default function AdminPortal() {
 
             {/* Active Generalized QR Code Showcase Card */}
             {activeGenQr ? (
-              <Card className="p-6 shadow-sm border border-[#E6DCCF] bg-white rounded-2xl relative overflow-hidden">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                  {/* Left Column: Details & Actions */}
-                  <div className="md:col-span-8 space-y-4">
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                        activeGenQr.is_active
-                          ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                          : "bg-rose-100 text-rose-800 border border-rose-300"
-                      }`}>
-                        <span className={`w-2 h-2 rounded-full ${activeGenQr.is_active ? "bg-emerald-600 animate-pulse" : "bg-rose-600"}`} />
-                        {activeGenQr.is_active ? "Active Generalized QR" : "Inactive / Deactivated QR"}
-                      </span>
-                      <span className="text-xs text-[#8C7A6D]">
-                        Created: {new Date(activeGenQr.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
-                      </span>
+              <Card className="p-8 shadow-sm border border-[#E6DCCF] bg-white rounded-2xl flex flex-col items-center justify-center text-center max-w-xl mx-auto">
+                <div className="mb-4">
+                  <span className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                    activeGenQr.is_active
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      : "bg-rose-100 text-rose-800 border border-rose-300"
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${activeGenQr.is_active ? "bg-emerald-600 animate-pulse" : "bg-rose-600"}`} />
+                    {activeGenQr.is_active ? "Active Generalized QR" : "Inactive / Deactivated QR"}
+                  </span>
+                </div>
+
+                {/* Visual QR Stand Box */}
+                <div className="p-6 bg-[#FAF7F0] rounded-2xl border border-[#E8DFC9] flex flex-col items-center justify-center shadow-xs w-full max-w-xs">
+                  <p className="mb-3">
+                    <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-lg" />
+                  </p>
+                  {activeGenQrDataUrl ? (
+                    <div className="p-3 bg-white rounded-xl border border-[#E2D6C5] shadow-xs">
+                      <img
+                        src={activeGenQrDataUrl}
+                        alt="Active Generalized QR"
+                        className="w-52 h-52 object-contain rounded-lg"
+                      />
                     </div>
-
-                    <div>
-                      <h3 className="text-xl font-bold font-serif text-[#241A14]">
-                        Universal Dining & Guest Ordering QR
-                      </h3>
-                      <p className="text-xs text-[#665448] mt-1 leading-relaxed">
-                        This generalized QR code can be printed and placed on all tables, stands, or menus. When scanned, guests can browse the live menu and place orders. Physical tables (1 to 13 across 5 floors) are allotted by the POS operator.
-                      </p>
+                  ) : (
+                    <div className="w-52 h-52 bg-white rounded-xl border border-[#E2D6C5] flex items-center justify-center">
+                      <QrCode className="w-12 h-12 text-stone-300 animate-pulse" />
                     </div>
+                  )}
+                  <span className="text-xs font-semibold text-[#8C7A6D] mt-3 block">
+                    Scan to Order • Table Allotted by POS
+                  </span>
+                </div>
 
-                    <div className="space-y-2 p-3.5 bg-[#FAF7F0] rounded-xl border border-[#E8DFC9]">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-[#8C7A6D] uppercase text-[10px] tracking-wider">Active Token:</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(activeGenQr.qr_token);
-                            setToastMessage("Token copied to clipboard!");
-                            setTimeout(() => setToastMessage(null), 2500);
-                          }}
-                          className="text-[11px] font-bold text-[#B85B43] hover:underline cursor-pointer"
-                        >
-                          Copy Token
-                        </button>
-                      </div>
-                      <code className="text-xs font-mono text-[#332219] block break-all font-semibold select-all bg-white p-2 rounded-lg border border-[#E0D5C3]">
-                        {activeGenQr.qr_token}
-                      </code>
+                {/* Direct Action Buttons */}
+                <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleOpenGeneralizedQrPrint(activeGenQr.qr_token, "Generalized Table QR")}
+                    className="text-xs h-9 px-4"
+                  >
+                    <QrCode className="w-3.5 h-3.5 mr-1.5" />
+                    <span>Print QR Stand</span>
+                  </Button>
 
-                      <div className="flex items-center justify-between text-xs pt-1">
-                        <span className="font-bold text-[#8C7A6D] uppercase text-[10px] tracking-wider">Order URL:</span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const origin = typeof window !== "undefined" ? window.location.origin : "https://cafe-piza.vercel.app";
-                              navigator.clipboard.writeText(`${origin}/table/${activeGenQr.qr_token}`);
-                              setToastMessage("URL copied to clipboard!");
-                              setTimeout(() => setToastMessage(null), 2500);
-                            }}
-                            className="text-[11px] font-bold text-[#B85B43] hover:underline cursor-pointer"
-                          >
-                            Copy Link
-                          </button>
-                          <Link
-                            href={`/table/${activeGenQr.qr_token}`}
-                            target="_blank"
-                            className="text-[11px] font-bold text-[#4A392F] hover:text-[#B85B43] flex items-center gap-1"
-                          >
-                            <span>Open Page</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action Controls */}
-                    <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleOpenGeneralizedQrPrint(activeGenQr.qr_token, "Generalized Table QR")}
-                        className="text-xs h-9"
-                      >
-                        <QrCode className="w-3.5 h-3.5 mr-1.5" />
-                        <span>Print QR Stand / Card</span>
-                      </Button>
-
-                      <Button
-                        variant={activeGenQr.is_active ? "outline" : "default"}
-                        size="sm"
-                        onClick={() => handleToggleQrStatus(activeGenQr.qr_token, activeGenQr.is_active, activeGenQr.id)}
-                        disabled={qrActionLoading === activeGenQr.qr_token}
-                        className={`text-xs h-9 ${
-                          activeGenQr.is_active
-                            ? "border-rose-300 text-rose-700 hover:bg-rose-50"
-                            : "bg-emerald-700 hover:bg-emerald-800 text-white"
-                        }`}
-                      >
-                        {qrActionLoading === activeGenQr.qr_token ? (
-                          <RotateCw className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                        ) : null}
-                        <span>{activeGenQr.is_active ? "Inactivate / Deactivate QR" : "Activate QR Code"}</span>
-                      </Button>
-
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleGenerateFreshQr}
-                        disabled={qrActionLoading === "generate"}
-                        className="text-xs h-9"
-                      >
-                        <Plus className="w-3.5 h-3.5 mr-1.5" />
-                        <span>Generate Fresh Token</span>
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Visual QR Preview */}
-                  <div className="md:col-span-4 flex flex-col items-center justify-center p-4 bg-[#FAF7F0] rounded-2xl border border-[#E8DFC9] text-center">
-                    <p className="mb-2">
-                      <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-base" />
-                    </p>
-                    {activeGenQrDataUrl ? (
-                      <div className="p-2.5 bg-white rounded-xl border border-[#E2D6C5] shadow-xs">
-                        <img
-                          src={activeGenQrDataUrl}
-                          alt="Active Generalized QR"
-                          className="w-44 h-44 object-contain rounded-lg"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-44 h-44 bg-white rounded-xl border border-[#E2D6C5] flex items-center justify-center">
-                        <QrCode className="w-12 h-12 text-stone-300 animate-pulse" />
-                      </div>
-                    )}
-                    <span className="text-[11px] font-semibold text-[#8C7A6D] mt-2 block">
-                      Scan to Order • Table Allotted by POS
-                    </span>
-                  </div>
+                  <Button
+                    variant={activeGenQr.is_active ? "outline" : "default"}
+                    size="sm"
+                    onClick={() => handleToggleQrStatus(activeGenQr.qr_token, activeGenQr.is_active, activeGenQr.id)}
+                    disabled={qrActionLoading === activeGenQr.qr_token}
+                    className={`text-xs h-9 px-4 ${
+                      activeGenQr.is_active
+                        ? "border-rose-300 text-rose-700 hover:bg-rose-50"
+                        : "bg-emerald-700 hover:bg-emerald-800 text-white"
+                    }`}
+                  >
+                    {qrActionLoading === activeGenQr.qr_token ? (
+                      <RotateCw className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    ) : null}
+                    <span>{activeGenQr.is_active ? "Inactivate QR" : "Activate QR"}</span>
+                  </Button>
                 </div>
               </Card>
             ) : (
-              <Card className="p-8 text-center bg-white rounded-2xl border border-[#E6DCCF] space-y-3">
+              <Card className="p-8 text-center bg-white rounded-2xl border border-[#E6DCCF] space-y-3 max-w-xl mx-auto">
                 <QrCode className="w-12 h-12 text-[#B85B43] mx-auto opacity-70" />
                 <h3 className="text-base font-bold text-[#241A14]">No Generalized QR Code Found</h3>
                 <p className="text-xs text-[#7A6A5E] max-w-sm mx-auto">
@@ -3975,9 +3901,8 @@ export default function AdminPortal() {
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-[#FAF7F0] border-b border-[#E8DFC9] text-[#7A6A5E] font-bold uppercase tracking-wider text-[10px]">
-                        <th className="py-3 px-4">Token</th>
+                        <th className="py-3 px-4">QR Stand</th>
                         <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4">Type</th>
                         <th className="py-3 px-4">Created Date</th>
                         <th className="py-3 px-4 text-right">Actions</th>
                       </tr>
@@ -3985,16 +3910,21 @@ export default function AdminPortal() {
                     <tbody className="divide-y divide-[#F0E8DC]">
                       {generalizedQrs.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-xs text-[#8C7A6D]">
+                          <td colSpan={4} className="py-8 text-center text-xs text-[#8C7A6D]">
                             No QR codes generated yet.
                           </td>
                         </tr>
                       ) : (
-                        generalizedQrs.map((item) => (
+                        generalizedQrs.map((item, idx) => (
                           <tr key={item.id || item.qr_token} className="hover:bg-[#FCFAF6] transition-colors">
-                            <td className="py-3.5 px-4 font-mono font-semibold text-[#241A14]">
-                              <span className="truncate max-w-[220px] block" title={item.qr_token}>
-                                {item.qr_token}
+                            <td className="py-3.5 px-4 font-semibold text-[#241A14]">
+                              <span className="flex items-center gap-2">
+                                <span>{item.notes || `Generalized Dining QR #${generalizedQrs.length - idx}`}</span>
+                                {item.is_active && (
+                                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                    Primary
+                                  </span>
+                                )}
                               </span>
                             </td>
                             <td className="py-3.5 px-4">
@@ -4008,9 +3938,6 @@ export default function AdminPortal() {
                                 <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? "bg-emerald-600" : "bg-stone-400"}`} />
                                 {item.is_active ? "Active" : "Inactive"}
                               </span>
-                            </td>
-                            <td className="py-3.5 px-4 text-[#7A6A5E] font-medium">
-                              {item.notes || "Generalized Dining"}
                             </td>
                             <td className="py-3.5 px-4 text-[#7A6A5E]">
                               {new Date(item.created_at).toLocaleString("en-IN", {
