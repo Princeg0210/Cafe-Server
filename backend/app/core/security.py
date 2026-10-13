@@ -48,8 +48,9 @@ def create_refresh_token(
     if expires_delta:
         expire = datetime.datetime.now(datetime.timezone.utc) + expires_delta
     else:
+        expire_minutes = getattr(settings, "JWT_REFRESH_TOKEN_EXPIRE_MINUTES", 300)
         expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
-            days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS
+            minutes=expire_minutes
         )
     to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)

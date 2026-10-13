@@ -363,20 +363,21 @@ export default function KunalManagerPortal() {
     return { start: todayStr, end: todayStr };
   }, [datePreset, customStart, customEnd]);
 
-  // Auth Initialization Check
+  // Auth Initialization Check (validates 5-hour expiration)
   useEffect(() => {
-    const stored = localStorage.getItem(MANAGER_TOKEN_KEY);
+    const stored = managerSession.getValidToken();
     if (stored) {
       setToken(stored);
+    } else {
+      setToken(null);
     }
     setIsInitializing(false);
 
     const onRefreshed = (e: Event) => setToken((e as CustomEvent<string>).detail);
     const onExpired = () => {
+      managerSession.clearSession();
       setToken(null);
-      localStorage.removeItem(MANAGER_TOKEN_KEY);
-      localStorage.removeItem(MANAGER_REFRESH_KEY);
-      showToast("Manager session expired. Please sign in again.", "error");
+      showToast("Manager session expired after 5 hours. Please sign in again.", "error");
     };
 
     window.addEventListener(MANAGER_TOKEN_REFRESHED, onRefreshed);
@@ -593,8 +594,7 @@ export default function KunalManagerPortal() {
 
       const data = await res.json();
       setToken(data.access_token);
-      localStorage.setItem(MANAGER_TOKEN_KEY, data.access_token);
-      if (data.refresh_token) localStorage.setItem(MANAGER_REFRESH_KEY, data.refresh_token);
+      managerSession.setTokens(data.access_token, data.refresh_token);
       showToast("Welcome to Kunal Manager Portal", "success");
     } catch {
       setLoginError("Could not connect to the API server. Please check your network.");
@@ -605,9 +605,8 @@ export default function KunalManagerPortal() {
 
   // Handle Logout
   const handleLogout = () => {
+    managerSession.clearSession();
     setToken(null);
-    localStorage.removeItem(MANAGER_TOKEN_KEY);
-    localStorage.removeItem(MANAGER_REFRESH_KEY);
     showToast("Signed out successfully.", "info");
   };
 

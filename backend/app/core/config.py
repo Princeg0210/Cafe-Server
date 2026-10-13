@@ -39,11 +39,12 @@ class Settings(BaseSettings):
     DEFAULT_POS_PASSWORD: Optional[str] = None
     DEFAULT_MANAGER_PASSWORD: Optional[str] = None
 
-    # JWT Authentication
+    # JWT Authentication (All portal logins expire after 5 hours)
     JWT_SECRET_KEY: str = "super-secret-jwt-key-jaadoo-udaipur"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080  # 7 days for long-running POS & Admin terminal sessions
-    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 300  # 5 hours (300 minutes)
+    JWT_REFRESH_TOKEN_EXPIRE_MINUTES: int = 300  # 5 hours (300 minutes)
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 1
 
     # Merchant UPI Payment Settings (Direct to bank, 0% commission)
     MERCHANT_UPI_ID: str = "9460555743-2@ybl"

@@ -730,7 +730,7 @@ export default function POSDashboard() {
   };
 
   useEffect(() => {
-    const savedToken = localStorage.getItem(POS_TOKEN_KEY);
+    const savedToken = posSession.getValidToken();
     const savedUser = localStorage.getItem("jaadoo_pos_user");
     if (savedToken) {
       setPosToken(savedToken);
@@ -742,6 +742,9 @@ export default function POSDashboard() {
       setIsAuthChecking(false);
       verifyToken(savedToken);
     } else {
+      posSession.clearSession();
+      setPosToken(null);
+      setStaffUser(null);
       setIsAuthChecking(false);
     }
   }, []);
@@ -768,8 +771,7 @@ export default function POSDashboard() {
       }
       const data = await res.json();
       const tok = data.access_token;
-      localStorage.setItem(POS_TOKEN_KEY, tok);
-      if (data.refresh_token) localStorage.setItem(POS_REFRESH_KEY, data.refresh_token);
+      posSession.setTokens(tok, data.refresh_token);
       if (data.user) {
         try {
           localStorage.setItem("jaadoo_pos_user", JSON.stringify(data.user));
@@ -785,9 +787,7 @@ export default function POSDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem(POS_TOKEN_KEY);
-    localStorage.removeItem(POS_REFRESH_KEY);
-    localStorage.removeItem("jaadoo_pos_user");
+    posSession.clearSession();
     setPosToken(null);
     setStaffUser(null);
     setLoginPassword("");
@@ -797,13 +797,11 @@ export default function POSDashboard() {
   useEffect(() => {
     const onRefreshed = (e: Event) => setPosToken((e as CustomEvent<string>).detail);
     const onExpired = () => {
-      localStorage.removeItem(POS_TOKEN_KEY);
-      localStorage.removeItem(POS_REFRESH_KEY);
-      localStorage.removeItem("jaadoo_pos_user");
+      posSession.clearSession();
       setPosToken(null);
       setStaffUser(null);
       setLoginPassword("");
-      setLoginError("Your session expired. Please log in again.");
+      setLoginError("Your session expired after 5 hours. Please log in again.");
     };
     window.addEventListener(POS_TOKEN_REFRESHED, onRefreshed);
     window.addEventListener(POS_SESSION_EXPIRED, onExpired);

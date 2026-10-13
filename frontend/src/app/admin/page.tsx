@@ -629,11 +629,13 @@ export default function AdminPortal() {
     }
   };
 
-  // Check stored token
+  // Check stored token (validates 5-hour expiration)
   useEffect(() => {
-    const savedToken = localStorage.getItem("jaadoo_admin_token");
+    const savedToken = adminSession.getValidToken();
     if (savedToken) {
       setToken(savedToken);
+    } else {
+      setToken(null);
     }
   }, []);
 
@@ -1180,8 +1182,7 @@ export default function AdminPortal() {
 
       const data = await res.json();
       setToken(data.access_token);
-      localStorage.setItem(ADMIN_TOKEN_KEY, data.access_token);
-      if (data.refresh_token) localStorage.setItem(ADMIN_REFRESH_KEY, data.refresh_token);
+      adminSession.setTokens(data.access_token, data.refresh_token);
     } catch {
       setLoginError("Could not reach backend server. Please verify network connection.");
     } finally {
@@ -1191,19 +1192,17 @@ export default function AdminPortal() {
 
   // Logout handler
   const handleLogout = () => {
+    adminSession.clearSession();
     setToken(null);
-    localStorage.removeItem(ADMIN_TOKEN_KEY);
-    localStorage.removeItem(ADMIN_REFRESH_KEY);
   };
 
   // Keep React state in sync with adminFetch: renewed token, or session that could not be renewed
   useEffect(() => {
     const onRefreshed = (e: Event) => setToken((e as CustomEvent<string>).detail);
     const onExpired = () => {
+      adminSession.clearSession();
       setToken(null);
-      localStorage.removeItem(ADMIN_TOKEN_KEY);
-      localStorage.removeItem(ADMIN_REFRESH_KEY);
-      setLoginError("Your session expired. Please log in again.");
+      setLoginError("Your session expired after 5 hours. Please log in again.");
     };
     window.addEventListener(ADMIN_TOKEN_REFRESHED, onRefreshed);
     window.addEventListener(ADMIN_SESSION_EXPIRED, onExpired);
