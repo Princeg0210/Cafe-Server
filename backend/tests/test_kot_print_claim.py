@@ -74,3 +74,18 @@ async def test_failed_print_can_be_claimed_again(db_session, client: AsyncClient
 @pytest.mark.asyncio
 async def test_claim_unknown_kot(client: AsyncClient):
     assert (await client.post("/api/v1/pos/kots/999999/claim-print")).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_server_print_job_leaves_kot_to_pos_when_no_printer(db_session):
+    """No network kitchen printer set up: the background job must not mark the KOT as failed."""
+    from app.models.kitchen import PrintJob
+    from app.workers.celery_app import _verify_and_execute_print_job
+
+    kot = await make_kot(db_session)
+    job = (await db_session.execute(select(PrintJob).where(PrintJob.kot_id == kot.id))).scalars().first()
+    assert job is not None
+    msg = await _verify_and_execute_print_job(job.id, db=db_session)
+    assert "POS prints this KOT" in msg
+    await db_session.refresh(kot)
+    assert kot.printed_status == "PENDING"

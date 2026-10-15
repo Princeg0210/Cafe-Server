@@ -47,12 +47,29 @@ async def _verify_and_send_reminder(reservation_id: int):
         return f"Reminder sent for CONFIRMED reservation #{reservation_id}"
 
 
+def _run_async(coro_factory):
+    """Run one task in a fresh event loop, then release its DB connections.
+
+    The DB engine is shared, and pooled connections belong to the loop that opened them; reusing
+    them in the next task's new loop raised "attached to a different loop" and left
+    transactions stuck open.
+    """
+    async def runner():
+        from app.core.database import engine
+        try:
+            return await coro_factory()
+        finally:
+            await engine.dispose()
+
+    return asyncio.run(runner())
+
+
 @celery_app.task(name="send_reservation_reminder")
 def send_reservation_reminder(reservation_id: int):
     """
     Celery task entry point wrapper executing async database verification.
     """
-    return asyncio.run(_verify_and_send_reminder(reservation_id))
+    return _run_async(lambda: _verify_and_send_reminder(reservation_id))
 
 
 async def _verify_and_execute_print_job(print_job_id: int, db: AsyncSession = None):
@@ -90,8 +107,15 @@ async def _do_print_job(db, print_job_id: int):
         select(KitchenPrinter).where(KitchenPrinter.kitchen_id == kitchen_id)
     )
     printer = printer_res.scalar_one_or_none()
-    
-    if not printer or not printer.is_online:
+
+    if not printer:
+        # No network kitchen printer set up: KOTs are printed by the POS screen (Connect printer /
+        # browser), so leave the KOT's print status to POS instead of marking it failed.
+        job.status = "FAILED"
+        await db.commit()
+        return f"No kitchen printer configured for kitchen {kitchen_id}; POS prints this KOT"
+
+    if not printer.is_online:
         job.status = "FAILED"
         job.retry_count += 1
         if job.kot_id:
@@ -139,7 +163,7 @@ async def _do_print_job(db, print_job_id: int):
 
 @celery_app.task(name="execute_print_job")
 def execute_print_job(print_job_id: int):
-    return asyncio.run(_verify_and_execute_print_job(print_job_id))
+    return _run_async(lambda: _verify_and_execute_print_job(print_job_id))
 
 
 @celery_app.task(name="check_low_stock_alerts")

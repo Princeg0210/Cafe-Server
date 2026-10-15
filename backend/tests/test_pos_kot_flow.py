@@ -90,14 +90,17 @@ async def test_kot_daily_sequence_and_offline_printer_resilience(db_session, cli
         )
     )
 
-    # Verify KOT #002 generated
+    # Pizza + drink: the kitchen gets a pizza KOT (#002) and a separate KOT for the drink (#003)
     kot2_res = await db_session.execute(select(KOT).where(KOT.order_id == order2.id))
     kot2 = kot2_res.scalar_one()
     assert kot2.kot_number == "KOT-002"
     assert kot2.sequence_number == 2
     assert kot2.table_id == table4.id
-    assert kot2.total_amount == Decimal("350.00")
-    assert kot2.items_count == 2
+    assert kot2.total_amount == Decimal("250.00")
+    assert kot2.items_count == 1
+    drink_kot = (await db_session.execute(select(KOT).where(KOT.kot_number == "KOT-003"))).scalar_one()
+    assert drink_kot.table_id == table4.id and drink_kot.dining_session_id == kot2.dining_session_id
+    assert drink_kot.total_amount == Decimal("100.00")
 
     # Round 3: Table 01 orders again: 1x Fresh Lime Soda
     order3 = await OrderService.place_order(
@@ -109,11 +112,11 @@ async def test_kot_daily_sequence_and_offline_printer_resilience(db_session, cli
         )
     )
 
-    # Verify KOT #003 generated under Table 01 and belongs to SAME Dining Session #1
+    # Verify KOT #004 generated under Table 01 and belongs to SAME Dining Session #1
     kot3_res = await db_session.execute(select(KOT).where(KOT.order_id == order3.id))
     kot3 = kot3_res.scalar_one()
-    assert kot3.kot_number == "KOT-003"
-    assert kot3.sequence_number == 3
+    assert kot3.kot_number == "KOT-004"
+    assert kot3.sequence_number == 4
     assert kot3.table_id == table1.id
     assert kot3.dining_session_id == sess1.id
     assert kot3.total_amount == Decimal("100.00")
@@ -129,6 +132,7 @@ async def test_kot_daily_sequence_and_offline_printer_resilience(db_session, cli
     pos_kots = response.json()
     assert len(pos_kots) >= 3
     kot_numbers = [k["kot_number"] for k in pos_kots]
+    assert "KOT-004" in kot_numbers
     assert "KOT-003" in kot_numbers
     assert "KOT-002" in kot_numbers
     assert "KOT-001" in kot_numbers
