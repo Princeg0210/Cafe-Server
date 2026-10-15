@@ -46,7 +46,7 @@ import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } fro
 import { formatBookingId } from "@/lib/bookingId";
 import { posSession } from "@/lib/authFetch";
 import { toast } from "@/components/ui/toast";
-import { kotTicketEscPos } from "@/lib/escpos";
+import { billEscPos, kotTicketEscPos } from "@/lib/escpos";
 
 const {
   fetch: posFetch,
@@ -1326,12 +1326,6 @@ export default function POSDashboard() {
     floorName: string,
     paymentMode: string = "UPI"
   ) => {
-    const printWindow = window.open("", "_blank", "width=380,height=600");
-    if (!printWindow) {
-      toast.warning("Please allow popups in your browser to print thermal customer bills.");
-      return;
-    }
-
     const receiptDate = new Date().toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -1349,6 +1343,54 @@ export default function POSDashboard() {
     const gross = Number(session.gross_amount || (subtotal - discount + tax));
     const depositCredit = Number(session.reservation_credit || session.reservation_deposit_paid || 0);
     const netDue = Number(session.net_amount_due ?? Math.max(0, gross - depositCredit));
+    const guestId = session.reservation_id
+      ? `RES-${String(session.reservation_id).padStart(4, "0")}`
+      : `GUEST-${session.session_seq || session.session_id}`;
+
+    // Printer connected directly (Connect printer): send the bill straight to it
+    if (serialPortRef.current) {
+      const bytes = billEscPos(
+        {
+          header: ["JAADOO Pizza Project", "32 Sitaphal ki gali, Udaipur", "GSTIN: 08AAACJ1234F1Z5"],
+          info: [
+            [`Table: ${tableNumber}`, floorName],
+            [`Paid by: ${paymentMode}`, receiptDate],
+            [`Time: ${receiptTime}`, `Staff: ${staffUser?.username || "Cashier"}`],
+            [`Guest: ${guestId}`, ""],
+          ],
+          allergyInfo: session.allergy_info,
+          items: (session.items || []).map((it) => ({
+            name: it.name,
+            quantity: Number(it.quantity),
+            rate: Number(it.unit_price),
+            amount: Number(it.subtotal),
+            note: it.special_instructions,
+          })),
+          totals: [
+            { label: "Subtotal", value: subtotal },
+            ...(discount > 0
+              ? [{ label: `Discount${session.discount_type === "PERCENT" ? ` (${Number(session.discount_value)}%)` : ""}`, value: -discount }]
+              : []),
+            { label: "GST (5%)", value: tax },
+            { label: "Gross Total", value: gross, bold: true },
+            ...(depositCredit > 0 ? [{ label: "Advance deposit", value: -depositCredit }] : []),
+          ],
+          netDue,
+          footer: ["*** CUSTOMER INVOICE ***", "Thank you for dining with us!", "Please visit Jaadoo Pizza Project again."],
+        },
+        kotPaperMm
+      );
+      writeToSerialPrinter(bytes)
+        .then(() => toast.success(`Bill printed for ${tableNumber}`))
+        .catch(() => toast.error("Bill did not print. Check the printer is on, then press Connect printer again."));
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "width=380,height=600");
+    if (!printWindow) {
+      toast.warning("Please allow popups in your browser to print thermal customer bills.");
+      return;
+    }
 
     const itemsHtml = (session.items || [])
       .map(

@@ -103,3 +103,75 @@ export function kotTicketEscPos(t: EscPosKot, paperMm: 58 | 80): Uint8Array {
   if (paperMm >= 80) cmd(CUT);
   return Uint8Array.from(out);
 }
+
+// ---------------------------------------------------------------------------
+// Customer bill
+// ---------------------------------------------------------------------------
+export type EscPosBill = {
+  header: string[]; // first line printed large
+  info: [string, string][]; // left / right pairs, e.g. ["Table: T3", "Floor: Ground"]
+  allergyInfo?: string | null;
+  items: { name: string; quantity: number; rate: number; amount: number; note?: string | null }[];
+  totals: { label: string; value: number; bold?: boolean }[];
+  netDue: number;
+  footer: string[];
+};
+
+export const money = (n: number) => `Rs ${n.toFixed(2)}`;
+
+// Left text and right text on one line, padded to the paper width
+export function twoCols(left: string, right: string, width: number): string {
+  const r = toPrinterText(right);
+  const l = toPrinterText(left).slice(0, Math.max(0, width - r.length - 1));
+  return l + " ".repeat(Math.max(1, width - l.length - r.length)) + r;
+}
+
+export function billEscPos(b: EscPosBill, paperMm: 58 | 80): Uint8Array {
+  const width = paperMm >= 80 ? 48 : 32;
+  const out: number[] = [];
+  const cmd = (c: number[]) => out.push(...c);
+  const line = (s = "") => {
+    for (const ch of toPrinterText(s) + "\n") out.push(ch.charCodeAt(0));
+  };
+  const rule = (ch = "-") => line(ch.repeat(width));
+
+  cmd(INIT);
+  cmd(ALIGN_CENTER);
+  b.header.forEach((h, i) => {
+    cmd(i === 0 ? BOLD_TALL : NORMAL);
+    wrap(h, width).forEach((l) => line(l));
+  });
+  cmd(NORMAL);
+  cmd(ALIGN_LEFT);
+  rule();
+  b.info.forEach(([l, r]) => line(twoCols(l, r, width)));
+  if (b.allergyInfo) {
+    cmd(BOLD_TALL);
+    wrap(`ALLERGY: ${b.allergyInfo}`, width).forEach((l) => line(l));
+    cmd(NORMAL);
+  }
+  rule();
+  for (const it of b.items) {
+    wrap(it.name, width).forEach((l) => line(l));
+    line(twoCols(`  ${it.quantity} x ${it.rate.toFixed(2)}`, it.amount.toFixed(2), width));
+    if (it.note) wrap(`  * ${it.note}`, width).forEach((l) => line(l));
+  }
+  rule();
+  for (const t of b.totals) {
+    if (t.bold) cmd([ESC, 0x45, 1]);
+    line(twoCols(t.label, (t.value < 0 ? "-" : "") + money(Math.abs(t.value)), width));
+    if (t.bold) cmd([ESC, 0x45, 0]);
+  }
+  rule("=");
+  cmd(BOLD_TALL);
+  line(twoCols("NET DUE", money(b.netDue), width));
+  cmd(NORMAL);
+  rule("=");
+  cmd(ALIGN_CENTER);
+  b.footer.forEach((f) => wrap(f, width).forEach((l) => line(l)));
+  line();
+  line();
+  line();
+  if (paperMm >= 80) cmd(CUT);
+  return Uint8Array.from(out);
+}
