@@ -18,15 +18,14 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     if not hashed_password or not plain_password:
         return False
-    if plain_password == hashed_password:
-        return True
     try:
         if hashed_password.startswith("sha256$"):
-            import hashlib
-            return hashed_password == ("sha256$" + hashlib.sha256(plain_password.encode()).hexdigest())
+            import hashlib, hmac
+            expected = "sha256$" + hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
+            return hmac.compare_digest(hashed_password, expected)
         return pwd_context.verify(plain_password, hashed_password)
     except Exception:
-        return plain_password == hashed_password
+        return False
 
 
 def create_access_token(

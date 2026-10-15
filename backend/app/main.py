@@ -74,12 +74,12 @@ async def api_gateway_limits(request: Request, call_next):
     response.headers["X-RateLimit-Limit"] = str(limit)
     return response
 
-# Configure CORS
+# Configure CORS (OWASP A01 & A05: Restrict credentialed origins to trusted domains)
 origins = settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else [settings.CORS_ORIGINS]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"^https?://.*",
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$|^https://([a-zA-Z0-9-]+\.)*(vercel\.app|onrender\.com)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -127,9 +127,10 @@ async def health_check_db():
                 return {"status": "healthy", "database": "PostgreSQL connected"}
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
+        db_err = str(e) if settings.APP_ENV == "development" else "Database service unavailable"
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            content={"status": "unhealthy", "database": str(e)},
+            content={"status": "unhealthy", "database": db_err},
         )
 
 

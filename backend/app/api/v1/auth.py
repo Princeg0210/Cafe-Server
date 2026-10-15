@@ -62,9 +62,11 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
+        from app.core.logging import logger
+        logger.error(f"Login processing error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Login processing error: {str(e)}",
+            detail="Login processing error. Please try again.",
         )
 
 
