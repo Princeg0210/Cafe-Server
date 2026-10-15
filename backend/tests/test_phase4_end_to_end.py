@@ -172,7 +172,9 @@ async def test_production_capacity_server_side_enforcement(db_session, setup_bra
 
 
 @pytest.mark.asyncio
-async def test_inventory_bom_failure_rolls_back_order(db_session, setup_branch):
+async def test_inventory_bom_failure_rolls_back_order(db_session, setup_branch, monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "INVENTORY_AUTO_DEDUCT", True)  # the deduction itself still works when switched on
     cat = MenuCategory(name="Beverage P4", display_order=4)
     db_session.add(cat)
     await db_session.flush()

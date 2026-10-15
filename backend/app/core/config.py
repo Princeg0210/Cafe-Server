@@ -73,6 +73,10 @@ class Settings(BaseSettings):
     SARVAM_BASE_URL: str = "https://api.sarvam.ai"
     SARVAM_DOCUMENT_MODEL: str = "sarvam-vision-2.1"
 
+    # Subtract recipe ingredients from inventory on every order (and refuse orders when stock is short).
+    # Off for now: stock only changes through admin adjustments and scanned supplier bills.
+    INVENTORY_AUTO_DEDUCT: bool = False
+
     # Booking rules checked on every new booking (website, holds, staff-created)
     BOOKING_RULES_ENFORCED: bool = True
     RESERVATION_CLOSED_WEEKDAYS: str = "1,2"  # Python weekday numbers: Mon=0 ... Sun=6 (Tue, Wed closed)

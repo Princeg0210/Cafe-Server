@@ -18,6 +18,7 @@ from app.models.kot import KOT
 from app.schemas.order import OrderCreate
 from app.services.capacity_service import CapacityService
 from app.services.inventory_service import InventoryService
+from app.core.config import settings
 
 
 class OrderService:
@@ -212,7 +213,8 @@ class OrderService:
                     production_date=production_date,
                     reservation_id=order_reservation_id,
                 )
-                await InventoryService.deduct_bom_stock(db, menu_item.id, item_data.quantity, order_number)
+                if settings.INVENTORY_AUTO_DEDUCT:  # off for now (see config)
+                    await InventoryService.deduct_bom_stock(db, menu_item.id, item_data.quantity, order_number)
 
                 unit_price = Decimal(str(menu_item.price))
                 subtotal = unit_price * Decimal(str(item_data.quantity))
