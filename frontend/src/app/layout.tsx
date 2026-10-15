@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Playfair_Display, Poppins } from "next/font/google";
 import CookieConsent from "@/components/CookieConsent";
+import { Toaster } from "@/components/ui/toast";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -128,6 +129,7 @@ export default function RootLayout({
         <div className="flex-1">
           {children}
         </div>
+        <Toaster />
         <CookieConsent />
       </body>
     </html>

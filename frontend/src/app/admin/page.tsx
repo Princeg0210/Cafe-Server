@@ -72,6 +72,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "@/components/ui/toast";
 
 const {
   fetch: adminFetch,
@@ -1041,7 +1042,7 @@ export default function AdminPortal() {
         handleOpenGeneralizedQrPrint(freshQr.qr_token, "Generalized Table QR");
       }
     } catch {
-      alert("Network error while generating QR code.");
+      toast.error("Network error while generating QR code.");
     } finally {
       setQrActionLoading(null);
     }
@@ -1088,7 +1089,7 @@ export default function AdminPortal() {
       setTimeout(() => setToastMessage(null), 3000);
       setQrToDelete(null);
     } catch {
-      alert("Failed to delete QR code.");
+      toast.error("Failed to delete QR code.");
     } finally {
       setQrActionLoading(null);
     }
@@ -1141,7 +1142,7 @@ export default function AdminPortal() {
       setToastMessage(updatedStatus ? "QR code activated!" : "QR code deactivated!");
       setTimeout(() => setToastMessage(null), 3000);
     } catch {
-      alert("Network error while updating QR status.");
+      toast.error("Network error while updating QR status.");
     } finally {
       setQrActionLoading(null);
     }
@@ -1162,7 +1163,7 @@ export default function AdminPortal() {
         qrDataUrl,
       });
     } catch {
-      alert("Failed to render QR Code.");
+      toast.error("Failed to render QR Code.");
     }
   };
 
@@ -1608,11 +1609,11 @@ export default function AdminPortal() {
         showToast(`Saved: ${item.name} is now ₹${item.price} (${item.is_available ? "In Stock" : "86'd"})`);
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Failed to update item: ${err.detail || res.statusText || "Server error"}`);
+        toast.error(`Failed to update item: ${err.detail || res.statusText || "Server error"}`);
         fetchData(true); // Revert on failure
       }
     } catch (e: any) {
-      alert(`Network error updating menu item: ${e?.message || e}`);
+      toast.error(`Network error updating menu item: ${e?.message || e}`);
       fetchData(true);
     } finally {
       setIsSavingItem(false);
@@ -1653,10 +1654,10 @@ export default function AdminPortal() {
         setNewItemData({ name: "", category_id: 1, description: "", price: 350 });
         showToast(`Created new item: ${created.name}`);
       } else {
-        alert("Failed to create menu item.");
+        toast.error("Failed to create menu item.");
       }
     } catch {
-      alert("Failed to create menu item.");
+      toast.error("Failed to create menu item.");
     }
   };
 
@@ -1780,7 +1781,7 @@ export default function AdminPortal() {
       });
       setQrModalTable({ number: tableNumber, url: orderUrl, qrDataUrl });
     } catch {
-      alert("Could not generate QR code.");
+      toast.error("Could not generate QR code.");
     }
   };
 
@@ -1793,7 +1794,7 @@ export default function AdminPortal() {
     if (activeTab === "ledger") {
       if (ledgerSubTab === "inventory") {
         if (!scannedBills.length) {
-          alert("No scanned inventory bills to export.");
+          toast.warning("No scanned inventory bills to export.");
           return;
         }
         filename = `jaadoo_inventory_purchase_bills_${new Date().toISOString().slice(0, 10)}.csv`;
@@ -1809,7 +1810,7 @@ export default function AdminPortal() {
         ]);
       } else {
         if (!customerBills.length) {
-          alert("No customer dining bills to export.");
+          toast.warning("No customer dining bills to export.");
           return;
         }
         filename = `jaadoo_customer_sales_bills_${new Date().toISOString().slice(0, 10)}.csv`;
@@ -1843,7 +1844,7 @@ export default function AdminPortal() {
         new Date(k.created_at).toLocaleString("en-IN"),
       ]);
     } else {
-      alert("No records to export.");
+      toast.warning("No records to export.");
       return;
     }
 

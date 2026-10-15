@@ -45,6 +45,7 @@ import {
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
 import { posSession } from "@/lib/authFetch";
+import { toast } from "@/components/ui/toast";
 
 const {
   fetch: posFetch,
@@ -618,10 +619,10 @@ export default function POSDashboard() {
         await Promise.all([fetchReservations(), fetchData()]);
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Cannot allot table: ${err.detail || "Server error"}`);
+        toast.error(`Cannot allot table: ${err.detail || "Server error"}`);
       }
     } catch {
-      alert("Network error during verification and table allotment.");
+      toast.error("Network error during verification and table allotment.");
     } finally {
       setIsVerifyingAndAllotting(false);
     }
@@ -978,11 +979,11 @@ export default function POSDashboard() {
       } else {
         const err = await res.json().catch(() => ({}));
         setReservations(previousReservations);
-        alert(`Cannot update reservation: ${err.detail || "Server error"}`);
+        toast.error(`Cannot update reservation: ${err.detail || "Server error"}`);
       }
     } catch {
       setReservations(previousReservations);
-      alert("Network error updating reservation status.");
+      toast.error("Network error updating reservation status.");
     } finally {
       setUpdatingResId(null);
     }
@@ -1011,18 +1012,18 @@ export default function POSDashboard() {
           body: JSON.stringify({ upi_utr: utr }),
         });
         if (res.ok) {
-          alert(`Payment for Reservation #${resId} verified and confirmed!`);
+          toast.success(`Payment for Reservation #${resId} verified and confirmed!`);
           await Promise.all([fetchReservations(), fetchPendingReviews(), fetchData()]);
         } else {
           const err = await res.json().catch(() => ({}));
-          alert(`Cannot verify payment: ${err.detail || "Server error"}`);
+          toast.error(`Cannot verify payment: ${err.detail || "Server error"}`);
         }
       } else {
         if (!confirm(`Reject bank credit UTR: ${utr}? Staff review will flag this as reviewed.`)) return;
         setPendingReviews((prev) => prev.filter((p) => p.credit_id !== creditId));
       }
     } catch {
-      alert("Network error processing review action.");
+      toast.error("Network error processing review action.");
     }
   };
 
@@ -1050,10 +1051,10 @@ export default function POSDashboard() {
         await Promise.all([fetchReservations(), fetchData()]);
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Cannot assign table: ${err.detail || "Server error"}`);
+        toast.error(`Cannot assign table: ${err.detail || "Server error"}`);
       }
     } catch {
-      alert("Network error assigning table.");
+      toast.error("Network error assigning table.");
     }
   };
 
@@ -1226,7 +1227,7 @@ export default function POSDashboard() {
   ) => {
     const printWindow = window.open("", "_blank", "width=380,height=600");
     if (!printWindow) {
-      alert("Please allow popups in your browser to print thermal customer bills.");
+      toast.warning("Please allow popups in your browser to print thermal customer bills.");
       return;
     }
 
@@ -1399,11 +1400,11 @@ export default function POSDashboard() {
 
   const handleSeatWalkIn = async () => {
     if (!walkInTableId) {
-      alert("Please select an available table.");
+      toast.warning("Please select an available table.");
       return;
     }
     if (!posToken) {
-      alert("Staff session expired. Please sign in again.");
+      toast.error("Staff session expired. Please sign in again.");
       return;
     }
     setIsSeatingWalkIn(true);
@@ -1428,10 +1429,10 @@ export default function POSDashboard() {
         await fetchData();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Failed to seat walk-in: ${err.detail || "Server error"}`);
+        toast.error(`Failed to seat walk-in: ${err.detail || "Server error"}`);
       }
     } catch {
-      alert("Network error: Could not reach backend server.");
+      toast.error("Network error: Could not reach backend server.");
     } finally {
       setIsSeatingWalkIn(false);
     }
@@ -1439,15 +1440,15 @@ export default function POSDashboard() {
 
   const handleMergeTables = async () => {
     if (!mergeSourceTableId || !mergeTargetTableId) {
-      alert("Please select both source and destination tables to merge.");
+      toast.warning("Please select both source and destination tables to merge.");
       return;
     }
     if (mergeSourceTableId === mergeTargetTableId) {
-      alert("Source and destination tables must be different.");
+      toast.warning("Source and destination tables must be different.");
       return;
     }
     if (!posToken) {
-      alert("Staff session expired. Please sign in again.");
+      toast.error("Staff session expired. Please sign in again.");
       return;
     }
     setIsMerging(true);
@@ -1466,17 +1467,17 @@ export default function POSDashboard() {
       });
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || "Tables merged successfully.");
+        toast.success(data.message || "Tables merged successfully.");
         setIsMergeModalOpen(false);
         setMergeSourceTableId(null);
         setMergeTargetTableId(null);
         await fetchData();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Failed to merge tables: ${err.detail || "Server error"}`);
+        toast.error(`Failed to merge tables: ${err.detail || "Server error"}`);
       }
     } catch {
-      alert("Network error: Could not reach backend server.");
+      toast.error("Network error: Could not reach backend server.");
     } finally {
       setIsMerging(false);
     }
@@ -1485,7 +1486,7 @@ export default function POSDashboard() {
   const handleSaveBillEdit = async () => {
     if (!billEditSession) return;
     if (!posToken) {
-      alert("Staff session expired.");
+      toast.error("Staff session expired.");
       return;
     }
     setIsSavingBillEdit(true);
@@ -1506,10 +1507,10 @@ export default function POSDashboard() {
         await fetchData();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Failed to update bill items: ${err.detail || "Server error"}`);
+        toast.error(`Failed to update bill items: ${err.detail || "Server error"}`);
       }
     } catch {
-      alert("Network error: Could not reach backend server.");
+      toast.error("Network error: Could not reach backend server.");
     } finally {
       setIsSavingBillEdit(false);
     }
@@ -1518,7 +1519,7 @@ export default function POSDashboard() {
   const handleSettleBill = async () => {
     if (!billSettleSession || !billSettleTableInfo) return;
     if (!posToken) {
-      alert("Staff session expired.");
+      toast.error("Staff session expired.");
       return;
     }
     const sessionId = billSettleSession.session_id;
@@ -1552,10 +1553,10 @@ export default function POSDashboard() {
         await Promise.all([fetchData(), fetchReservations()]);
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Cannot settle table: ${err.detail || "Server error"}`);
+        toast.error(`Cannot settle table: ${err.detail || "Server error"}`);
       }
     } catch {
-      alert("Network error: Could not reach café backend server.");
+      toast.error("Network error: Could not reach café backend server.");
     } finally {
       setClosingSessionIds((prev) => ({ ...prev, [sessionId]: false }));
     }
@@ -1563,7 +1564,7 @@ export default function POSDashboard() {
 
   const handleCloseSession = async (sessionId: number, tableNumber: string, tableId?: number) => {
     if (!posToken) {
-      alert("Staff session expired. Please sign in again.");
+      toast.error("Staff session expired. Please sign in again.");
       return;
     }
     const session = tableOverviews.flatMap((t) => t.sessions).find((s) => s.session_id === sessionId);
@@ -1601,10 +1602,10 @@ export default function POSDashboard() {
         await Promise.all([fetchData(), fetchReservations()]);
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Cannot settle table: ${err.detail || "Server error"}`);
+        toast.error(`Cannot settle table: ${err.detail || "Server error"}`);
       }
     } catch {
-      alert("Network error: Could not reach café backend server.");
+      toast.error("Network error: Could not reach café backend server.");
     } finally {
       setClosingSessionIds((prev) => ({ ...prev, [sessionId]: false }));
     }
@@ -1767,7 +1768,7 @@ export default function POSDashboard() {
 
   const handleResetAllSessions = async () => {
     if (!posToken) {
-      alert("Staff session expired. Please sign in again.");
+      toast.error("Staff session expired. Please sign in again.");
       return;
     }
     if (!confirm("Are you sure you want to RESET ALL POS SESSIONS?\n\nA PDF summary report will be generated and printed automatically.")) {
@@ -1792,14 +1793,14 @@ export default function POSDashboard() {
       });
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || "All active table sessions reset. Tables are now Available.");
+        toast.success(data.message || "All active table sessions reset. Tables are now Available.");
         await Promise.all([fetchData(), fetchReservations()]);
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Failed to reset sessions: ${err.detail || "Server error"}`);
+        toast.error(`Failed to reset sessions: ${err.detail || "Server error"}`);
       }
     } catch {
-      alert("Network error: Could not reach café backend server.");
+      toast.error("Network error: Could not reach café backend server.");
     } finally {
       setIsResettingAll(false);
     }

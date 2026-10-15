@@ -28,6 +28,7 @@ import {
   HeartHandshake,
 } from "lucide-react";
 import { ITEM_MEDIA_MAP, menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
+import { toast } from "@/components/ui/toast";
 import { getFloorName } from "@/data/floors";
 import { ALL_COUNTRY_CODES } from "@/lib/countryCodes";
 
@@ -330,11 +331,12 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         setReservationNotice((prev) =>
           prev ? { ...prev, status: "SEATED", allow_self_checkin: false } : null
         );
+        toast.success("Check-in successful! Welcome to Jaadoo Pizza Project.");
       } else {
-        alert("Check-in could not be completed. Please inform your server or floor manager.");
+        toast.error("Check-in could not be completed. Please inform your server or floor manager.");
       }
     } catch {
-      alert("Network error during check-in. Please try again.");
+      toast.error("Network error during check-in. Please try again.");
     } finally {
       setIsCheckingIn(false);
     }
@@ -598,12 +600,13 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         setCart({});
         setAllergyInfo("");
         setShowCartDrawer(false);
+        toast.success("Order dispatched to kitchen! Tracking on table.");
       } else {
         const errData = await res.json().catch(() => ({}));
-        alert(`Order could not be placed: ${typeof errData.detail === "string" ? errData.detail : "Please check the quantities and try again."}`);
+        toast.error(`Order could not be placed: ${typeof errData.detail === "string" ? errData.detail : "Please check the quantities and try again."}`);
       }
     } catch {
-      alert("Network error. Please make sure the café server is reachable.");
+      toast.error("Network error. Please make sure the café server is reachable.");
     }
   };
 
