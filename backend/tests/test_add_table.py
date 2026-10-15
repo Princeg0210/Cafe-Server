@@ -36,3 +36,31 @@ async def test_add_table_validation_and_login(db_session, client: AsyncClient):
     assert (await client.post("/api/v1/tables", json={"floor_number": 1, "capacity": 0})).status_code == 422
     app.dependency_overrides.pop(get_current_user)
     assert (await client.post("/api/v1/tables", json={"floor_number": 1})).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_remove_table_only_when_unused(db_session, client: AsyncClient):
+    from decimal import Decimal
+    from app.models.kitchen import Kitchen
+    from app.models.menu import MenuCategory, MenuItem
+
+    await ensure_default_tables(db_session)
+    db_session.add(Kitchen(branch_id=1, name="Main Kitchen"))
+    cat = MenuCategory(name="BEVERAGES", display_order=1)
+    db_session.add(cat)
+    await db_session.flush()
+    soda = MenuItem(category_id=cat.id, name="Soda", price=Decimal("100.00"))
+    db_session.add(soda)
+    await db_session.commit()
+    soda_id = soda.id
+
+    unused = (await client.post("/api/v1/tables", json={"floor_number": 2})).json()
+    used = (await client.post("/api/v1/tables", json={"floor_number": 2})).json()
+    assert (await client.post(f"/api/v1/pos/tables/{used['id']}/orders", json={"items": [{"menu_item_id": soda_id, "quantity": 1}]})).status_code == 201
+
+    assert (await client.delete(f"/api/v1/tables/{unused['id']}")).status_code == 200
+    assert (await client.delete(f"/api/v1/tables/{used['id']}")).status_code == 409  # has an order: keep its history
+    assert (await client.delete("/api/v1/tables/1")).status_code == 400  # one of the original tables
+    assert (await client.delete("/api/v1/tables/999999")).status_code == 404
+    ids = [t["id"] for t in (await client.get("/api/v1/tables")).json()]
+    assert unused["id"] not in ids and used["id"] in ids

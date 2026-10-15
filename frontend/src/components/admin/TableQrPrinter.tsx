@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import { Plus, Printer, RefreshCw } from "lucide-react";
+import { Plus, Printer, RefreshCw, Trash2 } from "lucide-react";
 import { adminSession } from "@/lib/authFetch";
 import { RESTAURANT_FLOORS } from "@/data/floors";
 import { toast } from "@/components/ui/toast";
 
-type Slot = { tableId: number; floorId: number; label: string; floorName: string; num: number };
-type ApiTable = { id: number; floor_number?: number; floor_name?: string; floor_table_num?: number };
+type Slot = { tableId: number; floorId: number; label: string; floorName: string; num: number; added: boolean };
+type ApiTable = { id: number; floor_number?: number; floor_name?: string; floor_table_num?: number; floor?: number | null };
 
 const FLOORS = RESTAURANT_FLOORS.filter((f) => !f.isComingSoon);
 
@@ -20,6 +20,7 @@ const toSlots = (tables: ApiTable[]): Slot[] =>
       tableId: t.id,
       floorId: t.floor_number as number,
       num: t.floor_table_num ?? 1,
+      added: !!t.floor, // added from admin (the original tables can't be removed)
       label: `Table ${t.floor_table_num ?? 1}`,
       floorName: FLOORS.find((f) => f.id === t.floor_number)?.name || t.floor_name || "",
     }))
@@ -34,6 +35,8 @@ export default function TableQrPrinter({ token }: { token: string }) {
   const [newFloor, setNewFloor] = useState(1);
   const [newSeats, setNewSeats] = useState(4);
   const [adding, setAdding] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const [qr, setQr] = useState<{ tableId: number; url: string; dataUrl: string } | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -64,6 +67,39 @@ export default function TableQrPrinter({ token }: { token: string }) {
       .then((rows: ApiTable[]) => setSlots(toSlots(rows)))
       .catch(() => setLoadError("Could not load the tables. Check the connection and try again."));
   }, [token]);
+
+  const removeTable = async () => {
+    if (!slot) return;
+    if (!confirmRemove) {
+      setConfirmRemove(true);
+      setTimeout(() => setConfirmRemove(false), 5000);
+      return;
+    }
+    setRemoving(true);
+    try {
+      const res = await adminSession.fetch(`/api/v1/tables/${slot.tableId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(typeof data.detail === "string" ? data.detail : "Could not remove the table.");
+        return;
+      }
+      toast.success(`${slot.label} (${slot.floorName}) removed.`);
+      const slots = await loadTables();
+      const first = slots.find((x) => x.floorId === slot.floorId) || slots[0];
+      if (first) {
+        setFloorId(first.floorId);
+        setTableId(first.tableId);
+      }
+    } catch {
+      toast.error("Network error. The table was not removed.");
+    } finally {
+      setConfirmRemove(false);
+      setRemoving(false);
+    }
+  };
 
   const addTable = async () => {
     setAdding(true);
@@ -120,6 +156,7 @@ export default function TableQrPrinter({ token }: { token: string }) {
     setFloorId(s.floorId);
     setTableId(s.tableId);
     setConfirmReplace(false);
+    setConfirmRemove(false);
   };
 
   const print = () => {
@@ -239,6 +276,18 @@ export default function TableQrPrinter({ token }: { token: string }) {
               <RefreshCw className={`w-3.5 h-3.5 ${replacing ? "animate-spin" : ""}`} />
               {confirmReplace ? "Tap again: old stand stops working" : "Replace code"}
             </button>
+            {slot?.added && (
+              <button
+                type="button"
+                onClick={removeTable}
+                disabled={removing}
+                title="Remove a table added by mistake (only if it has never had orders or bookings)"
+                className={`px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 cursor-pointer ${confirmRemove ? "border-rose-600 bg-rose-50 text-rose-700" : "border-[#E2D6C5] text-[#665448] hover:bg-[#FAF6EE]"}`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {removing ? "Removing…" : confirmRemove ? `Tap again to remove ${slot.label}` : "Remove table"}
+              </button>
+            )}
           </div>
           {nextSlot && (
             <p className="text-[11px] text-[#8C7A6D]">After printing, next up: <strong>{nextSlot.label}</strong>, {nextSlot.floorName}</p>

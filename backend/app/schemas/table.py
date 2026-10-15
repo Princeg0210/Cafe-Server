@@ -16,6 +16,7 @@ class TableResponse(BaseModel):
     floor_name: Optional[str] = "Ground floor"
     floor_table_num: Optional[int] = 1
     qr_token: Optional[str] = None
+    floor: Optional[int] = None  # set only for tables added from admin (those can be removed if unused)
 
 
 class TableCreate(BaseModel):

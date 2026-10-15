@@ -99,6 +99,35 @@ async def add_table(body: TableCreate, db: AsyncSession = Depends(get_db)):
     return (await db.execute(select(Table).options(selectinload(Table.qr_code)).where(Table.id == table.id))).scalar_one()
 
 
+@router.delete("/{id}", dependencies=STAFF_ONLY)
+async def remove_table(id: int, db: AsyncSession = Depends(get_db)):
+    """Remove a table added from admin by mistake. Only allowed if it was never used, so no bill history is lost."""
+    from sqlalchemy import func
+    from app.models.kot import KOT
+    from app.models.reservation import Reservation
+
+    table = await db.get(Table, id)
+    if not table:
+        raise HTTPException(status_code=404, detail="Table not found.")
+    if not table.floor:
+        raise HTTPException(status_code=400, detail="The original tables can't be removed.")
+    used = sum(
+        [
+            (await db.execute(select(func.count(DiningSession.id)).where(DiningSession.table_id == id))).scalar() or 0,
+            (await db.execute(select(func.count(KOT.id)).where(KOT.table_id == id))).scalar() or 0,
+            (await db.execute(select(func.count(Reservation.id)).where(Reservation.table_id == id))).scalar() or 0,
+        ]
+    )
+    if used:
+        raise HTTPException(status_code=409, detail=f"{table.table_number} has orders or bookings, so it can't be removed.")
+    qr = (await db.execute(select(TableQR).where(TableQR.table_id == id))).scalar_one_or_none()
+    if qr:
+        await db.delete(qr)
+    await db.delete(table)
+    await db.commit()
+    return {"removed": id}
+
+
 @router.get("/{id}/qr", response_model=TableQRResponse, dependencies=STAFF_ONLY)
 async def get_table_qr(id: int, db: AsyncSession = Depends(get_db)):
     query = select(TableQR).where(TableQR.table_id == id, TableQR.is_active == True)
