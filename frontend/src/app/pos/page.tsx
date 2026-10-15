@@ -46,6 +46,7 @@ import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } fro
 import { formatBookingId } from "@/lib/bookingId";
 import { posSession } from "@/lib/authFetch";
 import { toast } from "@/components/ui/toast";
+import { kotTicketEscPos } from "@/lib/escpos";
 
 const {
   fetch: posFetch,
@@ -358,6 +359,35 @@ const escapeHtml = (v: unknown) =>
 // Server timestamps are naive UTC; mark them as UTC so the local time is right
 const parseServerTime = (iso: string) => new Date(/[zZ]|[+-]\d\d:\d\d$/.test(iso) ? iso : `${iso}Z`);
 
+// Direct printing to a thermal printer with no computer driver (Bluetooth / USB serial),
+// via the browser's Web Serial support (Chrome and Edge on Windows / Mac).
+type SerialPrinterPort = {
+  open(options: { baudRate: number }): Promise<void>;
+  close(): Promise<void>;
+  writable: WritableStream<Uint8Array> | null;
+};
+type WebSerial = {
+  requestPort(): Promise<SerialPrinterPort>;
+  getPorts(): Promise<SerialPrinterPort[]>;
+};
+const getWebSerial = (): WebSerial | null =>
+  typeof navigator !== "undefined" && "serial" in navigator ? (navigator as unknown as { serial: WebSerial }).serial : null;
+
+function kotTicketForPrinter(t: KotTicket, paperMm: 58 | 80): Uint8Array {
+  const floor = getTableFloor(t.table_id);
+  return kotTicketEscPos(
+    {
+      kotNumber: t.kot_number,
+      tableLine: `${floor.name} - TABLE ${floor.floor_table_num}`,
+      time: parseServerTime(t.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+      orderNumber: t.order_number,
+      allergyInfo: t.allergy_info,
+      items: t.items,
+    },
+    paperMm
+  );
+}
+
 function kotTicketHtml(t: KotTicket, paperMm: number): string {
   const floor = getTableFloor(t.table_id);
   const time = parseServerTime(t.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
@@ -496,6 +526,72 @@ export default function POSDashboard() {
   useEffect(() => {
     autoPrintRef.current = autoPrintKots;
   }, [autoPrintKots]);
+
+  // Thermal printer connected straight to this device (no driver needed)
+  const serialPortRef = useRef<SerialPrinterPort | null>(null);
+  const [serialPrinter, setSerialPrinter] = useState<"unsupported" | "off" | "connecting" | "on">(() =>
+    !getWebSerial() ? "unsupported" : readSetting("jaadoo_kot_serial") === "on" ? "connecting" : "off"
+  );
+
+  const openSerialPrinter = async (port: SerialPrinterPort) => {
+    try {
+      await port.open({ baudRate: 9600 }); // Bluetooth serial ignores the speed; 9600 suits USB models
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "InvalidStateError")) throw e; // already open is fine
+    }
+    serialPortRef.current = port;
+    setSerialPrinter("on");
+  };
+
+  // Reconnect the printer chosen earlier, without asking again
+  useEffect(() => {
+    const serial = getWebSerial();
+    if (!serial || readSetting("jaadoo_kot_serial") !== "on") return;
+    serial
+      .getPorts()
+      .then((ports) => (ports[0] ? openSerialPrinter(ports[0]) : setSerialPrinter("off")))
+      .catch(() => setSerialPrinter("off")); // printer switched off / out of range: stay on normal printing
+  }, []);
+
+  const connectSerialPrinter = async () => {
+    const serial = getWebSerial();
+    if (!serial) return;
+    try {
+      const port = await serial.requestPort();
+      setSerialPrinter("connecting");
+      await openSerialPrinter(port);
+      try { localStorage.setItem("jaadoo_kot_serial", "on"); } catch {}
+      toast.success("Printer connected. KOTs will print straight to it.");
+    } catch (e) {
+      setSerialPrinter("off");
+      if (!(e instanceof DOMException && e.name === "NotFoundError")) {
+        toast.error("Could not connect to the printer. Make sure it is switched on, paired, and not connected to a phone.");
+      }
+    }
+  };
+
+  const disconnectSerialPrinter = async () => {
+    const port = serialPortRef.current;
+    serialPortRef.current = null;
+    setSerialPrinter("off");
+    try { localStorage.setItem("jaadoo_kot_serial", "off"); } catch {}
+    try { await port?.close(); } catch {}
+  };
+
+  const writeToSerialPrinter = async (bytes: Uint8Array) => {
+    const port = serialPortRef.current;
+    if (!port?.writable) throw new Error("printer not connected");
+    const writer = port.writable.getWriter();
+    try {
+      await writer.write(bytes);
+    } catch (e) {
+      serialPortRef.current = null; // connection dropped: fall back to normal printing until reconnected
+      setSerialPrinter("off");
+      throw e;
+    } finally {
+      writer.releaseLock();
+    }
+  };
   const [lastNotification, setLastNotification] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<string>("");
 
@@ -1168,7 +1264,12 @@ export default function POSDashboard() {
       const ticket: KotTicket = await claim.json();
       let success = true;
       try {
-        await printHtml(kotTicketHtml(ticket, kotPaperMm), manualWindow);
+        if (serialPortRef.current) {
+          manualWindow?.close();
+          await writeToSerialPrinter(kotTicketForPrinter(ticket, kotPaperMm));
+        } else {
+          await printHtml(kotTicketHtml(ticket, kotPaperMm), manualWindow);
+        }
       } catch {
         success = false;
       }
@@ -1208,7 +1309,7 @@ export default function POSDashboard() {
   // then show the ticket with the normal print dialog. Falls back to the hidden frame if blocked.
   const handleRetryPrint = async (kotId: number) => {
     if (!posToken) return;
-    const manualWindow = window.open("", "_blank", "width=420,height=640");
+    const manualWindow = serialPortRef.current ? null : window.open("", "_blank", "width=420,height=640");
     manualWindow?.document.write("<p style=\"font-family:sans-serif;padding:16px\">Preparing KOT…</p>");
     setRetryingIds((prev) => ({ ...prev, [kotId]: true }));
     try {
@@ -2123,7 +2224,27 @@ export default function POSDashboard() {
               <Printer className="w-3.5 h-3.5" />
               <span className="hidden sm:inline font-semibold">{autoPrintKots ? "Auto-print ON" : "Auto-print OFF"}</span>
             </button>
-            {autoPrintKots && (
+            {/* Thermal printer connected directly (Chrome / Edge) */}
+            {serialPrinter !== "unsupported" && (
+              <button
+                type="button"
+                onClick={() => (serialPrinter === "on" ? disconnectSerialPrinter() : connectSerialPrinter())}
+                disabled={serialPrinter === "connecting"}
+                className={`p-1.5 rounded-md border text-xs cursor-pointer flex items-center gap-1 ${serialPrinter === "on"
+                  ? "bg-emerald-50 border-emerald-600 text-emerald-800"
+                  : "bg-white border-[#E4DCD0] text-stone-500"
+                  }`}
+                title={serialPrinter === "on"
+                  ? "KOTs print straight to the connected printer. Click to disconnect."
+                  : "Connect a Bluetooth / USB thermal printer that has no computer driver"}
+              >
+                <span className={`w-2 h-2 rounded-full ${serialPrinter === "on" ? "bg-emerald-500" : serialPrinter === "connecting" ? "bg-amber-400 animate-pulse" : "bg-stone-300"}`} />
+                <span className="hidden sm:inline font-semibold">
+                  {serialPrinter === "on" ? "Printer connected" : serialPrinter === "connecting" ? "Connecting…" : "Connect printer"}
+                </span>
+              </button>
+            )}
+            {(autoPrintKots || serialPrinter === "on") && (
               <select
                 value={kotPaperMm}
                 onChange={(e) => {
