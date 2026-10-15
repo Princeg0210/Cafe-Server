@@ -1000,31 +1000,9 @@ export default function KunalManagerPortal() {
 
       {/* TOP HEADER: Brand Logo + Identity + Navigation Controls */}
       <header className="sticky top-0 z-40 bg-[#FFFDF9] border-b border-[#E6DCce] shadow-xs px-4 sm:px-6 py-3.5">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          {/* Left Brand Identity */}
-          <div className="flex min-w-0 items-center gap-4">
-            <div className="w-20 h-12 sm:w-24 sm:h-14 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md bg-white shrink-0">
-              <img
-                src="/jaadoo_logo.jpg"
-                alt="Jaadoo Logo"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <h1>
-                <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-xl sm:text-2xl leading-tight" />
-              </h1>
-              <div className="mt-0.5">
-                <span className="text-[10px] uppercase font-extrabold tracking-[0.22em] text-[#B85B43]">
-                  Kunal Portal
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Identity Title & Actions */}
-          <div className="flex items-center gap-2.5 sm:gap-3 ml-auto">
-            {/* Manager Profile Chip */}
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-4">
+          {/* Left: Manager Profile Chip & Sync Status */}
+          <div className="flex items-center justify-start order-2 md:order-1 min-w-0">
             <div className="flex items-center gap-2.5 bg-[#FAF8F5] py-1 px-3 rounded-2xl border border-[#E2DACF] shadow-2xs">
               <div className="w-8 h-8 rounded-full bg-[#1B4332] text-white flex items-center justify-center font-bold text-xs ring-2 ring-[#52B788]/20 shrink-0">
                 K
@@ -1057,6 +1035,31 @@ export default function KunalManagerPortal() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Center: Editorial Brand Logo & Jaadoo Pizza Project Title */}
+          <div className="flex items-center justify-center gap-3.5 order-1 md:order-2 min-w-0">
+            <div className="w-16 h-10 sm:w-20 sm:h-12 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md bg-white shrink-0">
+              <img
+                src="/jaadoo_logo.jpg"
+                alt="Jaadoo Logo"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="text-center sm:text-left">
+              <h1>
+                <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-lg sm:text-2xl leading-tight" />
+              </h1>
+              <div className="mt-0.5">
+                <span className="text-[10px] uppercase font-extrabold tracking-[0.22em] text-[#B85B43]">
+                  Kunal Portal
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center justify-center md:justify-end gap-2.5 sm:gap-3 order-3">
 
             {/* Refresh Button */}
             <Button

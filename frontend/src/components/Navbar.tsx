@@ -25,13 +25,44 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber, showNavigat
 
   return (
     <header className="sticky top-0 z-40 bg-[#FBF9F5]/95 backdrop-blur-md border-b border-[#E4DCD0]/80 print:hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 sm:h-22 flex items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 sm:h-22 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
         
-        {/* Left Side: Brand Logo + Typographic Navigation */}
-        <div className="flex items-center gap-6 lg:gap-10 min-w-0">
-          {/* Editorial Brand Logo */}
-          <Link href="/" className="flex items-center gap-3.5 group shrink-0 min-w-0 touch-manipulation">
-            <div className="relative w-16 h-10 sm:w-24 sm:h-14 rounded-xl overflow-hidden bg-white border-2 border-[#9E3E26]/40 group-hover:border-[#9E3E26] transition-all shrink-0 shadow-md">
+        {/* Left Side: Desktop Typographic Navigation */}
+        <div className="flex items-center justify-start min-w-0">
+          {showNavigation && (
+            <nav className="hidden md:flex items-center gap-5 lg:gap-7">
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`text-xs font-sans font-bold tracking-[0.16em] uppercase transition-colors relative py-1 touch-manipulation whitespace-nowrap ${
+                      isActive
+                        ? "text-[#140E0A]"
+                        : "text-[#3B2C23] hover:text-[#9E3E26]"
+                    }`}
+                  >
+                    {link.name}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#9E3E26]" />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
+          {tableNumber && (
+            <div className="md:hidden px-2 py-0.5 rounded-md bg-[#1B3618]/10 border border-[#1B3618]/25 text-[#1B3618] text-[9px] font-mono font-bold tracking-wider uppercase shrink-0">
+              {tableNumber}
+            </div>
+          )}
+        </div>
+
+        {/* Center: Editorial Brand Logo + Jaadoo Pizza Project Title */}
+        <div className="flex items-center justify-center min-w-0">
+          <Link href="/" className="flex items-center gap-2.5 sm:gap-3.5 group shrink-0 min-w-0 touch-manipulation">
+            <div className="relative w-14 h-9 sm:w-22 sm:h-13 rounded-xl overflow-hidden bg-white border-2 border-[#9E3E26]/40 group-hover:border-[#9E3E26] transition-all shrink-0 shadow-md">
               <img
                 src="/jaadoo_logo.jpg"
                 alt="Jaadoo Pizza Project"
@@ -39,41 +70,18 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber, showNavigat
               />
             </div>
             <div className="flex flex-col justify-center min-w-0">
-              <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-lg sm:text-2xl leading-tight truncate" />
-              <span className="text-[10px] sm:text-[11px] font-sans tracking-wide text-[#B6623B] font-bold leading-none mt-0.5 self-center text-center truncate">
+              <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-base sm:text-2xl leading-tight truncate text-center sm:text-left" />
+              <span className="text-[9px] sm:text-[11px] font-sans tracking-wide text-[#B6623B] font-bold leading-none mt-0.5 text-center truncate">
                 Con o senza avanti!
               </span>
             </div>
           </Link>
-
-          {/* Desktop Typographic Navigation (Left-Aligned next to Logo) */}
-          {showNavigation && <nav className="hidden md:flex items-center gap-6 lg:gap-8">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`text-xs font-sans font-bold tracking-[0.18em] uppercase transition-colors relative py-1 touch-manipulation ${
-                    isActive
-                      ? "text-[#140E0A]"
-                      : "text-[#3B2C23] hover:text-[#9E3E26]"
-                  }`}
-                >
-                  {link.name}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#9E3E26]" />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>}
         </div>
 
-        {/* Right Actions: Table Badge + Cart / Bill */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* Right Actions: Table Badge (Desktop) + Cart / Bill */}
+        <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0">
           {tableNumber && (
-            <div className="px-2.5 sm:px-3 py-1 rounded-md bg-[#1B3618]/10 border border-[#1B3618]/25 text-[#1B3618] text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
+            <div className="hidden md:inline-flex px-2.5 sm:px-3 py-1 rounded-md bg-[#1B3618]/10 border border-[#1B3618]/25 text-[#1B3618] text-[10px] sm:text-[11px] font-mono font-bold tracking-wider uppercase">
               {tableNumber}
             </div>
           )}
@@ -81,11 +89,11 @@ export default function Navbar({ cartCount, onOpenCart, tableNumber, showNavigat
           {onOpenCart && (
             <button
               onClick={() => onOpenCart()}
-              className="flex items-center gap-2 bg-[#140E0A] hover:bg-[#9E3E26] text-[#FAF8F5] px-3.5 sm:px-4 py-2 rounded-lg text-xs font-bold tracking-wider uppercase transition-all shadow-xs active:scale-95 shrink-0 touch-manipulation select-none cursor-pointer"
+              className="flex items-center gap-2 bg-[#140E0A] hover:bg-[#9E3E26] text-[#FAF8F5] px-3 sm:px-4 py-2 rounded-lg text-xs font-bold tracking-wider uppercase transition-all shadow-xs active:scale-95 shrink-0 touch-manipulation select-none cursor-pointer"
               aria-label="Open Running Bill Cart"
             >
               <ShoppingBag className="w-3.5 h-3.5 text-[#E8A563]" />
-              <span>Bill</span>
+              <span className="hidden sm:inline">Bill</span>
               {(cartCount ?? 0) > 0 && (
                 <span className="bg-[#9E3E26] text-[#FAF8F5] text-[10px] px-1.5 py-0.2 rounded font-bold">
                   {cartCount}

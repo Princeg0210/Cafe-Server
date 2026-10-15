@@ -2109,18 +2109,25 @@ export default function AdminPortal() {
       </AnimatePresence>
 
       {/* Top Header */}
-      <header className="bg-[#FFFDF9] border-b border-[#E6DCce] px-4 sm:px-6 py-4 sticky top-0 z-40 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-4">
-          <div className="w-20 h-12 sm:w-24 sm:h-14 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md bg-white shrink-0">
+      <header className="bg-[#FFFDF9] border-b border-[#E6DCce] px-4 sm:px-6 py-3.5 sticky top-0 z-40 shadow-xs grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-4">
+        {/* Left: Status Indicator */}
+        <div className="hidden md:flex items-center justify-start gap-2 text-xs font-semibold text-stone-600">
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          <span className="text-[11px] font-mono tracking-wider uppercase text-stone-500">EXECUTIVE SUITE</span>
+        </div>
+
+        {/* Center: Editorial Brand Logo & Jaadoo Pizza Project Title */}
+        <div className="flex items-center justify-center gap-3.5 min-w-0">
+          <div className="w-16 h-10 sm:w-20 sm:h-12 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-md bg-white shrink-0">
             <img
               src="/jaadoo_logo.jpg"
               alt="Jaadoo Logo"
               className="w-full h-full object-cover"
             />
           </div>
-          <div>
+          <div className="text-center sm:text-left">
             <h1>
-              <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-xl sm:text-2xl leading-tight" />
+              <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-lg sm:text-2xl leading-tight" />
             </h1>
             <div className="mt-0.5">
               <span className="text-[10px] uppercase font-extrabold tracking-[0.22em] text-[#B85B43]">
@@ -2130,8 +2137,8 @@ export default function AdminPortal() {
           </div>
         </div>
 
-        {/* Global Action Header */}
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
+        {/* Right: Global Action Header */}
+        <div className="flex w-full flex-wrap items-center justify-center md:justify-end gap-2 sm:gap-3">
           <Button
             variant="secondary"
             onClick={() => fetchData(false)}

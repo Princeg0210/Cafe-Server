@@ -2102,13 +2102,39 @@ export default function POSDashboard() {
     <div className="min-h-screen bg-[#F8F5F0] text-[#261C18] font-sans antialiased">
 
       {/* 1. COMPACT OPERATIONAL HEADER */}
-      <header className="sticky top-0 z-40 bg-[#FBF9F5] border-b border-[#E4DCD0] px-4 sm:px-6 py-2.5 shadow-2xs">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <header className="sticky top-0 z-40 bg-[#FBF9F5] border-b border-[#E4DCD0] px-4 sm:px-6 py-2 shadow-2xs">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
 
-          {/* Brand & Live Indicator */}
-          <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+          {/* Left: Live Indicator & Shift Status */}
+          <div className="flex items-center gap-2 sm:gap-3 order-2 md:order-1 md:flex-1 justify-start min-w-0">
+            <div className="flex items-center gap-1.5 text-[11px] font-sans font-medium text-stone-700">
+              <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-600" : "bg-rose-500"}`} />
+              <span className="uppercase tracking-wider font-semibold text-emerald-800">
+                LIVE SHIFT
+              </span>
+              <span className="text-stone-400 hidden sm:inline">•</span>
+              <span className="hidden font-mono text-stone-600 sm:inline">{todayStr}</span>
+            </div>
+
+            {currentTime && (
+              <span className="hidden lg:inline-flex items-center gap-1 text-[11px] font-mono text-stone-500">
+                <Clock className="w-3 h-3 text-stone-400" />
+                <span>{currentTime}</span>
+              </span>
+            )}
+
+            {lastNotification && (
+              <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#261C18] text-[#FBF9F5] text-[11px] font-medium border border-stone-700">
+                <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                <span className="truncate max-w-[180px]">{lastNotification}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Center: Brand Logo & Jaadoo Pizza Project POS */}
+          <div className="flex items-center justify-center order-1 md:order-2 shrink-0">
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-16 h-10 sm:w-20 sm:h-12 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-xs bg-white shrink-0">
+              <div className="w-14 h-9 sm:w-18 sm:h-11 rounded-xl overflow-hidden border-2 border-[#9E3E26]/40 shadow-xs bg-white shrink-0">
                 <img
                   src="/jaadoo_logo.jpg"
                   alt="Jaadoo Logo"
@@ -2116,40 +2142,14 @@ export default function POSDashboard() {
                 />
               </div>
               <span className="flex items-baseline gap-1.5">
-                <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-lg leading-tight" />
+                <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-base sm:text-lg leading-tight" />
                 <span className="font-serif italic font-normal text-sm text-[#B85B43]">POS</span>
               </span>
             </Link>
-
-            <span className="h-4 w-[1px] bg-stone-300 mx-0.5" />
-
-            <div className="flex items-center gap-1.5 text-[11px] font-sans font-medium text-stone-700">
-              <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-600" : "bg-rose-500"}`} />
-              <span className="uppercase tracking-wider font-semibold text-emerald-800">
-                LIVE SHIFT
-              </span>
-              <span className="text-stone-400">•</span>
-              <span className="hidden font-mono text-stone-600 sm:inline">{todayStr}</span>
-            </div>
-
-            {currentTime && (
-              <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-mono text-stone-500 ml-1">
-                <Clock className="w-3 h-3 text-stone-400" />
-                <span>{currentTime}</span>
-              </span>
-            )}
           </div>
 
-          {/* Real-time Order Popup */}
-          {lastNotification && (
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#261C18] text-[#FBF9F5] text-xs font-medium border border-stone-700">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate max-w-xs">{lastNotification}</span>
-            </div>
-          )}
-
-          {/* Navigation Tabs & Staff Controls */}
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          {/* Right: Navigation Tabs & Staff Controls */}
+          <div className="flex items-center justify-end gap-2 order-3 md:flex-1 w-full md:w-auto flex-wrap sm:flex-nowrap">
             <div className="flex w-full items-center justify-between bg-[#ECE6DC] p-0.5 rounded-lg text-xs font-medium border border-[#E4DCD0] sm:w-auto">
               <button
                 onClick={() => setActiveTab("tables")}

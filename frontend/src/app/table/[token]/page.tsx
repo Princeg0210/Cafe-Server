@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, use } from "react";
+import Link from "next/link";
 import BrandTitle from "@/components/BrandTitle";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -665,34 +666,47 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     <div className="min-h-screen bg-[#F7EBD5] text-[#17251A] font-sans selection:bg-[#9E3E26] selection:text-white">
       {/* Direct Focused Header: Table Number & View Bill */}
       <header className="sticky top-0 z-40 border-b border-[#D7C4A3] bg-[#FFF9EE]/95 px-4 py-2.5 backdrop-blur-md sm:px-6">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3.5">
-            <div className="w-18 h-11 sm:w-22 sm:h-13 rounded-xl overflow-hidden bg-white border-2 border-[#9E3E26]/40 shadow-xs shrink-0">
-              <img
-                src="/jaadoo_logo.jpg"
-                alt="Jaadoo Logo"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-base leading-none mt-2" />
-              <span className="text-[10px] font-mono font-bold text-[#4A5842] flex items-center gap-1.5 mt-0.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                {tableNumber}
-              </span>
-            </div>
+        <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3">
+          {/* Left: Table Indicator */}
+          <div className="flex items-center justify-start min-w-0">
+            <span className="text-[10px] sm:text-xs font-mono font-bold text-[#1B3618] bg-[#1B3618]/10 border border-[#1B3618]/20 px-2 sm:px-2.5 py-1 rounded-md flex items-center gap-1.5 shrink-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              {tableNumber}
+            </span>
           </div>
 
-          <button
-            onClick={fetchBill}
-            className="ml-auto flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-xs font-semibold uppercase tracking-wider transition-all shadow-xs"
-          >
-            <Receipt className="w-3.5 h-3.5 text-[#B85B43]" />
-            <span>
-              VIEW BILL
-              {billData && billData.grand_total > 0 ? ` (₹${Math.round(billData.grand_total)})` : ""}
-            </span>
-          </button>
+          {/* Center: Editorial Brand Logo & Jaadoo Pizza Project */}
+          <div className="flex items-center justify-center min-w-0">
+            <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0">
+              <div className="w-14 h-9 sm:w-18 sm:h-11 rounded-xl overflow-hidden bg-white border-2 border-[#9E3E26]/40 shadow-xs shrink-0 group-hover:border-[#9E3E26] transition-all">
+                <img
+                  src="/jaadoo_logo.jpg"
+                  alt="Jaadoo Logo"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                />
+              </div>
+              <div className="flex flex-col justify-center min-w-0 text-center sm:text-left">
+                <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-sm sm:text-base leading-tight truncate" />
+                <span className="text-[9px] font-sans tracking-wide text-[#B6623B] font-bold leading-none mt-0.5 hidden sm:inline">
+                  Con o senza avanti!
+                </span>
+              </div>
+            </Link>
+          </div>
+
+          {/* Right: Bill Action */}
+          <div className="flex items-center justify-end">
+            <button
+              onClick={fetchBill}
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-[11px] sm:text-xs font-semibold uppercase tracking-wider transition-all shadow-xs shrink-0 cursor-pointer"
+            >
+              <Receipt className="w-3.5 h-3.5 text-[#B85B43]" />
+              <span>
+                <span className="hidden sm:inline">VIEW </span>BILL
+                {billData && billData.grand_total > 0 ? ` (₹${Math.round(billData.grand_total)})` : ""}
+              </span>
+            </button>
+          </div>
         </div>
       </header>
 
