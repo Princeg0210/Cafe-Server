@@ -2,6 +2,7 @@ import datetime
 from app.utils.helpers import utc_now
 import asyncio
 import secrets
+from types import SimpleNamespace
 from decimal import Decimal
 from typing import Dict, List
 from sqlalchemy import select, func
@@ -21,9 +22,16 @@ from app.services.inventory_service import InventoryService
 
 class OrderService:
     @staticmethod
-    async def place_order(db: AsyncSession, data: OrderCreate) -> Order:
+    async def place_order(db: AsyncSession, data: OrderCreate, staff_table_id: int | None = None) -> Order:
+        """Guest orders come in through the table's QR code; POS staff pass staff_table_id instead."""
         try:
-            val = await TableService.validate_qr_token(db, data.qr_token)
+            if staff_table_id is not None:
+                staff_table = await db.get(Table, staff_table_id)
+                if not staff_table:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Table not found.")
+                val = SimpleNamespace(table_id=staff_table.id, is_generalized=False)
+            else:
+                val = await TableService.validate_qr_token(db, data.qr_token)
 
             if data.session_token:
                 sess_query = select(DiningSession).where(

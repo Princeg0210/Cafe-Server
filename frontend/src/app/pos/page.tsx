@@ -47,6 +47,7 @@ import { formatBookingId } from "@/lib/bookingId";
 import { posSession } from "@/lib/authFetch";
 import { toast } from "@/components/ui/toast";
 import { billEscPos, kotTicketEscPos } from "@/lib/escpos";
+import TakeOrderModal from "@/components/pos/TakeOrderModal";
 
 const {
   fetch: posFetch,
@@ -481,6 +482,7 @@ export default function POSDashboard() {
 
   // Table Sessions State
   const [tableOverviews, setTableOverviews] = useState<TableOverview[]>([]);
+  const [takeOrder, setTakeOrder] = useState<{ tableId: number | null } | null>(null);
   const [expandedSessions, setExpandedSessions] = useState<Record<number, boolean>>({});
   const [showClosedToday, setShowClosedToday] = useState<Record<number, boolean>>({});
   const [tableFilter, setTableFilter] = useState<"all" | "active" | "available">("all");
@@ -2342,6 +2344,19 @@ export default function POSDashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-5 space-y-5">
 
         {/* ================= TAB 1: ACTIVE TABLES (PRIMARY OPERATIONAL SECTION) ================= */}
+        {takeOrder && posToken && (
+          <TakeOrderModal
+            tableId={takeOrder.tableId}
+            tables={tableOverviews.map((t) => {
+              const fl = getTableFloor(t.table_id, t.floor_number);
+              return { id: t.table_id, label: `Table ${t.floor_table_num || fl.floor_table_num} · ${fl.name}` };
+            })}
+            token={posToken}
+            onClose={() => setTakeOrder(null)}
+            onPlaced={() => fetchData()}
+          />
+        )}
+
         {activeTab === "tables" && (
           <>
             {/* 2. SUMMARY METRICS */}
@@ -2923,6 +2938,16 @@ export default function POSDashboard() {
                     ))}
                   </div>
 
+                  {/* Take an order for any table */}
+                  <button
+                    type="button"
+                    onClick={() => setTakeOrder({ tableId: null })}
+                    className="px-3 py-1.5 rounded-md bg-[#B85B43] hover:bg-[#9E3E26] text-white font-bold text-xs tracking-wide flex items-center gap-1 cursor-pointer"
+                  >
+                    <UtensilsCrossed className="w-3.5 h-3.5" />
+                    <span>New Order</span>
+                  </button>
+
                   {/* Filter Selector */}
                   <div className="flex items-center bg-[#F6F3EC] p-0.5 rounded-md border border-[#E4DCD0]">
                     {(["all", "active", "available"] as const).map((mode) => (
@@ -3304,6 +3329,16 @@ export default function POSDashboard() {
                                         </button>
                                       </div>
 
+                                      {/* Add a new round: goes to the kitchen as a KOT */}
+                                      <button
+                                        type="button"
+                                        onClick={() => setTakeOrder({ tableId: tbl.table_id })}
+                                        className="w-full bg-[#B85B43] hover:bg-[#9E3E26] text-white py-1.5 rounded-md font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                      >
+                                        <UtensilsCrossed className="w-3.5 h-3.5" />
+                                        <span>+ Add Order</span>
+                                      </button>
+
                                       {/* Secondary Row: Preview Bill & Edit Bill */}
                                       <div className="grid grid-cols-2 gap-1.5">
                                         <button
@@ -3344,7 +3379,15 @@ export default function POSDashboard() {
 
                                   {/* Available Table Quick Seat Walk-in */}
                                   {!isOccupied && !isReserved && isTodaySelected && (
-                                    <div className="pt-2 border-t border-stone-100">
+                                    <div className="pt-2 border-t border-stone-100 grid grid-cols-2 gap-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => setTakeOrder({ tableId: tbl.table_id })}
+                                        className="w-full bg-[#B85B43] hover:bg-[#9E3E26] text-white py-1.5 rounded-md font-semibold text-xs tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                                      >
+                                        <UtensilsCrossed className="w-3.5 h-3.5" />
+                                        <span>Take Order</span>
+                                      </button>
                                       <button
                                         type="button"
                                         onClick={() => {

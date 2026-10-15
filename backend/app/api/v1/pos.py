@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, require_permission
 from app.models.user import User
-from app.schemas.pos import KOTResponse, POSSummaryResponse, SessionDiscountRequest, SettleRequest, TableOverviewResponse
+from app.schemas.order import OrderCreate, OrderResponse
+from app.schemas.pos import KOTResponse, POSOrderCreate, POSSummaryResponse, SessionDiscountRequest, SettleRequest, TableOverviewResponse
+from app.services.order_service import OrderService
 from app.services.billing_service import BillingService
 from app.services.pos_service import POSService
 
@@ -138,6 +140,18 @@ async def seat_walk_in(
         customer_name=payload.get("customer_name"),
         guest_count=guest_count,
     )
+
+
+@router.post("/tables/{table_id}/orders", response_model=OrderResponse, status_code=201)
+async def place_staff_order(
+    table_id: int,
+    payload: POSOrderCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_permission("pos:access")),
+):
+    """POS staff take an order for a table: it joins the table's running bill and sends a KOT to the kitchen."""
+    order = OrderCreate(qr_token="pos-staff-order", allergy_info=payload.allergy_info, items=payload.items)
+    return await OrderService.place_order(db, order, staff_table_id=table_id)
 
 
 @router.put("/sessions/{id}/items")
