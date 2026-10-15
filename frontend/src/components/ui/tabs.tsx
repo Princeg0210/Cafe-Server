@@ -27,7 +27,7 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
       ref={ref}
       type="button"
       className={cn(
-        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer select-none",
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer select-none touch-manipulation",
         active
           ? "bg-[#B85B43] text-white shadow-xs"
           : "text-[#665448] hover:text-[#241A14] hover:bg-[#EBE2D4]",

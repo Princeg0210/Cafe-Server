@@ -43,7 +43,11 @@ export default function CinematicBrandIntro({
             opacity: 0,
             transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
           }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#120D0A] overflow-hidden select-none pointer-events-auto"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#120D0A] overflow-hidden select-none pointer-events-auto cursor-pointer touch-manipulation"
+          onClick={() => {
+            setIsVisible(false);
+            if (onComplete) onComplete();
+          }}
           aria-hidden="true"
         >
           {/* Subtle warm ambient vignette */}

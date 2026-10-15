@@ -1200,36 +1200,41 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
                           </span>
                         ) : qtyInCart === 0 ? (
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               updateCart(item, 1);
                             }}
-                            className="px-4 py-1.5 rounded-full bg-[#140E0A] hover:bg-[#9E3E26] text-[#FAF8F5] text-xs font-sans font-bold uppercase tracking-wider shadow-2xs transition-all cursor-pointer"
+                            className="px-4 py-1.5 rounded-full bg-[#140E0A] hover:bg-[#9E3E26] text-[#FAF8F5] text-xs font-sans font-bold uppercase tracking-wider shadow-2xs transition-all cursor-pointer touch-manipulation select-none active:scale-95 min-h-[34px]"
                           >
                             ADD
                           </button>
                         ) : (
-                          <div className="flex items-center gap-1.5 bg-[#140E0A] text-[#FAF8F5] rounded-full px-2.5 py-1 shadow-xs">
+                          <div className="flex items-center gap-1.5 bg-[#140E0A] text-[#FAF8F5] rounded-full px-2 py-1 shadow-xs">
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 updateCart(item, -1);
                               }}
-                              className="w-5 h-5 rounded-full hover:bg-[#9E3E26] flex items-center justify-center transition cursor-pointer"
+                              className="w-7 h-7 rounded-full hover:bg-[#9E3E26] active:bg-[#9E3E26] flex items-center justify-center transition cursor-pointer touch-manipulation select-none active:scale-90"
+                              aria-label="Decrease quantity"
                             >
-                              <Minus className="w-3 h-3" />
+                              <Minus className="w-3.5 h-3.5" />
                             </button>
-                            <span className="font-mono font-bold text-xs px-1">
+                            <span className="font-mono font-bold text-xs px-1 min-w-[18px] text-center">
                               {qtyInCart}
                             </span>
                             <button
+                              type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 updateCart(item, 1);
                               }}
-                              className="w-5 h-5 rounded-full hover:bg-[#9E3E26] flex items-center justify-center transition cursor-pointer"
+                              className="w-7 h-7 rounded-full hover:bg-[#9E3E26] active:bg-[#9E3E26] flex items-center justify-center transition cursor-pointer touch-manipulation select-none active:scale-90"
+                              aria-label="Increase quantity"
                             >
-                              <Plus className="w-3 h-3" />
+                              <Plus className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         )}
@@ -1248,8 +1253,9 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
       {totalCartCount > 0 && (
         <div className="fixed bottom-5 left-4 right-4 z-40 max-w-lg mx-auto">
           <button
+            type="button"
             onClick={() => setShowCartDrawer(true)}
-            className="w-full py-3.5 px-5 rounded-2xl bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] font-bold text-sm uppercase tracking-wider shadow-xl flex items-center justify-between transition-all transform active:scale-[0.99]"
+            className="w-full py-3.5 px-5 rounded-2xl bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] font-bold text-sm uppercase tracking-wider shadow-xl flex items-center justify-between transition-all transform active:scale-[0.99] touch-manipulation select-none cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
               <span className="w-7 h-7 rounded-full bg-[#FBF9F5] text-[#261C18] flex items-center justify-center font-mono font-black text-xs">

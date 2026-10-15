@@ -119,10 +119,10 @@ export default function MenuPage() {
         </div>
       </header>
 
-      <nav aria-label="Menu categories" className="sticky top-16 z-30 border-b border-[#D7C4A3] bg-[#F7EBD5]/95 py-3 backdrop-blur-md">
-        <div className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 sm:px-6">
+      <nav aria-label="Menu categories" className="sticky top-20 sm:top-22 z-30 border-b border-[#D7C4A3] bg-[#F7EBD5]/95 py-3 backdrop-blur-md">
+        <div className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 sm:px-6 touch-pan-x">
           {["all", ...menuData.map((category) => category.id)].map((id) => (
-            <button key={id} type="button" onClick={() => setActiveCategory(id)} aria-pressed={activeCategory === id} className={`min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold transition-colors ${activeCategory === id ? "border-[#9E3E26] text-[#9E3E26]" : "border-transparent text-[#49382D] hover:border-[#BFA47A]"}`}>
+            <button key={id} type="button" onClick={() => setActiveCategory(id)} aria-pressed={activeCategory === id} className={`min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold transition-colors touch-manipulation cursor-pointer ${activeCategory === id ? "border-[#9E3E26] text-[#9E3E26]" : "border-transparent text-[#49382D] hover:border-[#BFA47A]"}`}>
               {categoryLabels[id]}
             </button>
           ))}

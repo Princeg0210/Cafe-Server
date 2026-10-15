@@ -62,7 +62,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
-            className="text-4xl sm:text-6xl md:text-7xl font-serif font-bold text-white tracking-tight leading-[1.06] drop-shadow-2xl whitespace-nowrap"
+            className="text-4xl sm:text-6xl md:text-7xl font-serif font-bold text-white tracking-tight leading-[1.06] drop-shadow-2xl sm:whitespace-nowrap"
           >
             Jaadoo Pizza
             <br />
@@ -88,7 +88,7 @@ export default function Home() {
           >
             <Link
               href="/location"
-              className="inline-flex items-center gap-2 text-stone-200 hover:text-[#E8AA62] text-xs sm:text-sm font-sans font-medium transition-colors group"
+              className="inline-flex items-center gap-2 text-stone-200 hover:text-[#E8AA62] text-xs sm:text-sm font-sans font-medium transition-colors group touch-manipulation"
             >
               <MapPin className="w-4 h-4 text-[#E8AA62] shrink-0 group-hover:scale-110 transition-transform" />
               <span>32 Sitaphal ki gali, Ganesh Ghati</span>
@@ -98,7 +98,7 @@ export default function Home() {
               href="https://www.instagram.com/jaadoo_pizza_project/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-stone-200 hover:text-[#E8AA62] text-xs sm:text-sm font-sans font-medium transition-colors group cursor-pointer"
+              className="inline-flex items-center gap-2 text-stone-200 hover:text-[#E8AA62] text-xs sm:text-sm font-sans font-medium transition-colors group cursor-pointer touch-manipulation"
             >
               <svg className="w-4 h-4 fill-current text-[#E8AA62] shrink-0 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
                 <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
@@ -123,7 +123,7 @@ export default function Home() {
           >
             <Link
               href="/book-table"
-              className="inline-flex items-center gap-2.5 bg-[#C88A48] hover:bg-[#DE9B52] text-[#120D0A] px-8 py-3.5 rounded-xl font-sans text-xs sm:text-sm font-extrabold tracking-[0.2em] uppercase transition-all duration-300 shadow-2xl active:scale-95"
+              className="inline-flex items-center gap-2.5 bg-[#C88A48] hover:bg-[#DE9B52] text-[#120D0A] px-8 py-3.5 rounded-xl font-sans text-xs sm:text-sm font-extrabold tracking-[0.2em] uppercase transition-all duration-300 shadow-2xl active:scale-95 touch-manipulation select-none"
             >
               <Calendar className="w-4 h-4" />
               <span>BOOK A TABLE</span>
@@ -134,7 +134,7 @@ export default function Home() {
               aria-expanded={isGetStartedOpen}
               aria-controls="get-started-links"
               onClick={() => setIsGetStartedOpen((isOpen) => !isOpen)}
-              className="inline-flex items-center gap-2.5 border border-[#E8AA62]/70 bg-black/40 hover:bg-[#E8AA62] text-white hover:text-[#120D0A] px-6 py-3.5 rounded-xl font-sans text-xs sm:text-sm font-bold tracking-[0.16em] uppercase transition-all duration-300 backdrop-blur-md shadow-xl active:scale-95"
+              className="inline-flex items-center gap-2.5 border border-[#E8AA62]/70 bg-black/40 hover:bg-[#E8AA62] text-white hover:text-[#120D0A] px-6 py-3.5 rounded-xl font-sans text-xs sm:text-sm font-bold tracking-[0.16em] uppercase transition-all duration-300 backdrop-blur-md shadow-xl active:scale-95 touch-manipulation select-none cursor-pointer"
             >
               Get started
             </button>
@@ -148,15 +148,15 @@ export default function Home() {
                 transition={{ duration: 0.2, ease: "easeOut" }}
                 className="basis-full grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 max-w-2xl"
               >
-                <Link href="/menu" className="group rounded-xl border border-white/20 bg-black/40 hover:border-[#E8AA62] hover:bg-black/55 px-4 py-3 transition-colors">
+                <Link href="/menu" className="group rounded-xl border border-white/20 bg-black/40 hover:border-[#E8AA62] hover:bg-black/55 px-4 py-3 transition-colors touch-manipulation">
                   <Utensils className="w-4 h-4 text-[#E8AA62] mb-3" />
                   <span className="block font-serif text-lg font-bold text-white">Menu</span>
                 </Link>
-                <Link href="/location" className="group rounded-xl border border-white/20 bg-black/40 hover:border-[#E8AA62] hover:bg-black/55 px-4 py-3 transition-colors">
+                <Link href="/location" className="group rounded-xl border border-white/20 bg-black/40 hover:border-[#E8AA62] hover:bg-black/55 px-4 py-3 transition-colors touch-manipulation">
                   <MapPin className="w-4 h-4 text-[#E8AA62] mb-3" />
                   <span className="block font-serif text-lg font-bold text-white">Location</span>
                 </Link>
-                <Link href="/contact" className="group rounded-xl border border-white/20 bg-black/40 hover:border-[#E8AA62] hover:bg-black/55 px-4 py-3 transition-colors">
+                <Link href="/contact" className="group rounded-xl border border-white/20 bg-black/40 hover:border-[#E8AA62] hover:bg-black/55 px-4 py-3 transition-colors touch-manipulation">
                   <Mail className="w-4 h-4 text-[#E8AA62] mb-3" />
                   <span className="block font-serif text-lg font-bold text-white">Contact us</span>
                 </Link>

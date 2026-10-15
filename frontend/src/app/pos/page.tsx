@@ -3113,7 +3113,7 @@ export default function POSDashboard() {
                                               floorName: floorInfo.name,
                                             })
                                           }
-                                          className="bg-[#B85B43] hover:bg-[#9E3E26] text-white py-2 px-2 rounded-md font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 shadow-2xs cursor-pointer"
+                                          className="bg-[#B85B43] hover:bg-[#9E3E26] text-white py-2 px-2 rounded-md font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 shadow-2xs cursor-pointer touch-manipulation select-none active:scale-[0.98] min-h-[38px]"
                                           title="Print formatted 80mm customer thermal invoice"
                                         >
                                           <Printer className="w-3.5 h-3.5" />
@@ -3131,7 +3131,7 @@ export default function POSDashboard() {
                                             });
                                           }}
                                           disabled={closingSessionIds[activeSession.session_id]}
-                                          className="bg-[#261C18] hover:bg-[#140E0A] text-white py-2 px-2 rounded-md font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 shadow-2xs cursor-pointer disabled:opacity-50"
+                                          className="bg-[#261C18] hover:bg-[#140E0A] text-white py-2 px-2 rounded-md font-bold text-[11px] sm:text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 shadow-2xs cursor-pointer disabled:opacity-50 touch-manipulation select-none active:scale-[0.98] min-h-[38px]"
                                         >
                                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                                           <span>Settle Bill</span>
@@ -4215,7 +4215,7 @@ export default function POSDashboard() {
                       setPrintBillPaymentModal(null);
                       handlePrintThermalBill(target.session, target.tableNumber, target.floorName, mode);
                     }}
-                    className="flex items-center gap-3.5 p-3.5 rounded-2xl border-2 border-[#E2D5C3] hover:border-[#9E3E26] bg-white hover:bg-[#FAF4EC] transition-all cursor-pointer shadow-2xs group text-left"
+                    className="flex items-center gap-3.5 p-3.5 rounded-2xl border-2 border-[#E2D5C3] hover:border-[#9E3E26] bg-white hover:bg-[#FAF4EC] transition-all cursor-pointer shadow-2xs group text-left touch-manipulation select-none active:scale-[0.98]"
                   >
                     <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center shrink-0`}>
                       <Icon className="w-5 h-5" />
@@ -4232,7 +4232,7 @@ export default function POSDashboard() {
                 <button
                   type="button"
                   onClick={() => setPrintBillPaymentModal(null)}
-                  className="w-full py-2.5 rounded-xl border border-[#D8CABE] text-[#665448] font-bold text-xs hover:bg-[#F0E8DC] transition-colors cursor-pointer"
+                  className="w-full py-2.5 rounded-xl border border-[#D8CABE] text-[#665448] font-bold text-xs hover:bg-[#F0E8DC] transition-colors cursor-pointer touch-manipulation select-none active:scale-[0.98]"
                 >
                   Cancel
                 </button>
