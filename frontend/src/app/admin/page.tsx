@@ -280,6 +280,9 @@ async function shrinkDishPhoto(file: File): Promise<Blob> {
   return file;
 }
 
+// Set to true to bring back the shared "generalized" QR hub in the Table QR Codes tab
+const SHOW_GENERALIZED_QR = false;
+
 export default function AdminPortal() {
   const [token, setToken] = useState<string | null>(null);
   const [usernameInput, setUsernameInput] = useState("admin");
@@ -960,7 +963,7 @@ export default function AdminPortal() {
   }, [token]);
 
   useEffect(() => {
-    if (token) {
+    if (token && SHOW_GENERALIZED_QR) {
       fetchGeneralizedQrs();
     }
   }, [token, fetchGeneralizedQrs]);
@@ -2177,7 +2180,7 @@ export default function AdminPortal() {
             { id: "menu", label: "Menu", icon: Utensils },
             { id: "inventory", label: "Inventory", icon: Package },
             { id: "reservations", label: "Reservations CRM", icon: Calendar },
-            { id: "tables", label: "Generalized QR Code", icon: QrCode },
+            { id: "tables", label: "Table QR Codes", icon: QrCode },
             { id: "ledger", label: "Billing & Finance Ledger", icon: Receipt },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -3822,6 +3825,9 @@ export default function AdminPortal() {
             {/* Per-table QR codes: pick floor + table, print, next table comes up */}
             {token && <TableQrPrinter token={token} />}
 
+            {/* Shared "generalized" QR (every guest lands on Table 1): hidden now that each table has its own QR */}
+            {SHOW_GENERALIZED_QR && (
+            <>
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-serif font-bold text-[#241A14]">Generalized QR Code Hub</h2>
@@ -4068,6 +4074,8 @@ export default function AdminPortal() {
                 </div>
               </div>
             </div>
+            </>
+            )}
           </div>
         )}
 
