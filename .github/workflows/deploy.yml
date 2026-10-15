@@ -1,0 +1,55 @@
+name: Test and Auto-Deploy to Café Laptop
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  # STEP 1: Test Environment (Runs on GitHub Cloud)
+  test:
+    name: Test & Build Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Test Frontend Build
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+  # STEP 2: Production Auto-Deploy (Runs on the Café Laptop ONLY if tests pass)
+  deploy:
+    name: Auto-Deploy to Café Laptop
+    needs: test
+    if: success()
+    runs-on: self-hosted
+    steps:
+      - name: Pull Latest Verified Code
+        shell: powershell
+        run: |
+          git pull origin main
+
+      - name: Reload Backend Docker Containers
+        shell: powershell
+        run: |
+          cd backend
+          docker compose up -d --build
+
+      - name: Rebuild and Restart Frontend
+        shell: powershell
+        run: |
+          cd frontend
+          npm install
+          npm run build
+          if (Get-Command pm2 -ErrorAction SilentlyContinue) {
+            pm2 reload all
+          }
