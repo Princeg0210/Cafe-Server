@@ -935,7 +935,7 @@ class POSService:
                 if item_id is not None:
                     req_by_id[item_id] = {**it, "quantity": qty}
                 else:
-                    req_by_name[name.lower()] = {**it, "quantity": qty}
+                    req_by_name[" ".join(name.split()).lower()] = {**it, "quantity": qty}
 
         menu_by_id: dict[int, MenuItem] = {}
         if req_by_id:
@@ -946,11 +946,10 @@ class POSService:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not on the menu: {', '.join(unknown)}.")
         if req_by_name:
             # Older POS screens send only names: resolve them, but never guess between same-named dishes
-            rows = (
-                await db.execute(select(MenuItem).where(func.lower(MenuItem.name).in_(list(req_by_name)), MenuItem.is_active == True))
-            ).scalars().all()
+            # Compare names ignoring stray spaces ("MARINARA " == "Marinara")
+            rows = (await db.execute(select(MenuItem).where(MenuItem.is_active == True))).scalars().all()
             for key, it in req_by_name.items():
-                matches = [m for m in rows if m.name.strip().lower() == key]
+                matches = [m for m in rows if " ".join(m.name.split()).lower() == key]
                 if not matches:
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not on the menu: {it['name']}.")
                 if len(matches) > 1:

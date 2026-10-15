@@ -271,6 +271,11 @@ async def on_startup():
                 await conn.execute(text("ALTER TABLE kots ADD COLUMN IF NOT EXISTS allergy_info VARCHAR(500)"))
                 await conn.execute(text("ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_url VARCHAR(255)"))
                 await conn.execute(text("ALTER TABLE tables ADD COLUMN IF NOT EXISTS floor INTEGER"))
+                # Tidy dish names: no leading/trailing or double spaces ("MARINARA " broke name matching)
+                await conn.execute(text(
+                    r"UPDATE menu_items SET name = regexp_replace(btrim(name), '\s+', ' ', 'g') "
+                    r"WHERE name <> regexp_replace(btrim(name), '\s+', ' ', 'g')"
+                ))
 
                 await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS reservation_deposit_paid NUMERIC(12, 2) DEFAULT 0.00"))
                 await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS reservation_credit NUMERIC(12, 2) DEFAULT 0.00"))

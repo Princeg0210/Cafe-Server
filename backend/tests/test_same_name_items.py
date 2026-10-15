@@ -64,3 +64,20 @@ async def test_same_named_items_stay_separate(db_session, client: AsyncClient):
     res = await client.put(f"/api/v1/pos/sessions/{session_id}/items", json={"items": [{"name": "Coke", "quantity": 2}]})
     assert res.status_code == 400
     assert "More than one menu item" in res.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_edit_bill_by_name_ignores_stray_spaces(db_session, client: AsyncClient):
+    from app.models.menu import MenuItem as MI
+    table_id, a, _ = await setup(db_session)
+    marinara = MI(category_id=(await db_session.get(MI, a)).category_id, name="MARINARA ", price=Decimal("400.00"))  # trailing space, as on the live menu
+    db_session.add(marinara)
+    await db_session.commit()
+    m_id = marinara.id
+    assert (await client.post(f"/api/v1/pos/tables/{table_id}/orders", json={"items": [{"menu_item_id": m_id, "quantity": 1}]})).status_code == 201
+    session_id, _ = await bill_lines(db_session, client, table_id)
+
+    res = await client.put(f"/api/v1/pos/sessions/{session_id}/items", json={"items": [{"name": "MARINARA", "quantity": 3}]})
+    assert res.status_code == 200, res.text
+    _, lines = await bill_lines(db_session, client, table_id)
+    assert lines == [(m_id, 3)]

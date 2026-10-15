@@ -1,7 +1,12 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+def _tidy_name(v):
+    """No leading/trailing or double spaces: "MARINARA " broke matching dishes by name."""
+    return " ".join(v.split()) if isinstance(v, str) else v
 
 
 class MenuCategoryCreate(BaseModel):
@@ -31,6 +36,8 @@ class MenuItemCreate(BaseModel):
     is_available: bool = True
     is_active: bool = True
 
+    _tidy = field_validator("name")(_tidy_name)
+
 
 class MenuItemUpdate(BaseModel):
     category_id: Optional[int] = None
@@ -40,6 +47,8 @@ class MenuItemUpdate(BaseModel):
     tax_rate: Optional[Decimal] = None
     is_available: Optional[bool] = None
     is_active: Optional[bool] = None
+
+    _tidy = field_validator("name")(_tidy_name)
 
 
 class MenuItemResponse(MenuItemCreate):
