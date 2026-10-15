@@ -517,7 +517,7 @@ export default function POSDashboard() {
     }
   };
   const [autoPrintKots, setAutoPrintKots] = useState(() => readSetting("jaadoo_kot_autoprint") === "on");
-  const [kotPaperMm, setKotPaperMm] = useState<80 | 58>(() => (readSetting("jaadoo_kot_paper") === "58" ? 58 : 80));
+  const [kotPaperMm, setKotPaperMm] = useState<80 | 58>(() => (readSetting("jaadoo_kot_paper") === "80" ? 80 : 58)); // 58mm: the café's printer
   const autoPrintRef = useRef(false);
   const printQueueRef = useRef<Promise<void>>(Promise.resolve());
   const printingIdsRef = useRef<Set<number>>(new Set());
@@ -1412,15 +1412,17 @@ export default function POSDashboard() {
       <head>
         <title>Bill Receipt - ${tableNumber} (${paymentMode})</title>
         <style>
-          @page { size: 80mm auto; margin: 0; }
+          /* Sized to the paper chosen in POS; centred on the printable area (48mm on 58mm paper, 72mm on 80mm) */
+          @page { size: ${kotPaperMm}mm auto; margin: 0; }
+          * { box-sizing: border-box; }
           body {
             font-family: 'Courier New', Courier, monospace;
-            width: 76mm;
+            width: ${kotPaperMm >= 80 ? 72 : 48}mm;
             margin: 0 auto;
-            padding: 12px 6px;
+            padding: 8px 0;
             color: #000;
             background: #fff;
-            font-size: 12px;
+            font-size: ${kotPaperMm >= 80 ? 12 : 10}px;
             line-height: 1.3;
           }
           .text-center { text-align: center; }
