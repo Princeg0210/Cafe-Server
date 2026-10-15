@@ -75,6 +75,9 @@ interface BillData {
   allergy_info?: string | null;
 }
 
+// Guests go straight to the menu while this is in the future (end of 17 Oct 2026, India time)
+const CHECKIN_POPUP_PAUSED_UNTIL = new Date("2026-10-17T23:59:59+05:30").getTime();
+
 export default function TableQRPage({ params }: { params: Promise<{ token: string }> }) {
   const resolvedParams = use(params);
   const rawToken = resolvedParams.token || "";
@@ -238,7 +241,8 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
           setSessionToken(data.session_token);
           setValidatedQrToken(rawToken);
           setIsValidQr(true);
-          setShowReservationIdPrompt(true);
+          // Welcome pop-up (Reservation ID / Walk-in) is paused until the date below, then returns by itself
+          if (Date.now() > CHECKIN_POPUP_PAUSED_UNTIL) setShowReservationIdPrompt(true);
           if (data.is_reserved && data.reservation) {
             setReservationNotice(data.reservation);
             if (data.reservation.quick_dine_minutes) {
