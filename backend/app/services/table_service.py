@@ -628,7 +628,8 @@ class TableService:
         session_token: str,
         reservation_code: str,
     ) -> ClaimReservationResponse:
-        sess_stmt = select(DiningSession).where(DiningSession.session_token == session_token)
+        # ponytail: row lock and active session check to prevent concurrent claim race conditions & IDOR
+        sess_stmt = select(DiningSession).where(DiningSession.session_token == session_token).with_for_update()
         sess_res = await db.execute(sess_stmt)
         session = sess_res.scalar_one_or_none()
         if not session:
@@ -646,8 +647,9 @@ class TableService:
                     Reservation.id == (int(code) if code.isdigit() else -1),
                     func.upper(Reservation.booking_id) == code.upper(),
                 ),
-                Reservation.status.in_(["CONFIRMED", "ARRIVED", "SEATED"]),
+                Reservation.status.in_(["CONFIRMED", "ARRIVED"]),
             )
+            .with_for_update()
         )
         res_res = await db.execute(res_stmt)
         reservation = res_res.scalars().first()
@@ -656,15 +658,16 @@ class TableService:
             all_active = await db.execute(
                 select(Reservation)
                 .options(selectinload(Reservation.customer))
-                .where(Reservation.status.in_(["CONFIRMED", "ARRIVED", "SEATED"]))
+                .where(Reservation.status.in_(["CONFIRMED", "ARRIVED"]))
                 .order_by(Reservation.created_at.desc())
+                .with_for_update()
             )
             clean_code = code.replace(" ", "").upper()
             for cand in all_active.scalars().all():
                 c_name = (cand.customer.name if cand.customer else "").replace(" ", "").upper()[:4]
                 c_phone = (cand.customer.phone if cand.customer else "")[-4:]
                 composite = f"{c_name}{c_phone}"
-                if clean_code == composite or clean_code.startswith(c_name):
+                if clean_code == composite:
                     reservation = cand
                     break
 
@@ -672,6 +675,19 @@ class TableService:
             raise HTTPException(
                 status_code=400,
                 detail="Reservation not found or status not eligible for seating.",
+            )
+
+        # Concurrency check: Ensure no OTHER dining session is already actively linked to this reservation
+        conflict_sess_stmt = select(DiningSession.id).where(
+            DiningSession.reservation_id == reservation.id,
+            DiningSession.id != session.id,
+            DiningSession.status.in_(["OPENED", "ACTIVE", "CHECKOUT"]),
+        )
+        conflict_sess = (await db.execute(conflict_sess_stmt)).scalar_one_or_none()
+        if conflict_sess:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="ALREADY_CLAIMED: This reservation is already claimed by another active dining table.",
             )
 
         session.reservation_id = reservation.id

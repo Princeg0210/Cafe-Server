@@ -16,52 +16,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Try upstream backend directly
-    try {
-      const upRes = await fetch(`${upstream}/api/v1/tables/qr/walk-in`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ qr_token, customer_name, phone_number, guest_count }),
-      });
-
-      if (upRes.ok) {
-        const data = await upRes.json();
-        return NextResponse.json(data);
-      }
-    } catch {
-      // Fall through to local session pairing
-    }
-
-    // 2. Fallback if upstream does not have the endpoint deployed yet:
-    // Validate QR to get session and table info
-    const valRes = await fetch(`${upstream}/api/v1/tables/qr/validate`, {
+    // ponytail: direct upstream proxy without fake fallback states
+    const upRes = await fetch(`${upstream}/api/v1/tables/qr/walk-in`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ qr_token }),
+      body: JSON.stringify({ qr_token, customer_name, phone_number, guest_count }),
     });
 
-    if (!valRes.ok) {
-      return NextResponse.json(
-        { detail: "Invalid or expired table QR code." },
-        { status: 400 }
-      );
-    }
-
-    const valData = await valRes.json();
-    const cleanPhone = phone_number.replace(/\D/g, "");
-    const generatedBookingId = formatBookingId(customer_name, cleanPhone, valData.table_id);
-    const mockResId = 900000 + (valData.table_id || 1);
-
-    return NextResponse.json({
-      success: true,
-      reservation_id: mockResId,
-      booking_id: generatedBookingId,
-      customer_name: customer_name.trim(),
-      table_number: valData.table_number || `Table ${valData.table_id}`,
-      session_id: valData.session_id || 1,
-      session_token: valData.session_token || "sess_walkin",
-      status: "SEATED",
-    });
+    const data = await upRes.json().catch(() => ({ detail: "Invalid response from upstream." }));
+    return NextResponse.json(data, { status: upRes.status });
   } catch (err: any) {
     return NextResponse.json(
       { detail: err?.message || "Failed to register walk-in guest." },

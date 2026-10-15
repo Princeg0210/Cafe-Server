@@ -6,6 +6,10 @@ export async function POST(req: NextRequest) {
   const upstream = (process.env.API_UPSTREAM_URL || "https://cafe-piza-api.onrender.com").replace(/\/$/, "");
   const authHeader = req.headers.get("authorization");
 
+  if (!authHeader) {
+    return NextResponse.json({ detail: "Staff authorization required." }, { status: 401 });
+  }
+
   try {
     const body = await req.json();
     const { qr_token, id, is_active } = body;

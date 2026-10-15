@@ -771,13 +771,17 @@ class ReservationService:
 
         # 2. Check if a specific table preference was specified and if it's already held or booked
         if data.floor_number and data.table_name:
-            conflict_query = select(Reservation).where(
-                Reservation.branch_id == data.branch_id,
-                Reservation.reservation_date == data.reservation_date,
-                Reservation.time_slot == data.time_slot,
-                Reservation.floor_number == data.floor_number,
-                Reservation.table_name == data.table_name,
-                Reservation.status.in_(["HOLD", "PAYMENT_PENDING", "CONFIRMED", "ARRIVED", "SEATED"]),
+            conflict_query = (
+                select(Reservation)
+                .where(
+                    Reservation.branch_id == data.branch_id,
+                    Reservation.reservation_date == data.reservation_date,
+                    Reservation.time_slot == data.time_slot,
+                    Reservation.floor_number == data.floor_number,
+                    Reservation.table_name == data.table_name,
+                    Reservation.status.in_(["HOLD", "PAYMENT_PENDING", "CONFIRMED", "ARRIVED", "SEATED"]),
+                )
+                .with_for_update()
             )
             conflict_res = await db.execute(conflict_query)
             conflict = conflict_res.scalar_one_or_none()

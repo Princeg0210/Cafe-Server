@@ -237,11 +237,32 @@ async def create_reservation(data: ReservationCreate, db: AsyncSession = Depends
 
 @router.post("/{id}/checkin", response_model=ReservationResponse)
 async def checkin_reservation(
-    id: int, data: Optional[ReservationCheckInRequest] = None, db: AsyncSession = Depends(get_db)
+    id: int,
+    data: Optional[ReservationCheckInRequest] = None,
+    db: AsyncSession = Depends(get_db),
+    token: Optional[str] = Header(None, alias="Authorization"),
 ):
+    # ponytail: allow check-in but strip customer PII for unauthenticated callers
     session_token = data.session_token if data else None
     table_id = data.table_id if data else None
-    return await ReservationService.checkin_reservation(db, id, session_token, table_id)
+
+    is_staff = False
+    if token:
+        try:
+            auth_token = token[7:].strip() if token.lower().startswith("bearer ") else token.strip()
+            from app.api.deps import get_current_user
+            user = await get_current_user(db=db, token=auth_token)
+            if user:
+                is_staff = True
+        except Exception:
+            is_staff = False
+
+    saved = await ReservationService.checkin_reservation(db, id, session_token, table_id)
+    resp = ReservationService.sanitize_reservation_response(saved)
+    if not is_staff and resp.customer:
+        resp.customer.phone = None
+        resp.customer.email = None
+    return resp
 
 
 @router.get("/policies/config")

@@ -83,13 +83,17 @@ def require_permission(required_permission: str) -> Callable:
 
         # Fetch role permissions from DB
         rid = current_user.role_id or (role.id if role else 0)
-        query = (
-            select(Permission.code)
-            .join(Role.permissions)
-            .where(Role.id == rid)
-        )
-        result = await db.execute(query)
-        permissions = result.scalars().all()
+        try:
+            query = (
+                select(Permission.code)
+                .join(Role.permissions)
+                .where(Role.id == rid)
+            )
+            result = await db.execute(query)
+            permissions = result.scalars().all()
+        except Exception:
+            permissions = []
+
         if required_permission not in permissions:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

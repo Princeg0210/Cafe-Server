@@ -369,11 +369,20 @@ class POSService:
 
     @staticmethod
     async def close_dining_session(db: AsyncSession, session_id: int, payment_mode: Optional[str] = None) -> dict:
-        stmt = select(DiningSession).options(selectinload(DiningSession.table)).where(DiningSession.id == session_id)
+        # ponytail: row lock and idempotency check to prevent duplicate settlements
+        stmt = (
+            select(DiningSession)
+            .options(selectinload(DiningSession.table))
+            .where(DiningSession.id == session_id)
+            .with_for_update()
+        )
         res = await db.execute(stmt)
         sess = res.scalar_one_or_none()
         if not sess:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Dining session #{session_id} not found.")
+
+        if sess.status == "CLOSED":
+            return {"message": f"Dining session #{session_id} is already settled and closed."}
 
         sess.status = "CLOSED"
         sess.closed_at = utc_now()
@@ -441,6 +450,7 @@ class POSService:
                 DiningSession.status.in_(["OPENED", "ACTIVE", "CHECKOUT"]),
             )
             .order_by(DiningSession.opened_at.desc())
+            .with_for_update()
         )
         res = await db.execute(session_stmt)
         sess = res.scalar_one_or_none()

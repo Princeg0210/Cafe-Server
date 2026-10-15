@@ -53,7 +53,8 @@ async def websocket_endpoint(websocket: WebSocket, channel: str):
     try:
         while True:
             data = await websocket.receive_text()
-            # Echo back ping / handle message
             await websocket.send_text(json.dumps({"type": "PONG", "received": data}))
-    except WebSocketDisconnect:
+    except Exception:
+        pass
+    finally:
         ws_manager.disconnect(websocket, channel)

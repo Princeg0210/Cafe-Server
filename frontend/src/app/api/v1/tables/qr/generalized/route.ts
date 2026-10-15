@@ -6,10 +6,13 @@ export async function GET(req: NextRequest) {
   const upstream = (process.env.API_UPSTREAM_URL || "https://cafe-piza-api.onrender.com").replace(/\/$/, "");
   const authHeader = req.headers.get("authorization");
 
+  if (!authHeader) {
+    return NextResponse.json({ detail: "Staff authorization required." }, { status: 401 });
+  }
+
   // 1. Try upstream backend directly
   try {
-    const headers: Record<string, string> = {};
-    if (authHeader) headers["Authorization"] = authHeader;
+    const headers: Record<string, string> = { Authorization: authHeader };
 
     const upRes = await fetch(`${upstream}/api/v1/tables/qr/generalized`, {
       method: "GET",
@@ -60,6 +63,10 @@ export async function GET(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const upstream = (process.env.API_UPSTREAM_URL || "https://cafe-piza-api.onrender.com").replace(/\/$/, "");
   const authHeader = req.headers.get("authorization");
+
+  if (!authHeader) {
+    return NextResponse.json({ detail: "Staff authorization required." }, { status: 401 });
+  }
 
   try {
     let qrToken = req.nextUrl.searchParams.get("qr_token");

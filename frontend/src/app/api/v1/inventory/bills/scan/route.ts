@@ -181,6 +181,12 @@ function suggestMaterial(
 
 // ponytail: native Next.js environment loading for Sarvam API key
 export async function POST(req: NextRequest) {
+  // ponytail: enforce staff authorization before invoking bill extraction
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader) {
+    return NextResponse.json({ detail: "Staff authorization required." }, { status: 401 });
+  }
+
   const sarvamKey = process.env.SARVAM_API_KEY;
   const baseUrl = (process.env.SARVAM_BASE_URL || "https://api.sarvam.ai").replace(/\/$/, "");
   const upstream = (process.env.API_UPSTREAM_URL || "https://cafe-piza-api.onrender.com").replace(/\/$/, "");
