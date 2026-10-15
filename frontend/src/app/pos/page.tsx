@@ -478,6 +478,9 @@ function printHtml(html: string, target?: Window | null): Promise<void> {
   });
 }
 
+// Gap between KOTs printed one after another (e.g. the pizza KOT, then the other KOT)
+const KOT_PRINT_GAP_MS = 14_000;
+
 export default function POSDashboard() {
   const [activeTab, setActiveTab] = useState<"tables" | "kots" | "reservations">("tables");
 
@@ -1247,11 +1250,12 @@ export default function POSDashboard() {
     };
   }, [posToken, soundEnabled]);
 
-  // Claim the KOT (so only one device prints it), print it here, then report the result
-  const printKotOnThisDevice = async (kotId: number, force = false, manualWindow: Window | null = null) => {
+  // Claim the KOT (so only one device prints it), print it here, then report the result.
+  // Resolves true when this device printed it.
+  const printKotOnThisDevice = async (kotId: number, force = false, manualWindow: Window | null = null): Promise<boolean> => {
     if (!posToken || printingIdsRef.current.has(kotId)) {
       manualWindow?.close();
-      return;
+      return false;
     }
     printingIdsRef.current.add(kotId);
     const apiBase = getApiBase();
@@ -1262,7 +1266,7 @@ export default function POSDashboard() {
       });
       if (!claim.ok) {
         manualWindow?.close();
-        return; // 409: another device already printed / is printing it
+        return false; // 409: another device already printed / is printing it
       }
       const ticket: KotTicket = await claim.json();
       let success = true;
@@ -1281,17 +1285,23 @@ export default function POSDashboard() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${posToken}` },
         body: JSON.stringify({ success }),
       });
+      return success;
     } catch (err) {
       manualWindow?.close();
       console.error("KOT print failed:", err);
+      return false;
     } finally {
       printingIdsRef.current.delete(kotId);
     }
   };
 
-  // Print one KOT at a time, in arrival order
+  // Print one KOT at a time, in arrival order, with a 14-second gap after each printed KOT
   const enqueueKotPrint = (kotId: number, force = false) => {
-    printQueueRef.current = printQueueRef.current.then(() => printKotOnThisDevice(kotId, force)).catch(() => {});
+    printQueueRef.current = printQueueRef.current
+      .then(async () => {
+        if (await printKotOnThisDevice(kotId, force)) await new Promise((r) => setTimeout(r, KOT_PRINT_GAP_MS));
+      })
+      .catch(() => {});
   };
   useEffect(() => {
     enqueueKotPrintRef.current = enqueueKotPrint;

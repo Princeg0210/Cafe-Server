@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
 from app.models.table import Table, DiningSession
 from app.services.table_service import TableService
-from app.models.menu import MenuItem
+from app.models.menu import MenuCategory, MenuItem
 from app.models.order import Order, OrderItem, OrderStatusHistory
 from app.models.kitchen import KitchenOrder, PrintJob
 from app.models.kot import KOT
@@ -22,7 +22,38 @@ from app.services.inventory_service import InventoryService
 
 class OrderService:
     @staticmethod
+    async def _is_pizza(db: AsyncSession, item_data) -> bool:
+        """Pizzas are the items in a menu category whose name contains "pizza"."""
+        menu_item = None
+        if item_data.menu_item_id:
+            menu_item = await db.get(MenuItem, item_data.menu_item_id)
+        elif item_data.name and item_data.name.strip():
+            menu_item = (
+                await db.execute(select(MenuItem).where(func.lower(MenuItem.name) == item_data.name.strip().lower()))
+            ).scalars().first()
+        if not menu_item:
+            return False
+        category = await db.get(MenuCategory, menu_item.category_id)
+        return bool(category and "pizza" in (category.name or "").lower())
+
+    @staticmethod
     async def place_order(db: AsyncSession, data: OrderCreate, staff_table_id: int | None = None) -> Order:
+        """Pizzas go to the kitchen on their own KOT, everything else on a second KOT.
+
+        An order with both is split into two orders on the same table bill (one KOT each);
+        the pizza order is returned.
+        """
+        flags = [await OrderService._is_pizza(db, it) for it in data.items]
+        pizzas = [it for it, p in zip(data.items, flags) if p]
+        others = [it for it, p in zip(data.items, flags) if not p]
+        if not pizzas or not others:
+            return await OrderService._place_single_order(db, data, staff_table_id)
+        pizza_order = await OrderService._place_single_order(db, data.model_copy(update={"items": pizzas}), staff_table_id)
+        await OrderService._place_single_order(db, data.model_copy(update={"items": others}), staff_table_id)
+        return pizza_order
+
+    @staticmethod
+    async def _place_single_order(db: AsyncSession, data: OrderCreate, staff_table_id: int | None = None) -> Order:
         """Guest orders come in through the table's QR code; POS staff pass staff_table_id instead."""
         try:
             if staff_table_id is not None:
