@@ -9,6 +9,7 @@ from app.api.deps import get_db, require_permission, verify_dining_session_acces
 STAFF_ONLY = [Depends(require_permission("pos:access"))]
 from app.models.table import Table, TableQR, DiningSession
 from app.schemas.table import (
+    TableCreate,
     TableResponse,
     TableQRResponse,
     QRValidateRequest,
@@ -69,6 +70,33 @@ async def list_tables(db: AsyncSession = Depends(get_db)):
     query = select(Table).options(selectinload(Table.qr_code)).order_by(Table.id)
     result = await db.execute(query)
     return result.scalars().all()
+
+
+@router.post("", response_model=TableResponse, status_code=201, dependencies=STAFF_ONLY)
+async def add_table(body: TableCreate, db: AsyncSession = Depends(get_db)):
+    import secrets
+    from sqlalchemy.orm import selectinload
+    from app.models.branch import Branch
+
+    branch = (await db.execute(select(Branch).order_by(Branch.id))).scalars().first()
+    if not branch:
+        raise HTTPException(status_code=400, detail="No branch is set up yet.")
+    tables = (await db.execute(select(Table))).scalars().all()
+    taken = [t.floor_table_num for t in tables if t.floor_number == body.floor_number]
+    table = Table(
+        # The original 13 tables were created with fixed ids, so the id counter lags; pick the next id ourselves
+        id=max((t.id for t in tables), default=0) + 1,
+        branch_id=branch.id,
+        table_number=f"Table {max(taken, default=0) + 1}",
+        capacity=body.capacity,
+        status="Available",
+        floor=body.floor_number,
+    )
+    db.add(table)
+    await db.flush()
+    db.add(TableQR(table_id=table.id, qr_token=f"qr_sec_{secrets.token_hex(16)}", is_active=True))
+    await db.commit()
+    return (await db.execute(select(Table).options(selectinload(Table.qr_code)).where(Table.id == table.id))).scalar_one()
 
 
 @router.get("/{id}/qr", response_model=TableQRResponse, dependencies=STAFF_ONLY)

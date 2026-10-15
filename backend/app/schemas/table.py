@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.schemas.reservation import sanitize_customer_name, sanitize_customer_phone
 
 
@@ -16,6 +16,12 @@ class TableResponse(BaseModel):
     floor_name: Optional[str] = "Ground floor"
     floor_table_num: Optional[int] = 1
     qr_token: Optional[str] = None
+
+
+class TableCreate(BaseModel):
+    """Add a table from admin: it gets the next number on its floor and its own QR code."""
+    floor_number: int = Field(..., ge=1, le=5)
+    capacity: int = Field(4, ge=1, le=20)
 
 
 class TableQRResponse(BaseModel):

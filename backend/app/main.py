@@ -216,6 +216,10 @@ async def on_startup():
                 if "allergy_info" not in k_cols:
                     await conn.execute(text("ALTER TABLE kots ADD COLUMN allergy_info VARCHAR(500)"))
 
+                table_cols = await conn.execute(text("PRAGMA table_info(tables)"))
+                if "floor" not in [c[1] for c in table_cols.fetchall()]:
+                    await conn.execute(text("ALTER TABLE tables ADD COLUMN floor INTEGER"))
+
                 menu_cols = await conn.execute(text("PRAGMA table_info(menu_items)"))
                 if "image_url" not in [c[1] for c in menu_cols.fetchall()]:
                     await conn.execute(text("ALTER TABLE menu_items ADD COLUMN image_url VARCHAR(255)"))
@@ -266,6 +270,7 @@ async def on_startup():
                 await conn.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS allergy_info VARCHAR(500)"))
                 await conn.execute(text("ALTER TABLE kots ADD COLUMN IF NOT EXISTS allergy_info VARCHAR(500)"))
                 await conn.execute(text("ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_url VARCHAR(255)"))
+                await conn.execute(text("ALTER TABLE tables ADD COLUMN IF NOT EXISTS floor INTEGER"))
 
                 await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS reservation_deposit_paid NUMERIC(12, 2) DEFAULT 0.00"))
                 await conn.execute(text("ALTER TABLE bills ADD COLUMN IF NOT EXISTS reservation_credit NUMERIC(12, 2) DEFAULT 0.00"))

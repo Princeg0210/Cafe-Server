@@ -13,6 +13,8 @@ class Table(Base):
     table_number: Mapped[str] = mapped_column(String(20), nullable=False)
     capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=4)
     status: Mapped[str] = mapped_column(String(20), default="Available", nullable=False)  # Available, Occupied, Reserved
+    # Set for tables added from admin; the original 13 leave it empty and use the id ranges below
+    floor: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     branch = relationship("Branch", back_populates="tables")
     qr_code = relationship("TableQR", back_populates="table", uselist=False)
@@ -20,6 +22,8 @@ class Table(Base):
 
     @property
     def floor_number(self) -> int:
+        if self.floor:
+            return self.floor
         if self.id:
             if self.id <= 3: return 1
             if self.id <= 6: return 2
@@ -38,6 +42,9 @@ class Table(Base):
 
     @property
     def floor_table_num(self) -> int:
+        if self.floor:
+            digits = "".join(filter(str.isdigit, str(self.table_number)))
+            return int(digits) if digits else 1
         if self.id:
             if self.id <= 3: return self.id
             if self.id <= 6: return self.id - 3

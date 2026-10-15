@@ -2,34 +2,94 @@
 
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import { Printer, RefreshCw } from "lucide-react";
+import { Plus, Printer, RefreshCw } from "lucide-react";
 import { adminSession } from "@/lib/authFetch";
-import { RESTAURANT_FLOORS, RESTAURANT_TABLES } from "@/data/floors";
+import { RESTAURANT_FLOORS } from "@/data/floors";
 import { toast } from "@/components/ui/toast";
 
-type Slot = { tableId: number; floorId: number; label: string; floorName: string };
+type Slot = { tableId: number; floorId: number; label: string; floorName: string; num: number };
+type ApiTable = { id: number; floor_number?: number; floor_name?: string; floor_table_num?: number };
+
+const FLOORS = RESTAURANT_FLOORS.filter((f) => !f.isComingSoon);
 
 // Every table in floor order: the order stands are printed in
-const SLOTS: Slot[] = RESTAURANT_FLOORS.filter((f) => !f.isComingSoon).flatMap((f) =>
-  f.tableIds.map((id) => {
-    const t = RESTAURANT_TABLES.find((x) => x.id === id);
-    return { tableId: id, floorId: f.id, label: `Table ${t?.floor_table_num ?? id}`, floorName: f.name };
-  })
-);
+const toSlots = (tables: ApiTable[]): Slot[] =>
+  tables
+    .filter((t) => FLOORS.some((f) => f.id === t.floor_number))
+    .map((t) => ({
+      tableId: t.id,
+      floorId: t.floor_number as number,
+      num: t.floor_table_num ?? 1,
+      label: `Table ${t.floor_table_num ?? 1}`,
+      floorName: FLOORS.find((f) => f.id === t.floor_number)?.name || t.floor_name || "",
+    }))
+    .sort((a, b) => a.floorId - b.floorId || a.num - b.num);
 
 // Pick a floor and table, print its QR stand, then the next table's QR is ready to print.
 // Each table keeps its own code, so reprinting never breaks a stand already on a table.
 export default function TableQrPrinter({ token }: { token: string }) {
-  const [floorId, setFloorId] = useState(SLOTS[0]?.floorId ?? 1);
-  const [tableId, setTableId] = useState(SLOTS[0]?.tableId ?? 1);
+  const [SLOTS, setSlots] = useState<Slot[]>([]);
+  const [floorId, setFloorId] = useState(1);
+  const [tableId, setTableId] = useState(1);
+  const [newFloor, setNewFloor] = useState(1);
+  const [newSeats, setNewSeats] = useState(4);
+  const [adding, setAdding] = useState(false);
+
   const [qr, setQr] = useState<{ tableId: number; url: string; dataUrl: string } | null>(null);
   const [loadError, setLoadError] = useState("");
   const [confirmReplace, setConfirmReplace] = useState(false);
   const [replacing, setReplacing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
+  const loadTables = async (selectId?: number) => {
+    const res = await adminSession.fetch("/api/v1/tables", { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error();
+    const slots = toSlots(await res.json());
+    setSlots(slots);
+    const pick = slots.find((x) => x.tableId === selectId);
+    if (pick) {
+      setFloorId(pick.floorId);
+      setTableId(pick.tableId);
+    }
+    return slots;
+  };
+
+  useEffect(() => {
+    adminSession
+      .fetch("/api/v1/tables", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then((rows: ApiTable[]) => setSlots(toSlots(rows)))
+      .catch(() => setLoadError("Could not load the tables. Check the connection and try again."));
+  }, [token]);
+
+  const addTable = async () => {
+    setAdding(true);
+    try {
+      const res = await adminSession.fetch("/api/v1/tables", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ floor_number: newFloor, capacity: newSeats }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(typeof data.detail === "string" ? data.detail : "Could not add the table. Please try again.");
+        return;
+      }
+      await loadTables(data.id);
+      setConfirmReplace(false);
+      toast.success(`${data.table_number} added on ${FLOORS.find((f) => f.id === newFloor)?.name}. Its QR is ready to print.`);
+    } catch {
+      toast.error("Network error. The table was not added.");
+    } finally {
+      setAdding(false);
+    }
+  };
+
   const slot = SLOTS.find((s) => s.tableId === tableId);
-  const floorTables = useMemo(() => SLOTS.filter((s) => s.floorId === floorId), [floorId]);
+  const floorTables = useMemo(() => SLOTS.filter((s) => s.floorId === floorId), [SLOTS, floorId]);
   const nextSlot = SLOTS[SLOTS.findIndex((s) => s.tableId === tableId) + 1];
 
   // Load (or create) the selected table's QR code
@@ -141,7 +201,7 @@ export default function TableQrPrinter({ token }: { token: string }) {
               onChange={(e) => choose(SLOTS.find((s) => s.floorId === Number(e.target.value)))}
               className="mt-1 w-full rounded-xl border border-[#E2D6C5] bg-[#FAF7F0] p-2.5 text-sm text-[#241A14] outline-none focus:border-[#B85B43]"
             >
-              {RESTAURANT_FLOORS.filter((f) => !f.isComingSoon).map((f) => (
+              {FLOORS.filter((f) => SLOTS.some((s) => s.floorId === f.id)).map((f) => (
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}
             </select>
@@ -184,6 +244,45 @@ export default function TableQrPrinter({ token }: { token: string }) {
             <p className="text-[11px] text-[#8C7A6D]">After printing, next up: <strong>{nextSlot.label}</strong>, {nextSlot.floorName}</p>
           )}
           {loadError && <p role="alert" className="text-xs font-semibold text-rose-700">{loadError}</p>}
+
+          {/* Add a table: next number on that floor, with its own QR */}
+          <div className="mt-2 pt-3 border-t border-dashed border-[#E6DCCF]">
+            <p className="text-xs font-bold text-[#665448] mb-1.5">Add a table</p>
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="text-[11px] font-semibold text-[#8C7A6D]">
+                Floor
+                <select
+                  value={newFloor}
+                  onChange={(e) => setNewFloor(Number(e.target.value))}
+                  className="mt-0.5 block rounded-lg border border-[#E2D6C5] bg-[#FAF7F0] p-2 text-sm text-[#241A14] outline-none focus:border-[#B85B43]"
+                >
+                  {FLOORS.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-[11px] font-semibold text-[#8C7A6D]">
+                Seats
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={newSeats}
+                  onChange={(e) => setNewSeats(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+                  className="mt-0.5 block w-20 rounded-lg border border-[#E2D6C5] bg-[#FAF7F0] p-2 text-sm text-[#241A14] outline-none focus:border-[#B85B43]"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={addTable}
+                disabled={adding}
+                className="px-3 py-2 rounded-lg bg-[#241A14] hover:bg-[#B85B43] text-white text-xs font-bold flex items-center gap-1 disabled:opacity-50 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                {adding ? "Adding…" : "Add table"}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="mx-auto w-44 text-center">
