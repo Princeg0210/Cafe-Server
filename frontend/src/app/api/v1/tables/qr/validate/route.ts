@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
 
       if (upRes.ok) {
         const data = await upRes.json();
-        // If it's a generalized QR token, set is_generalized flag
-        if (stored || qr_token.startsWith("qr_sec_")) {
+        // Generalized QR tokens start with qr_gen_; per-table tokens (qr_sec_) keep their real table number
+        if (stored || qr_token.startsWith("qr_gen_")) {
           data.is_generalized = true;
           data.table_number = "Table allotted by server";
         }

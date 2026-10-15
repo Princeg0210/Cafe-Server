@@ -62,6 +62,7 @@ import {
 } from "recharts";
 import { menuData, MENU_ITEM_ID_MAP, ITEM_MEDIA_MAP } from "@/data/menu";
 import BrandTitle from "@/components/BrandTitle";
+import TableQrPrinter from "@/components/admin/TableQrPrinter";
 import { RESTAURANT_FLOORS, RESTAURANT_TABLES, getTableFloor, getFloorName } from "@/data/floors";
 import { formatBookingId } from "@/lib/bookingId";
 import { adminSession } from "@/lib/authFetch";
@@ -3818,6 +3819,9 @@ export default function AdminPortal() {
         {/* TAB 4: GENERALIZED QR CODE HUB */}
         {activeTab === "tables" && (
           <div className="space-y-6">
+            {/* Per-table QR codes: pick floor + table, print, next table comes up */}
+            {token && <TableQrPrinter token={token} />}
+
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-serif font-bold text-[#241A14]">Generalized QR Code Hub</h2>
