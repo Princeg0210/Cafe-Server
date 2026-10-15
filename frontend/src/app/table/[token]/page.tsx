@@ -669,11 +669,48 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
   return (
     <div className="min-h-screen bg-[#F7EBD5] text-[#17251A] font-sans selection:bg-[#9E3E26] selection:text-white">
       {/* Direct Focused Header: Table Number & View Bill */}
-      <header className="sticky top-0 z-40 border-b border-[#D7C4A3] bg-[#FFF9EE]/95 px-4 py-2.5 backdrop-blur-md sm:px-6">
-        <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <header className="sticky top-0 z-40 border-b border-[#D7C4A3] bg-[#FFF9EE]/95 backdrop-blur-md">
+        {/* Mobile View (< sm): Clean 2-Tier Layout to completely prevent overlapping */}
+        <div className="sm:hidden px-3 py-2 flex flex-col gap-1.5">
+          {/* Tier 1: Brand Logo & Jaadoo Pizza Project centered */}
+          <div className="flex items-center justify-center">
+            <Link href="/" className="flex items-center gap-2 group shrink-0">
+              <div className="w-10 h-7 rounded-lg overflow-hidden bg-white border border-[#9E3E26]/40 shadow-xs shrink-0">
+                <img
+                  src="/jaadoo_logo.jpg"
+                  alt="Jaadoo Logo"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <BrandTitle className="font-poppins font-bold tracking-wide text-[#5F3F6D] text-sm leading-tight" />
+            </Link>
+          </div>
+
+          {/* Tier 2: Table Badge on Left, View Bill on Right */}
+          <div className="flex items-center justify-between pt-1 border-t border-[#D7C4A3]/40">
+            <span className="text-[10px] font-mono font-bold text-[#1B3618] bg-[#1B3618]/10 border border-[#1B3618]/20 px-2 py-0.5 rounded-md flex items-center gap-1 shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {tableNumber}
+            </span>
+
+            <button
+              onClick={fetchBill}
+              className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#261C18] active:bg-[#B85B43] text-[#FBF9F5] text-[10px] font-bold uppercase tracking-wider transition-all shadow-xs shrink-0 cursor-pointer"
+            >
+              <Receipt className="w-3 h-3 text-[#B85B43]" />
+              <span>
+                VIEW BILL
+                {billData && billData.grand_total > 0 ? ` (₹${Math.round(billData.grand_total)})` : ""}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop / Tablet View (>= sm): 3-Column Centered Layout */}
+        <div className="hidden sm:grid mx-auto max-w-6xl grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-2.5 sm:px-6">
           {/* Left: Table Indicator */}
           <div className="flex items-center justify-start min-w-0">
-            <span className="text-[10px] sm:text-xs font-mono font-bold text-[#1B3618] bg-[#1B3618]/10 border border-[#1B3618]/20 px-2 sm:px-2.5 py-1 rounded-md flex items-center gap-1.5 shrink-0">
+            <span className="text-xs font-mono font-bold text-[#1B3618] bg-[#1B3618]/10 border border-[#1B3618]/20 px-2.5 py-1 rounded-md flex items-center gap-1.5 shrink-0">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               {tableNumber}
             </span>
@@ -702,11 +739,11 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
           <div className="flex items-center justify-end">
             <button
               onClick={fetchBill}
-              className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-[11px] sm:text-xs font-semibold uppercase tracking-wider transition-all shadow-xs shrink-0 cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#261C18] hover:bg-[#B85B43] text-[#FBF9F5] text-xs font-semibold uppercase tracking-wider transition-all shadow-xs shrink-0 cursor-pointer"
             >
               <Receipt className="w-3.5 h-3.5 text-[#B85B43]" />
               <span>
-                <span className="hidden sm:inline">VIEW </span>BILL
+                VIEW BILL
                 {billData && billData.grand_total > 0 ? ` (₹${Math.round(billData.grand_total)})` : ""}
               </span>
             </button>
@@ -1099,7 +1136,7 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
         </AnimatePresence>
 
         {/* Sticky Category Navigation Filter */}
-        <nav aria-label="Menu categories" className="sticky top-16 z-30 -mx-4 mb-10 border-y border-[#D7C4A3] bg-[#F7EBD5]/95 py-3 backdrop-blur-md sm:-mx-6">
+        <nav aria-label="Menu categories" className="sticky top-[62px] sm:top-16 z-30 -mx-4 mb-10 border-y border-[#D7C4A3] bg-[#F7EBD5]/95 py-3 backdrop-blur-md sm:-mx-6">
           <div className="no-scrollbar flex items-center gap-2 overflow-x-auto px-4 sm:px-6">
             <button
               onClick={() => setSelectedCategory("all")}
