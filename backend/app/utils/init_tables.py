@@ -77,23 +77,7 @@ async def ensure_default_tables(db: AsyncSession) -> None:
             if not qr.is_active:
                 qr.is_active = True
 
-    # Automatically clean up or deactivate any extra tables and QRs removed from DEFAULT_TABLES
-    valid_ids = [dt["id"] for dt in DEFAULT_TABLES]
-    valid_tokens = [dt["qr_token"] for dt in DEFAULT_TABLES]
-
-    orphan_qrs_res = await db.execute(
-        select(TableQR).where(TableQR.table_id.notin_(valid_ids) | TableQR.qr_token.notin_(valid_tokens))
-    )
-    for oqr in orphan_qrs_res.scalars().all():
-        await db.delete(oqr)
-
-    orphan_tables_res = await db.execute(select(Table).where(Table.id.notin_(valid_ids)))
-    for ot in orphan_tables_res.scalars().all():
-        ot.status = "Inactive"
-        try:
-            await db.delete(ot)
-        except Exception:
-            pass
-
+    # Never delete anything here: tables added from admin and replaced ("rotated") QR codes
+    # must survive restarts and deploys. (This used to remove both on every startup.)
     await db.commit()
     logger.info("Default tables and secure TableQR tokens ensured.")

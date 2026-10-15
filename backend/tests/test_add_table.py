@@ -64,3 +64,16 @@ async def test_remove_table_only_when_unused(db_session, client: AsyncClient):
     assert (await client.delete("/api/v1/tables/999999")).status_code == 404
     ids = [t["id"] for t in (await client.get("/api/v1/tables")).json()]
     assert unused["id"] not in ids and used["id"] in ids
+
+
+@pytest.mark.asyncio
+async def test_added_tables_and_replaced_codes_survive_restart(db_session, client: AsyncClient):
+    await ensure_default_tables(db_session)
+    added = (await client.post("/api/v1/tables", json={"floor_number": 1})).json()
+    new_code = (await client.post("/api/v1/tables/2/qr/rotate")).json()["qr_token"]
+
+    await ensure_default_tables(db_session)  # what the server runs on every start / deploy
+
+    tables = {t["id"]: t for t in (await client.get("/api/v1/tables")).json()}
+    assert added["id"] in tables and tables[added["id"]]["qr_token"] == added["qr_token"]
+    assert tables[2]["qr_token"] == new_code  # replaced stand keeps working
