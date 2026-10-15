@@ -69,6 +69,7 @@ class POSSummaryResponse(BaseModel):
 
 
 class SessionItemDetail(BaseModel):
+    menu_item_id: Optional[int] = None
     name: str
     quantity: int
     unit_price: Decimal

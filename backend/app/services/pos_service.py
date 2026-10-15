@@ -627,9 +627,10 @@ class POSService:
                         session_total += subtotal
                         total_items_count += oi.quantity
 
-                        key = (item_name, price)
+                        key = (oi.menu_item_id, price)  # by menu item, not name: same-named dishes stay apart
                         if key not in aggregated_items:
                             aggregated_items[key] = {
+                                "menu_item_id": oi.menu_item_id,
                                 "name": item_name,
                                 "quantity": oi.quantity,
                                 "unit_price": price,
@@ -644,6 +645,7 @@ class POSService:
 
                 items_list = [
                     SessionItemDetail(
+                        menu_item_id=v["menu_item_id"],
                         name=v["name"],
                         quantity=v["quantity"],
                         unit_price=v["unit_price"],
@@ -915,10 +917,13 @@ class POSService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Items must be a list.")
 
         # Validate every requested line up front: real menu dish, whole-number quantity 0..MAX (0 removes)
-        req_item_map = {}
+        req_by_id: dict[int, dict] = {}
+        req_by_name: dict[str, dict] = {}
         for it in items:
             name = str((it or {}).get("name") or "").strip()
-            if not name:
+            raw_id = (it or {}).get("menu_item_id")
+            item_id = raw_id if isinstance(raw_id, int) and not isinstance(raw_id, bool) and raw_id > 0 else None
+            if not name and item_id is None:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Every item needs a name.")
             raw_qty = (it or {}).get("quantity", 0)
             if isinstance(raw_qty, bool) or not (isinstance(raw_qty, int) or (isinstance(raw_qty, str) and raw_qty.strip().isdigit())):
@@ -927,17 +932,34 @@ class POSService:
             if qty < 0 or qty > MAX_ITEM_QUANTITY:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Quantity for {name} must be a whole number from 0 to {MAX_ITEM_QUANTITY}.")
             if qty > 0:
-                req_item_map[name.lower()] = {**it, "quantity": qty}
+                if item_id is not None:
+                    req_by_id[item_id] = {**it, "quantity": qty}
+                else:
+                    req_by_name[name.lower()] = {**it, "quantity": qty}
 
-        menu_by_name = {}
-        if req_item_map:
-            menu_rows = (
-                await db.execute(select(MenuItem).where(func.lower(MenuItem.name).in_(list(req_item_map)), MenuItem.is_active == True))
-            ).scalars().all()
-            menu_by_name = {m.name.strip().lower(): m for m in menu_rows}
-            unknown = [it["name"] for key, it in req_item_map.items() if key not in menu_by_name]
+        menu_by_id: dict[int, MenuItem] = {}
+        if req_by_id:
+            rows = (await db.execute(select(MenuItem).where(MenuItem.id.in_(list(req_by_id)), MenuItem.is_active == True))).scalars().all()
+            menu_by_id = {m.id: m for m in rows}
+            unknown = [str(it.get("name") or f"item #{i}") for i, it in req_by_id.items() if i not in menu_by_id]
             if unknown:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not on the menu: {', '.join(unknown)}.")
+        if req_by_name:
+            # Older POS screens send only names: resolve them, but never guess between same-named dishes
+            rows = (
+                await db.execute(select(MenuItem).where(func.lower(MenuItem.name).in_(list(req_by_name)), MenuItem.is_active == True))
+            ).scalars().all()
+            for key, it in req_by_name.items():
+                matches = [m for m in rows if m.name.strip().lower() == key]
+                if not matches:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Not on the menu: {it['name']}.")
+                if len(matches) > 1:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"More than one menu item is called {it['name']}. Refresh POS and edit the bill again.",
+                    )
+                menu_by_id[matches[0].id] = matches[0]
+                req_by_id[matches[0].id] = it
 
         orders_stmt = select(Order).options(selectinload(Order.items).selectinload(OrderItem.menu_item)).where(Order.dining_session_id == session_id)
         orders_res = await db.execute(orders_stmt)
@@ -950,17 +972,16 @@ class POSService:
 
         for ord in orders:
             for oi in list(ord.items):
-                item_name = oi.menu_item.name.strip().lower() if oi.menu_item else ""
-                if item_name in req_item_map:
-                    new_qty = int(req_item_map[item_name]["quantity"])
+                if oi.menu_item_id in req_by_id:
+                    new_qty = int(req_by_id[oi.menu_item_id]["quantity"])
                     oi.quantity = new_qty
                     oi.subtotal = Decimal(str(oi.unit_price)) * new_qty
-                    del req_item_map[item_name]
+                    del req_by_id[oi.menu_item_id]
                 else:
                     await db.delete(oi)
 
-        for it_name_lower, it_data in req_item_map.items():
-            m_item = menu_by_name[it_name_lower]
+        for item_id, it_data in req_by_id.items():
+            m_item = menu_by_id[item_id]
             if m_item:
                 qty = it_data["quantity"]
                 price = Decimal(str(m_item.price))  # always the menu price; client prices are ignored

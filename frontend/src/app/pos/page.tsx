@@ -184,6 +184,7 @@ function SettleDiscountControl({
 }
 
 interface SessionItem {
+  menu_item_id?: number | null; // sent back by Edit Bill so same-named dishes are never mixed up
   name: string;
   quantity: number;
   unit_price: number;
