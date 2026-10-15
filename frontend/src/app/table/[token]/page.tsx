@@ -28,7 +28,7 @@ import {
   ShieldCheck,
   HeartHandshake,
 } from "lucide-react";
-import { ITEM_MEDIA_MAP, menuData, MENU_ITEM_ID_MAP } from "@/data/menu";
+import { ITEM_MEDIA_MAP, menuData, MENU_ITEM_ID_MAP, fetchLiveMenu as loadLiveMenu } from "@/data/menu";
 import { toast } from "@/components/ui/toast";
 import { getFloorName } from "@/data/floors";
 import { ALL_COUNTRY_CODES } from "@/lib/countryCodes";
@@ -136,45 +136,10 @@ export default function TableQRPage({ params }: { params: Promise<{ token: strin
     return "";
   };
 
-  // Sync live prices and stock availability from backend API
+  // The menu as set up in admin (new dishes included), with live prices and stock
   const fetchLiveMenu = React.useCallback(async () => {
-    try {
-      const apiBase = getApiBase();
-      const res = await fetch(`${apiBase}/api/v1/menu/items`);
-      if (!res.ok) return;
-      const dbItems: Array<{
-        id: number;
-        category_id: number;
-        name: string;
-        description?: string;
-        price: string | number;
-        is_available: boolean;
-        is_sold_out?: boolean;
-        image_url?: string | null;
-      }> = await res.json();
-
-      const dbMapById = new Map(dbItems.map((item) => [item.id, item]));
-
-      setLiveMenuData((prev) => {
-        return prev.map((category) => {
-          return {
-            ...category,
-            items: category.items.map((item) => {
-              const matched = dbMapById.get(MENU_ITEM_ID_MAP[String(item.id)]);
-              if (matched) {
-                return {
-                  ...item,
-                  price: Number(matched.price),
-                  is_available: matched.is_available && !matched.is_sold_out,
-                  image_url: matched.image_url || item.image_url,
-                };
-              }
-              return item;
-            }),
-          };
-        });
-      });
-    } catch {}
+    const live = await loadLiveMenu(getApiBase());
+    if (live) setLiveMenuData(live);
   }, []);
 
   // Live WebSocket listener for instant hand-to-hand menu status updates

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Coffee, Flame, Leaf, UtensilsCrossed, Wine } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import TanFooter from "@/components/TanFooter";
-import { MENU_ITEM_ID_MAP, MenuCategory, MenuItem, menuData as initialMenuData } from "@/data/menu";
+import { MenuCategory, MenuItem, fetchLiveMenu as loadLiveMenu, menuData as initialMenuData } from "@/data/menu";
 
 const categoryLabels: Record<string, string> = {
   all: "All dishes",
@@ -68,25 +68,10 @@ export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [menuData, setMenuData] = useState<MenuCategory[]>(initialMenuData);
 
+  // The menu as set up in admin (new dishes included); the printed menu stays if the server is offline
   const fetchLiveMenu = useCallback(async () => {
-    try {
-      const apiBase = "";
-      const response = await fetch(`${apiBase}/api/v1/menu/items`);
-      if (!response.ok) return;
-      const liveItems: Array<{ id: number; price: string | number; is_available: boolean; is_sold_out?: boolean; image_url?: string | null }> = await response.json();
-      const liveById = new Map(liveItems.map((item) => [item.id, item]));
-      setMenuData(initialMenuData.map((category) => ({
-        ...category,
-        items: category.items.map((item) => {
-          const live = liveById.get(MENU_ITEM_ID_MAP[item.id]);
-          return live
-            ? { ...item, price: Number(live.price), is_available: live.is_available && !live.is_sold_out, image_url: live.image_url || item.image_url }
-            : item;
-        }),
-      })));
-    } catch {
-      // The printed menu remains available when live inventory is offline.
-    }
+    const live = await loadLiveMenu();
+    if (live) setMenuData(live);
   }, []);
 
   useEffect(() => {
@@ -123,7 +108,7 @@ export default function MenuPage() {
         <div className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 sm:px-6 touch-pan-x">
           {["all", ...menuData.map((category) => category.id)].map((id) => (
             <button key={id} type="button" onClick={() => setActiveCategory(id)} aria-pressed={activeCategory === id} className={`min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold transition-colors touch-manipulation cursor-pointer ${activeCategory === id ? "border-[#9E3E26] text-[#9E3E26]" : "border-transparent text-[#49382D] hover:border-[#BFA47A]"}`}>
-              {categoryLabels[id]}
+              {categoryLabels[id] || menuData.find((c) => c.id === id)?.name}
             </button>
           ))}
         </div>

@@ -170,3 +170,82 @@ export const menuData: MenuCategory[] = [
     ],
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Live menu: what admin has in the database (so dishes added there show up),
+// keeping the photos, badges and order of the built-in menu where a dish matches.
+// ---------------------------------------------------------------------------
+export type LiveMenuItem = MenuItem & { is_available?: boolean };
+type DbCategory = { id: number; name: string; display_order: number; is_active?: boolean };
+type DbItem = {
+  id: number;
+  category_id: number;
+  name: string;
+  description?: string | null;
+  price: string | number;
+  is_available: boolean;
+  is_sold_out?: boolean;
+  image_url?: string | null;
+};
+
+// Built-in category slug for a database category name (page layout and icons key off these)
+function categorySlug(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes("pizza")) return "pizza";
+  if (n.includes("hot") || n.includes("coffee") || n.includes("tea")) return "hot-drinks";
+  if (n.includes("beverage") || n.includes("drink")) return "beverages";
+  if (n.includes("starter")) return "starters";
+  if (n.includes("primo") || n.includes("pasta")) return "primo";
+  if (n.includes("cake") || n.includes("dessert")) return "cakes";
+  return n.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "menu";
+}
+
+export function buildLiveMenu(dbCategories: DbCategory[], dbItems: DbItem[]): (MenuCategory & { items: LiveMenuItem[] })[] {
+  const keyByDbId = new Map(Object.entries(MENU_ITEM_ID_MAP).map(([key, id]) => [id, key]));
+  const builtIn = new Map(menuData.flatMap((c) => c.items.map((it, i) => [it.id, { item: it, order: i }] as const)));
+  const used = new Set<string>();
+
+  return dbCategories
+    .filter((c) => c.is_active !== false)
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((cat) => {
+      let slug = categorySlug(cat.name);
+      if (used.has(slug)) slug = `${slug}-${cat.id}`;
+      used.add(slug);
+      const known = menuData.find((c) => c.id === slug);
+      const items = dbItems
+        .filter((it) => it.category_id === cat.id)
+        .map((it) => {
+          const key = keyByDbId.get(it.id);
+          const base = key ? builtIn.get(key) : undefined;
+          return {
+            order: base ? base.order : 1000,
+            item: {
+              ...(base?.item || {}),
+              id: key || String(it.id), // the QR cart turns a plain number back into the menu item id
+              name: it.name,
+              description: it.description || base?.item.description || "",
+              price: Number(it.price),
+              image_url: it.image_url || base?.item.image_url,
+              is_available: it.is_available && !it.is_sold_out,
+            } as LiveMenuItem,
+          };
+        })
+        .sort((a, b) => a.order - b.order || a.item.name.localeCompare(b.item.name))
+        .map((x) => x.item);
+      return { id: slug, name: known?.name || cat.name, subtitle: known?.subtitle, items };
+    })
+    .filter((c) => c.items.length > 0);
+}
+
+// Fetch the live menu; null if the server can't be reached (callers keep the built-in menu)
+export async function fetchLiveMenu(apiBase = ""): Promise<ReturnType<typeof buildLiveMenu> | null> {
+  try {
+    const [c, i] = await Promise.all([fetch(`${apiBase}/api/v1/menu/categories`), fetch(`${apiBase}/api/v1/menu/items`)]);
+    if (!c.ok || !i.ok) return null;
+    const menu = buildLiveMenu(await c.json(), await i.json());
+    return menu.length ? menu : null;
+  } catch {
+    return null;
+  }
+}
