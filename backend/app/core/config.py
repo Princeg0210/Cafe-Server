@@ -40,15 +40,15 @@ class Settings(BaseSettings):
     DEFAULT_MANAGER_PASSWORD: Optional[str] = None
 
     # JWT Authentication (All portal logins expire after 5 hours)
-    JWT_SECRET_KEY: str = "super-secret-jwt-key-jaadoo-udaipur"
+    JWT_SECRET_KEY: str = "change-this-jwt-secret-key-in-production"
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 300  # 5 hours (300 minutes)
     JWT_REFRESH_TOKEN_EXPIRE_MINUTES: int = 300  # 5 hours (300 minutes)
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 1
 
     # Merchant UPI Payment Settings (Direct to bank, 0% commission)
-    MERCHANT_UPI_ID: str = "9460555743-2@ybl"
-    MERCHANT_NAME: str = "Jaadoo Cafe Piza"
+    MERCHANT_UPI_ID: str = "restrova@ybl"
+    MERCHANT_NAME: str = "Restrova Cafe"
 
     # Razorpay Payment Gateway & Testing Portal
     RAZORPAY_KEY_ID: str = "rzp_test_JaadooCafe10"
