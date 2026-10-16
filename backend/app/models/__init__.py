@@ -1,4 +1,5 @@
 from app.core.database import Base
+from app.models.tenant import Tenant
 from app.models.user import User, Role, Permission, RolePermission
 from app.models.customer import Customer
 from app.models.branch import Branch
@@ -20,6 +21,7 @@ from app.models.bank_transaction import VerifiedBankCredit
 
 __all__ = [
     "Base",
+    "Tenant",
     "VerifiedBankCredit",
     "User",
     "Role",
